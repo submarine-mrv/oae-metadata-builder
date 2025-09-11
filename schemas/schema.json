@@ -22,6 +22,54 @@
             "title": "ExperimentType",
             "type": "string"
         },
+        "ExternalProject": {
+            "additionalProperties": false,
+            "description": "A research project that is not directly managed by the OAE project, but whose location is proximal to the OAE project and whose data may be relevant to understanding the context or impacts of OAE activities.",
+            "properties": {
+                "description": {
+                    "description": "A brief description of the external research project.",
+                    "title": "Description",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "description": "The name of the external research project.",
+                    "title": "Name",
+                    "type": "string"
+                },
+                "related_links": {
+                    "description": "Links to websites or documents related to the external research project.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "title": "Related Links",
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "spatial_coverage": {
+                    "$ref": "#/$defs/Place",
+                    "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities) provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+                    "title": "Spatial Coverage"
+                },
+                "temporal_coverage": {
+                    "description": "Start date and end date (if known) of the project in ISO-8601 interval format (YYYY-MM-DD/YYY-MM-DD). If the end date is not known, use open-ended format YYYY-MM-DD/..",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$",
+                    "title": "Temporal Coverage",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "temporal_coverage",
+                "spatial_coverage",
+                "name"
+            ],
+            "title": "ExternalProject",
+            "type": "object"
+        },
         "FeedstockType": {
             "description": "Types of materials used for alkalinity addition, as sourced from NCEI's OCADS controlled vocabulary: https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/vocabularies/alkalinization-types.html",
             "enum": [
@@ -117,9 +165,12 @@
                 },
                 "previous_or_ongoing_colocated_research": {
                     "description": "This field is required for co-located operations that potentially impact the project results. If previous or on-going mCDR field operations have occurred in the study domain by any project developer, they may be mentioned here either as a description, and/or if a reference to the study exists in the form of a data set, publication, etc, the DOI or other identifying information should be provided. Please provide direct links to data when available.",
+                    "items": {
+                        "$ref": "#/$defs/ExternalProject"
+                    },
                     "title": "Previous or Ongoing Co-located Research",
                     "type": [
-                        "string",
+                        "array",
                         "null"
                     ]
                 },
@@ -181,10 +232,10 @@
                 }
             },
             "required": [
-                "project_id",
                 "temporal_coverage",
                 "spatial_coverage",
-                "vertical_coverage"
+                "vertical_coverage",
+                "project_id"
             ],
             "title": "OAEProject",
             "type": "object"
@@ -435,9 +486,12 @@
         },
         "previous_or_ongoing_colocated_research": {
             "description": "This field is required for co-located operations that potentially impact the project results. If previous or on-going mCDR field operations have occurred in the study domain by any project developer, they may be mentioned here either as a description, and/or if a reference to the study exists in the form of a data set, publication, etc, the DOI or other identifying information should be provided. Please provide direct links to data when available.",
+            "items": {
+                "$ref": "#/$defs/ExternalProject"
+            },
             "title": "Previous or Ongoing Co-located Research",
             "type": [
-                "string",
+                "array",
                 "null"
             ]
         },
@@ -499,10 +553,10 @@
         }
     },
     "required": [
-        "project_id",
         "temporal_coverage",
         "spatial_coverage",
-        "vertical_coverage"
+        "vertical_coverage",
+        "project_id"
     ],
     "title": "OAEDataManagementProtocol",
     "type": "object",

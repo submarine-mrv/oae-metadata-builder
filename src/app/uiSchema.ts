@@ -75,8 +75,14 @@ const uiSchema = {
   },
 
   previous_or_ongoing_colocated_research: {
-    "ui:widget": "textarea",
-    "ui:options": { rows: 4 }
+    "ui:options": {
+      addable: true,
+      orderable: false
+    },
+    items: {
+      // Use custom ExternalProject field that handles grid layout internally
+      "ui:field": "ExternalProjectField"
+    }
   },
 
   colocated_operations: {

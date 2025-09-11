@@ -9,6 +9,8 @@ import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
 import uiSchema from "./uiSchema";
 import SpatialCoverageFlatField from "@/components/SpatialCoverageFlatField";
+import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
+import ExternalProjectField from "@/components/ExternalProjectField";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -74,8 +76,14 @@ export default function Page() {
           IsoIntervalWidget,
           SeaNamesAutocomplete: SeaNamesAutocompleteWidget
         }}
-        templates={{ DescriptionFieldTemplate: NoDescription }}
-        fields={{ SpatialCoverageFlat: SpatialCoverageFlatField }}
+        templates={{ 
+          DescriptionFieldTemplate: NoDescription
+        }}
+        fields={{ 
+          SpatialCoverageFlat: SpatialCoverageFlatField,
+          SpatialCoverageMiniMap: SpatialCoverageMiniMap,
+          ExternalProjectField: ExternalProjectField
+        }}
         showErrorList="bottom"
       />
 
@@ -85,15 +93,6 @@ export default function Page() {
           {JSON.stringify(formData, null, 2)}
         </pre>
       </div>
-
-      {/* Simple CSS to hide duplicate spatial coverage rendering */}
-      <style dangerouslySetInnerHTML={{__html: `
-        /* Hide any field that comes after our custom spatial coverage field and contains object/dropdown elements */
-        [id*="root_spatial_coverage"] ~ .field-object,
-        [id*="root_spatial_coverage"] ~ fieldset {
-          display: none !important;
-        }
-      `}} />
     </Container>
   );
 }
