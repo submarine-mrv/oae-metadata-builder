@@ -31,6 +31,15 @@ function decorateSeaNames(schema, labels) {
   };
 }
 
-const decorated = decorateSeaNames(base, labels);
+function decorateMCDRPathways(schema) {
+  // Just return the schema unchanged for now
+  return schema;
+}
+
+let decorated = decorateSeaNames(base, labels);
+decorated = decorateMCDRPathways(decorated);
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
-console.log("✅ schema with labeled sea_names written to", OUTPUT);
+console.log(
+  "✅ schema with labeled sea_names and MCDR pathways written to",
+  OUTPUT
+);

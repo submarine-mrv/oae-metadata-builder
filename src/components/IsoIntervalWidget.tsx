@@ -1,7 +1,14 @@
 "use client";
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";
-import { TextInput, Text, Group, ActionIcon, Popover } from "@mantine/core";
+import {
+  TextInput,
+  Text,
+  Group,
+  ActionIcon,
+  Popover,
+  Stack
+} from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
 import { IconCalendar } from "@tabler/icons-react";
 import dayjs from "dayjs";
@@ -67,10 +74,11 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
 
   return (
     <div id={id}>
-      <Text fw={600} mb="xs">
-        {label || "Temporal coverage"}
-        {required && <span style={{ color: "red" }}> *</span>}
-      </Text>
+      {label && (
+        <Text size="sm" fw={500} mb="xs">
+          {label}
+        </Text>
+      )}
       <Group grow>
         <div style={{ position: "relative" }}>
           <TextInput

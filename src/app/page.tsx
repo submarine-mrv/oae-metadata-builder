@@ -11,12 +11,15 @@ import uiSchema from "./uiSchema";
 import SpatialCoverageFlatField from "@/components/SpatialCoverageFlatField";
 import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import ExternalProjectField from "@/components/ExternalProjectField";
+import MainFormCoverageGrid from "@/components/MainFormCoverageGrid";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 export default function Page() {
   const [schema, setSchema] = useState<any>(null);
-  const [formData, setFormData] = useState<any>({ project_id: "" });
+  const [formData, setFormData] = useState<any>({
+    project_id: "" // Fix controlled/uncontrolled input warning for text input fields
+  });
 
   useEffect(() => {
     fetch("/schema.bundled.json")
@@ -72,24 +75,47 @@ export default function Page() {
         onChange={(e) => setFormData(e.formData)}
         onSubmit={({ formData }) => console.log("submit:", formData)}
         validator={validator}
+        omitExtraData={false}
+        liveOmit={false}
+        experimental_defaultFormStateBehavior={{
+          arrayMinItems: { populate: "all" }
+        }}
         widgets={{
           IsoIntervalWidget,
           SeaNamesAutocomplete: SeaNamesAutocompleteWidget
         }}
-        templates={{ 
+        templates={{
           DescriptionFieldTemplate: NoDescription
         }}
-        fields={{ 
+        fields={{
           SpatialCoverageFlat: SpatialCoverageFlatField,
           SpatialCoverageMiniMap: SpatialCoverageMiniMap,
-          ExternalProjectField: ExternalProjectField
+          ExternalProjectField: ExternalProjectField,
+          MainFormCoverageGrid: MainFormCoverageGrid
         }}
         showErrorList="bottom"
       />
 
-      <div style={{ marginTop: "2rem", padding: "1rem", backgroundColor: "#f8f9fa", border: "1px solid #dee2e6", borderRadius: "4px" }}>
-        <Text style={{ fontWeight: 600, marginBottom: "0.5rem" }}>JSON Preview:</Text>
-        <pre style={{ fontSize: "0.8rem", overflow: "auto", maxHeight: "300px", margin: 0 }}>
+      <div
+        style={{
+          marginTop: "2rem",
+          padding: "1rem",
+          backgroundColor: "#f8f9fa",
+          border: "1px solid #dee2e6",
+          borderRadius: "4px"
+        }}
+      >
+        <Text style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
+          JSON Preview:
+        </Text>
+        <pre
+          style={{
+            fontSize: "0.8rem",
+            overflow: "auto",
+            maxHeight: "300px",
+            margin: 0
+          }}
+        >
           {JSON.stringify(formData, null, 2)}
         </pre>
       </div>

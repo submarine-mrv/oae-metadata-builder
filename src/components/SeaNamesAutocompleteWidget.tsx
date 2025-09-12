@@ -97,12 +97,11 @@ const SeaNamesAutocompleteWidget: React.FC<WidgetProps> = ({
 
   return (
     <div id={id} style={{ maxWidth }}>
-      <label
-        style={{ display: "inline-block", fontWeight: 600, marginBottom: 6 }}
-      >
-        {label ?? "Sea names"}
-        {required ? " *" : ""}
-      </label>
+      {label && (
+        <Text size="sm" fw={500} mb="xs">
+          {label} {required && <Text component="span" c="red">*</Text>}
+        </Text>
+      )}
 
       <Combobox
         store={combobox}

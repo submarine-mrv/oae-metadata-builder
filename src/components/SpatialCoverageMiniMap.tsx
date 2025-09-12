@@ -23,34 +23,36 @@ function writeBox(s: string): any {
 function validateSpatialBounds(boxString: string): string | null {
   const trimmed = boxString.trim();
   if (!trimmed) return null;
-  
+
   const parts = trimmed.split(/\s+/);
   if (parts.length !== 4) {
     return "Must contain exactly 4 numbers: W S E N";
   }
-  
+
   const [west, south, east, north] = parts.map(Number);
-  
-  if (parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))) {
+
+  if (
+    parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))
+  ) {
     return "All values must be valid numbers";
   }
-  
+
   if (west < -180 || west > 180 || east < -180 || east > 180) {
     return "Longitude (W, E) must be between -180 and 180";
   }
-  
+
   if (south < -90 || south > 90 || north < -90 || north > 90) {
     return "Latitude (S, N) must be between -90 and 90";
   }
-  
+
   if (east <= west) {
     return "East longitude must be greater than West longitude";
   }
-  
+
   if (north <= south) {
     return "North latitude must be greater than South latitude";
   }
-  
+
   return null;
 }
 
@@ -95,7 +97,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
 
     const map = new window.maplibregl.Map({
       container: mapRef.current,
-      style: 'https://tiles.openfreemap.org/styles/positron',
+      style: "https://tiles.openfreemap.org/styles/positron",
       center: [-123.0, 47.5],
       zoom: 2,
       interactive: false, // Make it non-interactive for preview
@@ -104,69 +106,83 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
 
     mapInstanceRef.current = map;
 
-    map.on('load', () => {
+    map.on("load", () => {
       setMiniMapLoaded(true);
-      
+
       // Add bounding box if we have coordinates
       if (value.trim()) {
         const parts = value.trim().split(/\s+/).map(Number);
         if (parts.length === 4) {
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
-          map.fitBounds([[west, south], [east, north]], { 
-            padding: 20,
-            duration: 0
-          });
+          map.fitBounds(
+            [
+              [west, south],
+              [east, north]
+            ],
+            {
+              padding: 20,
+              duration: 0
+            }
+          );
         }
       }
     });
   }, [value]);
 
-  const addBoundingBox = (map: any, west: number, south: number, east: number, north: number) => {
+  const addBoundingBox = (
+    map: any,
+    west: number,
+    south: number,
+    east: number,
+    north: number
+  ) => {
     // Remove existing bounding box
-    if (map.getSource('bbox')) {
-      map.removeLayer('bbox-fill');
-      map.removeLayer('bbox-outline');
-      map.removeSource('bbox');
+    if (map.getSource("bbox")) {
+      map.removeLayer("bbox-fill");
+      map.removeLayer("bbox-outline");
+      map.removeSource("bbox");
     }
 
     // Add bounding box as GeoJSON
-    map.addSource('bbox', {
-      type: 'geojson',
+    map.addSource("bbox", {
+      type: "geojson",
       data: {
-        type: 'Feature',
+        type: "Feature",
         geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [west, north],
-            [east, north],
-            [east, south],
-            [west, south],
-            [west, north]
-          ]]
+          type: "Polygon",
+          coordinates: [
+            [
+              [west, north],
+              [east, north],
+              [east, south],
+              [west, south],
+              [west, north]
+            ]
+          ]
         }
       }
     });
 
     // Add fill layer
     map.addLayer({
-      id: 'bbox-fill',
-      type: 'fill',
-      source: 'bbox',
+      id: "bbox-fill",
+      type: "fill",
+      source: "bbox",
       paint: {
-        'fill-color': '#ff7800',
-        'fill-opacity': 0.1
+        "fill-color": "#ff7800",
+        "fill-opacity": 0.1
       }
     });
 
     // Add outline layer
     map.addLayer({
-      id: 'bbox-outline',
-      type: 'line',
-      source: 'bbox',
+      id: "bbox-outline",
+      type: "line",
+      source: "bbox",
       paint: {
-        'line-color': '#ff7800',
-        'line-width': 2
+        "line-color": "#ff7800",
+        "line-width": 2
       }
     });
   };
@@ -177,16 +193,17 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
       if (!window.maplibregl) {
         // Load CSS
         if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = 'https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css';
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href =
+            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
           document.head.appendChild(link);
         }
 
         // Load JS
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js';
-        
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
+
         await new Promise((resolve) => {
           script.onload = resolve;
           document.head.appendChild(script);
@@ -210,17 +227,23 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
       if (parts.length === 4) {
         const [west, south, east, north] = parts;
         addBoundingBox(mapInstanceRef.current, west, south, east, north);
-        mapInstanceRef.current.fitBounds([[west, south], [east, north]], { 
-          padding: 20,
-          duration: 500
-        });
+        mapInstanceRef.current.fitBounds(
+          [
+            [west, south],
+            [east, north]
+          ],
+          {
+            padding: 20,
+            duration: 500
+          }
+        );
       }
     } else if (mapInstanceRef.current && miniMapLoaded && !value.trim()) {
       // Remove bounding box if no value
-      if (mapInstanceRef.current.getSource('bbox')) {
-        mapInstanceRef.current.removeLayer('bbox-fill');
-        mapInstanceRef.current.removeLayer('bbox-outline');
-        mapInstanceRef.current.removeSource('bbox');
+      if (mapInstanceRef.current.getSource("bbox")) {
+        mapInstanceRef.current.removeLayer("bbox-fill");
+        mapInstanceRef.current.removeLayer("bbox-outline");
+        mapInstanceRef.current.removeSource("bbox");
       }
       // Reset to default view
       mapInstanceRef.current.flyTo({
@@ -234,10 +257,21 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
   return (
     <>
       <Box>
-        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Text size="sm" style={{ fontWeight: 500 }}>
-            {label}
-            {required ? " *" : ""}
+        <Box
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "8px"
+          }}
+        >
+          <Text size="sm" fw={500}>
+            {label}{" "}
+            {required && (
+              <Text component="span" c="red">
+                *
+              </Text>
+            )}
           </Text>
           <Tooltip label="Click to open map editor">
             <ActionIcon
@@ -245,7 +279,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
               size="sm"
               onClick={() => setShowMapModal(true)}
               disabled={disabled || readonly}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: "pointer" }}
             >
               <IconEdit size={14} />
             </ActionIcon>
@@ -255,53 +289,53 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
         <Box
           onClick={() => !disabled && !readonly && setShowMapModal(true)}
           style={{
-            width: '100%',
-            height: '150px', // Increased height to align with temporal coverage
-            border: validationError ? '2px solid #fa5252' : '1px solid #ced4da',
-            borderRadius: '4px',
-            cursor: disabled || readonly ? 'default' : 'pointer',
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: '#f8f9fa'
+            width: "100%",
+            height: "300px",
+            border: validationError ? "2px solid #fa5252" : "1px solid #ced4da",
+            borderRadius: "4px",
+            cursor: disabled || readonly ? "default" : "pointer",
+            position: "relative",
+            overflow: "hidden",
+            backgroundColor: "#f8f9fa"
           }}
         >
           <div
             ref={mapRef}
             style={{
-              width: '100%',
-              height: '100%'
+              width: "100%",
+              height: "100%"
             }}
           />
-          
+
           {/* Overlay for click indication */}
           {!disabled && !readonly && (
             <Box
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                backgroundColor: "rgba(0,0,0,0)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 opacity: 0,
-                transition: 'opacity 0.2s',
-                pointerEvents: 'none'
+                transition: "opacity 0.2s",
+                pointerEvents: "none"
               }}
               className="map-overlay"
             >
               <Box
                 style={{
-                  backgroundColor: 'rgba(0,0,0,0.7)',
-                  color: 'white',
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  backgroundColor: "rgba(0,0,0,0.7)",
+                  color: "white",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
                 }}
               >
                 <IconMap size={16} />
@@ -310,18 +344,9 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
             </Box>
           )}
         </Box>
-
-        {validationError && (
-          <Text size="xs" color="red" mt={4}>
-            {validationError}
-          </Text>
-        )}
-
-        {value && (
-          <Text size="xs" c="dimmed" mt={4} style={{ fontFamily: "monospace" }}>
-            {value}
-          </Text>
-        )}
+        <Text size="xs" c="dimmed" mt={4} style={{ fontFamily: "monospace" }}>
+          {value || "Click the map to set bounding box"}
+        </Text>
       </Box>
 
       <MapBoundingBoxSelectorProper
@@ -334,11 +359,15 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
         initialBounds={value}
       />
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .map-overlay:hover {
           opacity: 1 !important;
         }
-      `}} />
+      `
+        }}
+      />
     </>
   );
 };

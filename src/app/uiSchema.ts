@@ -1,10 +1,43 @@
 // uiSchema.ts
-const uiSchema = {
+
+// Grid style does not actually work as intenteded with "addable" fields
+// once you edit an added element in the array, the entire entry collapses
+// so we are not using this for now.
+//
+// const uiSchemaGrid = {
+//   "ui:field": "LayoutGridField",
+//   "ui:layoutGrid": {
+//     "ui:row": [
+//       { "ui:row": [{ "ui:col": ["project_id"] }] },
+//       { "ui:row": [{ "ui:col": ["sea_names"] }] },
+//       { "ui:row": [{ "ui:col": ["project_description"] }] },
+//       { "ui:row": [{ "ui:col": ["permit_numbers"] }] }
+//     ]
+//   },
+//   project_description: {
+//     "ui:widget": "textarea",
+//     "ui:options": { rows: 6 }
+//   },
+
+//   previous_or_ongoing_colocated_research: {
+//     "ui:options": {
+//       addable: true,
+//       orderable: false
+//     },
+//     items: {
+//       "ui:field": "ExternalProjectField"
+//     }
+//   }
+// };
+
+// // Old style ordering and UI customizations for react-jsonschema-form
+const uiSchemaOld = {
   "ui:order": [
     "project_id",
     "temporal_coverage",
-    "spatial_coverage",
+    "coverage_section",
     "vertical_coverage",
+    "spatial_coverage",
     "sea_names",
     "project_description",
     "physical_site_description",
@@ -13,34 +46,40 @@ const uiSchema = {
     "mcdr_pathway",
     "previous_or_ongoing_colocated_research",
     "colocated_operations",
-    "permit_numbers",
-    "*"
+    "permit_numbers"
   ],
 
   temporal_coverage: {
-    "ui:widget": "IsoIntervalWidget"
-  },
-
-  sea_names: {
-    "ui:widget": "SeaNamesAutocomplete"
+    "ui:widget": "IsoIntervalWidget",
+    "ui:title": "Temporal Coverage",
+    "ui:style": { width: "50%" }
   },
 
   spatial_coverage: {
-    "ui:field": "SpatialCoverageFlat"
+    "ui:field": "SpatialCoverageMiniMap",
+    "ui:title": "Spatial Coverage"
+  },
+
+  mcdr_pathway: {
+    "ui:enumNames": [
+      "Ocean Alkalinity Enhancement",
+      "Biomass Sinking",
+      "Direct Ocean Capture",
+      "Ocean Nutrient Fertilization",
+      "Artificial Upwelling and Downwelling",
+      "Marine Ecosystem Recovery"
+    ]
   },
 
   vertical_coverage: {
+    "ui:title": "Vertical Coverage",
     "ui:options": {
       gridCols: 2
     },
-    min_depth_in_m: {
-      "ui:widget": "updown",
-      "ui:placeholder": "e.g., 0"
-    },
-    max_depth_in_m: {
-      "ui:widget": "updown",
-      "ui:placeholder": "e.g., 50"
-    }
+    "ui:style": { width: "50%" }
+  },
+  sea_names: {
+    "ui:style": { width: "66%" }
   },
 
   permit_numbers: {
@@ -80,7 +119,6 @@ const uiSchema = {
       orderable: false
     },
     items: {
-      // Use custom ExternalProject field that handles grid layout internally
       "ui:field": "ExternalProjectField"
     }
   },
@@ -91,4 +129,4 @@ const uiSchema = {
   }
 };
 
-export default uiSchema;
+export default uiSchemaOld;
