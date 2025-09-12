@@ -144,10 +144,10 @@
           "description": "The Marine Carbon Dioxide Removal (MCDR) pathway being studied.",
           "title": "MCDR Pathway"
         },
-        "permit_numbers": {
+        "permits": {
           "description": "Associated permit number(s).",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/Permit"
           },
           "title": "Permits",
           "type": [
@@ -268,6 +268,54 @@
         "model_outputs"
       ],
       "title": "ObservationType",
+      "type": "string"
+    },
+    "Permit": {
+      "additionalProperties": false,
+      "description": "A permit associated with the project.",
+      "properties": {
+        "approval_document": {
+          "description": "Links to documentation related to the permit.",
+          "title": "Permit Document",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permit_id": {
+          "description": "The unique identifier or number associated with this permit.",
+          "title": "Permit ID or Number",
+          "type": "string"
+        },
+        "permit_status": {
+          "$ref": "#/$defs/PermitStatus",
+          "description": "The current status of the permit (e.g., active, expired).",
+          "title": "Permit Status"
+        },
+        "permitting_authority": {
+          "description": "The group that issued the permit.",
+          "title": "Permitting Authority",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "permit_id"
+      ],
+      "title": "Permit",
+      "type": "object"
+    },
+    "PermitStatus": {
+      "description": "The status of a permit.",
+      "enum": [
+        "pending",
+        "active",
+        "expired",
+        "revoked"
+      ],
+      "title": "PermitStatus",
       "type": "string"
     },
     "Place": {
@@ -467,10 +515,10 @@
       "description": "The Marine Carbon Dioxide Removal (MCDR) pathway being studied.",
       "title": "MCDR Pathway"
     },
-    "permit_numbers": {
+    "permits": {
       "description": "Associated permit number(s).",
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/Permit"
       },
       "title": "Permits",
       "type": [

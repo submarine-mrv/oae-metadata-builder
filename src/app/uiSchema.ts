@@ -46,7 +46,7 @@ const uiSchemaOld = {
     "mcdr_pathway",
     "previous_or_ongoing_colocated_research",
     "colocated_operations",
-    "permit_numbers"
+    "permits"
   ],
 
   temporal_coverage: {
@@ -126,6 +126,19 @@ const uiSchemaOld = {
   colocated_operations: {
     "ui:widget": "textarea",
     "ui:options": { rows: 3 }
+  },
+
+  permits: {
+    "ui:options": {
+      addable: true,
+      orderable: false
+    },
+    "ui:order": [
+      "permit_id",
+      "permitting_authority",
+      "permit_status",
+      "permit_document"
+    ]
   }
 };
 
