@@ -12,6 +12,8 @@ import SpatialCoverageFlatField from "@/components/SpatialCoverageFlatField";
 import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import MainFormCoverageGrid from "@/components/MainFormCoverageGrid";
+import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
+import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -85,7 +87,9 @@ export default function Page() {
           SeaNamesAutocomplete: SeaNamesAutocompleteWidget
         }}
         templates={{
-          DescriptionFieldTemplate: NoDescription
+          DescriptionFieldTemplate: NoDescription,
+          ArrayFieldItemButtonsTemplate: CustomArrayFieldItemButtonsTemplate,
+          TitleFieldTemplate: CustomTitleFieldTemplate
         }}
         fields={{
           SpatialCoverageFlat: SpatialCoverageFlatField,

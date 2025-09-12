@@ -30,8 +30,17 @@
 //   }
 // };
 
+const nestedItemStyle = {
+  border: "1px solid #ccc",
+  borderRadius: "5px",
+  padding: "16px",
+  margin: "8px 0",
+  background: "#f9f9f9"
+};
+
 // // Old style ordering and UI customizations for react-jsonschema-form
 const uiSchemaOld = {
+  "ui:title": "",
   "ui:order": [
     "project_id",
     "temporal_coverage",
@@ -46,8 +55,14 @@ const uiSchemaOld = {
     "mcdr_pathway",
     "previous_or_ongoing_colocated_research",
     "colocated_operations",
-    "permits"
+    "permits",
+    "*"
   ],
+
+  project_id: {
+    "ui:style": { width: "50%" },
+    "ui:placeholder": "Enter project ID"
+  },
 
   temporal_coverage: {
     "ui:widget": "IsoIntervalWidget",
@@ -61,6 +76,7 @@ const uiSchemaOld = {
   },
 
   mcdr_pathway: {
+    "ui:style": { width: "320px" },
     "ui:enumNames": [
       "Ocean Alkalinity Enhancement",
       "Biomass Sinking",
@@ -88,7 +104,8 @@ const uiSchemaOld = {
       orderable: false
     },
     items: {
-      "ui:placeholder": "e.g., CA-OAE-2025-001"
+      "ui:placeholder": "e.g., CA-OAE-2025-001",
+      "ui:options": { rows: 1 }
     },
     "ui:help": "Add all associated permits."
   },
@@ -119,7 +136,8 @@ const uiSchemaOld = {
       orderable: false
     },
     items: {
-      "ui:field": "ExternalProjectField"
+      "ui:field": "ExternalProjectField",
+      "ui:style": nestedItemStyle
     }
   },
 
@@ -133,12 +151,15 @@ const uiSchemaOld = {
       addable: true,
       orderable: false
     },
-    "ui:order": [
-      "permit_id",
-      "permitting_authority",
-      "permit_status",
-      "permit_document"
-    ]
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:order": [
+        "permit_id",
+        "permit_status",
+        "permitting_authority",
+        "approval_document"
+      ]
+    }
   }
 };
 

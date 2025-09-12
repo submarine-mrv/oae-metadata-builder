@@ -24,3 +24,23 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom RJSF Array styling */
+
+/* Add button - left-aligned instead of right-aligned */
+.mantine-Group-root:has(.rjsf-array-item-add) {
+  justify-content: flex-start !important;
+}
+
+/* Array item positioning */
+.rjsf-array-item {
+  position: relative;
+}
+
+/* Remove button - top-right positioning */
+.rjsf-array-item-remove {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  z-index: 10 !important;
+}

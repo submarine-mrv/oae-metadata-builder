@@ -36,7 +36,8 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
 
   const createFieldProps = (fieldName: string, fieldSchema: any) => ({
     formData: formData[fieldName],
-    onChange: (data: any) => handleFieldChange(fieldName, data.formData || data),
+    onChange: (data: any) =>
+      handleFieldChange(fieldName, data.formData || data),
     disabled,
     readonly,
     required: false, // Override required for ExternalProject fields - they should be optional
@@ -48,28 +49,30 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
   return (
     <Box>
       <Stack gap="md">
-        {/* Name field */}
-        {schema.properties?.name && (
-          <Box>
-            <Text size="sm" style={{ fontWeight: 500, marginBottom: "4px" }}>
-              Name
-            </Text>
-            <TextInput
-              value={formData.name || ""}
-              onChange={(e) => handleFieldChange("name", e.currentTarget.value)}
-              disabled={disabled || readonly}
-              placeholder="Project name"
-            />
-          </Box>
-        )}
-
-        {/* Grid layout for temporal and spatial coverage */}
-        {(schema.properties?.temporal_coverage ||
+        {/* Grid layout for name, temporal and spatial coverage */}
+        {(schema.properties?.name ||
+          schema.properties?.temporal_coverage ||
           schema.properties?.spatial_coverage) && (
           <Grid gutter="md">
-            {/* Temporal coverage - left column */}
-            {schema.properties?.temporal_coverage && (
-              <Grid.Col span={6}>
+            {/* Left column - Name and Temporal coverage */}
+            <Grid.Col span={6}>
+              {/* Name field */}
+              {schema.properties?.name && (
+                <Box mb="md">
+                  <Text size="sm" style={{ fontWeight: 500, marginBottom: "4px" }}>
+                    Name
+                  </Text>
+                  <TextInput
+                    value={formData.name || ""}
+                    onChange={(e) => handleFieldChange("name", e.currentTarget.value)}
+                    disabled={disabled || readonly}
+                    placeholder="Project name"
+                  />
+                </Box>
+              )}
+
+              {/* Temporal coverage */}
+              {schema.properties?.temporal_coverage && (
                 <Box>
                   <Text
                     size="sm"
@@ -84,10 +87,10 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                     )}
                   />
                 </Box>
-              </Grid.Col>
-            )}
+              )}
+            </Grid.Col>
 
-            {/* Spatial coverage - right column */}
+            {/* Right column - Spatial coverage */}
             {schema.properties?.spatial_coverage && (
               <Grid.Col span={6}>
                 <SpatialCoverageMiniMap

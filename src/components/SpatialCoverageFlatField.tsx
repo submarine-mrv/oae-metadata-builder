@@ -24,38 +24,40 @@ function writeBox(s: string): any {
 function validateSpatialBounds(boxString: string): string | null {
   const trimmed = boxString.trim();
   if (!trimmed) return null; // empty is valid (null)
-  
+
   const parts = trimmed.split(/\s+/);
   if (parts.length !== 4) {
     return "Must contain exactly 4 numbers: W S E N";
   }
-  
+
   const [west, south, east, north] = parts.map(Number);
-  
+
   // Check if all parts are valid numbers
-  if (parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))) {
+  if (
+    parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))
+  ) {
     return "All values must be valid numbers";
   }
-  
+
   // WKT longitude bounds: -180 to 180
   if (west < -180 || west > 180 || east < -180 || east > 180) {
     return "Longitude (W, E) must be between -180 and 180";
   }
-  
+
   // WKT latitude bounds: -90 to 90
   if (south < -90 || south > 90 || north < -90 || north > 90) {
     return "Latitude (S, N) must be between -90 and 90";
   }
-  
+
   // Logical bounds check
   if (east <= west) {
     return "East longitude must be greater than West longitude";
   }
-  
+
   if (north <= south) {
     return "North latitude must be greater than South latitude";
   }
-  
+
   return null; // valid
 }
 
@@ -75,7 +77,9 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
 
   const id = idSchema.$id;
   const [value, setValue] = React.useState<string>(readBox(formData));
-  const [validationError, setValidationError] = React.useState<string | null>(null);
+  const [validationError, setValidationError] = React.useState<string | null>(
+    null
+  );
   const [showMap, setShowMap] = React.useState(false);
 
   React.useEffect(() => {
@@ -107,7 +111,14 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
   return (
     <>
       <div style={{ maxWidth }}>
-        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+        <Box
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "4px"
+          }}
+        >
           <label style={{ fontWeight: 600 }}>
             {label}
             {required ? " *" : ""}
@@ -117,7 +128,7 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
               variant="subtle"
               size="sm"
               onClick={() => setShowMap(true)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: "pointer" }}
             >
               <IconMap size={16} />
             </ActionIcon>

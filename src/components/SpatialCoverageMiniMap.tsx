@@ -262,7 +262,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            marginBottom: "8px"
+            marginBottom: "4px"
           }}
         >
           <Text size="sm" fw={500}>
@@ -276,7 +276,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
           <Tooltip label="Click to open map editor">
             <ActionIcon
               variant="subtle"
-              size="sm"
+              size="xs"
               onClick={() => setShowMapModal(true)}
               disabled={disabled || readonly}
               style={{ cursor: "pointer" }}
