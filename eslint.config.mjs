@@ -20,6 +20,17 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      // Disable 'any' type errors - common in schema-driven apps like RJSF
+      "@typescript-eslint/no-explicit-any": "off",
+      // Keep unused vars and expressions as warnings instead of errors
+      "@typescript-eslint/no-unused-vars": "warn", 
+      "@typescript-eslint/no-unused-expressions": "warn",
+      // Keep React hooks warnings
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

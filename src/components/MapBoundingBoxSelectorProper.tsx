@@ -1,8 +1,14 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Modal, Button, Text, Box, Stack, Alert } from "@mantine/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { Modal, Button, Text, Box, Stack } from "@mantine/core";
+
+// Extend Window interface to include maplibregl
+declare global {
+  interface Window {
+    maplibregl?: any;
+  }
+}
 
 interface MapBoundingBoxSelectorProps {
   opened: boolean;
@@ -19,28 +25,31 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const startPointRef = useRef<{lng: number, lat: number} | null>(null);
+  const startPointRef = useRef<{ lng: number; lat: number } | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [currentBounds, setCurrentBounds] = useState<string>(initialBounds);
-  const [startPoint, setStartPoint] = useState<{lng: number, lat: number} | null>(null);
+  const [startPoint, setStartPoint] = useState<{
+    lng: number;
+    lat: number;
+  } | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [boundingBox, setBoundingBox] = useState<any>(null);
+  const [_, setBoundingBox] = useState<any>(null);
 
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.maplibregl || mapInstanceRef.current) return;
 
     const map = new window.maplibregl.Map({
       container: mapRef.current,
-      style: 'https://tiles.openfreemap.org/styles/positron',
+      style: "https://tiles.openfreemap.org/styles/positron",
       center: [-123.0, 47.5], // Pacific Northwest (Seattle area)
       zoom: 6
     });
 
     mapInstanceRef.current = map;
 
-    map.on('load', () => {
+    map.on("load", () => {
       setMapLoaded(true);
-      
+
       // Add initial bounds if provided
       if (initialBounds.trim()) {
         const parts = initialBounds.trim().split(/\s+/).map(Number);
@@ -48,10 +57,16 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
           // Smooth zoom to bounds with animation
-          map.fitBounds([[west, south], [east, north]], { 
-            padding: 50
-            // Remove duration: 0 to restore smooth animation
-          });
+          map.fitBounds(
+            [
+              [west, south],
+              [east, north]
+            ],
+            {
+              padding: 50
+              // Remove duration: 0 to restore smooth animation
+            }
+          );
           setCurrentBounds(initialBounds);
         }
       }
@@ -69,16 +84,17 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       if (!window.maplibregl) {
         // Load CSS
         if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = 'https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css';
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href =
+            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
           document.head.appendChild(link);
         }
 
         // Load JS
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js';
-        
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
+
         await new Promise((resolve) => {
           script.onload = resolve;
           document.head.appendChild(script);
@@ -92,55 +108,63 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         }
       });
     };
-    
+
     loadAndInitialize();
   }, [opened, initializeMap]);
 
-  const addBoundingBox = (map: any, west: number, south: number, east: number, north: number) => {
+  const addBoundingBox = (
+    map: any,
+    west: number,
+    south: number,
+    east: number,
+    north: number
+  ) => {
     // Remove existing bounding box
-    if (map.getSource('bbox')) {
-      map.removeLayer('bbox-fill');
-      map.removeLayer('bbox-outline');
-      map.removeSource('bbox');
+    if (map.getSource("bbox")) {
+      map.removeLayer("bbox-fill");
+      map.removeLayer("bbox-outline");
+      map.removeSource("bbox");
     }
 
     // Add bounding box as GeoJSON
-    map.addSource('bbox', {
-      type: 'geojson',
+    map.addSource("bbox", {
+      type: "geojson",
       data: {
-        type: 'Feature',
+        type: "Feature",
         geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [west, north],
-            [east, north],
-            [east, south],
-            [west, south],
-            [west, north]
-          ]]
+          type: "Polygon",
+          coordinates: [
+            [
+              [west, north],
+              [east, north],
+              [east, south],
+              [west, south],
+              [west, north]
+            ]
+          ]
         }
       }
     });
 
     // Add fill layer
     map.addLayer({
-      id: 'bbox-fill',
-      type: 'fill',
-      source: 'bbox',
+      id: "bbox-fill",
+      type: "fill",
+      source: "bbox",
       paint: {
-        'fill-color': '#ff7800',
-        'fill-opacity': 0.1
+        "fill-color": "#ff7800",
+        "fill-opacity": 0.1
       }
     });
 
     // Add outline layer
     map.addLayer({
-      id: 'bbox-outline',
-      type: 'line',
-      source: 'bbox',
+      id: "bbox-outline",
+      type: "line",
+      source: "bbox",
       paint: {
-        'line-color': '#ff7800',
-        'line-width': 2
+        "line-color": "#ff7800",
+        "line-width": 2
       }
     });
 
@@ -150,23 +174,23 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   const startSelection = () => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
-    
+
     setIsSelecting(true);
     setStartPoint(null);
     startPointRef.current = null;
-    
+
     // Remove existing bounding box
-    if (map.getSource('bbox')) {
-      map.removeLayer('bbox-fill');
-      map.removeLayer('bbox-outline');
-      map.removeSource('bbox');
+    if (map.getSource("bbox")) {
+      map.removeLayer("bbox-fill");
+      map.removeLayer("bbox-outline");
+      map.removeSource("bbox");
     }
 
-    map.getCanvas().style.cursor = 'crosshair';
+    map.getCanvas().style.cursor = "crosshair";
 
     const onMapClick = (e: any) => {
       const { lng, lat } = e.lngLat;
-      
+
       if (!startPointRef.current) {
         // First click - start selection
         startPointRef.current = { lng, lat };
@@ -181,21 +205,23 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
 
         // Add final bounding box
         addBoundingBox(map, west, south, east, north);
-        
+
         // Format as "W S E N"
-        const boundsString = `${west.toFixed(6)} ${south.toFixed(6)} ${east.toFixed(6)} ${north.toFixed(6)}`;
+        const boundsString = `${west.toFixed(6)} ${south.toFixed(
+          6
+        )} ${east.toFixed(6)} ${north.toFixed(6)}`;
         setCurrentBounds(boundsString);
 
         // Clean up
-        map.off('click', onMapClick);
-        map.getCanvas().style.cursor = '';
+        map.off("click", onMapClick);
+        map.getCanvas().style.cursor = "";
         setIsSelecting(false);
         setStartPoint(null);
         startPointRef.current = null;
       }
     };
 
-    map.on('click', onMapClick);
+    map.on("click", onMapClick);
   };
 
   const handleConfirm = () => {
@@ -218,7 +244,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
-      
+
       // Reset all state
       setCurrentBounds(initialBounds);
       setIsSelecting(false);
@@ -239,16 +265,15 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          {!mapLoaded 
-            ? "Loading map..." 
-            : !isSelecting 
-              ? "Click 'Start Selection' then click two points on the map to define your bounding box."
-              : startPoint 
-                ? "Click second point to complete selection"
-                : "Click first point to start selection"
-          }
+          {!mapLoaded
+            ? "Loading map..."
+            : !isSelecting
+            ? "Click 'Start Selection' then click two points on the map to define your bounding box."
+            : startPoint
+            ? "Click second point to complete selection"
+            : "Click first point to start selection"}
         </Text>
-        
+
         <Box
           ref={mapRef}
           style={{
@@ -260,14 +285,19 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           }}
         />
 
-        
         {currentBounds && (
           <Text size="sm" style={{ fontFamily: "monospace" }}>
             Current bounds: {currentBounds}
           </Text>
         )}
-        
-        <Box style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+        <Box
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
           {mapLoaded && (
             <Button
               variant="outline"
@@ -277,7 +307,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               {isSelecting ? "Selecting..." : "Start Selection"}
             </Button>
           )}
-          
+
           <Box style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
             <Button variant="outline" onClick={handleCancel}>
               Cancel

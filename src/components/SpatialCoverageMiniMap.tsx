@@ -57,16 +57,8 @@ function validateSpatialBounds(boxString: string): string | null {
 }
 
 const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
-  const {
-    idSchema,
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    required,
-    schema,
-    uiSchema
-  } = props;
+  const { formData, onChange, disabled, readonly, required, schema, uiSchema } =
+    props;
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);

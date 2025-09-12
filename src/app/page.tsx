@@ -11,7 +11,6 @@ import uiSchema from "./uiSchema";
 import SpatialCoverageFlatField from "@/components/SpatialCoverageFlatField";
 import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import ExternalProjectField from "@/components/ExternalProjectField";
-import MainFormCoverageGrid from "@/components/MainFormCoverageGrid";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 
@@ -94,8 +93,7 @@ export default function Page() {
         fields={{
           SpatialCoverageFlat: SpatialCoverageFlatField,
           SpatialCoverageMiniMap: SpatialCoverageMiniMap,
-          ExternalProjectField: ExternalProjectField,
-          MainFormCoverageGrid: MainFormCoverageGrid
+          ExternalProjectField: ExternalProjectField
         }}
         showErrorList="bottom"
       />

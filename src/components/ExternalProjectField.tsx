@@ -21,7 +21,6 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     onChange,
     disabled,
     readonly,
-    required,
     schema,
     uiSchema,
     idSchema
@@ -33,17 +32,26 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
       [fieldName]: value
     });
   };
-
-  const createFieldProps = (fieldName: string, fieldSchema: any) => ({
+  const createWidgetProps = (fieldName: string, fieldSchema: any) => ({
+    id: `${idSchema.$id}_${fieldName}`,
+    name: fieldName,
+    value: formData[fieldName],
     formData: formData[fieldName],
     onChange: (data: any) =>
       handleFieldChange(fieldName, data.formData || data),
+    onBlur: () => {}, // No-op function for blur events
+    onFocus: () => {}, // No-op function for focus events
     disabled,
     readonly,
     required: false, // Override required for ExternalProject fields - they should be optional
     schema: fieldSchema,
     uiSchema: uiSchema?.[fieldName] || {},
-    idSchema: { ...idSchema, $id: `${idSchema.$id}_${fieldName}` }
+    idSchema: { ...idSchema, $id: `${idSchema.$id}_${fieldName}` },
+    options: {},
+    label: fieldName,
+    placeholder: "",
+    rawErrors: [],
+    registry: props.registry // Pass through the registry from props
   });
 
   return (
@@ -59,12 +67,17 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
               {/* Name field */}
               {schema.properties?.name && (
                 <Box mb="md">
-                  <Text size="sm" style={{ fontWeight: 500, marginBottom: "4px" }}>
+                  <Text
+                    size="sm"
+                    style={{ fontWeight: 500, marginBottom: "4px" }}
+                  >
                     Name
                   </Text>
                   <TextInput
                     value={formData.name || ""}
-                    onChange={(e) => handleFieldChange("name", e.currentTarget.value)}
+                    onChange={(e) =>
+                      handleFieldChange("name", e.currentTarget.value)
+                    }
                     disabled={disabled || readonly}
                     placeholder="Project name"
                   />
@@ -81,7 +94,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                     Temporal Coverage
                   </Text>
                   <IsoIntervalWidgetVertical
-                    {...createFieldProps(
+                    {...createWidgetProps(
                       "temporal_coverage",
                       schema.properties.temporal_coverage
                     )}
@@ -94,7 +107,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
             {schema.properties?.spatial_coverage && (
               <Grid.Col span={6}>
                 <SpatialCoverageMiniMap
-                  {...createFieldProps(
+                  {...createWidgetProps(
                     "spatial_coverage",
                     schema.properties.spatial_coverage
                   )}

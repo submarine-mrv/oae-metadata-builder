@@ -1,17 +1,9 @@
 "use client";
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";
-import {
-  TextInput,
-  Text,
-  Group,
-  ActionIcon,
-  Popover,
-  Stack
-} from "@mantine/core";
-import { DatePicker } from "@mantine/dates";
-import { IconCalendar } from "@tabler/icons-react";
+import { TextInput, Text, Group } from "@mantine/core";
 import dayjs from "dayjs";
+import DatePickerPopover from "./DatePickerPopover";
 
 function parseInterval(v?: string | null): { start: string; end: string } {
   if (!v || typeof v !== "string") return { start: "", end: "" };
@@ -21,6 +13,7 @@ function parseInterval(v?: string | null): { start: string; end: string } {
     end: end && end !== ".." ? end : ""
   };
 }
+
 function buildInterval(start: string, end: string): string | undefined {
   if (!start) return undefined;
   return `${start}/${end || ".."}`;
@@ -30,17 +23,6 @@ const validateDate = (input: string) => {
   if (!input) return true; // empty is valid
   const d = dayjs(input, "YYYY-MM-DD", true);
   return d.isValid();
-};
-
-const parseToDate = (dateStr: string): Date | null => {
-  if (!dateStr) return null;
-  const d = dayjs(dateStr, "YYYY-MM-DD", true);
-  return d.isValid() ? d.toDate() : null;
-};
-
-const formatFromDate = (date: Date | null): string => {
-  if (!date) return "";
-  return dayjs(date).format("YYYY-MM-DD");
 };
 
 const IsoIntervalWidget: React.FC<WidgetProps> = ({
@@ -69,6 +51,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     setStartDate(start);
     setEndDate(end);
   }, [start, end]);
+
   const emit = (s: string, e: string) =>
     onChange(buildInterval(s, e) ?? undefined);
 
@@ -103,35 +86,18 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
                 : undefined
             }
             rightSection={
-              <Popover
+              <DatePickerPopover
                 opened={startPickerOpen}
                 onChange={setStartPickerOpen}
-                position="bottom-end"
-                withinPortal={false}
-              >
-                <Popover.Target>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={() => setStartPickerOpen((o) => !o)}
-                    disabled={disabled || readonly}
-                  >
-                    <IconCalendar size={16} />
-                  </ActionIcon>
-                </Popover.Target>
-                <Popover.Dropdown>
-                  <DatePicker
-                    value={parseToDate(startDate)}
-                    onChange={(date) => {
-                      const formatted = formatFromDate(date);
-                      setStartDate(formatted);
-                      emit(formatted, endDate);
-                      setStartTouched(true);
-                      setStartPickerOpen(false);
-                    }}
-                  />
-                </Popover.Dropdown>
-              </Popover>
+                value={startDate}
+                onDateChange={(formatted) => {
+                  setStartDate(formatted);
+                  emit(formatted, endDate);
+                }}
+                onTouched={() => setStartTouched(true)}
+                disabled={disabled}
+                readonly={readonly}
+              />
             }
           />
         </div>
@@ -157,35 +123,18 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
                 : undefined
             }
             rightSection={
-              <Popover
+              <DatePickerPopover
                 opened={endPickerOpen}
                 onChange={setEndPickerOpen}
-                position="bottom-end"
-                withinPortal={false}
-              >
-                <Popover.Target>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={() => setEndPickerOpen((o) => !o)}
-                    disabled={disabled || readonly}
-                  >
-                    <IconCalendar size={16} />
-                  </ActionIcon>
-                </Popover.Target>
-                <Popover.Dropdown>
-                  <DatePicker
-                    value={parseToDate(endDate)}
-                    onChange={(date) => {
-                      const formatted = formatFromDate(date);
-                      setEndDate(formatted);
-                      emit(startDate, formatted);
-                      setEndTouched(true);
-                      setEndPickerOpen(false);
-                    }}
-                  />
-                </Popover.Dropdown>
-              </Popover>
+                value={endDate}
+                onDateChange={(dateStr) => {
+                  setEndDate(dateStr);
+                  emit(startDate, dateStr);
+                }}
+                onTouched={() => setEndTouched(true)}
+                disabled={disabled}
+                readonly={readonly}
+              />
             }
           />
         </div>
@@ -193,4 +142,5 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     </div>
   );
 };
+
 export default IsoIntervalWidget;
