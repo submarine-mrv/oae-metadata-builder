@@ -1,6 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Container, Title, Text, Stack } from "@mantine/core";
+import {
+  Container,
+  Title,
+  Text,
+  Stack,
+  Button,
+  Box,
+  Group
+} from "@mantine/core";
+import { IconCode, IconX } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import validator from "@rjsf/validator-ajv8";
 import type { DescriptionFieldProps } from "@rjsf/utils";
@@ -21,6 +30,9 @@ export default function Page() {
   const [formData, setFormData] = useState<any>({
     project_id: "" // Fix controlled/uncontrolled input warning for text input fields
   });
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(500);
+  const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
     fetch("/schema.bundled.json")
@@ -28,6 +40,29 @@ export default function Page() {
       .then(setSchema)
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing) {
+        const newWidth = window.innerWidth - e.clientX;
+        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   const transformErrors = (errors: any[]) =>
     errors.map((e) => {
@@ -60,67 +95,130 @@ export default function Page() {
   if (!schema) return null;
 
   return (
-    <Container size="md" py="lg">
-      <Stack gap="sm">
-        <Title order={2}>OAE Data Protocol – Metadata Builder</Title>
-        <Text c="dimmed">
-          Fill required fields. Long JSON Schema descriptions are hidden;
-          concise tips appear as <code>ui:help</code>.
-        </Text>
-      </Stack>
-
-      <Form
-        schema={schema}
-        uiSchema={uiSchema}
-        formData={formData}
-        onChange={(e) => setFormData(e.formData)}
-        onSubmit={({ formData }) => console.log("submit:", formData)}
-        validator={validator}
-        omitExtraData={false}
-        liveOmit={false}
-        experimental_defaultFormStateBehavior={{
-          arrayMinItems: { populate: "all" }
-        }}
-        widgets={{
-          IsoIntervalWidget,
-          SeaNamesAutocomplete: SeaNamesAutocompleteWidget
-        }}
-        templates={{
-          DescriptionFieldTemplate: NoDescription,
-          ArrayFieldItemButtonsTemplate: CustomArrayFieldItemButtonsTemplate,
-          TitleFieldTemplate: CustomTitleFieldTemplate
-        }}
-        fields={{
-          SpatialCoverageFlat: SpatialCoverageFlatField,
-          SpatialCoverageMiniMap: SpatialCoverageMiniMap,
-          ExternalProjectField: ExternalProjectField
-        }}
-        showErrorList="bottom"
-      />
-
+    <div style={{ display: "flex", height: "100vh" }}>
       <div
         style={{
-          marginTop: "2rem",
-          padding: "1rem",
-          backgroundColor: "#f8f9fa",
-          border: "1px solid #dee2e6",
-          borderRadius: "4px"
+          flex: 1,
+          marginRight: showJsonPreview ? sidebarWidth : 0,
+          transition: "margin-right 0.2s ease-in-out",
+          overflow: "auto"
         }}
       >
-        <Text style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-          JSON Preview:
-        </Text>
-        <pre
+        <Container size="md" py="lg">
+          <Stack gap="sm">
+            <Group justify="space-between" align="center">
+              <div>
+                <Title order={2}>OAE Data Protocol – Metadata Builder</Title>
+                <Text c="dimmed">
+                  Fill required fields. Long JSON Schema descriptions are
+                  hidden; concise tips appear as <code>ui:help</code>.
+                </Text>
+              </div>
+              <Button
+                variant={showJsonPreview ? "filled" : "outline"}
+                leftSection={<IconCode size={16} />}
+                onClick={() => setShowJsonPreview(!showJsonPreview)}
+              >
+                JSON Preview
+              </Button>
+            </Group>
+          </Stack>
+
+          <Form
+            schema={schema}
+            uiSchema={uiSchema}
+            formData={formData}
+            onChange={(e) => setFormData(e.formData)}
+            onSubmit={({ formData }) => console.log("submit:", formData)}
+            validator={validator}
+            omitExtraData={false}
+            liveOmit={false}
+            experimental_defaultFormStateBehavior={{
+              arrayMinItems: { populate: "all" }
+            }}
+            widgets={{
+              IsoIntervalWidget,
+              SeaNamesAutocomplete: SeaNamesAutocompleteWidget
+            }}
+            templates={{
+              DescriptionFieldTemplate: NoDescription,
+              ArrayFieldItemButtonsTemplate:
+                CustomArrayFieldItemButtonsTemplate,
+              TitleFieldTemplate: CustomTitleFieldTemplate
+            }}
+            fields={{
+              SpatialCoverageFlat: SpatialCoverageFlatField,
+              SpatialCoverageMiniMap: SpatialCoverageMiniMap,
+              ExternalProjectField: ExternalProjectField
+            }}
+            showErrorList="bottom"
+          />
+        </Container>
+      </div>
+
+      {showJsonPreview && (
+        <Box
           style={{
-            fontSize: "0.8rem",
-            overflow: "auto",
-            maxHeight: "300px",
-            margin: 0
+            position: "fixed",
+            right: 0,
+            top: 0,
+            width: sidebarWidth,
+            height: "100vh",
+            backgroundColor: "#f8f9fa",
+            borderLeft: "1px solid #dee2e6",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 1000
           }}
         >
-          {JSON.stringify(formData, null, 2)}
-        </pre>
-      </div>
-    </Container>
+          {/* Resize handle */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: "4px",
+              height: "100%",
+              backgroundColor: "transparent",
+              cursor: "col-resize",
+              zIndex: 1001
+            }}
+            onMouseDown={() => setIsResizing(true)}
+          />
+
+          {/* Header */}
+          <Group
+            justify="space-between"
+            align="center"
+            p="md"
+            style={{ borderBottom: "1px solid #dee2e6" }}
+          >
+            <Text fw={600}>JSON Preview</Text>
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={() => setShowJsonPreview(false)}
+            >
+              <IconX size={16} />
+            </Button>
+          </Group>
+
+          {/* Content */}
+          <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
+            <pre
+              style={{
+                fontSize: "0.8rem",
+                margin: 0,
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word"
+              }}
+            >
+              {JSON.stringify(formData, null, 2)}
+            </pre>
+          </Box>
+        </Box>
+      )}
+    </div>
   );
 }
