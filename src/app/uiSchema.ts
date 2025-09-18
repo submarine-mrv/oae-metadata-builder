@@ -41,6 +41,9 @@ const nestedItemStyle = {
 // // Old style ordering and UI customizations for react-jsonschema-form
 const uiSchemaOld = {
   "ui:title": "",
+  "ui:options": {
+    expandable: false
+  },
   "ui:order": [
     "project_id",
     "temporal_coverage",
@@ -56,6 +59,7 @@ const uiSchemaOld = {
     "previous_or_ongoing_colocated_research",
     "colocated_operations",
     "permits",
+    "public_comments",
     "*"
   ],
 
@@ -77,6 +81,7 @@ const uiSchemaOld = {
 
   mcdr_pathway: {
     "ui:style": { width: "320px" },
+    "ui:widget": "CustomSelectWidget",
     "ui:enumNames": [
       "Ocean Alkalinity Enhancement",
       "Biomass Sinking",
@@ -89,13 +94,15 @@ const uiSchemaOld = {
 
   vertical_coverage: {
     "ui:title": "Vertical Coverage",
+    "ui:style": { width: "50%" },
     "ui:options": {
       gridCols: 2
     },
-    "ui:style": { width: "50%" }
+    "ui:order": ["min_depth_in_m", "max_depth_in_m"]
   },
   sea_names: {
-    "ui:style": { width: "66%" }
+    "ui:style": { width: "66%" },
+    "ui:widget": "CustomSelectWidget"
   },
 
   permit_numbers: {
@@ -158,7 +165,10 @@ const uiSchemaOld = {
         "permit_status",
         "permitting_authority",
         "approval_document"
-      ]
+      ],
+      approval_document: {
+        "ui:placeholder": "Type URL or DOI"
+      }
     }
   }
 };

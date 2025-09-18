@@ -22,6 +22,9 @@ import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import CustomAddButton from "@/components/rjsf/CustomAddButton";
+import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
+import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -138,13 +141,18 @@ export default function Page() {
             }}
             widgets={{
               IsoIntervalWidget,
-              SeaNamesAutocomplete: SeaNamesAutocompleteWidget
+              SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
+              CustomSelectWidget: CustomSelectWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldItemButtonsTemplate:
                 CustomArrayFieldItemButtonsTemplate,
-              TitleFieldTemplate: CustomTitleFieldTemplate
+              TitleFieldTemplate: CustomTitleFieldTemplate,
+              ButtonTemplates: {
+                AddButton: CustomAddButton
+              }
             }}
             fields={{
               SpatialCoverageFlat: SpatialCoverageFlatField,

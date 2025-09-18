@@ -326,14 +326,13 @@
                 "permitting_authority": {
                     "description": "The group that issued the permit.",
                     "title": "Permitting Authority",
-                    "type": [
-                        "string",
-                        "null"
-                    ]
+                    "type": "string"
                 }
             },
             "required": [
-                "permit_id"
+                "permit_id",
+                "permitting_authority",
+                "permit_status"
             ],
             "title": "Permit",
             "type": "object"
