@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Modal, Button, Text, Box, Stack } from "@mantine/core";
+import {
+  Modal,
+  Button,
+  Text,
+  Box,
+  Stack,
+  Grid,
+  NumberInput,
+  Group
+} from "@mantine/core";
 
 // Extend Window interface to include maplibregl
 declare global {
@@ -34,6 +43,85 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   } | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [_, setBoundingBox] = useState<any>(null);
+
+  // Individual coordinate states
+  const [north, setNorth] = useState<number | string>("");
+  const [south, setSouth] = useState<number | string>("");
+  const [west, setWest] = useState<number | string>("");
+  const [east, setEast] = useState<number | string>("");
+
+  // Parse bounds string "W S E N" into individual coordinates
+  const parseBounds = useCallback((boundsString: string) => {
+    const parts = boundsString.trim().split(/\s+/).map(Number);
+    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
+      const [w, s, e, n] = parts;
+      setWest(w);
+      setSouth(s);
+      setEast(e);
+      setNorth(n);
+    } else {
+      setWest("");
+      setSouth("");
+      setEast("");
+      setNorth("");
+    }
+  }, []);
+
+  // Create bounds string from individual coordinates
+  const createBoundsString = useCallback(
+    (w: number, s: number, e: number, n: number): string => {
+      return `${w.toFixed(6)} ${s.toFixed(6)} ${e.toFixed(6)} ${n.toFixed(6)}`;
+    },
+    []
+  );
+
+  // Handle manual coordinate input changes
+  const handleCoordinateChange = useCallback(
+    (
+      newWest: number | string,
+      newSouth: number | string,
+      newEast: number | string,
+      newNorth: number | string
+    ) => {
+      // Only update bounds if all values are valid numbers
+      if (
+        typeof newWest === "number" &&
+        typeof newSouth === "number" &&
+        typeof newEast === "number" &&
+        typeof newNorth === "number"
+      ) {
+        const boundsString = createBoundsString(
+          newWest,
+          newSouth,
+          newEast,
+          newNorth
+        );
+        setCurrentBounds(boundsString);
+
+        // Update map if it's loaded
+        if (mapInstanceRef.current && mapLoaded) {
+          addBoundingBox(
+            mapInstanceRef.current,
+            newWest,
+            newSouth,
+            newEast,
+            newNorth
+          );
+          mapInstanceRef.current.fitBounds(
+            [
+              [newWest, newSouth],
+              [newEast, newNorth]
+            ],
+            {
+              padding: 20,
+              duration: 500
+            }
+          );
+        }
+      }
+    },
+    [createBoundsString, mapLoaded]
+  );
 
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.maplibregl || mapInstanceRef.current) return;
@@ -212,6 +300,12 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         )} ${east.toFixed(6)} ${north.toFixed(6)}`;
         setCurrentBounds(boundsString);
 
+        // Update individual coordinate states
+        setWest(west);
+        setSouth(south);
+        setEast(east);
+        setNorth(north);
+
         // Clean up
         map.off("click", onMapClick);
         map.getCanvas().style.cursor = "";
@@ -236,6 +330,14 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     onClose();
   };
 
+  // Initialize coordinate fields when modal opens or initialBounds changes
+  useEffect(() => {
+    if (opened) {
+      setCurrentBounds(initialBounds);
+      parseBounds(initialBounds);
+    }
+  }, [opened, initialBounds, parseBounds]);
+
   // Reset state when modal closes
   useEffect(() => {
     if (!opened) {
@@ -252,8 +354,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       startPointRef.current = null;
       setMapLoaded(false);
       setBoundingBox(null);
+      parseBounds(initialBounds);
     }
-  }, [opened, initialBounds]);
+  }, [opened, initialBounds, parseBounds]);
 
   return (
     <Modal
@@ -262,13 +365,14 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       title="Select Bounding Box"
       size="xl"
       centered
+      zIndex={1100}
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           {!mapLoaded
             ? "Loading map..."
             : !isSelecting
-            ? "Click 'Start Selection' then click two points on the map to define your bounding box."
+            ? "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your bounding box."
             : startPoint
             ? "Click second point to complete selection"
             : "Click first point to start selection"}
@@ -285,11 +389,69 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           }}
         />
 
-        {currentBounds && (
-          <Text size="sm" style={{ fontFamily: "monospace" }}>
-            Current bounds: {currentBounds}
-          </Text>
-        )}
+        {/* Coordinate input fields without title */}
+        <Group gap="md" align="flex-start" justify="center">
+          <Stack gap="xs">
+            <NumberInput
+              label="N° (max lat)"
+              placeholder="e.g., 47.8"
+              value={north}
+              onChange={(value) => {
+                setNorth(value);
+                handleCoordinateChange(west, south, east, value);
+              }}
+              min={-90}
+              max={90}
+              decimalScale={6}
+              size="sm"
+              style={{ width: "150px" }}
+            />
+            <NumberInput
+              label="S° (min lat)"
+              placeholder="e.g., 47.2"
+              value={south}
+              onChange={(value) => {
+                setSouth(value);
+                handleCoordinateChange(west, value, east, north);
+              }}
+              min={-90}
+              max={90}
+              decimalScale={6}
+              size="sm"
+              style={{ width: "150px" }}
+            />
+          </Stack>
+          <Stack gap="xs">
+            <NumberInput
+              label="E° (max lon)"
+              placeholder="e.g., -122.0"
+              value={east}
+              onChange={(value) => {
+                setEast(value);
+                handleCoordinateChange(west, south, value, north);
+              }}
+              min={-180}
+              max={180}
+              decimalScale={6}
+              size="sm"
+              style={{ width: "150px" }}
+            />
+            <NumberInput
+              label="W° (min lon)"
+              placeholder="e.g., -123.5"
+              value={west}
+              onChange={(value) => {
+                setWest(value);
+                handleCoordinateChange(value, south, east, north);
+              }}
+              min={-180}
+              max={180}
+              decimalScale={6}
+              size="sm"
+              style={{ width: "150px" }}
+            />
+          </Stack>
+        </Group>
 
         <Box
           style={{
@@ -304,7 +466,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               onClick={startSelection}
               disabled={isSelecting}
             >
-              {isSelecting ? "Selecting..." : "Start Selection"}
+              {isSelecting ? "Drawing..." : "Draw Selection"}
             </Button>
           )}
 

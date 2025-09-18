@@ -25,6 +25,7 @@ import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
+import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -36,6 +37,19 @@ export default function Page() {
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
+
+  const downloadJsonFile = (data: any) => {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'oae-metadata.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     fetch("/schema.bundled.json")
@@ -132,7 +146,7 @@ export default function Page() {
             uiSchema={uiSchema}
             formData={formData}
             onChange={(e) => setFormData(e.formData)}
-            onSubmit={({ formData }) => console.log("submit:", formData)}
+            onSubmit={({ formData }) => downloadJsonFile(formData)}
             validator={validator}
             omitExtraData={false}
             liveOmit={false}
@@ -151,7 +165,8 @@ export default function Page() {
                 CustomArrayFieldItemButtonsTemplate,
               TitleFieldTemplate: CustomTitleFieldTemplate,
               ButtonTemplates: {
-                AddButton: CustomAddButton
+                AddButton: CustomAddButton,
+                SubmitButton: CustomSubmitButton
               }
             }}
             fields={{

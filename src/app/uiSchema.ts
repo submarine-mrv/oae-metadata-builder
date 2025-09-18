@@ -100,6 +100,23 @@ const uiSchemaOld = {
     },
     "ui:order": ["min_depth_in_m", "max_depth_in_m"]
   },
+  public_comments: {
+    "ui:title": "Public Comments",
+    "ui:order": ["Name", "URL"],
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:title": "",
+      "ui:options": {
+        gridCols: 2
+      },
+      name: {
+        "ui:placeholder": "Name, title, or description of public comment"
+      },
+      url: {
+        "ui:placeholder": "Enter URL or DOI link for public comment"
+      }
+    }
+  },
   sea_names: {
     "ui:style": { width: "66%" },
     "ui:widget": "CustomSelectWidget"
