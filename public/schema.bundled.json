@@ -232,7 +232,7 @@
           ]
         },
         "social_context_site_description": {
-          "description": "Details may include: - Commercial, recreational, ecological, and cultural uses of study site - Industrial site history - Demographics of site area - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described. - Links to relevant social science surveys, engaged community groups, etc.",
+          "description": "Details may include:\n  - Commercial, recreational, ecological, and cultural uses of study site\n  - Industrial site history\n  - Demographics of site area\n  - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment\n  - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described.\n  - Links to relevant social science surveys, engaged community groups, etc.",
           "title": "Social Context Site Description",
           "type": [
             "string",
@@ -240,7 +240,7 @@
           ]
         },
         "social_research_conducted_to_date": {
-          "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include: - Description of Community engagement research approach conducted and results - Stakeholder mapping method and link to output",
+          "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include:\n  - Description of Community engagement research approach conducted and results\n  - Stakeholder mapping method and link to output",
           "title": "Social Research Conducted to Date",
           "type": [
             "string",
@@ -308,10 +308,7 @@
         "approval_document": {
           "description": "Links to documentation related to the permit.",
           "title": "Permit Document",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "permit_id": {
           "description": "The unique identifier or number associated with this permit.",
@@ -332,7 +329,8 @@
       "required": [
         "permit_id",
         "permitting_authority",
-        "permit_status"
+        "permit_status",
+        "approval_document"
       ],
       "title": "Permit",
       "type": "object"
@@ -1121,7 +1119,7 @@
       "uniqueItems": true
     },
     "social_context_site_description": {
-      "description": "Details may include: - Commercial, recreational, ecological, and cultural uses of study site - Industrial site history - Demographics of site area - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described. - Links to relevant social science surveys, engaged community groups, etc.",
+      "description": "Details may include:\n  - Commercial, recreational, ecological, and cultural uses of study site\n  - Industrial site history\n  - Demographics of site area\n  - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment\n  - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described.\n  - Links to relevant social science surveys, engaged community groups, etc.",
       "title": "Social Context Site Description",
       "type": [
         "string",
@@ -1129,7 +1127,7 @@
       ]
     },
     "social_research_conducted_to_date": {
-      "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include: - Description of Community engagement research approach conducted and results - Stakeholder mapping method and link to output",
+      "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include:\n  - Description of Community engagement research approach conducted and results\n  - Stakeholder mapping method and link to output",
       "title": "Social Research Conducted to Date",
       "type": [
         "string",

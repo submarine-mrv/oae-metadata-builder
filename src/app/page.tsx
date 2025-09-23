@@ -26,6 +26,8 @@ import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
+import CustomTextInputWidget from "@/components/rjsf/CustomTextInputWidget";
+import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -156,7 +158,9 @@ export default function Page() {
             widgets={{
               IsoIntervalWidget,
               SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
-              CustomSelectWidget: CustomSelectWidget
+              CustomSelectWidget: CustomSelectWidget,
+              TextWidget: CustomTextInputWidget,
+              textarea: CustomTextareaWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,

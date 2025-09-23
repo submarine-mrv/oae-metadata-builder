@@ -11,7 +11,7 @@
 //       { "ui:row": [{ "ui:col": ["project_id"] }] },
 //       { "ui:row": [{ "ui:col": ["sea_names"] }] },
 //       { "ui:row": [{ "ui:col": ["project_description"] }] },
-//       { "ui:row": [{ "ui:col": ["permit_numbers"] }] }
+//       { "ui:row": [{ "ui:col": ["previous_or_ongoing_colocated_research"] }] }
 //     ]
 //   },
 //   project_description: {
@@ -40,7 +40,6 @@ const nestedItemStyle = {
 
 // // Old style ordering and UI customizations for react-jsonschema-form
 const uiSchemaOld = {
-  "ui:title": "",
   "ui:options": {
     expandable: false
   },
@@ -65,7 +64,8 @@ const uiSchemaOld = {
 
   project_id: {
     "ui:style": { width: "50%" },
-    "ui:placeholder": "Enter project ID"
+    "ui:placeholder": "Enter project ID",
+    "ui:descriptionModal": true
   },
 
   temporal_coverage: {
@@ -136,22 +136,26 @@ const uiSchemaOld = {
 
   project_description: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 6 }
+    "ui:options": { rows: 6 },
+    "ui:descriptionModal": true
   },
 
   physical_site_description: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 5 }
+    "ui:options": { rows: 5 },
+    "ui:descriptionModal": true
   },
 
   social_context_site_description: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 5 }
+    "ui:options": { rows: 5 },
+    "ui:descriptionModal": true
   },
 
   social_research_conducted_to_date: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 4 }
+    "ui:options": { rows: 4 },
+    "ui:descriptionModal": true
   },
 
   previous_or_ongoing_colocated_research: {
