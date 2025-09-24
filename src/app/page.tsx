@@ -9,9 +9,10 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconCode, IconX, IconInfoCircle } from "@tabler/icons-react";
+import { IconCode, IconX } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
-import validator from "@rjsf/validator-ajv8";
+import { customizeValidator } from "@rjsf/validator-ajv8";
+import Ajv2019 from "ajv/dist/2019";
 import type { DescriptionFieldProps } from "@rjsf/utils";
 
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
@@ -28,8 +29,12 @@ import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
+import CustomErrorList from "@/components/rjsf/CustomErrorList";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
+
+// Create validator with Draft 2019-09 support
+const validator = customizeValidator({ AjvClass: Ajv2019 });
 
 export default function Page() {
   const [schema, setSchema] = useState<any>(null);
@@ -90,6 +95,16 @@ export default function Page() {
           ...e,
           message:
             "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/.."
+        };
+      }
+      if ((e.property === ".spatial_coverage.geo.box" && e.name === "required") ||
+          (e.property === ".spatial_coverage.geo" && e.name === "required") ||
+          (e.property === ".spatial_coverage" && e.name === "required") ||
+          (e.property === "." && e.name === "required" && e.params?.missingProperty === "spatial_coverage")) {
+        return {
+          ...e,
+          property: ".spatial_coverage", // Normalize property to spatial_coverage level
+          message: "Spatial Coverage is required"
         };
       }
       return e;
@@ -166,7 +181,7 @@ export default function Page() {
             onSubmit={({ formData }) => downloadJsonFile(formData)}
             validator={validator}
             customValidate={customValidate}
-            liveValidate={true}
+            transformErrors={transformErrors}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
@@ -185,6 +200,7 @@ export default function Page() {
               ArrayFieldItemButtonsTemplate:
                 CustomArrayFieldItemButtonsTemplate,
               TitleFieldTemplate: CustomTitleFieldTemplate,
+              ErrorListTemplate: CustomErrorList,
               ButtonTemplates: {
                 AddButton: CustomAddButton,
                 SubmitButton: CustomSubmitButton
@@ -195,7 +211,7 @@ export default function Page() {
               SpatialCoverageMiniMap: SpatialCoverageMiniMap,
               ExternalProjectField: ExternalProjectField
             }}
-            showErrorList="bottom"
+            showErrorList="top"
           />
         </Container>
       </div>

@@ -506,12 +506,12 @@
       "description": "The vertical extent of a place or structure in meters.",
       "properties": {
         "max_depth_in_m": {
-          "description": "Maximum depth of observation in meters below sea surface.",
+          "description": "Maximum depth of observation in meters. Use negative numbers for depths below sea level, and positive numbers for above sea level.",
           "title": "Maximum Depth (in meters)",
           "type": "number"
         },
         "min_depth_in_m": {
-          "description": "Minimum depth of observation in meters below sea surface.",
+          "description": "Minimum depth of observation in meters. Use negative numbers for depths below sea level, and positive numbers for above sea level.",
           "title": "Minimum Depth (in meters)",
           "type": "number"
         }

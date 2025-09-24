@@ -57,13 +57,16 @@ function validateSpatialBounds(boxString: string): string | null {
 }
 
 const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, required, schema, uiSchema } =
+  const { formData, onChange, disabled, readonly, required, schema, uiSchema, rawErrors } =
     props;
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [value, setValue] = useState<string>(readBox(formData));
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Check if there are RJSF validation errors
+  const hasValidationErrors = rawErrors && rawErrors.length > 0;
   const [showMapModal, setShowMapModal] = useState(false);
   const [miniMapLoaded, setMiniMapLoaded] = useState(false);
 
@@ -283,7 +286,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
           style={{
             width: "100%",
             height: "300px",
-            border: validationError ? "2px solid #fa5252" : "1px solid #ced4da",
+            border: (validationError || hasValidationErrors) ? "2px solid #fa5252" : "1px solid #ced4da",
             borderRadius: "4px",
             cursor: disabled || readonly ? "default" : "pointer",
             position: "relative",
@@ -336,9 +339,16 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
             </Box>
           )}
         </Box>
-        <Text size="xs" c="dimmed" mt={4} style={{ fontFamily: "monospace" }}>
-          {value || "Click the map to set bounding box"}
-        </Text>
+        {/* Display validation errors or placeholder text */}
+        {hasValidationErrors ? (
+          <Text size="sm" c="red" mt={4}>
+            Spatial Coverage is required. Click the map to set bounding box
+          </Text>
+        ) : (
+          <Text size="xs" c="dimmed" mt={4} style={{ fontFamily: "monospace" }}>
+            {value || "Click the map to set bounding box"}
+          </Text>
+        )}
       </Box>
 
       <MapBoundingBoxSelectorProper
