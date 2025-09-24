@@ -253,7 +253,7 @@
                     "title": "Spatial Coverage"
                 },
                 "temporal_coverage": {
-                    "description": "Start date and end date (if known) of the project in ISO-8601 interval format (YYYY-MM-DD/YYY-MM-DD). If the end date is not known, use open-ended format YYYY-MM-DD/..",
+                    "description": "The start and end date (optional) of the project ;)",
                     "pattern": "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$",
                     "title": "Temporal Coverage",
                     "type": "string"
@@ -630,7 +630,7 @@
             "title": "Spatial Coverage"
         },
         "temporal_coverage": {
-            "description": "Start date and end date (if known) of the project in ISO-8601 interval format (YYYY-MM-DD/YYY-MM-DD). If the end date is not known, use open-ended format YYYY-MM-DD/..",
+            "description": "The start and end date (optional) of the project ;)",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$",
             "title": "Temporal Coverage",
             "type": "string"

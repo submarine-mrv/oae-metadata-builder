@@ -40,6 +40,7 @@ const nestedItemStyle = {
 
 // // Old style ordering and UI customizations for react-jsonschema-form
 const uiSchemaOld = {
+  "ui:title": "",
   "ui:options": {
     expandable: false
   },

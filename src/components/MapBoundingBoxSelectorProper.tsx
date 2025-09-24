@@ -393,7 +393,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         <Group gap="md" align="flex-start" justify="center">
           <Stack gap="xs">
             <NumberInput
-              label="N° (max lat)"
+              label="°N (max latitude)"
               placeholder="e.g., 47.8"
               value={north}
               onChange={(value) => {
@@ -407,7 +407,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               style={{ width: "150px" }}
             />
             <NumberInput
-              label="S° (min lat)"
+              label="°S (min latitude)"
               placeholder="e.g., 47.2"
               value={south}
               onChange={(value) => {
@@ -423,7 +423,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           </Stack>
           <Stack gap="xs">
             <NumberInput
-              label="E° (max lon)"
+              label="°E (max longitude)"
               placeholder="e.g., -122.0"
               value={east}
               onChange={(value) => {
@@ -437,7 +437,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               style={{ width: "150px" }}
             />
             <NumberInput
-              label="W° (min lon)"
+              label="°W (min longitude)"
               placeholder="e.g., -123.5"
               value={west}
               onChange={(value) => {

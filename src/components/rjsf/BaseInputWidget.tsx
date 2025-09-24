@@ -1,16 +1,29 @@
+/**
+ * BaseInputWidget - Custom RJSF widget that mirrors @rjsf/mantine's BaseInputTemplate behavior
+ *
+ * This widget intelligently chooses between NumberInput and TextInput based on the schema type,
+ * similar to how Mantine's BaseInputTemplate works. It also adds our custom tooltip/modal
+ * functionality for field descriptions.
+ *
+ * Key behaviors mirrored from @rjsf/mantine BaseInputTemplate:
+ * - Uses NumberInput for schema types 'number' and 'integer'
+ * - Uses TextInput for all other types
+ * - Handles input props, validation, and examples consistently
+ * - Maintains proper focus, blur, and change event handling
+ */
+
 import React, { useCallback, FocusEvent, useState } from 'react';
-import { Textarea, Group, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
+import { TextInput, NumberInput, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
 import {
-  ariaDescribedByIds,
   FormContextType,
   RJSFSchema,
   StrictRJSFSchema,
   WidgetProps,
 } from '@rjsf/utils';
 
-export default function CustomTextareaWidget<
+export default function BaseInputWidget<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any
@@ -26,7 +39,6 @@ export default function CustomTextareaWidget<
     label,
     hideLabel,
     rawErrors,
-    options,
     onChange,
     onBlur,
     onFocus,
@@ -37,10 +49,21 @@ export default function CustomTextareaWidget<
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
-  const rows = options?.rows || 4;
 
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  // Simple check: use NumberInput for number/integer schema types
+  const isNumberType = schema.type === 'number' || schema.type === 'integer';
+
+  const handleNumberChange = useCallback(
+    (value: number | string) => {
+      if (onChange) {
+        onChange(value);
+      }
+    },
+    [onChange]
+  );
+
+  const handleTextChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       if (onChange) {
         onChange(event.target.value === '' ? undefined : event.target.value);
       }
@@ -49,7 +72,7 @@ export default function CustomTextareaWidget<
   );
 
   const handleBlur = useCallback(
-    (event: FocusEvent<HTMLTextAreaElement>) => {
+    (event: FocusEvent<HTMLInputElement>) => {
       if (onBlur) {
         onBlur(id, event.target.value);
       }
@@ -58,7 +81,7 @@ export default function CustomTextareaWidget<
   );
 
   const handleFocus = useCallback(
-    (event: FocusEvent<HTMLTextAreaElement>) => {
+    (event: FocusEvent<HTMLInputElement>) => {
       if (onFocus) {
         onFocus(id, event.target.value);
       }
@@ -68,28 +91,46 @@ export default function CustomTextareaWidget<
 
   const renderLabel = () => {
     if (hideLabel) return undefined;
-    return label; // Just return the simple label string
+    return label;
   };
+
+  // Choose NumberInput vs TextInput based on schema type
+  const input = isNumberType ? (
+    <NumberInput
+      id={id}
+      label={renderLabel()}
+      placeholder={placeholder}
+      value={value || ''}
+      required={required}
+      disabled={disabled}
+      readOnly={readonly}
+      autoFocus={autofocus}
+      error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
+      onChange={handleNumberChange}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+    />
+  ) : (
+    <TextInput
+      id={id}
+      label={renderLabel()}
+      placeholder={placeholder}
+      value={value || ''}
+      required={required}
+      disabled={disabled}
+      readOnly={readonly}
+      autoFocus={autofocus}
+      error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
+      onChange={handleTextChange}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+    />
+  );
 
   return (
     <>
       <Box style={{ position: 'relative' }}>
-        <Textarea
-          id={id}
-          label={renderLabel()}
-          placeholder={placeholder}
-          value={value || ''}
-          required={required}
-          disabled={disabled}
-          readOnly={readonly}
-          autoFocus={autofocus}
-          rows={rows}
-          error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          onFocus={handleFocus}
-          aria-describedby={ariaDescribedByIds<T>(id)}
-        />
+        {input}
         {description && !hideLabel && (
           <Box style={{
             position: 'absolute',
@@ -147,6 +188,7 @@ export default function CustomTextareaWidget<
           description={description}
         />
       )}
+
     </>
   );
 }

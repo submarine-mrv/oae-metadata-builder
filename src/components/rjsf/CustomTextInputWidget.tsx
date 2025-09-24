@@ -81,7 +81,7 @@ export default function CustomTextInputWidget<
           disabled={disabled}
           readOnly={readonly}
           autoFocus={autofocus}
-          error={rawErrors?.length > 0 ? rawErrors.join(', ') : undefined}
+          error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
           onChange={handleChange}
           onBlur={handleBlur}
           onFocus={handleFocus}

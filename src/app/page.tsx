@@ -9,7 +9,7 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconCode, IconX } from "@tabler/icons-react";
+import { IconCode, IconX, IconInfoCircle } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import validator from "@rjsf/validator-ajv8";
 import type { DescriptionFieldProps } from "@rjsf/utils";
@@ -26,7 +26,7 @@ import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
-import CustomTextInputWidget from "@/components/rjsf/CustomTextInputWidget";
+import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -42,11 +42,11 @@ export default function Page() {
 
   const downloadJsonFile = (data: any) => {
     const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'oae-metadata.json';
+    link.download = "oae-metadata.json";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -108,6 +108,22 @@ export default function Page() {
         }
       }
     }
+
+    // Validate vertical coverage depths
+    const vc = data?.vertical_coverage;
+    if (vc) {
+      const minDepth = vc.min_depth_in_m;
+      const maxDepth = vc.max_depth_in_m;
+
+      if (typeof maxDepth === 'number' && maxDepth > 0) {
+        errors?.vertical_coverage?.max_depth_in_m?.addError("Maximum depth must be 0 or negative (below sea surface).");
+      }
+
+      if (typeof minDepth === 'number' && typeof maxDepth === 'number' && minDepth < maxDepth) {
+        errors?.vertical_coverage?.min_depth_in_m?.addError("Minimum depth must be greater than or equal to maximum depth.");
+      }
+    }
+
     return errors;
   };
 
@@ -126,13 +142,7 @@ export default function Page() {
         <Container size="md" py="lg">
           <Stack gap="sm">
             <Group justify="space-between" align="center">
-              <div>
-                <Title order={2}>OAE Data Protocol – Metadata Builder</Title>
-                <Text c="dimmed">
-                  Fill required fields. Long JSON Schema descriptions are
-                  hidden; concise tips appear as <code>ui:help</code>.
-                </Text>
-              </div>
+              <Title order={2}>OAE Data Protocol – Metadata Builder</Title>
               <Button
                 variant={showJsonPreview ? "filled" : "outline"}
                 leftSection={<IconCode size={16} />}
@@ -141,6 +151,11 @@ export default function Page() {
                 JSON Preview
               </Button>
             </Group>
+            <Text c="dimmed">
+              Create standardized metadata for your Ocean Alkalinity Enhancement
+              project. Click the info icons next to field labels for detailed
+              descriptions.
+            </Text>
           </Stack>
 
           <Form
@@ -150,6 +165,8 @@ export default function Page() {
             onChange={(e) => setFormData(e.formData)}
             onSubmit={({ formData }) => downloadJsonFile(formData)}
             validator={validator}
+            customValidate={customValidate}
+            liveValidate={true}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
@@ -159,7 +176,7 @@ export default function Page() {
               IsoIntervalWidget,
               SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
               CustomSelectWidget: CustomSelectWidget,
-              TextWidget: CustomTextInputWidget,
+              TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget
             }}
             templates={{
