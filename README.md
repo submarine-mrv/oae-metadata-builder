@@ -8,7 +8,7 @@ This application generates schema-driven forms for collecting structured metadat
 
 ### Schema Source
 
-The JSON schema is managed in the [`clevinson/oae-data-protocol`](https://github.com/clevinson/oae-data-protocol) repository. This application consumes the schema output and generates interactive forms for data collection.
+The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://github.com/submarine-mrv/oae-data-protocol) repository. This application consumes the schema output and generates interactive forms for data collection.
 
 ## Features
 
@@ -60,7 +60,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Schema Processing
 
-1. Source schema from `clevinson/oae-data-protocol`
+1. Source schema from `submarine-mrv/oae-data-protocol`
 2. Schema bundling resolves references and adds controlled vocabulary labels
 3. Bundled schema served from `/public/schema.bundled.json`
 4. Form generation driven by bundled schema + UI configuration
@@ -118,4 +118,4 @@ When the source schema is updated:
 
 ## Related Repositories
 
-- [clevinson/oae-data-protocol](https://github.com/clevinson/oae-data-protocol) - Source schema definition and protocol specification
+- [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol) - Source schema definition and protocol specification
