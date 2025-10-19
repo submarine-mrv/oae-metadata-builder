@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Text, Box, Divider } from '@mantine/core';
+import { Modal, Text, Box, Divider, Anchor } from '@mantine/core';
 import ReactMarkdown from 'react-markdown';
 
 interface DescriptionModalProps {
@@ -63,6 +63,17 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
               >
                 {children}
               </Text>
+            ),
+            a: ({ href, children }) => (
+              <Anchor
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                underline="always"
+                size="sm"
+              >
+                {children}
+              </Anchor>
             )
           }}
         >

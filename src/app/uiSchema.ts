@@ -38,6 +38,12 @@ const nestedItemStyle = {
   background: "#f9f9f9"
 };
 
+const textAreaWidget = {
+  "ui:widget": "textarea",
+  "ui:options": { rows: 5 },
+  "ui:descriptionModal": true
+};
+
 // // Old style ordering and UI customizations for react-jsonschema-form
 const uiSchemaOld = {
   "ui:title": "",
@@ -46,42 +52,40 @@ const uiSchemaOld = {
   },
   "ui:order": [
     "project_id",
-    "temporal_coverage",
-    "coverage_section",
-    "vertical_coverage",
-    "spatial_coverage",
-    "sea_names",
     "project_description",
+    "mcdr_pathway",
+    "sea_names",
+    "spatial_coverage",
+    "temporal_coverage",
+    "vertical_coverage",
     "physical_site_description",
     "social_context_site_description",
     "social_research_conducted_to_date",
-    "mcdr_pathway",
-    "previous_or_ongoing_colocated_research",
     "colocated_operations",
+    "previous_or_ongoing_colocated_research",
     "permits",
     "public_comments",
+    "research_project",
+    "funding",
+    "additional_details",
     "*"
   ],
-
   project_id: {
     "ui:style": { width: "50%" },
     "ui:placeholder": "Enter project ID",
     "ui:descriptionModal": true
   },
-
   temporal_coverage: {
     "ui:widget": "IsoIntervalWidget",
-    "ui:title": "Temporal Coverage",
+    "ui:title": "",
     "ui:style": { width: "50%" }
   },
-
   spatial_coverage: {
     "ui:field": "SpatialCoverageMiniMap",
     "ui:title": "Spatial Coverage"
   },
-
   mcdr_pathway: {
-    "ui:style": { width: "320px" },
+    "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": [
       "Ocean Alkalinity Enhancement",
@@ -92,9 +96,7 @@ const uiSchemaOld = {
       "Marine Ecosystem Recovery"
     ]
   },
-
   vertical_coverage: {
-    "ui:title": "Vertical Coverage",
     "ui:style": { width: "50%" },
     "ui:options": {
       gridCols: 2
@@ -119,46 +121,13 @@ const uiSchemaOld = {
     }
   },
   sea_names: {
-    "ui:style": { width: "66%" },
+    "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget"
   },
-
-  permit_numbers: {
-    "ui:options": {
-      addable: true,
-      orderable: false
-    },
-    items: {
-      "ui:placeholder": "e.g., CA-OAE-2025-001",
-      "ui:options": { rows: 1 }
-    },
-    "ui:help": "Add all associated permits."
-  },
-
-  project_description: {
-    "ui:widget": "textarea",
-    "ui:options": { rows: 6 },
-    "ui:descriptionModal": true
-  },
-
-  physical_site_description: {
-    "ui:widget": "textarea",
-    "ui:options": { rows: 5 },
-    "ui:descriptionModal": true
-  },
-
-  social_context_site_description: {
-    "ui:widget": "textarea",
-    "ui:options": { rows: 5 },
-    "ui:descriptionModal": true
-  },
-
-  social_research_conducted_to_date: {
-    "ui:widget": "textarea",
-    "ui:options": { rows: 4 },
-    "ui:descriptionModal": true
-  },
-
+  project_description: textAreaWidget,
+  physical_site_description: textAreaWidget,
+  social_context_site_description: textAreaWidget,
+  social_research_conducted_to_date: textAreaWidget,
   previous_or_ongoing_colocated_research: {
     "ui:options": {
       addable: true,
@@ -169,12 +138,10 @@ const uiSchemaOld = {
       "ui:style": nestedItemStyle
     }
   },
-
   colocated_operations: {
     "ui:widget": "textarea",
     "ui:options": { rows: 3 }
   },
-
   permits: {
     "ui:options": {
       addable: true,
@@ -182,17 +149,55 @@ const uiSchemaOld = {
     },
     items: {
       "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2
+      },
       "ui:order": [
-        "permit_id",
-        "permit_status",
         "permitting_authority",
-        "approval_document"
+        "permit_id",
+        "approval_document",
+        "permit_status"
       ],
       approval_document: {
         "ui:placeholder": "Type URL or DOI"
       }
     }
-  }
+  },
+  research_project: {
+    "ui:style": { width: "50%" }
+  },
+  funding: {
+    "ui:style": nestedItemStyle,
+    "ui:order": ["name", "identifier", "start_date", "end_date", "funder"],
+    "ui:options": {
+      gridCols: 2
+    },
+    name: {
+      "ui:title": "Grant or Project Name",
+      "ui:placeholder": "e.g., NSF Ocean Sciences Research Grant"
+    },
+    identifier: {
+      "ui:title": "Grant or Project Identifier",
+      "ui:placeholder": "e.g., Grant number or URL"
+    },
+    funder: {
+      "ui:style": { gridColumn: "1 / -1" },
+      "ui:title": "",
+      "ui:order": ["name", "identifier", "country"],
+      name: {
+        "ui:title": "Name of Funding Organization",
+        "ui:placeholder": "Organization name"
+      },
+      country: {
+        "ui:placeholder": "e.g., US"
+      },
+      identifier: {
+        "ui:title": "Identifier for Funding Organization",
+        "ui:placeholder": "e.g., ROR URL (https://ror.org/...)"
+      }
+    }
+  },
+  additional_details: textAreaWidget
 };
 
 export default uiSchemaOld;
