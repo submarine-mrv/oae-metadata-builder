@@ -15,7 +15,7 @@ export default function CustomSubmitButton<
 
   return (
     <Button type="submit" variant="filled">
-      Download metadata file
+      Download Metadata File
     </Button>
   );
 }
