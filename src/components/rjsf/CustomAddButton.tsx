@@ -14,8 +14,12 @@ export default function CustomAddButton<
 >(props: IconButtonProps<T, S, F>) {
   const {
     disabled,
-    onClick
+    onClick,
+    uiSchema
   } = props;
+
+  // Check for custom add button text in ui:options
+  const addItemText = uiSchema?.["ui:options"]?.addItemText || "Add Item";
 
   return (
     <Button
@@ -25,7 +29,7 @@ export default function CustomAddButton<
       disabled={disabled}
       onClick={onClick}
     >
-      Add Item
+      {addItemText}
     </Button>
   );
 }

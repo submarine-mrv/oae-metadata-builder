@@ -1,5 +1,6 @@
 "use client";
 import { MantineProvider } from "@mantine/core";
+import { AppStateProvider } from "@/contexts/AppStateContext";
 import "./globals.css";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
@@ -12,7 +13,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <MantineProvider defaultColorScheme="light">{children}</MantineProvider>
+        <MantineProvider defaultColorScheme="light">
+          <AppStateProvider>{children}</AppStateProvider>
+        </MantineProvider>
       </body>
     </html>
   );
