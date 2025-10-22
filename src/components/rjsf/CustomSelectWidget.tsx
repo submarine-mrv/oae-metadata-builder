@@ -11,6 +11,7 @@ import {
   StrictRJSFSchema,
   WidgetProps,
 } from '@rjsf/utils';
+import { cleanupOptions } from '@rjsf/mantine/lib/utils.js';
 
 // Configuration for view all links by field title
 const VIEW_ALL_LINKS: Record<string, string> = {
@@ -42,6 +43,7 @@ export default function CustomSelectWidget<
   } = props;
 
   const { enumOptions, enumDisabled, emptyValue } = options;
+  const themeProps = cleanupOptions(options);
   const viewAllLink = VIEW_ALL_LINKS[label || ''];
 
   const handleChange = useCallback(
@@ -122,6 +124,7 @@ export default function CustomSelectWidget<
         disabled={disabled || readonly}
         error={rawErrors && rawErrors.length > 0 ? rawErrors.join('\n') : undefined}
         searchable
+        {...themeProps}
         aria-describedby={ariaDescribedByIds<T>(id)}
         comboboxProps={{ withinPortal: false }}
       />

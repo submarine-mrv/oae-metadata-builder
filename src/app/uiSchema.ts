@@ -52,7 +52,6 @@ const uiSchemaOld = {
   },
   "ui:order": [
     "project_id",
-    "research_project",
     "project_description",
     "mcdr_pathway",
     "sea_names",
@@ -64,8 +63,9 @@ const uiSchemaOld = {
     "social_research_conducted_to_date",
     "colocated_operations",
     "previous_or_ongoing_colocated_research",
-    "permits",
     "public_comments",
+    "permits",
+    "research_project",
     "funding",
     "additional_details",
     "*"
@@ -173,6 +173,7 @@ const uiSchemaOld = {
     }
   },
   research_project: {
+    "ui:title": "Research Project",
     "ui:style": { width: "50%" }
   },
   funding: {

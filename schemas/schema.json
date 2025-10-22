@@ -308,6 +308,11 @@
                     "description": "The phase upon delivery to the ocean. See Controlled Vocabularies section for definitions.",
                     "title": "Alkalinity Feedstock Form"
                 },
+                "alkalinity_feedstock_other": {
+                    "description": "Custom description of alkalinity feedstock when using a feedstock type not listed in the controlled vocabulary.",
+                    "title": "Alkalinity Feedstock (Other)",
+                    "type": "string"
+                },
                 "alkalinity_feedstock_processing": {
                     "description": "Method(s) used to process the alkalinity feedstock. See Controlled Vocabularies section for definitions.",
                     "items": {
@@ -315,6 +320,11 @@
                     },
                     "title": "Alkalinity Feedstock Processing",
                     "type": "array"
+                },
+                "alkalinity_feedstock_processing_other": {
+                    "description": "Custom description of alkalinity feedstock processing method when 'other' is selected in alkalinity_feedstock_processing.",
+                    "title": "Alkalinity Feedstock Processing (Other)",
+                    "type": "string"
                 },
                 "data_conflicts_and_unreported_data": {
                     "description": "If data exist that are or have been used by the project but are not provided due to conflicts (e.g., geopolitical or other), data availability (e.g., a dataset is no longer available), it may be noted here.",
@@ -326,25 +336,27 @@
                     "title": "Experiment Description",
                     "type": "string"
                 },
-                "dosing_data": {
-                    "description": "Dosing data include: flow rate, dosing rate, and mineral mass addition rate. If any of these are constant, values may be given here rather than in the dosing data file. To link dosing data that have been provided as vector data provide the source or filename. See Intervention Data for details. Provide a description of the units for dosing rate provided as this will vary depending on the method.",
-                    "title": "Dosing Data",
-                    "type": "string"
-                },
                 "dosing_delivery_type": {
                     "$ref": "#/$defs/DosingDeliveryType",
                     "description": "Type of dosing delivery method. See Controlled Vocabularies for definitions.",
                     "title": "Dosing Delivery Type"
                 },
-                "dosing_depth": {
-                    "description": "Depth(s) in meters. If this is variable, please include the schedule of depth changes and depths, or as a vector in meters with the data, named 'dosing_depth'. Please note here that 'dosing depth is provided as a variable'.",
-                    "title": "Dosing Depth(s)",
-                    "type": "string"
-                },
                 "dosing_description": {
                     "description": "Please be descriptive. Information about the dosing mechanism must be included (e.g., outflow from pipe, diffuser, doser, manual placement) E.g., outflow from existing facility pipe directly to ocean, manual riverine introduction, coastal distribution at three separate 30 meter long sections, pier-based diffuser to intercoastal bay, distributed from stationary barge 10 miles offshore.",
                     "title": "Dosing Description",
                     "type": "string"
+                },
+                "dosing_details": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/StaticDosingDetails"
+                        },
+                        {
+                            "$ref": "#/$defs/VariableDosingDetails"
+                        }
+                    ],
+                    "description": "Detailed dosing information. The structure depends on dosing_delivery_type: use StaticDosingDetails for static dosing, or VariableDosingDetails for variable_distributed dosing.",
+                    "title": "Dosing Details"
                 },
                 "dosing_dispersal_hydrologic_location": {
                     "$ref": "#/$defs/HydrologicLocation",
@@ -353,7 +365,7 @@
                 },
                 "dosing_location": {
                     "$ref": "#/$defs/GeoCoordinate",
-                    "description": "Provide latitude and longitude in decimal degrees. Depending on your method of dispersal, this information may be provided as a point source, vector, or bounding box. If provided as a vector, the latitude and longitude values should be included in the dosing data file.",
+                    "description": "Provide latitude and longitude in decimal degrees. Depending on your method of dispersal, this information may be provided as a point source, vector, or bounding box. If provided as a vector, the latitude and longitude values should be included in the dosing data file.\nNOTE: This field needs to be upgraded to support either a point, line, or bounding box geometry type. In the case of a bounding box, a file name should be provided referencing the dosing data file.",
                     "title": "Dosing Location"
                 },
                 "dosing_regimen": {
@@ -437,11 +449,10 @@
                 "dosing_location",
                 "dosing_dispersal_hydrologic_location",
                 "dosing_delivery_type",
+                "dosing_details",
                 "alkalinity_dosing_effluent_density",
-                "dosing_depth",
                 "dosing_description",
                 "dosing_regimen",
-                "dosing_data",
                 "description",
                 "spatial_coverage",
                 "vertical_coverage",
@@ -944,6 +955,65 @@
             ],
             "title": "SeaNames",
             "type": "string"
+        },
+        "StaticDosingDetails": {
+            "additionalProperties": false,
+            "description": "Details for static dosing delivery (fixed location dosing).",
+            "properties": {
+                "dosing_depth": {
+                    "description": "Depth in meters. If this is variable, please include the schedule of depth changes and depths, or as a vector in meters with the data.",
+                    "title": "Dosing Depth",
+                    "type": "string"
+                },
+                "dosing_location": {
+                    "$ref": "#/$defs/GeoCoordinate",
+                    "description": "Fixed geographic coordinate for dosing location in decimal degrees.",
+                    "title": "Dosing Location"
+                },
+                "dosing_rate": {
+                    "description": "Rate of alkalinity dosing. Provide a description of the units as this will vary depending on the method.",
+                    "title": "Dosing Rate",
+                    "type": "string"
+                },
+                "flow_rate": {
+                    "description": "Flow rate of the dosing system. Include units in the description.",
+                    "title": "Flow Rate",
+                    "type": "string"
+                },
+                "mineral_mass_addition_rate": {
+                    "description": "Mass addition rate of the alkalinity mineral. Include units in the description.",
+                    "title": "Mineral Mass Addition Rate",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "dosing_location",
+                "dosing_depth"
+            ],
+            "title": "StaticDosingDetails",
+            "type": "object"
+        },
+        "VariableDosingDetails": {
+            "additionalProperties": false,
+            "description": "Details for variable/distributed dosing delivery (dosing over a geographic area with data provided in file).",
+            "properties": {
+                "dosing_file": {
+                    "description": "Filename or path to the data file containing dosing details including temporal and spatial distribution of dosing events.",
+                    "title": "Dosing File",
+                    "type": "string"
+                },
+                "dosing_location": {
+                    "$ref": "#/$defs/Place",
+                    "description": "Geographic bounding box defining the area where dosing occurred.",
+                    "title": "Dosing Location"
+                }
+            },
+            "required": [
+                "dosing_location",
+                "dosing_file"
+            ],
+            "title": "VariableDosingDetails",
+            "type": "object"
         },
         "VerticalExtent": {
             "additionalProperties": false,

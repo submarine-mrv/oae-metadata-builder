@@ -30,6 +30,7 @@ import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 import experimentUiSchema from "./experimentUiSchema";
+import interventionUiSchema from "./interventionUiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -41,7 +42,9 @@ export default function ExperimentPage() {
   const { state, updateExperiment, setActiveTab, setTriggerValidation } =
     useAppState();
 
-  const [schema, setSchema] = useState<any>(null);
+  const [baseSchema, setBaseSchema] = useState<any>(null);
+  const [activeSchema, setActiveSchema] = useState<any>(null);
+  const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
@@ -99,9 +102,32 @@ export default function ExperimentPage() {
   useEffect(() => {
     fetch("/experiment.schema.bundled.json")
       .then((r) => r.json())
-      .then(setSchema)
+      .then(setBaseSchema)
       .catch(console.error);
   }, []);
+
+  // Dynamic schema and uiSchema switching based on experiment_type
+  useEffect(() => {
+    if (!baseSchema) return;
+
+    const experimentType = formData.experiment_type;
+
+    if (experimentType === "intervention") {
+      // Use the Intervention schema from $defs
+      const interventionSchema = {
+        ...baseSchema.$defs.Intervention,
+        $defs: baseSchema.$defs, // Preserve all definitions for references
+        $schema: baseSchema.$schema,
+        $id: "InterventionSchema"
+      };
+      setActiveSchema(interventionSchema);
+      setActiveUiSchema(interventionUiSchema);
+    } else {
+      // Use base Experiment schema (default)
+      setActiveSchema(baseSchema);
+      setActiveUiSchema(experimentUiSchema);
+    }
+  }, [baseSchema, formData.experiment_type]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -193,7 +219,7 @@ export default function ExperimentPage() {
     return errors;
   };
 
-  if (!schema) {
+  if (!baseSchema || !activeSchema) {
     return (
       <>
         <Navigation />
@@ -251,8 +277,8 @@ export default function ExperimentPage() {
             </Stack>
 
             <Form
-              schema={schema}
-              uiSchema={experimentUiSchema}
+              schema={activeSchema}
+              uiSchema={activeUiSchema}
               formData={formData}
               onChange={handleFormChange}
               onSubmit={({ formData }) => downloadJsonFile(formData)}
