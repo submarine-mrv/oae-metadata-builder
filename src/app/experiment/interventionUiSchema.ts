@@ -33,11 +33,12 @@ const interventionUiSchema = {
     "spatial_coverage",
     "vertical_coverage",
     // Intervention-specific fields
-    "alkalinity_feedstock",
-    "alkalinity_feedstock_other",
-    "alkalinity_feedstock_form",
     "alkalinity_feedstock_processing",
     "alkalinity_feedstock_processing_other",
+    "alkalinity_feedstock_form",
+    "alkalinity_feedstock",
+    // alkalinity_feedstock_other appears conditionally via if/then in schema
+    "alkalinity_feedstock_custom",
     "alkalinity_feedstock_description",
     "alkalinity_feedstock_co2_removal_potential",
     "equilibration",
@@ -61,14 +62,16 @@ const interventionUiSchema = {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget"
   },
-  alkalinity_feedstock_other: {
-    "ui:placeholder": "Specify other alkalinity feedstock type"
+  alkalinity_feedstock_custom: {
+    "ui:placeholder": "Specify other alkalinity feedstock type",
+    "ui:style": { width: "50%" }
   },
   alkalinity_feedstock_form: {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget"
   },
   alkalinity_feedstock_processing: {
+    "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget",
     "ui:descriptionModal": true
   },
@@ -84,18 +87,7 @@ const interventionUiSchema = {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget"
   },
-  dosing_location: {
-    "ui:options": {
-      gridCols: 2
-    },
-    "ui:order": ["latitude", "longitude"],
-    latitude: {
-      "ui:placeholder": "Decimal degrees"
-    },
-    longitude: {
-      "ui:placeholder": "Decimal degrees"
-    }
-  },
+  dosing_location: {},
   dosing_dispersal_hydrologic_location: {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget"

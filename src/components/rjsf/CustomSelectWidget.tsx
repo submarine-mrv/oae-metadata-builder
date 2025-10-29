@@ -44,6 +44,8 @@ export default function CustomSelectWidget<
 
   const { enumOptions, enumDisabled, emptyValue } = options;
   const themeProps = cleanupOptions(options);
+  // Remove descriptionModal from themeProps as it's a custom UI option, not a Mantine prop
+  const { descriptionModal, ...mantineProps } = themeProps;
   const viewAllLink = VIEW_ALL_LINKS[label || ''];
 
   const handleChange = useCallback(
@@ -124,7 +126,7 @@ export default function CustomSelectWidget<
         disabled={disabled || readonly}
         error={rawErrors && rawErrors.length > 0 ? rawErrors.join('\n') : undefined}
         searchable
-        {...themeProps}
+        {...mantineProps}
         aria-describedby={ariaDescribedByIds<T>(id)}
         comboboxProps={{ withinPortal: false }}
       />

@@ -46,7 +46,14 @@ const experimentUiSchema = {
   experiment_type: {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": ["Baseline", "Control", "Intervention", "Model", "Other"]
+    "ui:enumNames": [
+      "Baseline",
+      "Control",
+      "Intervention",
+      "Tracer",
+      "Model",
+      "Other"
+    ]
   },
   description: textAreaWidget,
   start_datetime: {

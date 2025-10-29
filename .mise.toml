@@ -1,0 +1,7 @@
+[tools]
+node = "20.12.0"
+
+# Optional: Configure mise behavior for this project
+[settings]
+# Automatically install missing tools when entering directory
+auto_install = true

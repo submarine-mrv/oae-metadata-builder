@@ -37,8 +37,45 @@ function decorateMCDRPathways(schema) {
   return schema;
 }
 
+function fixConditionalFields(schema) {
+  // Remove conditional "_custom" fields from root properties in any class that has them
+  // This fixes LinkML-generated schemas where conditional fields appear in both
+  // root properties AND the then block, causing them to always be visible
+
+  const conditionalFields = [
+    "feedstock_type_custom",
+    "alkalinity_feedstock_custom",
+    "alkalinity_feedstock_processing_custom"
+  ];
+
+  Object.keys(schema.$defs || {}).forEach((className) => {
+    const classDef = schema.$defs[className];
+
+    conditionalFields.forEach((fieldName) => {
+      if (classDef.properties?.[fieldName]) {
+        // Save the property definition
+        const customDef = classDef.properties[fieldName];
+
+        // Remove it from root properties
+        delete classDef.properties[fieldName];
+
+        // Update the then block if it exists
+        if (classDef.then?.properties?.[fieldName] !== undefined) {
+          classDef.then.properties[fieldName] = customDef;
+        }
+
+        console.log(`✓ Fixed conditional field "${fieldName}" in ${className}`);
+      }
+    });
+  });
+
+  return schema;
+}
+
 let decorated = decorateSeaNames(base, labels);
 decorated = decorateMCDRPathways(decorated);
+decorated = fixConditionalFields(decorated);
+
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log(
   "✅ schema with labeled sea_names and MCDR pathways written to",

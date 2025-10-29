@@ -100,7 +100,8 @@ export default function ExperimentPage() {
 
   // Load schema
   useEffect(() => {
-    fetch("/experiment.schema.bundled.json")
+    // Add timestamp to bust cache
+    fetch(`/experiment.schema.bundled.json?t=${Date.now()}`)
       .then((r) => r.json())
       .then(setBaseSchema)
       .catch(console.error);
@@ -120,6 +121,12 @@ export default function ExperimentPage() {
         $schema: baseSchema.$schema,
         $id: "InterventionSchema"
       };
+
+      // Debug: Check if allOf conditional is present
+      console.log("Intervention schema allOf:", interventionSchema.allOf);
+      console.log("Has alkalinity_feedstock_other in properties?",
+        "alkalinity_feedstock_other" in interventionSchema.properties);
+
       setActiveSchema(interventionSchema);
       setActiveUiSchema(interventionUiSchema);
     } else {
@@ -154,6 +161,8 @@ export default function ExperimentPage() {
 
   const handleFormChange = (e: any) => {
     const newData = e.formData;
+    console.log("Form data changed, alkalinity_feedstock:", newData.alkalinity_feedstock);
+    console.log("alkalinity_feedstock_other in data:", "alkalinity_feedstock_other" in newData);
     setFormData(newData);
     if (activeExperimentId) {
       updateExperiment(activeExperimentId, newData);
