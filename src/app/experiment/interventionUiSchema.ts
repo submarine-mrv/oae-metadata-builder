@@ -39,7 +39,7 @@ const interventionUiSchema = {
     "vertical_coverage",
     // Intervention-specific fields
     "alkalinity_feedstock_processing",
-    "alkalinity_feedstock_processing_other",
+    "alkalinity_feedstock_processing_custom",
     "alkalinity_feedstock_form",
     "alkalinity_feedstock",
     // alkalinity_feedstock_other appears conditionally via if/then in schema
@@ -81,8 +81,9 @@ const interventionUiSchema = {
     "ui:widget": "CustomSelectWidget",
     "ui:descriptionModal": true
   },
-  alkalinity_feedstock_processing_other: {
-    "ui:placeholder": "Specify other processing method"
+  alkalinity_feedstock_processing_custom: {
+    ...halfWidthStyle,
+    "ui:placeholder": "Specify custom processing method"
   },
   alkalinity_feedstock_description: textAreaWidget,
   alkalinity_feedstock_co2_removal_potential: {
