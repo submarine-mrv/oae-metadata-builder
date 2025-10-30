@@ -17,6 +17,11 @@ const textAreaWidget = {
   "ui:descriptionModal": true
 };
 
+const halfWidthStyle = {
+  "ui:style": {
+    width: "50%"
+  }
+};
 // Create intervention uiSchema by inheriting from experiment uiSchema
 const interventionUiSchema = {
   // Inherit all base experiment uiSchema properties
@@ -41,14 +46,15 @@ const interventionUiSchema = {
     "alkalinity_feedstock_custom",
     "alkalinity_feedstock_description",
     "alkalinity_feedstock_co2_removal_potential",
+    "alkalinity_dosing_effluent_density",
     "equilibration",
     "dosing_location",
+    "dosing_location_provided_as_file",
     "dosing_dispersal_hydrologic_location",
     "dosing_delivery_type",
-    "dosing_details",
+    "dosing_depth",
     "dosing_description",
     "dosing_regimen",
-    "alkalinity_dosing_effluent_density",
     // Common fields
     "investigators",
     "meteorological_and_tidal_data",
@@ -59,19 +65,19 @@ const interventionUiSchema = {
 
   // Intervention-specific field customizations
   alkalinity_feedstock: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },
   alkalinity_feedstock_custom: {
-    "ui:placeholder": "Specify other alkalinity feedstock type",
-    "ui:style": { width: "50%" }
+    ...halfWidthStyle,
+    "ui:placeholder": "Specify other alkalinity feedstock type"
   },
   alkalinity_feedstock_form: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },
   alkalinity_feedstock_processing: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:descriptionModal": true
   },
@@ -80,20 +86,23 @@ const interventionUiSchema = {
   },
   alkalinity_feedstock_description: textAreaWidget,
   alkalinity_feedstock_co2_removal_potential: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:placeholder": "kg CO₂ per tonne of feedstock"
   },
   equilibration: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },
-  dosing_location: {},
+  dosing_location: {
+    ...halfWidthStyle,
+    "ui:field": "PlaceholderField"
+  },
   dosing_dispersal_hydrologic_location: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },
   dosing_delivery_type: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },
   dosing_details: {
@@ -104,7 +113,8 @@ const interventionUiSchema = {
   dosing_description: textAreaWidget,
   dosing_regimen: textAreaWidget,
   alkalinity_dosing_effluent_density: {
-    "ui:placeholder": "e.g., 1.05 g/cm³ (measured) or provide link to data"
+    ...halfWidthStyle,
+    "ui:field": "PlaceholderField"
   }
 };
 

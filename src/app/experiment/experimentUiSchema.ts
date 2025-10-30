@@ -14,6 +14,10 @@ const textAreaWidget = {
   "ui:descriptionModal": true
 };
 
+const halfWidthStyle = {
+  "ui:style": { width: "50%" }
+};
+
 const experimentUiSchema = {
   "ui:title": "",
   "ui:options": {
@@ -35,16 +39,16 @@ const experimentUiSchema = {
     "*"
   ],
   experiment_id: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:placeholder": "e.g., PROJECT-01-BASELINE-01",
     "ui:descriptionModal": true
   },
   name: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:placeholder": "e.g., Baseline Water Chemistry Study"
   },
   experiment_type: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": [
       "Baseline",
@@ -57,11 +61,11 @@ const experimentUiSchema = {
   },
   description: textAreaWidget,
   start_datetime: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "DateTimeWidget"
   },
   end_datetime: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "DateTimeWidget"
   },
   spatial_coverage: {
@@ -69,7 +73,7 @@ const experimentUiSchema = {
     "ui:title": "Spatial Coverage"
   },
   vertical_coverage: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:options": {
       gridCols: 2
     },

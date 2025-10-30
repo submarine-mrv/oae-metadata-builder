@@ -34,6 +34,33 @@
                 "string"
             ]
         },
+        "DosingConcentration": {
+            "additionalProperties": false,
+            "description": "Details of tracer concentration information",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "is_derived_value": {
+                    "description": "Indicates that the field in question is a derived value as opposed to one measured directly.",
+                    "type": "boolean"
+                },
+                "is_provided_as_a_file": {
+                    "description": "Indicates that the field in question is provided as a file. The value used here is intended to be a summary range or general area of coverage.",
+                    "type": "boolean"
+                },
+                "unit": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "is_derived_value",
+                "is_provided_as_a_file",
+                "unit"
+            ],
+            "title": "DosingConcentration",
+            "type": "object"
+        },
         "DosingDeliveryType": {
             "description": "Types of dosing delivery methods",
             "enum": [
@@ -329,9 +356,9 @@
                     "type": "string"
                 },
                 "alkalinity_dosing_effluent_density": {
+                    "$ref": "#/$defs/DosingConcentration",
                     "description": "Fixed density or provide link/source to effluent density data if applicable. Please include whether density is directly measured or a derived value. If this is a variable included with your data, please note so here as 'alkalinity dosing effluent density is provided as a variable' and use 'dosing_effluent_density' for your column header name.",
-                    "title": "Alkalinity Dosing Effluent Density",
-                    "type": "string"
+                    "title": "Alkalinity Dosing Effluent Density"
                 },
                 "alkalinity_feedstock": {
                     "$ref": "#/$defs/FeedstockType",
@@ -485,12 +512,12 @@
                 "alkalinity_feedstock_description",
                 "equilibration",
                 "alkalinity_dosing_effluent_density",
-                "dosing_regimen",
                 "dosing_delivery_type",
                 "dosing_location",
                 "dosing_location_provided_as_file",
                 "dosing_dispersal_hydrologic_location",
                 "dosing_depth",
+                "dosing_regimen",
                 "dosing_description",
                 "description",
                 "spatial_coverage",
@@ -556,9 +583,9 @@
                     "type": "string"
                 },
                 "alkalinity_dosing_effluent_density": {
+                    "$ref": "#/$defs/DosingConcentration",
                     "description": "Fixed density or provide link/source to effluent density data if applicable. Please include whether density is directly measured or a derived value. If this is a variable included with your data, please note so here as 'alkalinity dosing effluent density is provided as a variable' and use 'dosing_effluent_density' for your column header name.",
-                    "title": "Alkalinity Dosing Effluent Density",
-                    "type": "string"
+                    "title": "Alkalinity Dosing Effluent Density"
                 },
                 "alkalinity_feedstock": {
                     "$ref": "#/$defs/FeedstockType",
@@ -700,15 +727,19 @@
                     "type": "string"
                 },
                 "tracer_concentration": {
-                    "type": "string"
+                    "$ref": "#/$defs/DosingConcentration",
+                    "description": "Fixed concentration or provide link/source to tracer concentration separately in the dosing file. Please include whether concentration is directly measured or a derived value. If this is a variable included with  your data, please note so here as 'tracer concentration provided as a variable' and use 'tracer_concentration' for your column header name.",
+                    "title": "Tracer Concentration"
                 },
                 "tracer_details": {
                     "description": "state the kind of tracer used (e.g. rhodamine, or a specific gas)",
+                    "title": "Tracer Details",
                     "type": "string"
                 },
                 "tracer_form": {
                     "$ref": "#/$defs/TracerForm",
-                    "description": "The form of tracer upon delivery to the ocean (e.g. gas or dye-release)"
+                    "description": "The form of tracer upon delivery to the ocean (e.g. gas or dye-release)",
+                    "title": "Tracer Form"
                 },
                 "vertical_coverage": {
                     "$ref": "#/$defs/VerticalExtent",
@@ -719,18 +750,19 @@
             "required": [
                 "tracer_form",
                 "tracer_details",
+                "tracer_concentration",
                 "alkalinity_feedstock_processing",
                 "alkalinity_feedstock_form",
                 "alkalinity_feedstock",
                 "alkalinity_feedstock_description",
                 "equilibration",
                 "alkalinity_dosing_effluent_density",
-                "dosing_regimen",
                 "dosing_delivery_type",
                 "dosing_location",
                 "dosing_location_provided_as_file",
                 "dosing_dispersal_hydrologic_location",
                 "dosing_depth",
+                "dosing_regimen",
                 "dosing_description",
                 "description",
                 "spatial_coverage",
@@ -1325,6 +1357,11 @@
                 "dosing_location_provided_as_file": {
                     "type": "boolean"
                 },
+                "dosing_regimen": {
+                    "description": "A human readable summary description of the dosing regimen / frequency. Exact details must be provided in the corresponding dosing file with exact timestamps for dosing on/off schedule.",
+                    "title": "Dosing Regimen",
+                    "type": "string"
+                },
                 "end_datetime": {
                     "description": "End date and time of experiment in UTC ISO-8601",
                     "format": "date-time",
@@ -1382,15 +1419,19 @@
                     "type": "string"
                 },
                 "tracer_concentration": {
-                    "type": "string"
+                    "$ref": "#/$defs/DosingConcentration",
+                    "description": "Fixed concentration or provide link/source to tracer concentration separately in the dosing file. Please include whether concentration is directly measured or a derived value. If this is a variable included with  your data, please note so here as 'tracer concentration provided as a variable' and use 'tracer_concentration' for your column header name.",
+                    "title": "Tracer Concentration"
                 },
                 "tracer_details": {
                     "description": "state the kind of tracer used (e.g. rhodamine, or a specific gas)",
+                    "title": "Tracer Details",
                     "type": "string"
                 },
                 "tracer_form": {
                     "$ref": "#/$defs/TracerForm",
-                    "description": "The form of tracer upon delivery to the ocean (e.g. gas or dye-release)"
+                    "description": "The form of tracer upon delivery to the ocean (e.g. gas or dye-release)",
+                    "title": "Tracer Form"
                 },
                 "vertical_coverage": {
                     "$ref": "#/$defs/VerticalExtent",
@@ -1401,11 +1442,13 @@
             "required": [
                 "tracer_form",
                 "tracer_details",
+                "tracer_concentration",
                 "dosing_delivery_type",
                 "dosing_location",
                 "dosing_location_provided_as_file",
                 "dosing_dispersal_hydrologic_location",
                 "dosing_depth",
+                "dosing_regimen",
                 "dosing_description",
                 "description",
                 "spatial_coverage",

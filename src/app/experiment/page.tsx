@@ -27,10 +27,13 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
+import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
+import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
+import tracerUiSchema from "./tracerUiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -122,13 +125,23 @@ export default function ExperimentPage() {
         $id: "InterventionSchema"
       };
 
-      // Debug: Check if allOf conditional is present
-      console.log("Intervention schema allOf:", interventionSchema.allOf);
-      console.log("Has alkalinity_feedstock_other in properties?",
-        "alkalinity_feedstock_other" in interventionSchema.properties);
+      console.log("Loaded Intervention schema");
 
       setActiveSchema(interventionSchema);
       setActiveUiSchema(interventionUiSchema);
+    } else if (experimentType === "tracer_study") {
+      // Use the Tracer schema from $defs
+      const tracerSchema = {
+        ...baseSchema.$defs.Tracer,
+        $defs: baseSchema.$defs, // Preserve all definitions for references
+        $schema: baseSchema.$schema,
+        $id: "TracerSchema"
+      };
+
+      console.log("Loaded Tracer schema");
+
+      setActiveSchema(tracerSchema);
+      setActiveUiSchema(tracerUiSchema);
     } else {
       // Use base Experiment schema (default)
       setActiveSchema(baseSchema);
@@ -303,7 +316,8 @@ export default function ExperimentPage() {
                 CustomSelectWidget: CustomSelectWidget,
                 TextWidget: BaseInputWidget,
                 textarea: CustomTextareaWidget,
-                DateTimeWidget: DateTimeWidget
+                DateTimeWidget: DateTimeWidget,
+                PlaceholderWidget: PlaceholderWidget
               }}
               templates={{
                 DescriptionFieldTemplate: NoDescription,
@@ -318,7 +332,8 @@ export default function ExperimentPage() {
                 }
               }}
               fields={{
-                SpatialCoverageMiniMap: SpatialCoverageMiniMap
+                SpatialCoverageMiniMap: SpatialCoverageMiniMap,
+                PlaceholderField: PlaceholderField
               }}
               showErrorList="top"
             />
