@@ -306,6 +306,56 @@
     },
     "Intervention": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "alkalinity_feedstock": {
+                "const": "other"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock"
+            ]
+          },
+          "then": {
+            "properties": {
+              "alkalinity_feedstock_custom": {
+                "description": "Custom description of alkalinity feedstock when using a feedstock type not listed in the controlled vocabulary.",
+                "title": "Alkalinity Feedstock (Custom)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock_custom"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "alkalinity_feedstock_processing": {
+                "const": "other"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock_processing"
+            ]
+          },
+          "then": {
+            "properties": {
+              "alkalinity_feedstock_processing_custom": {
+                "description": "Custom description of alkalinity feedstock processing method when 'other' is selected in alkalinity_feedstock_processing.",
+                "title": "Alkalinity Feedstock Processing (Custom)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock_processing_custom"
+            ]
+          }
+        }
+      ],
       "description": "Additional metadata that applies to experiments where an intervention, such as an alkalinity addition, was conducted.",
       "properties": {
         "additional_details": {
@@ -477,68 +527,60 @@
         "end_datetime"
       ],
       "title": "Intervention",
-      "type": "object",
-      "dependencies": {
-        "alkalinity_feedstock": {
-          "oneOf": [
-            {
-              "properties": {
-                "alkalinity_feedstock": {
-                  "const": "other"
-                },
-                "alkalinity_feedstock_custom": {
-                  "description": "Custom description of alkalinity feedstock when using a feedstock type not listed in the controlled vocabulary.",
-                  "title": "Alkalinity Feedstock (Custom)",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "alkalinity_feedstock_custom"
-              ]
-            },
-            {
-              "properties": {
-                "alkalinity_feedstock": {
-                  "not": {
-                    "const": "other"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "alkalinity_feedstock_processing": {
-          "oneOf": [
-            {
-              "properties": {
-                "alkalinity_feedstock_processing": {
-                  "const": "other"
-                },
-                "alkalinity_feedstock_processing_custom": {
-                  "description": "Custom description of alkalinity feedstock processing method when 'other' is selected in alkalinity_feedstock_processing.",
-                  "title": "Alkalinity Feedstock Processing (Custom)",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "alkalinity_feedstock_processing_custom"
-              ]
-            },
-            {
-              "properties": {
-                "alkalinity_feedstock_processing": {
-                  "not": {
-                    "const": "other"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      }
+      "type": "object"
     },
     "InterventionWithTracer": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "alkalinity_feedstock": {
+                "const": "other"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock"
+            ]
+          },
+          "then": {
+            "properties": {
+              "alkalinity_feedstock_custom": {
+                "description": "Custom description of alkalinity feedstock when using a feedstock type not listed in the controlled vocabulary.",
+                "title": "Alkalinity Feedstock (Custom)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock_custom"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "alkalinity_feedstock_processing": {
+                "const": "other"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock_processing"
+            ]
+          },
+          "then": {
+            "properties": {
+              "alkalinity_feedstock_processing_custom": {
+                "description": "Custom description of alkalinity feedstock processing method when 'other' is selected in alkalinity_feedstock_processing.",
+                "title": "Alkalinity Feedstock Processing (Custom)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "alkalinity_feedstock_processing_custom"
+            ]
+          }
+        }
+      ],
       "description": "Additional metadata that applies to hybrid experiments where an intervention was conducted simultaneously alongside a tracer study, using the same instrumentation.",
       "properties": {
         "additional_details": {
@@ -728,65 +770,7 @@
         "end_datetime"
       ],
       "title": "InterventionWithTracer",
-      "type": "object",
-      "dependencies": {
-        "alkalinity_feedstock": {
-          "oneOf": [
-            {
-              "properties": {
-                "alkalinity_feedstock": {
-                  "const": "other"
-                },
-                "alkalinity_feedstock_custom": {
-                  "description": "Custom description of alkalinity feedstock when using a feedstock type not listed in the controlled vocabulary.",
-                  "title": "Alkalinity Feedstock (Custom)",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "alkalinity_feedstock_custom"
-              ]
-            },
-            {
-              "properties": {
-                "alkalinity_feedstock": {
-                  "not": {
-                    "const": "other"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "alkalinity_feedstock_processing": {
-          "oneOf": [
-            {
-              "properties": {
-                "alkalinity_feedstock_processing": {
-                  "const": "other"
-                },
-                "alkalinity_feedstock_processing_custom": {
-                  "description": "Custom description of alkalinity feedstock processing method when 'other' is selected in alkalinity_feedstock_processing.",
-                  "title": "Alkalinity Feedstock Processing (Custom)",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "alkalinity_feedstock_processing_custom"
-              ]
-            },
-            {
-              "properties": {
-                "alkalinity_feedstock_processing": {
-                  "not": {
-                    "const": "other"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      }
+      "type": "object"
     },
     "Investigator": {
       "additionalProperties": false,
@@ -1286,40 +1270,6 @@
       ],
       "title": "SeaNames",
       "type": "string"
-    },
-    "TestingClass": {
-      "additionalProperties": false,
-      "description": "",
-      "if": {
-        "properties": {
-          "feedstock_type": {
-            "const": "other"
-          }
-        },
-        "required": [
-          "feedstock_type"
-        ]
-      },
-      "properties": {
-        "feedstock_type": {
-          "$ref": "#/$defs/FeedstockType"
-        }
-      },
-      "required": [
-        "feedstock_type"
-      ],
-      "then": {
-        "properties": {
-          "feedstock_type_custom": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "feedstock_type_custom"
-        ]
-      },
-      "title": "TestingClass",
-      "type": "object"
     },
     "Tracer": {
       "additionalProperties": false,

@@ -1275,41 +1275,6 @@
             "title": "SeaNames",
             "type": "string"
         },
-        "TestingClass": {
-            "additionalProperties": false,
-            "description": "",
-            "if": {
-                "properties": {
-                    "feedstock_type": {
-                        "const": "other"
-                    }
-                },
-                "required": [
-                    "feedstock_type"
-                ]
-            },
-            "properties": {
-                "feedstock_type": {
-                    "$ref": "#/$defs/FeedstockType"
-                },
-                "feedstock_type_custom": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "feedstock_type"
-            ],
-            "then": {
-                "properties": {
-                    "feedstock_type_custom": {}
-                },
-                "required": [
-                    "feedstock_type_custom"
-                ]
-            },
-            "title": "TestingClass",
-            "type": "object"
-        },
         "Tracer": {
             "additionalProperties": false,
             "description": "Additional metadata that applies to experiments where a tracer study was conducted",

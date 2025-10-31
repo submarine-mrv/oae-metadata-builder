@@ -41,6 +41,9 @@ function fixConditionalFields(schema) {
   // Remove conditional "_custom" fields from root properties in any class that has them
   // This fixes LinkML-generated schemas where conditional fields appear in both
   // root properties AND the then block, causing them to always be visible
+  //
+  // IMPORTANT: All schemas which have conditional fields MUST have
+  // additionalProperties set to false
 
   const conditionalFields = [
     "feedstock_type_custom",
@@ -81,75 +84,9 @@ function fixConditionalFields(schema) {
   return schema;
 }
 
-function flattenAllOfConditionals(schema) {
-  // RJSF has a limitation: it doesn't properly evaluate if/then blocks nested inside allOf arrays
-  // This function flattens allOf structures that ONLY contain if/then blocks into dependencies
-  // (old JSON Schema draft-07 syntax) which RJSF handles correctly
-
-  Object.keys(schema.$defs || {}).forEach((className) => {
-    const classDef = schema.$defs[className];
-
-    // Only process if there's an allOf with if/then conditionals
-    if (classDef.allOf && Array.isArray(classDef.allOf)) {
-      // Check if all allOf items are just if/then blocks (no other properties/required at that level)
-      const allAreConditionals = classDef.allOf.every(item => {
-        const keys = Object.keys(item);
-        return keys.includes('if') && keys.includes('then') && keys.length === 2;
-      });
-
-      if (allAreConditionals) {
-        console.log(`⚡ Flattening allOf conditionals in ${className}`);
-
-        // Convert to dependencies (JSON Schema draft-07 format that RJSF supports)
-        if (!classDef.dependencies) {
-          classDef.dependencies = {};
-        }
-
-        classDef.allOf.forEach((condition) => {
-          // Extract the trigger field from the if condition
-          const ifProps = condition.if.properties;
-          const triggerField = Object.keys(ifProps)[0];
-          const triggerValue = ifProps[triggerField].const;
-
-          if (triggerValue === 'other') {
-            // Create a oneOf dependency that checks for the specific value
-            // This merges the 'then' block when the condition is met
-            const thenProperties = condition.then.properties || {};
-            const thenRequired = condition.then.required || [];
-
-            classDef.dependencies[triggerField] = {
-              oneOf: [
-                {
-                  properties: {
-                    [triggerField]: { const: triggerValue },
-                    ...thenProperties
-                  },
-                  required: thenRequired
-                },
-                {
-                  properties: {
-                    [triggerField]: { not: { const: triggerValue } }
-                  }
-                }
-              ]
-            };
-          }
-        });
-
-        // Remove the allOf since we've converted it
-        delete classDef.allOf;
-        console.log(`  ✓ Created ${Object.keys(classDef.dependencies).length} dependencies`);
-      }
-    }
-  });
-
-  return schema;
-}
-
 let decorated = decorateSeaNames(base, labels);
 decorated = decorateMCDRPathways(decorated);
 decorated = fixConditionalFields(decorated);
-decorated = flattenAllOfConditionals(decorated);
 
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log(

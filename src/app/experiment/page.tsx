@@ -122,10 +122,11 @@ export default function ExperimentPage() {
         ...baseSchema.$defs.Intervention,
         $defs: baseSchema.$defs, // Preserve all definitions for references
         $schema: baseSchema.$schema,
-        $id: "InterventionSchema"
+        $id: "InterventionSchema",
+        additionalProperties: true // IMPORTANT: Explicitly set
+        // additionalProperties:true to allow for conditional rendering in allOf
+        // blocks to work as expected
       };
-
-      console.log("Loaded Intervention schema");
 
       setActiveSchema(interventionSchema);
       setActiveUiSchema(interventionUiSchema);
@@ -137,8 +138,6 @@ export default function ExperimentPage() {
         $schema: baseSchema.$schema,
         $id: "TracerSchema"
       };
-
-      console.log("Loaded Tracer schema");
 
       setActiveSchema(tracerSchema);
       setActiveUiSchema(tracerUiSchema);
@@ -174,8 +173,6 @@ export default function ExperimentPage() {
 
   const handleFormChange = (e: any) => {
     const newData = e.formData;
-    console.log("Form data changed, alkalinity_feedstock:", newData.alkalinity_feedstock);
-    console.log("alkalinity_feedstock_other in data:", "alkalinity_feedstock_other" in newData);
     setFormData(newData);
     if (activeExperimentId) {
       updateExperiment(activeExperimentId, newData);
