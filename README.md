@@ -102,12 +102,33 @@ Custom components should be designed with portability in mind for potential futu
 
 ### Schema Updates
 
-When the source schema is updated:
+If you're actively developing the schema in the `oae-data-protocol` repository alongside this repo, the `make schema`
+command can be used to pull and bundle the latest JSON Schema artifacts from `oae-data-protocol`.
 
-1. Update schema files in `/schemas/` directory
-2. Run `node scripts/bundle-schema.mjs` to rebuild bundled schema
-3. Test form generation and validation
-4. Update UI schema if needed for new fields
+First, make sure you've exported JSON Schema & project artifacts from within the oae-data-protocol repo. This can be
+done by running:
+
+```bash
+make gen-project
+```
+**Note:** The above should __not__ be run from this repo, as it is a make task associated with the `oae-data-protocol`
+project, so must be run from the root of that repository.
+
+Then, from the root of this repository, you can import the latest JSON Schema into this project and run the
+necessary schema-bundling. This bundling script (located in `scripts/bundle-schema.mjs`) prepares the JSON Schema
+of the OAE Data Protocol for use in this project. It creates multiple separate root-schema artifacts (e.g. for 
+Projects and Experiments), and also pulls in human-readable names for titles of dynamic enums (such as for the Sea
+Names controlled vocabulary). It also makes some important fixes to enable conditional rendering of certain fields
+(namely conditional rendering of `_custom` fields when a controlled vocab value is not found for a given enum field,
+such as with `alkalinity_feedstock_type` and `alkalinity_feedstock_type_custom`).
+
+```bash
+# If the protocol repo is locally in the same parent directory as this repo, (e.g. ../oae-data-protocol)
+make schema
+
+# To override the schema repo path, set the corresponding environment variable: 
+SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
+```
 
 ### Customization
 

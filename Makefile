@@ -1,5 +1,7 @@
 # Local repository path for OAE schema source
-SCHEMA_REPO_PATH = ../oae-data-protocol
+# Can be overridden via environment variable or command line:
+#  SCHEMA_REPO_PATH=/path/to/oae-data-protocol make schema
+SCHEMA_REPO_PATH ?= ../oae-data-protocol
 
 # Schema file paths
 SCHEMA_SOURCE = $(SCHEMA_REPO_PATH)/project/jsonschema/oae_data_protocol.schema.json
