@@ -30,6 +30,12 @@
 //   }
 // };
 
+// Generate formatted enum names from schema
+import schema from "../../public/experiment.schema.bundled.json";
+import { generateEnumNames } from "@/utils/enumDecorator";
+
+const enumNames = generateEnumNames(schema, ["PermitStatus", "MCDRPathway"]);
+
 const nestedItemStyle = {
   border: "1px solid #ccc",
   borderRadius: "5px",
@@ -86,7 +92,8 @@ const uiSchemaOld = {
   },
   mcdr_pathway: {
     "ui:style": { width: "50%" },
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
+    "ui:enumNames": enumNames.MCDRPathway
   },
   vertical_coverage: {
     "ui:style": { width: "50%" },
@@ -160,7 +167,7 @@ const uiSchemaOld = {
         "ui:placeholder": "Type URL or DOI"
       },
       permit_status: {
-        "ui:enumNames": ["Pending", "Active", "Expired", "Revoked"]
+        "ui:enumNames": enumNames.PermitStatus
       }
     }
   },

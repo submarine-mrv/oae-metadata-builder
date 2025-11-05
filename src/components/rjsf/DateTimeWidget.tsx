@@ -46,6 +46,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
       valueFormat="YYYY-MM-DD HH:mm:ss"
       withSeconds
       description={schema.description}
+      weekendDays={[]}
     />
   );
 };

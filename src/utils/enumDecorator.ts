@@ -3,10 +3,28 @@
  */
 
 /**
+ * Custom overrides for specific enum values that need special formatting
+ * Add entries here for enum values that shouldn't follow the default snake_case to Title Case conversion
+ */
+const ENUM_OVERRIDES: Record<string, string> = {
+  orcid: "ORCID",
+  researcher_id: "ResearcherID",
+  ocean_expert: "OceanExpert"
+};
+
+/**
  * Format an enum value to a readable title
  * Example: "mg_rich_olivine" -> "Mg Rich Olivine"
+ *
+ * Checks ENUM_OVERRIDES first for custom formatting, then applies default formatting
  */
 export function formatEnumTitle(value: string): string {
+  // Check for custom override first
+  if (ENUM_OVERRIDES[value]) {
+    return ENUM_OVERRIDES[value];
+  }
+
+  // Default formatting: snake_case to Title Case
   return value
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
