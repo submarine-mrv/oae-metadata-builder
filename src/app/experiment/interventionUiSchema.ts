@@ -49,7 +49,8 @@ const interventionUiSchema = {
     "alkalinity_dosing_effluent_density",
     "equilibration",
     "dosing_location",
-    "dosing_location_provided_as_file",
+    // will be migrated to inside of dosing_location:
+    // "dosing_location_provided_as_file",
     "dosing_dispersal_hydrologic_location",
     "dosing_delivery_type",
     "dosing_depth",
