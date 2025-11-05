@@ -39,14 +39,51 @@ export async function validateProject(
 }
 
 /**
- * Validates experiment data against the experiment schema
+ * Validates experiment data against the appropriate experiment schema
+ * based on the experiment_type field
  */
 export async function validateExperiment(
   experimentData: any
 ): Promise<ValidationResult> {
   try {
     const response = await fetch("/experiment.schema.bundled.json");
-    const schema = await response.json();
+    const baseSchema = await response.json();
+
+    // Select the appropriate schema based on experiment_type
+    let schema;
+    const experimentType = experimentData.experiment_type;
+
+    if (experimentType === "intervention") {
+      // Use Intervention schema from $defs
+      schema = {
+        ...baseSchema.$defs.Intervention,
+        $defs: baseSchema.$defs,
+        $schema: baseSchema.$schema,
+        $id: "InterventionSchema",
+        additionalProperties: true
+      };
+    } else if (experimentType === "tracer_study") {
+      // Use Tracer schema from $defs
+      schema = {
+        ...baseSchema.$defs.Tracer,
+        $defs: baseSchema.$defs,
+        $schema: baseSchema.$schema,
+        $id: "TracerSchema",
+        additionalProperties: true
+      };
+    } else if (experimentType === "intervention_with_tracer") {
+      // Use InterventionWithTracer schema from $defs
+      schema = {
+        ...baseSchema.$defs.InterventionWithTracer,
+        $defs: baseSchema.$defs,
+        $schema: baseSchema.$schema,
+        $id: "InterventionWithTracerSchema",
+        additionalProperties: true
+      };
+    } else {
+      // Use base Experiment schema for baseline, control, model, other
+      schema = baseSchema;
+    }
 
     const result = validator.validateFormData(experimentData, schema);
 

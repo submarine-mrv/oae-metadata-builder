@@ -42,9 +42,8 @@ const tracerUiSchema = {
     "tracer_form",
     "tracer_form_custom",
     "tracer_concentration",
-    "tracer_description",
+    "tracer_details",
     "dosing_location",
-    "dosing_location_provided_as_file",
     "dosing_dispersal_hydrologic_location",
     "dosing_delivery_type",
     "dosing_depth",
@@ -73,11 +72,10 @@ const tracerUiSchema = {
   tracer_description: textAreaWidget,
   tracer_concentration: {
     ...halfWidthStyle,
-    "ui:field": "PlaceholderField"
+    "ui:field": "DosingConcentrationField"
   },
   dosing_location: {
-    ...halfWidthStyle,
-    "ui:field": "PlaceholderField"
+    "ui:field": "DosingLocationField"
   },
   dosing_dispersal_hydrologic_location: {
     ...halfWidthStyle,
@@ -97,7 +95,8 @@ const tracerUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "DosingDepthWidget"
   },
-  dosing_description: textAreaWidget
+  dosing_description: textAreaWidget,
+  dosing_regimen: textAreaWidget
 };
 
 export default tracerUiSchema;

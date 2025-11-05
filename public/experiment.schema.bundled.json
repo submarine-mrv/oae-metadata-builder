@@ -1004,7 +1004,8 @@
         "temporal_coverage",
         "spatial_coverage",
         "vertical_coverage",
-        "project_id"
+        "project_id",
+        "mcdr_pathway"
       ],
       "title": "OAEProject",
       "type": "object"

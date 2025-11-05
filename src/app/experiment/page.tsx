@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Container,
@@ -37,6 +37,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
+import { cleanFormDataForType } from "@/utils/experimentFields";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -174,13 +175,28 @@ export default function ExperimentPage() {
     };
   }, [isResizing]);
 
-  const handleFormChange = (e: any) => {
-    const newData = e.formData;
-    setFormData(newData);
-    if (activeExperimentId) {
-      updateExperiment(activeExperimentId, newData);
-    }
-  };
+  const handleFormChange = useCallback(
+    (e: any) => {
+      let newData = e.formData;
+
+      // Check if experiment_type changed
+      const oldType = formData.experiment_type;
+      const newType = newData.experiment_type;
+
+      if (oldType && newType && oldType !== newType) {
+        // Experiment type changed - clean fields that don't belong to new type
+        console.log(`Experiment type changed from ${oldType} to ${newType}`);
+        newData = cleanFormDataForType(newData, newType);
+        console.log("Cleaned data:", newData);
+      }
+
+      setFormData(newData);
+      if (activeExperimentId) {
+        updateExperiment(activeExperimentId, newData);
+      }
+    },
+    [formData, activeExperimentId, updateExperiment]
+  );
 
   const downloadJsonFile = (data: any) => {
     const jsonString = JSON.stringify(data, null, 2);

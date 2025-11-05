@@ -97,7 +97,9 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
           {/* Value Type - is_provided_as_a_file */}
           <Box>
             <FieldLabelSmall
-              label="Is effluent density a fixed value or variable?"
+              label={
+                "Is " + fieldTitle.toLowerCase() + " a fixed value or variable?"
+              }
               description={properties.is_provided_as_a_file?.description}
               required={requiredFields.includes("is_provided_as_a_file")}
               useModal={useModal}

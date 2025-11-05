@@ -1,6 +1,43 @@
 import { ExperimentData } from "@/contexts/AppStateContext";
 
 /**
+ * Project schema fields that should be in the root project data
+ */
+const PROJECT_FIELDS = [
+  "project_id",
+  "project_description",
+  "mcdr_pathway",
+  "sea_names",
+  "temporal_coverage",
+  "spatial_coverage",
+  "vertical_coverage",
+  "physical_site_description",
+  "social_context_site_description",
+  "social_research_conducted_to_date",
+  "colocated_operations",
+  "previous_or_ongoing_colocated_research",
+  "public_comments",
+  "permits",
+  "research_project",
+  "funding",
+  "additional_details"
+];
+
+/**
+ * Cleans projectData to only include valid Project schema fields
+ * Removes any experiment-specific fields that may have leaked in
+ */
+function cleanProjectData(data: any): any {
+  const cleaned: any = {};
+  PROJECT_FIELDS.forEach((field) => {
+    if (data[field] !== undefined) {
+      cleaned[field] = data[field];
+    }
+  });
+  return cleaned;
+}
+
+/**
  * Exports project and experiment data in the project schema format
  * with experiments nested in the "experiments" field
  */
@@ -8,9 +45,12 @@ export function exportMetadata(
   projectData: any,
   experiments: ExperimentData[]
 ): void {
-  // Combine project data with experiment form data
+  // Clean project data to remove any experiment fields
+  const cleanedProjectData = cleanProjectData(projectData);
+
+  // Combine clean project data with experiment form data
   const exportData = {
-    ...projectData,
+    ...cleanedProjectData,
     experiments: experiments.map((exp) => exp.formData)
   };
 
@@ -51,8 +91,9 @@ export async function importMetadata(
         // Extract experiments array (if it exists)
         const experimentsData = data.experiments || [];
 
-        // Remove experiments from project data
-        const { experiments: _, ...projectData } = data;
+        // Remove experiments from data and clean to only keep Project fields
+        const { experiments: _, ...rawProjectData } = data;
+        const projectData = cleanProjectData(rawProjectData);
 
         // Convert experiment data to ExperimentData format
         const experiments: ExperimentData[] = experimentsData.map(

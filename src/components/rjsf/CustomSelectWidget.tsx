@@ -44,7 +44,6 @@ export default function CustomSelectWidget<
   } = props;
 
   const { enumOptions, enumDisabled, emptyValue } = options;
-  console.log("Empty value: ", value);
   const themeProps = cleanupOptions(options);
   // Remove descriptionModal from themeProps as it's a custom UI option, not a Mantine prop
   const { descriptionModal, ...mantineProps } =
@@ -102,25 +101,13 @@ export default function CustomSelectWidget<
 
   const selectOptions = useMemo(() => {
     if (Array.isArray(enumOptions)) {
-      const testEnums = enumOptions.map((option, index) => ({
+      return enumOptions.map((option, index) => ({
         value: String(index),
         label: option.label,
         disabled:
           Array.isArray(enumDisabled) &&
           enumDisabled.indexOf(option.value) !== -1
       }));
-      console.log(testEnums);
-      return testEnums;
-      // return [
-      //   {
-      //     value: "test",
-      //     label: "Test"
-      //   },
-      //   {
-      //     value: "test_2",
-      //     label: "Test 2"
-      //   }
-      // ];
     }
     return [];
   }, [enumDisabled, enumOptions]);
