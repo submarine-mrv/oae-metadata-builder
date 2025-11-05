@@ -86,15 +86,7 @@ const uiSchemaOld = {
   },
   mcdr_pathway: {
     "ui:style": { width: "50%" },
-    "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": [
-      "Ocean Alkalinity Enhancement",
-      "Biomass Sinking",
-      "Direct Ocean Capture",
-      "Ocean Nutrient Fertilization",
-      "Artificial Upwelling and Downwelling",
-      "Marine Ecosystem Recovery"
-    ]
+    "ui:widget": "CustomSelectWidget"
   },
   vertical_coverage: {
     "ui:style": { width: "50%" },

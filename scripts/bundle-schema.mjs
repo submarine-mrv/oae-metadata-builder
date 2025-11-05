@@ -32,11 +32,6 @@ function decorateSeaNames(schema, labels) {
   };
 }
 
-function decorateMCDRPathways(schema) {
-  // Just return the schema unchanged for now
-  return schema;
-}
-
 function fixConditionalFields(schema) {
   // Remove conditional "_custom" fields from root properties in any class that has them
   // This fixes LinkML-generated schemas where conditional fields appear in both
@@ -85,12 +80,11 @@ function fixConditionalFields(schema) {
 }
 
 let decorated = decorateSeaNames(base, labels);
-decorated = decorateMCDRPathways(decorated);
 decorated = fixConditionalFields(decorated);
 
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log(
-  "✅ schema with labeled sea_names and MCDR pathways written to",
+  "✅ schema with labeled sea_names written to",
   OUTPUT
 );
 

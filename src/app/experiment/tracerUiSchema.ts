@@ -2,6 +2,15 @@
 // Inherits from experimentUiSchema and adds tracer-specific customizations
 
 import experimentUiSchema from "./experimentUiSchema";
+import schema from "../../../public/experiment.schema.bundled.json";
+import { generateEnumNames } from "@/utils/enumDecorator";
+
+// Generate formatted enum names for tracer-specific enums
+const enumNames = generateEnumNames(schema, [
+  "TracerForm",
+  "HydrologicLocation",
+  "DosingDeliveryType"
+]);
 
 const textAreaWidget = {
   "ui:widget": "textarea",
@@ -51,9 +60,14 @@ const tracerUiSchema = {
 
   // Tracer-specific field customizations
   tracer_form: {
-    "ui:widget": "CustomSelectWidget"
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.TracerForm
+    }
   },
   tracer_form_custom: {
+    ...halfWidthStyle,
     "ui:placeholder": "Specify other tracer form"
   },
   tracer_description: textAreaWidget,
@@ -66,10 +80,18 @@ const tracerUiSchema = {
     "ui:field": "PlaceholderField"
   },
   dosing_dispersal_hydrologic_location: {
-    "ui:widget": "CustomSelectWidget"
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.HydrologicLocation
+    }
   },
   dosing_delivery_type: {
-    "ui:widget": "CustomSelectWidget"
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.DosingDeliveryType
+    }
   },
   dosing_description: textAreaWidget
 };

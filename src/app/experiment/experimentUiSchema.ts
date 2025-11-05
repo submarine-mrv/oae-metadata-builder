@@ -1,4 +1,12 @@
 // experimentUiSchema.ts - UI configuration for experiment forms
+import schema from "../../../public/experiment.schema.bundled.json";
+import { generateEnumNames } from "@/utils/enumDecorator";
+
+// Generate formatted enum names from schema
+const enumNames = generateEnumNames(schema, [
+  "ExperimentType",
+  "ResearcherIDType"
+]);
 
 const nestedItemStyle = {
   border: "1px solid #ccc",
@@ -51,14 +59,9 @@ const experimentUiSchema = {
   experiment_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": [
-      "Baseline",
-      "Control",
-      "Intervention",
-      "Tracer",
-      "Model",
-      "Other"
-    ]
+    "ui:options": {
+      enumNames: enumNames.ExperimentType
+    }
   },
   description: textAreaWidget,
   start_datetime: {
@@ -113,7 +116,10 @@ const experimentUiSchema = {
         "ui:placeholder": "e.g., Principal Investigator"
       },
       identifier_type: {
-        "ui:placeholder": "e.g., ORCID"
+        "ui:widget": "CustomSelectWidget",
+        "ui:options": {
+          enumNames: enumNames.ResearcherIDType
+        }
       },
       identifier: {
         "ui:placeholder": "e.g., 0000-0000-0000-0000"

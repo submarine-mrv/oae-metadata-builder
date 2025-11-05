@@ -2,6 +2,18 @@
 // Inherits from experimentUiSchema and adds intervention-specific customizations
 
 import experimentUiSchema from "./experimentUiSchema";
+import schema from "../../../public/experiment.schema.bundled.json";
+import { generateEnumNames } from "@/utils/enumDecorator";
+
+// Generate formatted enum names for intervention-specific enums
+const enumNames = generateEnumNames(schema, [
+  "FeedstockType",
+  "AlkalinityFeedstockForm",
+  "AlkalinityFeedstockProcessing",
+  "EquilibrationStatus",
+  "HydrologicLocation",
+  "DosingDeliveryType"
+]);
 
 const nestedItemStyle = {
   border: "1px solid #ccc",
@@ -67,7 +79,10 @@ const interventionUiSchema = {
   // Intervention-specific field customizations
   alkalinity_feedstock: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.FeedstockType
+    }
   },
   alkalinity_feedstock_custom: {
     ...halfWidthStyle,
@@ -75,12 +90,18 @@ const interventionUiSchema = {
   },
   alkalinity_feedstock_form: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.AlkalinityFeedstockForm
+    }
   },
   alkalinity_feedstock_processing: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
-    "ui:descriptionModal": true
+    "ui:descriptionModal": true,
+    "ui:options": {
+      enumNames: enumNames.AlkalinityFeedstockProcessing
+    }
   },
   alkalinity_feedstock_processing_custom: {
     ...halfWidthStyle,
@@ -93,18 +114,27 @@ const interventionUiSchema = {
   },
   equilibration: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.EquilibrationStatus
+    }
   },
   dosing_location: {
     "ui:field": "DosingLocationField"
   },
   dosing_dispersal_hydrologic_location: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.HydrologicLocation
+    }
   },
   dosing_delivery_type: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.DosingDeliveryType
+    }
   },
   dosing_details: {
     // This is a conditional field (StaticDosingDetails vs VariableDosingDetails)
