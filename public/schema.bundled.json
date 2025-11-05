@@ -50,13 +50,12 @@
           "type": "boolean"
         },
         "unit": {
-          "type": "string"
+          "$ref": "#/$defs/MassConcentrationUnit"
         }
       },
       "required": [
         "is_derived_value",
-        "is_provided_as_a_file",
-        "unit"
+        "is_provided_as_a_file"
       ],
       "title": "DosingConcentration",
       "type": "object"
@@ -799,6 +798,23 @@
         "marine_ecosystem_recovery"
       ],
       "title": "MCDR Pathway",
+      "type": "string"
+    },
+    "MassConcentrationUnit": {
+      "description": "",
+      "enum": [
+        "unit:KiloGM-PER-M3",
+        "unit:MicroGM-PER-L",
+        "unit:MicroGM-PER-L-DAY",
+        "unit:MicroGM-PER-MilliL",
+        "unit:MilliGM-PER-L",
+        "unit:MilliGM-PER-M3",
+        "unit:MilliGM-PER-MilliL",
+        "unit:NanoGM-PER-L",
+        "unit:NanoGM-PER-MilliL",
+        "unit:PicoGM-PER-MilliL"
+      ],
+      "title": "MassConcentrationUnit",
       "type": "string"
     },
     "MonetaryGrant": {

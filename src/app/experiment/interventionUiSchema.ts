@@ -141,11 +141,15 @@ const interventionUiSchema = {
     // RJSF will handle the anyOf/oneOf automatically
     "ui:descriptionModal": true
   },
+  dosing_depth: {
+    ...halfWidthStyle,
+    "ui:widget": "DosingDepthWidget"
+  },
   dosing_description: textAreaWidget,
   dosing_regimen: textAreaWidget,
   alkalinity_dosing_effluent_density: {
     ...halfWidthStyle,
-    "ui:field": "PlaceholderField"
+    "ui:field": "DosingConcentrationField"
   }
 };
 

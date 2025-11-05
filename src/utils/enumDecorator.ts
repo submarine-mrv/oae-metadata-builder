@@ -9,7 +9,18 @@
 const ENUM_OVERRIDES: Record<string, string> = {
   orcid: "ORCID",
   researcher_id: "ResearcherID",
-  ocean_expert: "OceanExpert"
+  ocean_expert: "OceanExpert",
+  // MassConcentrationUnit QUDT units with proper formatting
+  "unit:KiloGM-PER-M3": "kg/m³",
+  "unit:MicroGM-PER-L": "μg/L",
+  "unit:MicroGM-PER-L-DAY": "μg/L/day",
+  "unit:MicroGM-PER-MilliL": "μg/mL",
+  "unit:MilliGM-PER-L": "mg/L",
+  "unit:MilliGM-PER-M3": "mg/m³",
+  "unit:MilliGM-PER-MilliL": "mg/mL",
+  "unit:NanoGM-PER-L": "ng/L",
+  "unit:NanoGM-PER-MilliL": "ng/mL",
+  "unit:PicoGM-PER-MilliL": "pg/mL"
 };
 
 /**

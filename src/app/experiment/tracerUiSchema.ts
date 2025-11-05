@@ -93,6 +93,10 @@ const tracerUiSchema = {
       enumNames: enumNames.DosingDeliveryType
     }
   },
+  dosing_depth: {
+    ...halfWidthStyle,
+    "ui:widget": "DosingDepthWidget"
+  },
   dosing_description: textAreaWidget
 };
 
