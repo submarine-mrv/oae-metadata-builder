@@ -17,6 +17,7 @@ import Ajv2019 from "ajv/dist/2019";
 import type { DescriptionFieldProps } from "@rjsf/utils";
 
 import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
+import DosingLocationWidget from "@/components/DosingLocationWidget";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
@@ -330,7 +331,8 @@ export default function ExperimentPage() {
               }}
               fields={{
                 SpatialCoverageMiniMap: SpatialCoverageMiniMap,
-                PlaceholderField: PlaceholderField
+                PlaceholderField: PlaceholderField,
+                DosingLocationField: DosingLocationWidget
               }}
               showErrorList="top"
             />

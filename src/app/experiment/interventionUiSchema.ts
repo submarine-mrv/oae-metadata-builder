@@ -29,8 +29,8 @@ const interventionUiSchema = {
 
   // Override ui:order to include intervention-specific fields
   "ui:order": [
-    "experiment_id",
     "name",
+    "experiment_id",
     "experiment_type",
     "description",
     "start_datetime",
@@ -44,10 +44,10 @@ const interventionUiSchema = {
     "alkalinity_feedstock",
     // alkalinity_feedstock_other appears conditionally via if/then in schema
     "alkalinity_feedstock_custom",
-    "alkalinity_feedstock_description",
     "alkalinity_feedstock_co2_removal_potential",
-    "alkalinity_dosing_effluent_density",
+    "alkalinity_feedstock_description",
     "equilibration",
+    "alkalinity_dosing_effluent_density",
     "dosing_location",
     // will be migrated to inside of dosing_location:
     // "dosing_location_provided_as_file",
@@ -96,8 +96,7 @@ const interventionUiSchema = {
     "ui:widget": "CustomSelectWidget"
   },
   dosing_location: {
-    ...halfWidthStyle,
-    "ui:field": "PlaceholderField"
+    "ui:field": "DosingLocationField"
   },
   dosing_dispersal_hydrologic_location: {
     ...halfWidthStyle,

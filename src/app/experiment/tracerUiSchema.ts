@@ -21,8 +21,8 @@ const tracerUiSchema = {
 
   // Override ui:order to include tracer-specific fields
   "ui:order": [
-    "experiment_id",
     "name",
+    "experiment_id",
     "experiment_type",
     "description",
     "start_datetime",

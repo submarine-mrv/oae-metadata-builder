@@ -252,34 +252,14 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
   return (
     <>
       <Box>
-        <Box
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            marginBottom: "4px"
-          }}
-        >
-          <Text size="sm" fw={500}>
-            {label}{" "}
-            {required && (
-              <Text component="span" c="red">
-                *
-              </Text>
-            )}
-          </Text>
-          <Tooltip label="Click to open map editor">
-            <ActionIcon
-              variant="subtle"
-              size="xs"
-              onClick={() => setShowMapModal(true)}
-              disabled={disabled || readonly}
-              style={{ cursor: "pointer" }}
-            >
-              <IconEdit size={14} />
-            </ActionIcon>
-          </Tooltip>
-        </Box>
+        <Text size="sm" fw={500} mb={4}>
+          {label}{" "}
+          {required && (
+            <Text component="span" c="red">
+              *
+            </Text>
+          )}
+        </Text>
 
         <Box
           onClick={() => !disabled && !readonly && setShowMapModal(true)}
@@ -294,16 +274,21 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
             backgroundColor: "#f8f9fa"
           }}
         >
+          {/* Mini map preview */}
           <div
             ref={mapRef}
             style={{
               width: "100%",
-              height: "100%"
+              height: "100%",
+              borderRadius: "4px",
+              position: "absolute",
+              top: 0,
+              left: 0
             }}
           />
 
-          {/* Overlay for click indication */}
-          {!disabled && !readonly && (
+          {/* Overlay with text when no spatial coverage is set */}
+          {!value.trim() && (
             <Box
               style={{
                 position: "absolute",
@@ -311,32 +296,43 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(0,0,0,0)",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: 0,
-                transition: "opacity 0.2s",
-                pointerEvents: "none"
+                backgroundColor: "rgba(255, 255, 255, 0.85)",
+                borderRadius: "4px",
+                padding: "8px"
               }}
-              className="map-overlay"
             >
-              <Box
+              <IconMap size={32} style={{ marginBottom: "8px", opacity: 0.6 }} />
+              <Text size="sm" ta="center" c="dimmed">
+                Click to set spatial coverage
+              </Text>
+            </Box>
+          )}
+
+          {/* Edit icon */}
+          {!disabled && !readonly && (
+            <Tooltip label="Edit location">
+              <ActionIcon
+                variant="filled"
+                color="blue"
+                size="md"
                 style={{
-                  backgroundColor: "rgba(0,0,0,0.7)",
-                  color: "white",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
+                  position: "absolute",
+                  top: "8px",
+                  right: "8px",
+                  zIndex: 10
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMapModal(true);
                 }}
               >
-                <IconMap size={16} />
-                Click to edit
-              </Box>
-            </Box>
+                <IconEdit size={16} />
+              </ActionIcon>
+            </Tooltip>
           )}
         </Box>
         {/* Display validation errors or placeholder text */}
@@ -359,16 +355,6 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
           setShowMapModal(false);
         }}
         initialBounds={value}
-      />
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .map-overlay:hover {
-          opacity: 1 !important;
-        }
-      `
-        }}
       />
     </>
   );

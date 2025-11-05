@@ -24,8 +24,8 @@ const experimentUiSchema = {
     expandable: false
   },
   "ui:order": [
-    "experiment_id",
     "name",
+    "experiment_id",
     "experiment_type",
     "description",
     "start_datetime",
@@ -45,6 +45,7 @@ const experimentUiSchema = {
   },
   name: {
     ...halfWidthStyle,
+    "ui:title": "Experiment Name",
     "ui:placeholder": "e.g., Baseline Water Chemistry Study"
   },
   experiment_type: {

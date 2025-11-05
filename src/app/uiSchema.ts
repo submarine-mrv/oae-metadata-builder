@@ -180,9 +180,10 @@ const uiSchemaOld = {
     "ui:options": {
       addable: true,
       orderable: false,
-      addItemText: "Add Grant"
+      addItemText: "Add Funding Source"
     },
     items: {
+      "ui:title": "",
       "ui:style": nestedItemStyle,
       "ui:order": ["name", "identifier", "start_date", "end_date", "funder"],
       "ui:options": {
