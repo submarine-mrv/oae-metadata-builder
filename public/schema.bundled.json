@@ -971,15 +971,9 @@
           "type": "string"
         },
         "public_comments": {
-          "description": "Links to public comments or concerns about the project.",
-          "items": {
-            "$ref": "#/$defs/NamedLink"
-          },
+          "description": "If possible, please provide public comments concatenated into a single pdf",
           "title": "Public Comments",
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "string"
         },
         "research_project": {
           "description": "Project, which the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",
@@ -1615,15 +1609,9 @@
       "type": "string"
     },
     "public_comments": {
-      "description": "Links to public comments or concerns about the project.",
-      "items": {
-        "$ref": "#/$defs/NamedLink"
-      },
+      "description": "If possible, please provide public comments concatenated into a single pdf",
       "title": "Public Comments",
-      "type": [
-        "array",
-        "null"
-      ]
+      "type": "string"
     },
     "research_project": {
       "description": "Project, which the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",

@@ -95,25 +95,8 @@ const uiSchemaOld = {
     "ui:enumNames": enumNames.MCDRPathway
   },
   public_comments: {
-    "ui:title": "Public Comments",
-    "ui:options": {
-      addable: true,
-      orderable: false,
-      addItemText: "Add Public Comment Report"
-    },
-    items: {
-      "ui:style": nestedItemStyle,
-      "ui:title": "",
-      "ui:options": {
-        gridCols: 2
-      },
-      name: {
-        "ui:placeholder": "Name, title, or description of public comment"
-      },
-      url: {
-        "ui:placeholder": "Enter URL or DOI link for public comment"
-      }
-    }
+    "ui:placeholder":
+      "filename(s) of public comments provided, separated by a comma"
   },
   sea_names: {
     "ui:style": { width: "50%" },
