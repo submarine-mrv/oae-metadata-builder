@@ -41,6 +41,7 @@ const experimentUiSchema = {
     "spatial_coverage",
     "vertical_coverage",
     "investigators",
+    "permits",
     "meteorological_and_tidal_data",
     "data_conflicts_and_unreported_data",
     "additional_details",
@@ -138,6 +139,29 @@ const experimentUiSchema = {
           "ui:placeholder": "e.g., US"
         }
       }
+    }
+  },
+  permits: {
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Permit"
+    },
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2
+      },
+      "ui:title": "",
+      "ui:order": [
+        "permit_id",
+        "approval_document",
+        "permitting_authority",
+        "agency_contact",
+        "time_period",
+        "permit_type",
+        "changes_to_evolution_of_permit_criteria"
+      ]
     }
   },
   meteorological_and_tidal_data: {

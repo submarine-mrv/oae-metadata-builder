@@ -34,7 +34,7 @@
 import schema from "../../public/experiment.schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 
-const enumNames = generateEnumNames(schema, ["PermitStatus", "MCDRPathway"]);
+const enumNames = generateEnumNames(schema, ["MCDRPathway"]);
 
 const nestedItemStyle = {
   border: "1px solid #ccc",
@@ -137,31 +137,6 @@ const uiSchemaOld = {
   colocated_operations: {
     "ui:widget": "textarea",
     "ui:options": { rows: 3 }
-  },
-  permits: {
-    "ui:options": {
-      addable: true,
-      orderable: false,
-      addItemText: "Add Permit"
-    },
-    items: {
-      "ui:style": nestedItemStyle,
-      "ui:options": {
-        gridCols: 2
-      },
-      "ui:order": [
-        "permitting_authority",
-        "permit_id",
-        "approval_document",
-        "permit_status"
-      ],
-      approval_document: {
-        "ui:placeholder": "Type URL or DOI"
-      },
-      permit_status: {
-        "ui:enumNames": enumNames.PermitStatus
-      }
-    }
   },
   research_project: {
     "ui:title": "Research Project",
