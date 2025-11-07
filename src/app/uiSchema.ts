@@ -57,13 +57,13 @@ const uiSchemaOld = {
     expandable: false
   },
   "ui:order": [
+    "research_project",
     "project_id",
     "project_description",
     "mcdr_pathway",
     "sea_names",
     "spatial_coverage",
     "temporal_coverage",
-    "vertical_coverage",
     "physical_site_description",
     "social_context_site_description",
     "social_research_conducted_to_date",
@@ -71,7 +71,6 @@ const uiSchemaOld = {
     "previous_or_ongoing_colocated_research",
     "public_comments",
     "permits",
-    "research_project",
     "funding",
     "additional_details",
     "*"
@@ -94,13 +93,6 @@ const uiSchemaOld = {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.MCDRPathway
-  },
-  vertical_coverage: {
-    "ui:style": { width: "50%" },
-    "ui:options": {
-      gridCols: 2
-    },
-    "ui:order": ["min_depth_in_m", "max_depth_in_m"]
   },
   public_comments: {
     "ui:title": "Public Comments",
