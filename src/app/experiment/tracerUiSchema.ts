@@ -41,8 +41,8 @@ const tracerUiSchema = {
     // Tracer-specific fields
     "tracer_form",
     "tracer_form_custom",
-    "tracer_concentration",
     "tracer_details",
+    "tracer_concentration",
     "dosing_location",
     "dosing_dispersal_hydrologic_location",
     "dosing_delivery_type",
@@ -69,7 +69,9 @@ const tracerUiSchema = {
     ...halfWidthStyle,
     "ui:placeholder": "Specify other tracer form"
   },
-  tracer_description: textAreaWidget,
+  tracer_details: {
+    ...halfWidthStyle
+  },
   tracer_concentration: {
     ...halfWidthStyle,
     "ui:field": "DosingConcentrationField"
