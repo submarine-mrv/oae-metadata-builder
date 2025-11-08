@@ -120,7 +120,7 @@ const DosingLocationWidget: React.FC<FieldProps> = (props) => {
       case "point":
         return "Click to set point location";
       case "line":
-        return "Click to set line/diffuser";
+        return "Click to set line";
       case "box":
         return "Click to set bounding box";
       default:

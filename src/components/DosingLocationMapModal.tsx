@@ -657,7 +657,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           : "Click on the map to select a fixed point dosing location, or enter coordinates below.";
       case "line":
         if (!isSelecting) {
-          return "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your line/diffuser.";
+          return "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your line.";
         } else {
           return startPointRef.current
             ? "Click second point to complete line"
@@ -700,7 +700,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
   const modeOptions = [
     { value: "point", label: "Fixed Point" },
-    { value: "line", label: "Line / Diffuser" },
+    { value: "line", label: "Line" },
     { value: "box", label: "Provided as a file" }
   ];
 
