@@ -2065,10 +2065,6 @@
           "type": "number"
         }
       },
-      "required": [
-        "min_depth_in_m",
-        "max_depth_in_m"
-      ],
       "title": "VerticalExtent",
       "type": "object"
     }
@@ -2099,5 +2095,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "6f2d3f244924b40c06f0e48cf1e8fffafcdca5d0"
+  "x-protocol-git-hash": "ffa61bb706630dff397db4ee58366f3b39502cad"
 }

@@ -1559,10 +1559,6 @@
                     "type": "number"
                 }
             },
-            "required": [
-                "min_depth_in_m",
-                "max_depth_in_m"
-            ],
             "title": "VerticalExtent",
             "type": "object"
         }
