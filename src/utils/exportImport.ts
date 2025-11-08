@@ -1,4 +1,5 @@
 import { ExperimentData } from "@/contexts/AppStateContext";
+import { getProtocolMetadata } from "./schemaViews";
 
 /**
  * Project schema fields that should be in the root project data
@@ -38,20 +39,31 @@ function cleanProjectData(data: any): any {
 }
 
 /**
- * Exports project and experiment data in the project schema format
- * with experiments nested in the "experiments" field
+ * Exports project and experiment data wrapped in a Container object
+ * with version metadata from the protocol
  */
 export function exportMetadata(
   projectData: any,
   experiments: ExperimentData[]
 ): void {
+  // Get version metadata from schema
+  const protocolMetadata = getProtocolMetadata();
+
   // Clean project data to remove any experiment fields
   const cleanedProjectData = cleanProjectData(projectData);
 
   // Combine clean project data with experiment form data
-  const exportData = {
+  const projectWithExperiments = {
     ...cleanedProjectData,
     experiments: experiments.map((exp) => exp.formData)
+  };
+
+  // Wrap in Container object
+  const exportData = {
+    version: protocolMetadata.version,
+    protocol_git_hash: protocolMetadata.gitHash,
+    metadata_builder_git_hash: "", // Leave empty for now
+    project: projectWithExperiments
   };
 
   // Create blob and download
@@ -74,7 +86,7 @@ export function exportMetadata(
 }
 
 /**
- * Imports project and experiment data from a JSON file
+ * Imports project and experiment data from a JSON file in Container format
  * Returns an object with project data and experiments array
  */
 export async function importMetadata(
@@ -88,11 +100,12 @@ export async function importMetadata(
         const content = e.target?.result as string;
         const data = JSON.parse(content);
 
-        // Extract experiments array (if it exists)
-        const experimentsData = data.experiments || [];
+        // Expect Container format: { version, protocol_git_hash, project: {...} }
+        const projectDataRaw = data.project || {};
+        const experimentsData = projectDataRaw.experiments || [];
 
-        // Remove experiments from data and clean to only keep Project fields
-        const { experiments: _, ...rawProjectData } = data;
+        // Remove experiments from project data and clean to only keep Project fields
+        const { experiments: _, ...rawProjectData } = projectDataRaw;
         const projectData = cleanProjectData(rawProjectData);
 
         // Convert experiment data to ExperimentData format

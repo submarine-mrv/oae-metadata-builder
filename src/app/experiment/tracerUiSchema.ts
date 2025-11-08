@@ -2,7 +2,7 @@
 // Inherits from experimentUiSchema and adds tracer-specific customizations
 
 import experimentUiSchema from "./experimentUiSchema";
-import schema from "../../../public/experiment.schema.bundled.json";
+import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 
 // Generate formatted enum names for tracer-specific enums

@@ -1,5 +1,5 @@
 // experimentUiSchema.ts - UI configuration for experiment forms
-import schema from "../../../public/experiment.schema.bundled.json";
+import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 
 // Generate formatted enum names from schema

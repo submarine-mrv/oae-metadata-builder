@@ -31,7 +31,7 @@
 // };
 
 // Generate formatted enum names from schema
-import schema from "../../public/experiment.schema.bundled.json";
+import schema from "../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 
 const enumNames = generateEnumNames(schema, ["MCDRPathway"]);

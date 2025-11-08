@@ -38,6 +38,12 @@ import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
 import { cleanFormDataForType } from "@/utils/experimentFields";
+import {
+  getExperimentSchema,
+  getInterventionSchema,
+  getTracerSchema,
+  getInterventionWithTracerSchema
+} from "@/utils/schemaViews";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -49,14 +55,15 @@ export default function ExperimentPage() {
   const { state, updateExperiment, setActiveTab, setTriggerValidation } =
     useAppState();
 
-  const [baseSchema, setBaseSchema] = useState<any>(null);
-  const [activeSchema, setActiveSchema] = useState<any>(null);
+  const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
+  const [skipDownload, setSkipDownload] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const activeExperimentId = state.activeExperimentId;
   const experiment = activeExperimentId
@@ -67,14 +74,15 @@ export default function ExperimentPage() {
     setActiveTab("experiment");
   }, [setActiveTab]);
 
-  // Trigger validation if requested (e.g., from export button)
+  // Trigger validation if requested (e.g., from export button in Navigation)
   useEffect(() => {
     if (state.triggerValidation) {
       // Scroll to top of page
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Trigger validation by forcing a form submit
+      // Trigger validation by forcing a form submit, but skip the download
       setTimeout(() => {
+        setSkipDownload(true); // Prevent download when just showing validation errors
         setForceValidation(true);
         setTriggerValidation(false);
       }, 100);
@@ -95,62 +103,40 @@ export default function ExperimentPage() {
     }
   }, [forceValidation]);
 
-  // Load experiment data
+  // Load experiment data when experiment ID changes
   useEffect(() => {
+    // Reset initial load flag when switching experiments
+    setIsInitialLoad(true);
+
     if (experiment) {
       setFormData({
         ...experiment.formData,
         project_id: state.projectData.project_id || ""
       });
+      // Mark that initial data has been loaded (after a tick to let form mount)
+      setTimeout(() => setIsInitialLoad(false), 0);
     }
-  }, [experiment, state.projectData.project_id]);
-
-  // Load schema
-  useEffect(() => {
-    // Add timestamp to bust cache
-    fetch(`/experiment.schema.bundled.json?t=${Date.now()}`)
-      .then((r) => r.json())
-      .then(setBaseSchema)
-      .catch(console.error);
-  }, []);
+  }, [activeExperimentId, state.projectData.project_id]); // Use ID instead of object to avoid infinite loop
 
   // Dynamic schema and uiSchema switching based on experiment_type
   useEffect(() => {
-    if (!baseSchema) return;
-
     const experimentType = formData.experiment_type;
 
     if (experimentType === "intervention") {
-      // Use the Intervention schema from $defs
-      const interventionSchema = {
-        ...baseSchema.$defs.Intervention,
-        $defs: baseSchema.$defs, // Preserve all definitions for references
-        $schema: baseSchema.$schema,
-        $id: "InterventionSchema",
-        additionalProperties: true // IMPORTANT: Explicitly set
-        // additionalProperties:true to allow for conditional rendering in allOf
-        // blocks to work as expected
-      };
-
-      setActiveSchema(interventionSchema);
+      setActiveSchema(getInterventionSchema());
       setActiveUiSchema(interventionUiSchema);
     } else if (experimentType === "tracer_study") {
-      // Use the Tracer schema from $defs
-      const tracerSchema = {
-        ...baseSchema.$defs.Tracer,
-        $defs: baseSchema.$defs, // Preserve all definitions for references
-        $schema: baseSchema.$schema,
-        $id: "TracerSchema"
-      };
-
-      setActiveSchema(tracerSchema);
+      setActiveSchema(getTracerSchema());
       setActiveUiSchema(tracerUiSchema);
+    } else if (experimentType === "intervention_with_tracer") {
+      setActiveSchema(getInterventionWithTracerSchema());
+      setActiveUiSchema(tracerUiSchema); // TODO: may need separate UI schema
     } else {
-      // Use base Experiment schema (default)
-      setActiveSchema(baseSchema);
+      // Use base Experiment schema (default for baseline, control, model, other)
+      setActiveSchema(getExperimentSchema());
       setActiveUiSchema(experimentUiSchema);
     }
-  }, [baseSchema, formData.experiment_type]);
+  }, [formData.experiment_type]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -177,6 +163,12 @@ export default function ExperimentPage() {
 
   const handleFormChange = useCallback(
     (e: any) => {
+      // Don't save to global state until initial data is loaded
+      // This prevents RJSF's onChange on mount from overwriting real data with empty data
+      if (isInitialLoad) {
+        return;
+      }
+
       let newData = e.formData;
 
       // Check if experiment_type changed
@@ -195,10 +187,16 @@ export default function ExperimentPage() {
         updateExperiment(activeExperimentId, newData);
       }
     },
-    [formData, activeExperimentId, updateExperiment]
+    [isInitialLoad, formData, activeExperimentId, updateExperiment]
   );
 
   const downloadJsonFile = (data: any) => {
+    // Don't download if this submit was triggered just to show validation errors
+    if (skipDownload) {
+      setSkipDownload(false); // Reset flag
+      return;
+    }
+
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -256,17 +254,6 @@ export default function ExperimentPage() {
 
     return errors;
   };
-
-  if (!baseSchema || !activeSchema) {
-    return (
-      <>
-        <Navigation />
-        <Container size="md" py="lg">
-          <Text>Loading experiment schema...</Text>
-        </Container>
-      </>
-    );
-  }
 
   if (!experiment) {
     return (

@@ -3,7 +3,7 @@
 import React from "react";
 import type { FieldProps } from "@rjsf/utils";
 import { Box, Stack, Select, NumberInput, Text, Group } from "@mantine/core";
-import schema from "../../../public/experiment.schema.bundled.json";
+import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import FieldLabel, { FieldLabelSmall } from "./FieldLabel";
 

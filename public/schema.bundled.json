@@ -34,6 +34,29 @@
         "string"
       ]
     },
+    "Container": {
+      "additionalProperties": false,
+      "description": "",
+      "properties": {
+        "metadata_builder_git_hash": {
+          "description": "Git commit hash of the metadata-builder UI",
+          "type": "string"
+        },
+        "project": {
+          "$ref": "#/$defs/Project"
+        },
+        "protocol_git_hash": {
+          "description": "Git commit hash of the oae-data-protocol",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version of the oae-data-protocol",
+          "type": "string"
+        }
+      },
+      "title": "Container",
+      "type": "object"
+    },
     "DosingConcentration": {
       "additionalProperties": false,
       "description": "Details of tracer concentration information",
@@ -905,123 +928,6 @@
       "title": "NamedLink",
       "type": "object"
     },
-    "OAEProject": {
-      "additionalProperties": false,
-      "description": "A project conducting OAE field trials or modeling.",
-      "properties": {
-        "additional_details": {
-          "description": "Open text area to include additional information. These may include information for sediment processes data, biological data, or any other required information if not included in the main metadata or data files.\nSee [General Guidelines for Your Data](https://www.carbontosea.org/oae-data-protocol/1-0-0/#general-guidelines-for-your-data) for relevant sections of your data. Additional informational files, such as digitized laboratory notebooks, blogs, etc., may be linked here.",
-          "title": "Additional Details",
-          "type": "string"
-        },
-        "colocated_operations": {
-          "description": "A description is required if any nearby operations exist that may influence the waters over the time period covered by this data. This might be a nearby mCDR project, a facility that discharges water with different characteristics than the inflow (e.g., a desalination plant), frequent boating operations, etc.",
-          "title": "Co-located Operations",
-          "type": "string"
-        },
-        "experiments": {
-          "items": {
-            "$ref": "#/$defs/Experiment"
-          },
-          "title": "Related Experiments",
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "funding": {
-          "items": {
-            "$ref": "#/$defs/MonetaryGrant"
-          },
-          "title": "Funding Info",
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "mcdr_pathway": {
-          "$ref": "#/$defs/MCDRPathway",
-          "description": "The Marine Carbon Dioxide Removal (MCDR) pathway being studied.",
-          "title": "MCDR Pathway"
-        },
-        "physical_site_description": {
-          "description": "Provide information to help characterize the field site and provide context when interpreting the data. For example, descriptions of tidal patterns, climatological conditions, notable geological characteristics, the geographical and marine setting (coastal, intertidal, island region, sheltered environment), and characteristic meteorological events. If possible based on the file type of this submission, please include useful maps or figures here.\nLinks to relevant datasets, cruise reports, etc may be provided here.",
-          "title": "Physical Site Description",
-          "type": "string"
-        },
-        "previous_or_ongoing_colocated_research": {
-          "description": "This field is required for co-located operations that potentially impact the project results. If previous or on-going mCDR field operations have occurred in the study domain by any project developer, they may be mentioned here either as a description, and/or if a reference to the study exists in the form of a data set, publication, etc, the DOI or other identifying information should be provided. Please provide direct links to data when available.",
-          "items": {
-            "$ref": "#/$defs/ExternalProject"
-          },
-          "title": "Previous or Ongoing Co-located Research",
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "project_description": {
-          "description": "A narrative description of the project. For example, what were the goals of the project? What were the research questions? What were the processes to achieve these goals and answer these questions? Who were the key stakeholders, organizers, project leaders? Was this building off a previous or ongoing project, or is this a new region/experiment/mechanistic study?\nIf there are relevant regulatory parameters and/or limits to dosing trials at this location, these may be described here.",
-          "title": "Project Description",
-          "type": "string"
-        },
-        "project_id": {
-          "description": "The project to which the submitted data belong. A unique project identifier that can be used to link project data across data submissions, and link baseline data to intervention data, for example.\nIf no Project ID has been assigned, one may be generated by combining the following fields, as described in Cross-linking Data Sets with Common Identifiers.\nAny method that creates a unique ID that will link all project data (e.g., a project's baseline data to intervention data, and various data submissions within an experiment type) is acceptable.",
-          "title": "Project ID",
-          "type": "string"
-        },
-        "public_comments": {
-          "description": "If possible, please provide public comments concatenated into a single pdf",
-          "title": "Public Comments",
-          "type": "string"
-        },
-        "research_project": {
-          "description": "Project, which the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",
-          "title": "Research Project",
-          "type": "string"
-        },
-        "sea_names": {
-          "description": "Names of the seas where the data collection takes place, See Controlled Vocabularies section for definitions.",
-          "items": {
-            "$ref": "#/$defs/SeaNames"
-          },
-          "title": "Sea Names",
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "social_context_site_description": {
-          "description": "Details may include:\n  - Commercial, recreational, ecological, and cultural uses of study site\n  - Industrial site history\n  - Demographics of site area\n  - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment\n  - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described.\n  - Links to relevant social science surveys, engaged community groups, etc.",
-          "title": "Social Context Site Description",
-          "type": "string"
-        },
-        "social_research_conducted_to_date": {
-          "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include:\n  - Description of Community engagement research approach conducted and results\n  - Stakeholder mapping method and link to output",
-          "title": "Social Research Conducted to Date",
-          "type": "string"
-        },
-        "spatial_coverage": {
-          "$ref": "#/$defs/Place",
-          "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities) provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
-          "title": "Spatial Coverage"
-        },
-        "temporal_coverage": {
-          "description": "The start and end date (optional) of the project",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$",
-          "title": "Temporal Coverage",
-          "type": "string"
-        }
-      },
-      "required": [
-        "temporal_coverage",
-        "spatial_coverage",
-        "project_id",
-        "mcdr_pathway"
-      ],
-      "title": "OAEProject",
-      "type": "object"
-    },
     "ObservationType": {
       "description": "Types of observational data collected in ocean carbon and acidification studies, as defined in OCADS controlled vocabulary hosted at https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/vocabularies/observation-types.html",
       "enum": [
@@ -1174,6 +1080,633 @@
         }
       },
       "title": "Place",
+      "type": "object"
+    },
+    "Project": {
+      "additionalProperties": false,
+      "description": "A project conducting OAE field trials or modeling.",
+      "properties": {
+        "additional_details": {
+          "description": "Open text area to include additional information. These may include information for sediment processes data, biological data, or any other required information if not included in the main metadata or data files.\nSee [General Guidelines for Your Data](https://www.carbontosea.org/oae-data-protocol/1-0-0/#general-guidelines-for-your-data) for relevant sections of your data. Additional informational files, such as digitized laboratory notebooks, blogs, etc., may be linked here.",
+          "title": "Additional Details",
+          "type": "string"
+        },
+        "colocated_operations": {
+          "description": "A description is required if any nearby operations exist that may influence the waters over the time period covered by this data. This might be a nearby mCDR project, a facility that discharges water with different characteristics than the inflow (e.g., a desalination plant), frequent boating operations, etc.",
+          "title": "Co-located Operations",
+          "type": "string"
+        },
+        "experiments": {
+          "items": {
+            "$ref": "#/$defs/Experiment"
+          },
+          "title": "Related Experiments",
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "funding": {
+          "items": {
+            "$ref": "#/$defs/MonetaryGrant"
+          },
+          "title": "Funding Info",
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "mcdr_pathway": {
+          "$ref": "#/$defs/MCDRPathway",
+          "description": "The Marine Carbon Dioxide Removal (MCDR) pathway being studied.",
+          "title": "MCDR Pathway"
+        },
+        "physical_site_description": {
+          "description": "Provide information to help characterize the field site and provide context when interpreting the data. For example, descriptions of tidal patterns, climatological conditions, notable geological characteristics, the geographical and marine setting (coastal, intertidal, island region, sheltered environment), and characteristic meteorological events. If possible based on the file type of this submission, please include useful maps or figures here.\nLinks to relevant datasets, cruise reports, etc may be provided here.",
+          "title": "Physical Site Description",
+          "type": "string"
+        },
+        "previous_or_ongoing_colocated_research": {
+          "description": "This field is required for co-located operations that potentially impact the project results. If previous or on-going mCDR field operations have occurred in the study domain by any project developer, they may be mentioned here either as a description, and/or if a reference to the study exists in the form of a data set, publication, etc, the DOI or other identifying information should be provided. Please provide direct links to data when available.",
+          "items": {
+            "$ref": "#/$defs/ExternalProject"
+          },
+          "title": "Previous or Ongoing Co-located Research",
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "project_description": {
+          "description": "A narrative description of the project. For example, what were the goals of the project? What were the research questions? What were the processes to achieve these goals and answer these questions? Who were the key stakeholders, organizers, project leaders? Was this building off a previous or ongoing project, or is this a new region/experiment/mechanistic study?\nIf there are relevant regulatory parameters and/or limits to dosing trials at this location, these may be described here.",
+          "title": "Project Description",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "The project to which the submitted data belong. A unique project identifier that can be used to link project data across data submissions, and link baseline data to intervention data, for example.\nIf no Project ID has been assigned, one may be generated by combining the following fields, as described in Cross-linking Data Sets with Common Identifiers.\nAny method that creates a unique ID that will link all project data (e.g., a project's baseline data to intervention data, and various data submissions within an experiment type) is acceptable.",
+          "title": "Project ID",
+          "type": "string"
+        },
+        "public_comments": {
+          "description": "If possible, please provide public comments concatenated into a single pdf",
+          "title": "Public Comments",
+          "type": "string"
+        },
+        "research_project": {
+          "description": "Project, which the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",
+          "title": "Research Project",
+          "type": "string"
+        },
+        "sea_names": {
+          "description": "Names of the seas where the data collection takes place, See Controlled Vocabularies section for definitions.",
+          "items": {
+            "oneOf": [
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bg/",
+                "title": "Adriatic Sea (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bh/",
+                "title": "Aegean Sea (The Archipelago) (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ab/",
+                "title": "Alboran Sea (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/44/",
+                "title": "Andaman or Burma Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/39/",
+                "title": "Arabian Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48h/",
+                "title": "Arafura Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/ARA/",
+                "title": "Aral Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/17/",
+                "title": "Arctic Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/17a/",
+                "title": "Arctic Ocean - Lincoln Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/200/",
+                "title": "Atlantic Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ac/",
+                "title": "Balearic (Iberian) Sea (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48l/",
+                "title": "Bali Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/01/",
+                "title": "Baltic Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48g/",
+                "title": "Banda Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/07/",
+                "title": "Barents Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/62a/",
+                "title": "Bass Strait (Great Australian Bight)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/43/",
+                "title": "Bay of Bengal"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/22/",
+                "title": "Bay of Biscay"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/25/",
+                "title": "Bay of Fundy"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/13/",
+                "title": "Beaufort Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/55/",
+                "title": "Bering Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/66/",
+                "title": "Bismarck Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/30/",
+                "title": "Black Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/20/",
+                "title": "Bristol Channel"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/27/",
+                "title": "Caribbean Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/CAS/",
+                "title": "Caspian Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48b/",
+                "title": "Celebes Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/21a/",
+                "title": "Celtic Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48f/",
+                "title": "Ceram Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/12/",
+                "title": "Chukchi Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/59/",
+                "title": "Coastal Waters of SE Alaska and British Columbia"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/64/",
+                "title": "Coral Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/15/",
+                "title": "Davis Strait"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48/",
+                "title": "East Indian Archipelago (Indonesia)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/11/",
+                "title": "East Siberian Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/50/",
+                "title": "Eastern China Sea (Tung Hai)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/ESC/",
+                "title": "Eastern Scheldt"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/21/",
+                "title": "English Channel"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48j/",
+                "title": "Flores Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/FRM/",
+                "title": "Fram Strait"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/62/",
+                "title": "Great Australian Bight"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/05/",
+                "title": "Greenland Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/38/",
+                "title": "Gulf of Aden"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/58/",
+                "title": "Gulf of Alaska"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/36/",
+                "title": "Gulf of Aqaba"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48k/",
+                "title": "Gulf of Boni (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/01a/",
+                "title": "Gulf of Bothnia (Baltic Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/60/",
+                "title": "Gulf of California"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/01b/",
+                "title": "Gulf of Finland (Baltic Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/34/",
+                "title": "Gulf of Guinea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/41/",
+                "title": "Gulf of Iran (Persian Gulf)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/26/",
+                "title": "Gulf of Mexico"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/40/",
+                "title": "Gulf of Oman"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/01c/",
+                "title": "Gulf of Riga (Baltic Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/24/",
+                "title": "Gulf of St. Lawrence"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/35/",
+                "title": "Gulf of Suez"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/47/",
+                "title": "Gulf of Thailand (Siam)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48d/",
+                "title": "Gulf of Tomini (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48e/",
+                "title": "Halmahera Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/16/",
+                "title": "Hudson Bay"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/16a/",
+                "title": "Hudson Strait"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/ICS/",
+                "title": "Iceland Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/IJM/",
+                "title": "IJsselmeer"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/45/",
+                "title": "Indian Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/18/",
+                "title": "Inner Seas off the West Coast of Scotland"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bf/",
+                "title": "Ionian Sea (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/19/",
+                "title": "Irish Sea and St. George's Channel"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/IRM/",
+                "title": "Irminger Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/52/",
+                "title": "Japan Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48n/",
+                "title": "Java Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/09/",
+                "title": "Kara Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/02/",
+                "title": "Kattegat, Sound and Belts"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/15a/",
+                "title": "Labrador Sea (Davis Strait)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/42/",
+                "title": "Laccadive Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/10/",
+                "title": "Laptev Sea (or Nordenskjold Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ad/",
+                "title": "Ligurian Sea (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48m/",
+                "title": "Makassar Strait (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/46/",
+                "title": "Malacca and Singapore Straits"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/46a/",
+                "title": "Malacca Strait"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/MKM/",
+                "title": "Markermeer"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28/",
+                "title": "Mediterranean Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28B/",
+                "title": "Mediterranean Sea - Eastern basin"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28A/",
+                "title": "Mediterranean Sea - Western basin"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48c/",
+                "title": "Molukka Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/45a/",
+                "title": "Mozambique Channel (Indian Ocean)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/23/",
+                "title": "North Atlantic Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/23a/",
+                "title": "North East Atlantic Ocean (limit 40W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/57a/",
+                "title": "North East Pacific Ocean (limit 180W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/57/",
+                "title": "North Pacific Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/04/",
+                "title": "North Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/23b/",
+                "title": "North West Atlantic Ocean (limit 40W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/57b/",
+                "title": "North West Pacific Ocean (limit 180W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/06/",
+                "title": "Norwegian Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/500/",
+                "title": "Pacific Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/56/",
+                "title": "Philippine Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/37/",
+                "title": "Red Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/33/",
+                "title": "Rio de La Plata"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48o/",
+                "title": "Savu Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/31/",
+                "title": "Sea of Azov"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/29/",
+                "title": "Sea of Marmara"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/54/",
+                "title": "Sea of Okhotsk"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/53/",
+                "title": "Seto Naikai or Inland Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/46b/",
+                "title": "Singapore Strait"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/03/",
+                "title": "Skagerrak"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/65/",
+                "title": "Solomon Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/32/",
+                "title": "South Atlantic Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/49/",
+                "title": "South China Sea (Nan Hai)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/32a/",
+                "title": "South East Atlantic Ocean (limit 20W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/61a/",
+                "title": "South East Pacific Ocean (limit 140W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/61/",
+                "title": "South Pacific Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/32b/",
+                "title": "South West Atlantic Ocean (limit 20W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/61b/",
+                "title": "South West Pacific Ocean (limit 140W)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/SOC/",
+                "title": "Southern Ocean"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Aa/",
+                "title": "Strait of Gibraltar (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28C/",
+                "title": "Strait of Sicily"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48a/",
+                "title": "Sulu Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/63/",
+                "title": "Tasman Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/14/",
+                "title": "The Northwestern Passages"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/14a/",
+                "title": "The Northwestern Passages - Baffin Bay"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/48i/",
+                "title": "Timor Sea (East Indian Archipelago)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ae/",
+                "title": "Tyrrhenian Sea (Mediterranean Sea)"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/ZZ/",
+                "title": "Unknown"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/WAS/",
+                "title": "Wadden Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/WSC/",
+                "title": "Western Scheldt"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/08/",
+                "title": "White Sea"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/GLO/",
+                "title": "Worldwide"
+              },
+              {
+                "const": "http://vocab.nerc.ac.uk/collection/C16/current/51/",
+                "title": "Yellow Sea (Hwang Hai)"
+              }
+            ]
+          },
+          "title": "Sea Names",
+          "type": [
+            "array",
+            "null"
+          ],
+          "uniqueItems": true
+        },
+        "social_context_site_description": {
+          "description": "Details may include:\n  - Commercial, recreational, ecological, and cultural uses of study site\n  - Industrial site history\n  - Demographics of site area\n  - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment\n  - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described.\n  - Links to relevant social science surveys, engaged community groups, etc.",
+          "title": "Social Context Site Description",
+          "type": "string"
+        },
+        "social_research_conducted_to_date": {
+          "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include:\n  - Description of Community engagement research approach conducted and results\n  - Stakeholder mapping method and link to output",
+          "title": "Social Research Conducted to Date",
+          "type": "string"
+        },
+        "spatial_coverage": {
+          "$ref": "#/$defs/Place",
+          "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities) provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "title": "Spatial Coverage"
+        },
+        "temporal_coverage": {
+          "description": "The start and end date (optional) of the project",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$",
+          "title": "Temporal Coverage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "temporal_coverage",
+        "spatial_coverage",
+        "project_id",
+        "mcdr_pathway"
+      ],
+      "title": "Project",
       "type": "object"
     },
     "PropertyValue": {
@@ -1544,630 +2077,28 @@
   "$id": "OAEDataManagementProtocol",
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "additionalProperties": true,
-  "description": "A project conducting OAE field trials or modeling.",
+  "description": "",
   "metamodel_version": "1.7.0",
   "properties": {
-    "additional_details": {
-      "description": "Open text area to include additional information. These may include information for sediment processes data, biological data, or any other required information if not included in the main metadata or data files.\nSee [General Guidelines for Your Data](https://www.carbontosea.org/oae-data-protocol/1-0-0/#general-guidelines-for-your-data) for relevant sections of your data. Additional informational files, such as digitized laboratory notebooks, blogs, etc., may be linked here.",
-      "title": "Additional Details",
+    "metadata_builder_git_hash": {
+      "description": "Git commit hash of the metadata-builder UI",
       "type": "string"
     },
-    "colocated_operations": {
-      "description": "A description is required if any nearby operations exist that may influence the waters over the time period covered by this data. This might be a nearby mCDR project, a facility that discharges water with different characteristics than the inflow (e.g., a desalination plant), frequent boating operations, etc.",
-      "title": "Co-located Operations",
+    "project": {
+      "$ref": "#/$defs/Project"
+    },
+    "protocol_git_hash": {
+      "description": "Git commit hash of the oae-data-protocol",
       "type": "string"
     },
-    "experiments": {
-      "items": {
-        "$ref": "#/$defs/Experiment"
-      },
-      "title": "Related Experiments",
-      "type": [
-        "array",
-        "null"
-      ]
-    },
-    "funding": {
-      "items": {
-        "$ref": "#/$defs/MonetaryGrant"
-      },
-      "title": "Funding Info",
-      "type": [
-        "array",
-        "null"
-      ]
-    },
-    "mcdr_pathway": {
-      "$ref": "#/$defs/MCDRPathway",
-      "description": "The Marine Carbon Dioxide Removal (MCDR) pathway being studied.",
-      "title": "MCDR Pathway"
-    },
-    "physical_site_description": {
-      "description": "Provide information to help characterize the field site and provide context when interpreting the data. For example, descriptions of tidal patterns, climatological conditions, notable geological characteristics, the geographical and marine setting (coastal, intertidal, island region, sheltered environment), and characteristic meteorological events. If possible based on the file type of this submission, please include useful maps or figures here.\nLinks to relevant datasets, cruise reports, etc may be provided here.",
-      "title": "Physical Site Description",
-      "type": "string"
-    },
-    "previous_or_ongoing_colocated_research": {
-      "description": "This field is required for co-located operations that potentially impact the project results. If previous or on-going mCDR field operations have occurred in the study domain by any project developer, they may be mentioned here either as a description, and/or if a reference to the study exists in the form of a data set, publication, etc, the DOI or other identifying information should be provided. Please provide direct links to data when available.",
-      "items": {
-        "$ref": "#/$defs/ExternalProject"
-      },
-      "title": "Previous or Ongoing Co-located Research",
-      "type": [
-        "array",
-        "null"
-      ]
-    },
-    "project_description": {
-      "description": "A narrative description of the project. For example, what were the goals of the project? What were the research questions? What were the processes to achieve these goals and answer these questions? Who were the key stakeholders, organizers, project leaders? Was this building off a previous or ongoing project, or is this a new region/experiment/mechanistic study?\nIf there are relevant regulatory parameters and/or limits to dosing trials at this location, these may be described here.",
-      "title": "Project Description",
-      "type": "string"
-    },
-    "project_id": {
-      "description": "The project to which the submitted data belong. A unique project identifier that can be used to link project data across data submissions, and link baseline data to intervention data, for example.\nIf no Project ID has been assigned, one may be generated by combining the following fields, as described in Cross-linking Data Sets with Common Identifiers.\nAny method that creates a unique ID that will link all project data (e.g., a project's baseline data to intervention data, and various data submissions within an experiment type) is acceptable.",
-      "title": "Project ID",
-      "type": "string"
-    },
-    "public_comments": {
-      "description": "If possible, please provide public comments concatenated into a single pdf",
-      "title": "Public Comments",
-      "type": "string"
-    },
-    "research_project": {
-      "description": "Project, which the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",
-      "title": "Research Project",
-      "type": "string"
-    },
-    "sea_names": {
-      "description": "Names of the seas where the data collection takes place, See Controlled Vocabularies section for definitions.",
-      "items": {
-        "oneOf": [
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bg/",
-            "title": "Adriatic Sea (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bh/",
-            "title": "Aegean Sea (The Archipelago) (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ab/",
-            "title": "Alboran Sea (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/44/",
-            "title": "Andaman or Burma Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/39/",
-            "title": "Arabian Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48h/",
-            "title": "Arafura Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/ARA/",
-            "title": "Aral Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/17/",
-            "title": "Arctic Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/17a/",
-            "title": "Arctic Ocean - Lincoln Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/200/",
-            "title": "Atlantic Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ac/",
-            "title": "Balearic (Iberian) Sea (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48l/",
-            "title": "Bali Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/01/",
-            "title": "Baltic Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48g/",
-            "title": "Banda Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/07/",
-            "title": "Barents Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/62a/",
-            "title": "Bass Strait (Great Australian Bight)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/43/",
-            "title": "Bay of Bengal"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/22/",
-            "title": "Bay of Biscay"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/25/",
-            "title": "Bay of Fundy"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/13/",
-            "title": "Beaufort Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/55/",
-            "title": "Bering Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/66/",
-            "title": "Bismarck Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/30/",
-            "title": "Black Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/20/",
-            "title": "Bristol Channel"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/27/",
-            "title": "Caribbean Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/CAS/",
-            "title": "Caspian Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48b/",
-            "title": "Celebes Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/21a/",
-            "title": "Celtic Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48f/",
-            "title": "Ceram Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/12/",
-            "title": "Chukchi Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/59/",
-            "title": "Coastal Waters of SE Alaska and British Columbia"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/64/",
-            "title": "Coral Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/15/",
-            "title": "Davis Strait"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48/",
-            "title": "East Indian Archipelago (Indonesia)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/11/",
-            "title": "East Siberian Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/50/",
-            "title": "Eastern China Sea (Tung Hai)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/ESC/",
-            "title": "Eastern Scheldt"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/21/",
-            "title": "English Channel"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48j/",
-            "title": "Flores Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/FRM/",
-            "title": "Fram Strait"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/62/",
-            "title": "Great Australian Bight"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/05/",
-            "title": "Greenland Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/38/",
-            "title": "Gulf of Aden"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/58/",
-            "title": "Gulf of Alaska"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/36/",
-            "title": "Gulf of Aqaba"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48k/",
-            "title": "Gulf of Boni (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/01a/",
-            "title": "Gulf of Bothnia (Baltic Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/60/",
-            "title": "Gulf of California"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/01b/",
-            "title": "Gulf of Finland (Baltic Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/34/",
-            "title": "Gulf of Guinea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/41/",
-            "title": "Gulf of Iran (Persian Gulf)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/26/",
-            "title": "Gulf of Mexico"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/40/",
-            "title": "Gulf of Oman"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/01c/",
-            "title": "Gulf of Riga (Baltic Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/24/",
-            "title": "Gulf of St. Lawrence"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/35/",
-            "title": "Gulf of Suez"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/47/",
-            "title": "Gulf of Thailand (Siam)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48d/",
-            "title": "Gulf of Tomini (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48e/",
-            "title": "Halmahera Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/16/",
-            "title": "Hudson Bay"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/16a/",
-            "title": "Hudson Strait"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/ICS/",
-            "title": "Iceland Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/IJM/",
-            "title": "IJsselmeer"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/45/",
-            "title": "Indian Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/18/",
-            "title": "Inner Seas off the West Coast of Scotland"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bf/",
-            "title": "Ionian Sea (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/19/",
-            "title": "Irish Sea and St. George's Channel"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/IRM/",
-            "title": "Irminger Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/52/",
-            "title": "Japan Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48n/",
-            "title": "Java Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/09/",
-            "title": "Kara Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/02/",
-            "title": "Kattegat, Sound and Belts"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/15a/",
-            "title": "Labrador Sea (Davis Strait)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/42/",
-            "title": "Laccadive Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/10/",
-            "title": "Laptev Sea (or Nordenskjold Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ad/",
-            "title": "Ligurian Sea (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48m/",
-            "title": "Makassar Strait (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/46/",
-            "title": "Malacca and Singapore Straits"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/46a/",
-            "title": "Malacca Strait"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/MKM/",
-            "title": "Markermeer"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28/",
-            "title": "Mediterranean Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28B/",
-            "title": "Mediterranean Sea - Eastern basin"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28A/",
-            "title": "Mediterranean Sea - Western basin"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48c/",
-            "title": "Molukka Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/45a/",
-            "title": "Mozambique Channel (Indian Ocean)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/23/",
-            "title": "North Atlantic Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/23a/",
-            "title": "North East Atlantic Ocean (limit 40W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/57a/",
-            "title": "North East Pacific Ocean (limit 180W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/57/",
-            "title": "North Pacific Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/04/",
-            "title": "North Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/23b/",
-            "title": "North West Atlantic Ocean (limit 40W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/57b/",
-            "title": "North West Pacific Ocean (limit 180W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/06/",
-            "title": "Norwegian Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/500/",
-            "title": "Pacific Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/56/",
-            "title": "Philippine Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/37/",
-            "title": "Red Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/33/",
-            "title": "Rio de La Plata"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48o/",
-            "title": "Savu Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/31/",
-            "title": "Sea of Azov"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/29/",
-            "title": "Sea of Marmara"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/54/",
-            "title": "Sea of Okhotsk"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/53/",
-            "title": "Seto Naikai or Inland Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/46b/",
-            "title": "Singapore Strait"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/03/",
-            "title": "Skagerrak"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/65/",
-            "title": "Solomon Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/32/",
-            "title": "South Atlantic Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/49/",
-            "title": "South China Sea (Nan Hai)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/32a/",
-            "title": "South East Atlantic Ocean (limit 20W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/61a/",
-            "title": "South East Pacific Ocean (limit 140W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/61/",
-            "title": "South Pacific Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/32b/",
-            "title": "South West Atlantic Ocean (limit 20W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/61b/",
-            "title": "South West Pacific Ocean (limit 140W)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/SOC/",
-            "title": "Southern Ocean"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Aa/",
-            "title": "Strait of Gibraltar (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28C/",
-            "title": "Strait of Sicily"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48a/",
-            "title": "Sulu Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/63/",
-            "title": "Tasman Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/14/",
-            "title": "The Northwestern Passages"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/14a/",
-            "title": "The Northwestern Passages - Baffin Bay"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/48i/",
-            "title": "Timor Sea (East Indian Archipelago)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Ae/",
-            "title": "Tyrrhenian Sea (Mediterranean Sea)"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/ZZ/",
-            "title": "Unknown"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/WAS/",
-            "title": "Wadden Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/WSC/",
-            "title": "Western Scheldt"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/08/",
-            "title": "White Sea"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/GLO/",
-            "title": "Worldwide"
-          },
-          {
-            "const": "http://vocab.nerc.ac.uk/collection/C16/current/51/",
-            "title": "Yellow Sea (Hwang Hai)"
-          }
-        ]
-      },
-      "title": "Sea Names",
-      "type": [
-        "array",
-        "null"
-      ],
-      "uniqueItems": true
-    },
-    "social_context_site_description": {
-      "description": "Details may include:\n  - Commercial, recreational, ecological, and cultural uses of study site\n  - Industrial site history\n  - Demographics of site area\n  - Notable events that may impact local sentiment to mCDR (for example: site had significant toxic spill in past decade, local positive support for offshore wind farming, frequent HAB site) -Ecologically protected species, economically significant operations in the marine environment\n  - In study areas with nearby state or federal jurisdiction borders, potential conflicts with other countries or permits from foreign governments should be described.\n  - Links to relevant social science surveys, engaged community groups, etc.",
-      "title": "Social Context Site Description",
-      "type": "string"
-    },
-    "social_research_conducted_to_date": {
-      "description": "A description of any social research conducted to date. If provided as a separate file, list filename here. Information may include:\n  - Description of Community engagement research approach conducted and results\n  - Stakeholder mapping method and link to output",
-      "title": "Social Research Conducted to Date",
-      "type": "string"
-    },
-    "spatial_coverage": {
-      "$ref": "#/$defs/Place",
-      "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities) provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
-      "title": "Spatial Coverage"
-    },
-    "temporal_coverage": {
-      "description": "The start and end date (optional) of the project",
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$",
-      "title": "Temporal Coverage",
+    "version": {
+      "description": "Version of the oae-data-protocol",
       "type": "string"
     }
   },
-  "required": [
-    "temporal_coverage",
-    "spatial_coverage",
-    "project_id",
-    "mcdr_pathway"
-  ],
   "title": "OAEDataManagementProtocol",
   "type": "object",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "x-protocol-version": "0.0.0-prerelease",
+  "x-protocol-git-hash": "e2d238dbf03d4a26ddb71649be37428ceb77a2cb"
 }

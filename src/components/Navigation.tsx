@@ -32,10 +32,7 @@ export default function Navigation() {
 
   const handleExport = async () => {
     // Validate all data before exporting
-    const validation = await validateAllData(
-      state.projectData,
-      state.experiments
-    );
+    const validation = validateAllData(state.projectData, state.experiments);
 
     if (!validation.isAllValid) {
       // Count total errors
@@ -76,8 +73,9 @@ export default function Navigation() {
 
       // Navigate to the first page with errors
       if (!validation.projectValidation.isValid) {
-        setTriggerValidation(true);
         router.push("/project");
+        // Set trigger after navigation starts
+        setTimeout(() => setTriggerValidation(true), 50);
       } else if (invalidExperiments.length > 0) {
         // Navigate to the first invalid experiment
         const [experimentId] = invalidExperiments[0];
@@ -87,8 +85,9 @@ export default function Navigation() {
         if (experiment) {
           setActiveExperiment(experimentId);
           setActiveTab("experiment");
-          setTriggerValidation(true);
           router.push("/experiment");
+          // Set trigger after navigation starts
+          setTimeout(() => setTriggerValidation(true), 50);
         }
       }
 

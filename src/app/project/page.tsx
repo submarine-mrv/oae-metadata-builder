@@ -32,6 +32,7 @@ import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
+import { getProjectSchema } from "@/utils/schemaViews";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -41,24 +42,26 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 export default function ProjectPage() {
   const { state, updateProjectData, setActiveTab, setTriggerValidation } =
     useAppState();
-  const [schema, setSchema] = useState<any>(null);
+  const [schema] = useState<any>(() => getProjectSchema());
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
+  const [skipDownload, setSkipDownload] = useState(false);
 
   useEffect(() => {
     setActiveTab("project");
   }, [setActiveTab]);
 
-  // Trigger validation if requested (e.g., from export button)
+  // Trigger validation if requested (e.g., from export button in Navigation)
   useEffect(() => {
     if (state.triggerValidation) {
       // Scroll to top of page
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Trigger validation by forcing a form submit
+      // Trigger validation by forcing a form submit, but skip the download
       setTimeout(() => {
+        setSkipDownload(true); // Prevent download when just showing validation errors
         setForceValidation(true);
         setTriggerValidation(false);
       }, 100);
@@ -80,6 +83,12 @@ export default function ProjectPage() {
   }, [forceValidation]);
 
   const downloadJsonFile = (data: any) => {
+    // Don't download if this submit was triggered just to show validation errors
+    if (skipDownload) {
+      setSkipDownload(false); // Reset flag
+      return;
+    }
+
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -91,13 +100,6 @@ export default function ProjectPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-
-  useEffect(() => {
-    fetch("/schema.bundled.json")
-      .then((r) => r.json())
-      .then(setSchema)
-      .catch(console.error);
-  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -187,8 +189,6 @@ export default function ProjectPage() {
 
     return errors;
   };
-
-  if (!schema) return null;
 
   return (
     <div>
