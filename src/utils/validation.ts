@@ -24,7 +24,7 @@ export interface ValidationResult {
 export function validateProject(projectData: any): ValidationResult {
   try {
     const schema = getProjectSchema();
-    const result = validator.validateFormData(projectData, schema);
+    const result = validator.validateFormData(projectData, schema as any);
 
     return {
       isValid: result.errors.length === 0,
@@ -62,7 +62,7 @@ export function validateExperiment(experimentData: any): ValidationResult {
       schema = getExperimentSchema();
     }
 
-    const result = validator.validateFormData(experimentData, schema);
+    const result = validator.validateFormData(experimentData, schema as any);
 
     return {
       isValid: result.errors.length === 0,
