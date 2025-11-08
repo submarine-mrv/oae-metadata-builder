@@ -182,7 +182,7 @@
           ]
         },
         "name": {
-          "description": "A human-readable name for the thing.",
+          "description": "Optional common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -531,7 +531,7 @@
           ]
         },
         "name": {
-          "description": "A human-readable name for the thing.",
+          "description": "Optional common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -764,7 +764,7 @@
           ]
         },
         "name": {
-          "description": "A human-readable name for the thing.",
+          "description": "Optional common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -948,8 +948,7 @@
       "description": "",
       "properties": {
         "country": {
-          "description": "The country in which the organization belongs (formatted as ISO 3166-1 alpha-2 code)",
-          "pattern": "^[A-Z]{2}$",
+          "description": "The country in which the organization belongs.",
           "title": "Country",
           "type": "string"
         },
@@ -1967,7 +1966,7 @@
           ]
         },
         "name": {
-          "description": "A human-readable name for the thing.",
+          "description": "Optional common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -2100,5 +2099,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "e2d238dbf03d4a26ddb71649be37428ceb77a2cb"
+  "x-protocol-git-hash": "6f2d3f244924b40c06f0e48cf1e8fffafcdca5d0"
 }
