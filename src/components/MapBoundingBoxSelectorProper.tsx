@@ -374,6 +374,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         setEast(east);
         setNorth(north);
 
+        // Update validation error state
+        setHasLatitudeError(north <= south);
+
         // Clean up
         map.off("click", onMapClick);
         map.getCanvas().style.cursor = "";
