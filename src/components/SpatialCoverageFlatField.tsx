@@ -50,9 +50,7 @@ function validateSpatialBounds(boxString: string): string | null {
   }
 
   // Logical bounds check
-  if (east <= west) {
-    return "East longitude must be greater than West longitude";
-  }
+  // Note: W and E are positional (left/right edges), so west > east is valid for antimeridian crossing
 
   if (north <= south) {
     return "North latitude must be greater than South latitude";

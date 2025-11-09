@@ -45,9 +45,7 @@ function validateSpatialBounds(boxString: string): string | null {
     return "Latitude (S, N) must be between -90 and 90";
   }
 
-  if (east <= west) {
-    return "East longitude must be greater than West longitude";
-  }
+  // Note: W and E are positional (left/right edges), so west > east is valid for antimeridian crossing
 
   if (north <= south) {
     return "North latitude must be greater than South latitude";
@@ -110,10 +108,16 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
         if (parts.length === 4) {
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
+          // Handle antimeridian for fitBounds
+          const fitWest = west;
+          let fitEast = east;
+          if (west > east) {
+            fitEast = east + 360;
+          }
           map.fitBounds(
             [
-              [west, south],
-              [east, north]
+              [fitWest, south],
+              [fitEast, north]
             ],
             {
               padding: 20,
@@ -139,6 +143,15 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
       map.removeSource("bbox");
     }
 
+    // For rendering: if W > E (antimeridian crossing), translate E to +360 range
+    // so MapLibre draws the short way
+    const renderWest = west;
+    let renderEast = east;
+    if (west > east) {
+      // Antimeridian crossing: translate east to be > 180
+      renderEast = east + 360;
+    }
+
     // Add bounding box as GeoJSON
     map.addSource("bbox", {
       type: "geojson",
@@ -148,11 +161,11 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
           type: "Polygon",
           coordinates: [
             [
-              [west, north],
-              [east, north],
-              [east, south],
-              [west, south],
-              [west, north]
+              [renderWest, north],
+              [renderEast, north],
+              [renderEast, south],
+              [renderWest, south],
+              [renderWest, north]
             ]
           ]
         }
@@ -222,10 +235,16 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
       if (parts.length === 4) {
         const [west, south, east, north] = parts;
         addBoundingBox(mapInstanceRef.current, west, south, east, north);
+        // Handle antimeridian for fitBounds
+        const fitWest = west;
+        let fitEast = east;
+        if (west > east) {
+          fitEast = east + 360;
+        }
         mapInstanceRef.current.fitBounds(
           [
-            [west, south],
-            [east, north]
+            [fitWest, south],
+            [fitEast, north]
           ],
           {
             padding: 20,

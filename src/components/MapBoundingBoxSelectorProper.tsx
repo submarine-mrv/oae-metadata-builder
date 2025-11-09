@@ -107,10 +107,16 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
             newEast,
             newNorth
           );
+          // For fitBounds: if W > E (antimeridian), translate E to +360 range
+          const fitWest = newWest;
+          let fitEast = newEast;
+          if (newWest > newEast) {
+            fitEast = newEast + 360;
+          }
           mapInstanceRef.current.fitBounds(
             [
-              [newWest, newSouth],
-              [newEast, newNorth]
+              [fitWest, newSouth],
+              [fitEast, newNorth]
             ],
             {
               padding: 20,
@@ -144,11 +150,16 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         if (parts.length === 4) {
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
-          // Smooth zoom to bounds with animation
+          // Smooth zoom to bounds with animation - handle antimeridian
+          const fitWest = west;
+          let fitEast = east;
+          if (west > east) {
+            fitEast = east + 360;
+          }
           map.fitBounds(
             [
-              [west, south],
-              [east, north]
+              [fitWest, south],
+              [fitEast, north]
             ],
             {
               padding: 50
@@ -214,6 +225,15 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       map.removeSource("bbox");
     }
 
+    // For rendering: if W > E (antimeridian crossing), translate E to +360 range
+    // so MapLibre draws the short way
+    const renderWest = west;
+    let renderEast = east;
+    if (west > east) {
+      // Antimeridian crossing: translate east to be > 180
+      renderEast = east + 360;
+    }
+
     // Add bounding box as GeoJSON
     map.addSource("bbox", {
       type: "geojson",
@@ -223,11 +243,11 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           type: "Polygon",
           coordinates: [
             [
-              [west, north],
-              [east, north],
-              [east, south],
-              [west, south],
-              [west, north]
+              [renderWest, north],
+              [renderEast, north],
+              [renderEast, south],
+              [renderWest, south],
+              [renderWest, north]
             ]
           ]
         }
@@ -259,6 +279,14 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     setBoundingBox({ west, south, east, north });
   };
 
+  // Normalize longitude to -180 to 180 range
+  const normalizeLng = (lng: number) => {
+    let normalized = lng % 360;
+    if (normalized > 180) normalized -= 360;
+    if (normalized < -180) normalized += 360;
+    return normalized;
+  };
+
   const startSelection = () => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -286,8 +314,28 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-        const west = Math.min(startPt.lng, lng);
-        const east = Math.max(startPt.lng, lng);
+
+        // Normalize coordinates to -180 to 180 range
+        const lng1 = normalizeLng(startPt.lng);
+        const lng2 = normalizeLng(lng);
+
+        // Determine if we're crossing the antimeridian by checking shortest path
+        const directDistance = Math.abs(lng2 - lng1);
+        const wrapDistance = 360 - directDistance;
+        const crossesAntimeridian = wrapDistance < directDistance;
+
+        let west, east;
+        if (crossesAntimeridian) {
+          // Crossing antimeridian: W should be larger value (closer to +180)
+          // E should be smaller value (closer to -180)
+          west = Math.max(lng1, lng2);
+          east = Math.min(lng1, lng2);
+        } else {
+          // Not crossing: normal min/max
+          west = Math.min(lng1, lng2);
+          east = Math.max(lng1, lng2);
+        }
+
         const south = Math.min(startPt.lat, lat);
         const north = Math.max(startPt.lat, lat);
 
@@ -400,7 +448,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
                 setNorth(value);
                 handleCoordinateChange(west, south, east, value);
               }}
-              min={-90}
+              min={typeof south === 'number' ? Math.max(-90, south) : -90}
               max={90}
               decimalScale={6}
               size="sm"
@@ -415,7 +463,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
                 handleCoordinateChange(west, value, east, north);
               }}
               min={-90}
-              max={90}
+              max={typeof north === 'number' ? Math.min(90, north) : 90}
               decimalScale={6}
               size="sm"
               style={{ width: "150px" }}
@@ -423,7 +471,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           </Stack>
           <Stack gap="xs">
             <NumberInput
-              label="°E (max longitude)"
+              label="°E (east edge)"
               placeholder="e.g., -122.0"
               value={east}
               onChange={(value) => {
@@ -437,7 +485,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               style={{ width: "150px" }}
             />
             <NumberInput
-              label="°W (min longitude)"
+              label="°W (west edge)"
               placeholder="e.g., -123.5"
               value={west}
               onChange={(value) => {
