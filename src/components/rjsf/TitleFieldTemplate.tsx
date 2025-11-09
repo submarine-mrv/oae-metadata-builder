@@ -1,12 +1,16 @@
-import { Title, Tooltip, ActionIcon, Group } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
 import {
   FormContextType,
   RJSFSchema,
   StrictRJSFSchema,
   TitleFieldProps
 } from "@rjsf/utils";
+import FieldLabel from "./FieldLabel";
 
+/**
+ * Custom Title Field Template using reusable FieldLabel component
+ * Note: TitleFieldProps doesn't include uiSchema, so modal support is not available here
+ * Modal support should be enabled at the field level in custom field components
+ */
 export default function CustomTitleFieldTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
@@ -15,25 +19,14 @@ export default function CustomTitleFieldTemplate<
   const { id, title, schema } = props;
   const description = schema?.description;
 
+  // Note: useModal is always false since TitleFieldProps doesn't expose uiSchema
   return (
-    <Group gap="xs" align="center" mb="xs">
-      <Title order={4} size="sm" fw={500} id={id}>
-        {title}
-      </Title>
-      {description && (
-        <Tooltip
-          label={description}
-          position="top"
-          withArrow
-          multiline
-          maw={400}
-          style={{ wordWrap: "break-word" }}
-        >
-          <ActionIcon variant="transparent" size="xs" color="gray">
-            <IconInfoCircle size={14} />
-          </ActionIcon>
-        </Tooltip>
-      )}
-    </Group>
+    <FieldLabel
+      label={title}
+      description={description}
+      useModal={false}
+      order={4}
+      fw={500}
+    />
   );
 }

@@ -40,5 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+.local/
 .idea/
+src/app/local-testing
 CLAUDE.md
+.claude/

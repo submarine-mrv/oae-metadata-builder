@@ -40,6 +40,7 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
   );
   const [startDate, setStartDate] = React.useState(start);
   const [endDate, setEndDate] = React.useState(end);
+  const [startPickerOpen, setStartPickerOpen] = React.useState(false);
   const [endPickerOpen, setEndPickerOpen] = React.useState(false);
   const [startTouched, setStartTouched] = React.useState(false);
   const [endTouched, setEndTouched] = React.useState(false);
@@ -78,14 +79,14 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
           }
           rightSection={
             <DatePickerPopover
-              opened={endPickerOpen}
-              onChange={setEndPickerOpen}
-              value={endDate}
+              opened={startPickerOpen}
+              onChange={setStartPickerOpen}
+              value={startDate}
               onDateChange={(dateStr) => {
-                setEndDate(dateStr);
-                emit(startDate, dateStr);
+                setStartDate(dateStr);
+                emit(dateStr, endDate);
               }}
-              onTouched={() => setEndTouched(true)}
+              onTouched={() => setStartTouched(true)}
               disabled={disabled}
               readonly={readonly}
             />

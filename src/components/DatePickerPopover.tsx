@@ -39,7 +39,7 @@ const DatePickerPopover: React.FC<DatePickerPopoverProps> = ({
     opened={opened}
     onChange={onChange}
     position="bottom-end"
-    withinPortal={false}
+    withinPortal={true}
   >
     <Popover.Target>
       <ActionIcon
@@ -59,6 +59,7 @@ const DatePickerPopover: React.FC<DatePickerPopoverProps> = ({
           onTouched();
           onChange(false);
         }}
+        weekendDays={[]}
       />
     </Popover.Dropdown>
   </Popover>

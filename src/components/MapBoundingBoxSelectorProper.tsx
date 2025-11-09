@@ -11,6 +11,20 @@ import {
   NumberInput,
   Group
 } from "@mantine/core";
+import {
+  normalizeLongitude,
+  adjustEastForAntimeridian,
+  prepareBoundsForRendering,
+  DEGREES_IN_CIRCLE,
+  isValidLatitude
+} from "@/utils/spatialUtils";
+import {
+  MAP_TILE_STYLE,
+  DEFAULT_MAP_CENTER,
+  DEFAULT_ZOOM,
+  MAPLIBRE_GL_CSS_URL,
+  MAPLIBRE_GL_JS_URL
+} from "@/config/maps";
 
 // Extend Window interface to include maplibregl
 declare global {
@@ -42,13 +56,15 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     lat: number;
   } | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [_, setBoundingBox] = useState<any>(null);
 
   // Individual coordinate states
   const [north, setNorth] = useState<number | string>("");
   const [south, setSouth] = useState<number | string>("");
   const [west, setWest] = useState<number | string>("");
   const [east, setEast] = useState<number | string>("");
+
+  // Validation state for N/S
+  const [hasLatitudeError, setHasLatitudeError] = useState(false);
 
   // Parse bounds string "W S E N" into individual coordinates
   const parseBounds = useCallback((boundsString: string) => {
@@ -59,11 +75,14 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       setSouth(s);
       setEast(e);
       setNorth(n);
+      // Check for latitude error
+      setHasLatitudeError(n <= s);
     } else {
       setWest("");
       setSouth("");
       setEast("");
       setNorth("");
+      setHasLatitudeError(false);
     }
   }, []);
 
@@ -83,6 +102,17 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       newEast: number | string,
       newNorth: number | string
     ) => {
+      // Check for latitude validation error
+      if (
+        typeof newNorth === "number" &&
+        typeof newSouth === "number" &&
+        newNorth <= newSouth
+      ) {
+        setHasLatitudeError(true);
+      } else {
+        setHasLatitudeError(false);
+      }
+
       // Only update bounds if all values are valid numbers
       if (
         typeof newWest === "number" &&
@@ -98,8 +128,8 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         );
         setCurrentBounds(boundsString);
 
-        // Update map if it's loaded
-        if (mapInstanceRef.current && mapLoaded) {
+        // Update map if it's loaded and coordinates are valid
+        if (mapInstanceRef.current && mapLoaded && newNorth > newSouth) {
           addBoundingBox(
             mapInstanceRef.current,
             newWest,
@@ -107,10 +137,12 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
             newEast,
             newNorth
           );
+          // For fitBounds: if W > E (antimeridian), translate E to +360 range
+          const fitEast = adjustEastForAntimeridian(newWest, newEast);
           mapInstanceRef.current.fitBounds(
             [
               [newWest, newSouth],
-              [newEast, newNorth]
+              [fitEast, newNorth]
             ],
             {
               padding: 20,
@@ -128,9 +160,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
 
     const map = new window.maplibregl.Map({
       container: mapRef.current,
-      style: "https://tiles.openfreemap.org/styles/positron",
-      center: [-123.0, 47.5], // Pacific Northwest (Seattle area)
-      zoom: 6
+      style: MAP_TILE_STYLE,
+      center: DEFAULT_MAP_CENTER,
+      zoom: DEFAULT_ZOOM
     });
 
     mapInstanceRef.current = map;
@@ -144,11 +176,12 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         if (parts.length === 4) {
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
-          // Smooth zoom to bounds with animation
+          // Smooth zoom to bounds with animation - handle antimeridian
+          const fitEast = adjustEastForAntimeridian(west, east);
           map.fitBounds(
             [
               [west, south],
-              [east, north]
+              [fitEast, north]
             ],
             {
               padding: 50
@@ -168,33 +201,39 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     if (!opened) return;
 
     const loadAndInitialize = async () => {
-      // Load MapLibre if not already loaded
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href =
-            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
+      try {
+        // Load MapLibre if not already loaded
+        if (!window.maplibregl) {
+          // Load CSS
+          if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = MAPLIBRE_GL_CSS_URL;
+            document.head.appendChild(link);
+          }
+
+          // Load JS
+          const script = document.createElement("script");
+          script.src = MAPLIBRE_GL_JS_URL;
+
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = () =>
+              reject(new Error("Failed to load MapLibre GL"));
+            document.head.appendChild(script);
+          });
         }
 
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
+        // Wait for next tick to ensure DOM is ready
+        requestAnimationFrame(() => {
+          if (mapRef.current && !mapInstanceRef.current) {
+            initializeMap();
+          }
         });
+      } catch (error) {
+        console.error("MapLibre loading failed:", error);
+        // You could add user-friendly error notification here
       }
-
-      // Wait for next tick to ensure DOM is ready
-      requestAnimationFrame(() => {
-        if (mapRef.current && !mapInstanceRef.current) {
-          initializeMap();
-        }
-      });
     };
 
     loadAndInitialize();
@@ -214,6 +253,11 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       map.removeSource("bbox");
     }
 
+    // For rendering: if W > E (antimeridian crossing), translate E to +360 range
+    // so MapLibre draws the short way
+    const renderWest = west;
+    const renderEast = adjustEastForAntimeridian(west, east);
+
     // Add bounding box as GeoJSON
     map.addSource("bbox", {
       type: "geojson",
@@ -223,11 +267,11 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           type: "Polygon",
           coordinates: [
             [
-              [west, north],
-              [east, north],
-              [east, south],
-              [west, south],
-              [west, north]
+              [renderWest, north],
+              [renderEast, north],
+              [renderEast, south],
+              [renderWest, south],
+              [renderWest, north]
             ]
           ]
         }
@@ -255,8 +299,6 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         "line-width": 2
       }
     });
-
-    setBoundingBox({ west, south, east, north });
   };
 
   const startSelection = () => {
@@ -286,10 +328,36 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-        const west = Math.min(startPt.lng, lng);
-        const east = Math.max(startPt.lng, lng);
+
+        // Normalize coordinates to -180 to 180 range
+        const lng1 = normalizeLongitude(startPt.lng);
+        const lng2 = normalizeLongitude(lng);
+
+        // Determine if we're crossing the antimeridian by checking shortest path
+        const directDistance = Math.abs(lng2 - lng1);
+        const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
+        const crossesAntimeridian = wrapDistance < directDistance;
+
+        let west, east;
+        if (crossesAntimeridian) {
+          // Crossing antimeridian: W should be larger value (closer to +180)
+          // E should be smaller value (closer to -180)
+          west = Math.max(lng1, lng2);
+          east = Math.min(lng1, lng2);
+        } else {
+          // Not crossing: normal min/max
+          west = Math.min(lng1, lng2);
+          east = Math.max(lng1, lng2);
+        }
+
         const south = Math.min(startPt.lat, lat);
         const north = Math.max(startPt.lat, lat);
+
+        // Validate coordinates are within valid ranges
+        if (!isValidLatitude(south) || !isValidLatitude(north)) {
+          console.error('Invalid latitude coordinates:', { south, north });
+          return;
+        }
 
         // Add final bounding box
         addBoundingBox(map, west, south, east, north);
@@ -305,6 +373,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         setSouth(south);
         setEast(east);
         setNorth(north);
+
+        // Update validation error state
+        setHasLatitudeError(north <= south);
 
         // Clean up
         map.off("click", onMapClick);
@@ -353,7 +424,6 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       setStartPoint(null);
       startPointRef.current = null;
       setMapLoaded(false);
-      setBoundingBox(null);
       parseBounds(initialBounds);
     }
   }, [opened, initialBounds, parseBounds]);
@@ -390,8 +460,8 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         />
 
         {/* Coordinate input fields without title */}
-        <Group gap="md" align="flex-start" justify="center">
-          <Stack gap="xs">
+        <Stack gap="xs" align="center">
+          <Group gap="md" align="flex-start" justify="center">
             <NumberInput
               label="°N (max latitude)"
               placeholder="e.g., 47.8"
@@ -405,25 +475,10 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               decimalScale={6}
               size="sm"
               style={{ width: "150px" }}
+              error={hasLatitudeError}
             />
             <NumberInput
-              label="°S (min latitude)"
-              placeholder="e.g., 47.2"
-              value={south}
-              onChange={(value) => {
-                setSouth(value);
-                handleCoordinateChange(west, value, east, north);
-              }}
-              min={-90}
-              max={90}
-              decimalScale={6}
-              size="sm"
-              style={{ width: "150px" }}
-            />
-          </Stack>
-          <Stack gap="xs">
-            <NumberInput
-              label="°E (max longitude)"
+              label="°E (east edge)"
               placeholder="e.g., -122.0"
               value={east}
               onChange={(value) => {
@@ -436,22 +491,46 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
               size="sm"
               style={{ width: "150px" }}
             />
-            <NumberInput
-              label="°W (min longitude)"
-              placeholder="e.g., -123.5"
-              value={west}
-              onChange={(value) => {
-                setWest(value);
-                handleCoordinateChange(value, south, east, north);
-              }}
-              min={-180}
-              max={180}
-              decimalScale={6}
-              size="sm"
-              style={{ width: "150px" }}
-            />
-          </Stack>
-        </Group>
+          </Group>
+          <Box>
+            <Group gap="md" align="flex-start" justify="center">
+              <NumberInput
+                label="°S (min latitude)"
+                placeholder="e.g., 47.2"
+                value={south}
+                onChange={(value) => {
+                  setSouth(value);
+                  handleCoordinateChange(west, value, east, north);
+                }}
+                min={-90}
+                max={90}
+                decimalScale={6}
+                size="sm"
+                style={{ width: "150px" }}
+                error={hasLatitudeError}
+              />
+              <NumberInput
+                label="°W (west edge)"
+                placeholder="e.g., -123.5"
+                value={west}
+                onChange={(value) => {
+                  setWest(value);
+                  handleCoordinateChange(value, south, east, north);
+                }}
+                min={-180}
+                max={180}
+                decimalScale={6}
+                size="sm"
+                style={{ width: "150px" }}
+              />
+            </Group>
+            {hasLatitudeError && (
+              <Text size="xs" c="red" mt={4}>
+                North latitude must be greater than South latitude
+              </Text>
+            )}
+          </Box>
+        </Stack>
 
         <Box
           style={{
@@ -474,7 +553,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
             <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm} disabled={!currentBounds}>
+            <Button onClick={handleConfirm} disabled={!currentBounds || hasLatitudeError}>
               Confirm
             </Button>
           </Box>
