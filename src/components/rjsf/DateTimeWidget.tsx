@@ -16,60 +16,48 @@ const DATETIME_FORMAT = "YYYY-MM-DD HH:mm:ss";
 const DATE_FORMAT = "YYYY-MM-DD";
 
 /**
- * Custom widget for datetime fields with direct text input support
+ * DateTimeWidget - Datetime widget with direct text input and picker
+ *
+ * All times are UTC - no timezone conversions.
  *
  * Features:
- * - Direct text input in YYYY-MM-DD HH:mm:ss format (UTC)
- * - Calendar/time picker popover for visual selection
- * - Auto-completion: date-only entries (YYYY-MM-DD) auto-complete to 00:00:00 on blur
- * - Validation with error messages for malformed input
- *
- * @param id - Input field ID
- * @param value - Current datetime string value
- * @param onChange - Callback when value changes (receives datetime string or undefined)
- * @param required - Whether the field is required
- * @param disabled - Whether the field is disabled
- * @param readonly - Whether the field is read-only
- * @param onBlur - Callback when field loses focus
- * @param onFocus - Callback when field gains focus
- * @param label - Label text for the field
- * @param placeholder - Placeholder text (defaults to format string)
- * @param schema - JSON schema for the field (provides description)
+ * - Direct text input in YYYY-MM-DD HH:mm:ss format
+ * - Calendar/time picker popover
+ * - Auto-completion: YYYY-MM-DD → YYYY-MM-DD 00:00:00 on blur
+ * - Validation blocks form submission if invalid
  */
 
+// Convert ISO string to display format
 const parseFromIso = (isoStr?: string): string => {
   if (!isoStr) return "";
-  // Parse as UTC and keep in UTC when formatting
   const d = dayjs.utc(isoStr);
   return d.isValid() ? d.format(DATETIME_FORMAT) : "";
 };
 
+// Convert display format to ISO string
 const parseToIso = (dateStr: string): string | undefined => {
   if (!dateStr) return undefined;
 
-  // Try full datetime format first
-  // Parse as UTC since user is instructed to enter UTC time
+  // Try full datetime format
   let d = dayjs.utc(dateStr, DATETIME_FORMAT, true);
   if (d.isValid()) return d.toISOString();
 
-  // Try date-only format
+  // Try date-only format (auto-complete with 00:00:00)
   d = dayjs.utc(dateStr, DATE_FORMAT, true);
-  if (d.isValid()) {
-    // Auto-complete with 00:00:00 UTC
-    return d.hour(0).minute(0).second(0).toISOString();
-  }
+  if (d.isValid()) return d.hour(0).minute(0).second(0).toISOString();
 
   return undefined;
 };
 
+// Validate datetime string format
 const validateDateTime = (input: string): boolean => {
-  if (!input) return true; // empty is valid
+  if (!input) return true;
 
-  // Accept full datetime format (use UTC parsing for consistency)
+  // Accept full datetime format
   let d = dayjs.utc(input, DATETIME_FORMAT, true);
   if (d.isValid()) return true;
 
-  // Accept date-only format (use UTC parsing for consistency)
+  // Accept date-only format
   d = dayjs.utc(input, DATE_FORMAT, true);
   return d.isValid();
 };
@@ -91,21 +79,17 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
   const [dateTime, setDateTime] = React.useState(parseFromIso(value as string));
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [touched, setTouched] = React.useState(false);
-  const hasInvalidLocalState = React.useRef(false);
 
-  const description = schema?.description;
+  const description = uiSchema?.["ui:description"] || schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
 
+  // Sync with external value changes
   React.useEffect(() => {
-    // Don't overwrite invalid local state with parent updates
-    if (!hasInvalidLocalState.current) {
-      setDateTime(parseFromIso(value as string));
-    }
+    setDateTime(parseFromIso(value as string));
   }, [value]);
 
   const handleChange = (newValue: string) => {
     setDateTime(newValue);
-    hasInvalidLocalState.current = false; // Reset when user types
   };
 
   const handleBlur = () => {
@@ -114,26 +98,28 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
     // Auto-complete date-only entries with 00:00:00
     let finalValue = dateTime;
     if (dateTime) {
-      const fullDateTime = dayjs(dateTime, DATETIME_FORMAT, true);
-      const dateOnly = dayjs(dateTime, DATE_FORMAT, true);
+      const fullDateTime = dayjs.utc(dateTime, DATETIME_FORMAT, true);
+      const dateOnly = dayjs.utc(dateTime, DATE_FORMAT, true);
 
-      // If it's a valid date without time, auto-complete it
       if (!fullDateTime.isValid() && dateOnly.isValid()) {
         finalValue = dateOnly.format(DATE_FORMAT) + " 00:00:00";
         setDateTime(finalValue);
       }
     }
 
-    // Parse the final value
+    // Parse and propagate - undefined blocks form submission if invalid
     const isoValue = parseToIso(finalValue);
-
-    // Always propagate to parent - undefined if invalid, which blocks form submission
     onChange(isoValue);
-
-    // Track if we have invalid local state to prevent parent updates from clearing it
-    hasInvalidLocalState.current = (isoValue === undefined && !!finalValue);
-
     onBlur && onBlur(id, finalValue);
+  };
+
+  const handlePickerChange = (newValue: string) => {
+    setDateTime(newValue);
+    setTouched(true);
+
+    // Propagate immediately when using picker
+    const isoValue = parseToIso(newValue);
+    onChange(isoValue);
   };
 
   return (
@@ -163,18 +149,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
             opened={pickerOpen}
             onChange={setPickerOpen}
             value={dateTime}
-            onDateTimeChange={(newValue) => {
-              setDateTime(newValue);
-              setTouched(true);
-              // Propagate immediately when using picker
-              const isoValue = parseToIso(newValue);
-              onChange(isoValue);
-              // Also trigger blur to ensure form knows about the change
-              if (onBlur) {
-                onBlur(id, newValue);
-              }
-            }}
-            onTouched={() => setTouched(true)}
+            onDateTimeChange={handlePickerChange}
             disabled={disabled}
             readonly={readonly}
           />

@@ -1,5 +1,5 @@
 import React from "react";
-import { Popover, ActionIcon, Stack, Group, Divider } from "@mantine/core";
+import { Popover, ActionIcon, Group, Divider } from "@mantine/core";
 import { DatePicker, TimePicker } from "@mantine/dates";
 import { IconCalendar, IconCheck } from "@tabler/icons-react";
 import dayjs from "dayjs";
@@ -7,53 +7,19 @@ import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
 
-// Format constants
 const DATETIME_FORMAT = "YYYY-MM-DD HH:mm:ss";
-const TIME_FORMAT = "HH:mm:ss";
 
 /**
- * DateTimePickerPopover - A popover component for selecting date and time
+ * DateTimePickerPopover - Visual date/time picker in a popover
  *
- * Features:
- * - Visual date selection via calendar
- * - Time input with HH:mm:ss format (spin inputs)
- * - Auto-focus to time picker after date selection
- * - Enter key submits the selection
- * - Check button to confirm and close
- *
- * @param opened - Controls popover visibility
- * @param onChange - Callback when popover open state changes
- * @param value - Current datetime value in "YYYY-MM-DD HH:mm:ss" format
- * @param onDateTimeChange - Callback when datetime changes (receives formatted string)
- * @param onTouched - Callback when user interacts with the component
- * @param disabled - Disables the calendar button
- * @param readonly - Makes the component read-only
+ * All times are treated as UTC throughout - no timezone conversions.
  */
-
-const parseToDate = (dateStr: string): Date | null => {
-  if (!dateStr) return null;
-
-  const d = dayjs.utc(dateStr, DATETIME_FORMAT, true);
-  if (!d.isValid()) return null;
-
-  // Create a "fake local" Date that displays UTC values
-  // This is what Mantine's DatePicker expects
-  return new Date(d.year(), d.month(), d.date(), d.hour(), d.minute(), d.second());
-};
-
-const parseToTime = (dateStr: string): string => {
-  if (!dateStr) return "";
-  // Parse as UTC since user enters UTC time
-  const d = dayjs.utc(dateStr, DATETIME_FORMAT, true);
-  return d.isValid() ? d.format(TIME_FORMAT) : "";
-};
 
 interface DateTimePickerPopoverProps {
   opened: boolean;
   onChange: (opened: boolean) => void;
-  value: string;
+  value: string; // "YYYY-MM-DD HH:mm:ss" UTC
   onDateTimeChange: (formatted: string) => void;
-  onTouched: () => void;
   disabled?: boolean;
   readonly?: boolean;
 }
@@ -63,35 +29,43 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
   onChange,
   value,
   onDateTimeChange,
-  onTouched,
   disabled,
   readonly
 }) => {
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(
-    parseToDate(value)
-  );
-  const [timeValue, setTimeValue] = React.useState<string>(
-    parseToTime(value) || "00:00:00"
-  );
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
+  const [timeValue, setTimeValue] = React.useState<string>("00:00:00");
   const [currentLevel, setCurrentLevel] = React.useState<"month" | "year" | "decade">("month");
-  const timePickerRef = React.useRef<HTMLDivElement>(null);
+  const [displayedMonth, setDisplayedMonth] = React.useState<Date | undefined>(undefined);
 
-  // Update local state when value prop changes
+  // Initialize from text field value when popover opens
   React.useEffect(() => {
-    setSelectedDate(parseToDate(value));
-    setTimeValue(parseToTime(value) || "00:00:00");
-  }, [value]);
+    if (opened) {
+      // Parse the current text field value
+      const parsed = value ? dayjs.utc(value, DATETIME_FORMAT, true) : null;
+      if (parsed?.isValid()) {
+        const dateObj = new Date(parsed.year(), parsed.month(), parsed.date());
+        setSelectedDate(dateObj);
+        setDisplayedMonth(dateObj); // Start on the selected date's month
+        setTimeValue(parsed.format("HH:mm:ss"));
+      } else {
+        setSelectedDate(null);
+        setDisplayedMonth(undefined); // Let DatePicker use default (current month)
+        setTimeValue("00:00:00");
+      }
+    }
+  }, [opened, value]);
 
-  const handleDateChange = (date: Date | null) => {
-    setSelectedDate(date);
-    // Focus time picker after date selection
-    if (date) {
-      setTimeout(() => {
-        const hoursInput = timePickerRef.current?.querySelector(
-          'input[aria-label="Hours"]'
-        ) as HTMLInputElement;
-        hoursInput?.focus();
-      }, 0);
+  const handleDateChange = (date: Date | null | string) => {
+    // Handle case where DatePicker returns a string instead of Date
+    if (typeof date === 'string') {
+      const parsed = dayjs.utc(date, 'YYYY-MM-DD', true);
+      if (parsed.isValid()) {
+        setSelectedDate(new Date(parsed.year(), parsed.month(), parsed.date()));
+      } else {
+        setSelectedDate(null);
+      }
+    } else {
+      setSelectedDate(date);
     }
   };
 
@@ -100,51 +74,40 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!selectedDate || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
+    if (!selectedDate) {
       onDateTimeChange("");
-      onTouched();
-      onChange(false);
       return;
     }
 
-    // Extract date components treating the Date object values as UTC
+    // Check if it's actually a Date object
+    if (typeof selectedDate.getFullYear !== 'function') {
+      onDateTimeChange("");
+      return;
+    }
+
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const day = String(selectedDate.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-
-    // Combine date and time strings
-    const formatted = `${dateStr} ${timeValue}`;
-
-    // Validate the combined datetime
-    const isValid = dayjs.utc(formatted, DATETIME_FORMAT, true).isValid();
-    if (!isValid) {
-      // Close and let the text input show the error
-      onDateTimeChange(formatted);
-      onTouched();
-      onChange(false);
-      return;
-    }
+    const formatted = `${year}-${month}-${day} ${timeValue}`;
 
     onDateTimeChange(formatted);
-    onTouched();
-    onChange(false);
   };
 
-  const handleTimeKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
+  const handlePopoverClose = (isOpen: boolean) => {
+    // When closing, save the current date/time
+    if (!isOpen && opened) {
       handleSubmit();
     }
+    onChange(isOpen);
   };
 
   return (
     <Popover
       opened={opened}
-      onChange={onChange}
+      onChange={handlePopoverClose}
       position="bottom-end"
-      withinPortal={false}
-      closeOnClickOutside={false}
+      withinPortal={true}
+      closeOnClickOutside={true}
       closeOnEscape={true}
     >
       <Popover.Target>
@@ -162,7 +125,9 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
           value={selectedDate}
           onChange={handleDateChange}
           onLevelChange={setCurrentLevel}
-          weekendDays={[]} // Remove weekend styling - all days are selectable
+          date={displayedMonth}
+          onDateChange={setDisplayedMonth}
+          weekendDays={[]}
           size="sm"
         />
         {currentLevel === "month" && (
@@ -177,27 +142,28 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
                 alignItems: 'stretch'
               }}
             >
-            <TimePicker
-              ref={timePickerRef}
-              value={timeValue}
-              onChange={handleTimeChange}
-              withSeconds
-              size="sm"
-              onKeyDown={handleTimeKeyDown}
-              style={{
-                flex: 1,
-                marginInlineEnd: '12px'
-              }}
-            />
-            <ActionIcon
-              variant="default"
-              size="input-sm"
-              onClick={handleSubmit}
-              aria-label="Submit datetime"
-            >
-              <IconCheck style={{ width: '30%', height: '30%' }} />
-            </ActionIcon>
-          </Group>
+              <TimePicker
+                value={timeValue}
+                onChange={handleTimeChange}
+                withSeconds
+                size="sm"
+                style={{
+                  flex: 1,
+                  marginInlineEnd: '12px'
+                }}
+              />
+              <ActionIcon
+                variant="default"
+                size="input-sm"
+                onClick={() => {
+                  handleSubmit();
+                  onChange(false);
+                }}
+                aria-label="Submit datetime"
+              >
+                <IconCheck style={{ width: '30%', height: '30%' }} />
+              </ActionIcon>
+            </Group>
           </>
         )}
       </Popover.Dropdown>
