@@ -67,11 +67,13 @@ const experimentUiSchema = {
   description: textAreaWidget,
   start_datetime: {
     ...halfWidthStyle,
-    "ui:widget": "DateTimeWidget"
+    "ui:widget": "DateTimeWidget",
+    "ui:description": "Start date and time of experiment in UTC"
   },
   end_datetime: {
     ...halfWidthStyle,
-    "ui:widget": "DateTimeWidget"
+    "ui:widget": "DateTimeWidget",
+    "ui:description": "End date and time of experiment in UTC"
   },
   spatial_coverage: {
     "ui:field": "SpatialCoverageMiniMap",

@@ -28,6 +28,7 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
+import DateTimeWidgetV2 from "@/components/rjsf/DateTimeWidgetV2";
 import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
@@ -319,7 +320,7 @@ export default function ExperimentPage() {
                 CustomSelectWidget: CustomSelectWidget,
                 TextWidget: BaseInputWidget,
                 textarea: CustomTextareaWidget,
-                DateTimeWidget: DateTimeWidget,
+                DateTimeWidget: DateTimeWidgetV2,
                 PlaceholderWidget: PlaceholderWidget,
                 DosingDepthWidget: DosingDepthWidget
               }}
