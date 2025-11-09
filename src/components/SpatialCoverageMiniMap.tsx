@@ -5,6 +5,17 @@ import type { FieldProps } from "@rjsf/utils";
 import { Box, Text, Tooltip, ActionIcon } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";
 import MapBoundingBoxSelectorProper from "./MapBoundingBoxSelectorProper";
+import {
+  validateSpatialBounds,
+  adjustEastForAntimeridian
+} from "@/utils/spatialUtils";
+import {
+  MAP_TILE_STYLE,
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MINI_MAP_ZOOM,
+  MAPLIBRE_GL_CSS_URL,
+  MAPLIBRE_GL_JS_URL
+} from "@/config/maps";
 
 // parse "W S E N" string from nested object
 function readBox(formData: any): string {
@@ -17,41 +28,6 @@ function writeBox(s: string): any {
   const trimmed = s.trim();
   if (!trimmed) return null;
   return { geo: { box: trimmed } };
-}
-
-// validate spatial bounds according to WKT conventions
-function validateSpatialBounds(boxString: string): string | null {
-  const trimmed = boxString.trim();
-  if (!trimmed) return null;
-
-  const parts = trimmed.split(/\s+/);
-  if (parts.length !== 4) {
-    return "Must contain exactly 4 numbers: W S E N";
-  }
-
-  const [west, south, east, north] = parts.map(Number);
-
-  if (
-    parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))
-  ) {
-    return "All values must be valid numbers";
-  }
-
-  if (west < -180 || west > 180 || east < -180 || east > 180) {
-    return "Longitude (W, E) must be between -180 and 180";
-  }
-
-  if (south < -90 || south > 90 || north < -90 || north > 90) {
-    return "Latitude (S, N) must be between -90 and 90";
-  }
-
-  // Note: W and E are positional (left/right edges), so west > east is valid for antimeridian crossing
-
-  if (north <= south) {
-    return "North latitude must be greater than South latitude";
-  }
-
-  return null;
 }
 
 const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
@@ -90,9 +66,9 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
 
     const map = new window.maplibregl.Map({
       container: mapRef.current,
-      style: "https://tiles.openfreemap.org/styles/positron",
-      center: [-123.0, 47.5],
-      zoom: 2,
+      style: MAP_TILE_STYLE,
+      center: DEFAULT_MAP_CENTER,
+      zoom: DEFAULT_MINI_MAP_ZOOM,
       interactive: false, // Make it non-interactive for preview
       attributionControl: false
     });
@@ -109,14 +85,10 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
           // Handle antimeridian for fitBounds
-          const fitWest = west;
-          let fitEast = east;
-          if (west > east) {
-            fitEast = east + 360;
-          }
+          const fitEast = adjustEastForAntimeridian(west, east);
           map.fitBounds(
             [
-              [fitWest, south],
+              [west, south],
               [fitEast, north]
             ],
             {
@@ -146,11 +118,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
     // For rendering: if W > E (antimeridian crossing), translate E to +360 range
     // so MapLibre draws the short way
     const renderWest = west;
-    let renderEast = east;
-    if (west > east) {
-      // Antimeridian crossing: translate east to be > 180
-      renderEast = east + 360;
-    }
+    const renderEast = adjustEastForAntimeridian(west, east);
 
     // Add bounding box as GeoJSON
     map.addSource("bbox", {
@@ -198,31 +166,36 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
   // Load MapLibre and initialize mini map
   useEffect(() => {
     const loadAndInit = async () => {
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href =
-            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
+      try {
+        if (!window.maplibregl) {
+          // Load CSS
+          if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = MAPLIBRE_GL_CSS_URL;
+            document.head.appendChild(link);
+          }
+
+          // Load JS
+          const script = document.createElement("script");
+          script.src = MAPLIBRE_GL_JS_URL;
+
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = () =>
+              reject(new Error("Failed to load MapLibre GL"));
+            document.head.appendChild(script);
+          });
         }
 
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
+        requestAnimationFrame(() => {
+          if (mapRef.current && !mapInstanceRef.current) {
+            initializeMiniMap();
+          }
         });
+      } catch (error) {
+        console.error("MapLibre loading failed:", error);
       }
-
-      requestAnimationFrame(() => {
-        if (mapRef.current && !mapInstanceRef.current) {
-          initializeMiniMap();
-        }
-      });
     };
 
     loadAndInit();
@@ -236,14 +209,10 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
         const [west, south, east, north] = parts;
         addBoundingBox(mapInstanceRef.current, west, south, east, north);
         // Handle antimeridian for fitBounds
-        const fitWest = west;
-        let fitEast = east;
-        if (west > east) {
-          fitEast = east + 360;
-        }
+        const fitEast = adjustEastForAntimeridian(west, east);
         mapInstanceRef.current.fitBounds(
           [
-            [fitWest, south],
+            [west, south],
             [fitEast, north]
           ],
           {
@@ -261,8 +230,8 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
       }
       // Reset to default view
       mapInstanceRef.current.flyTo({
-        center: [-123.0, 47.5],
-        zoom: 2,
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MINI_MAP_ZOOM,
         duration: 500
       });
     }

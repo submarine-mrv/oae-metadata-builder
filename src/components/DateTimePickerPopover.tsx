@@ -1,6 +1,7 @@
 import React from "react";
 import { Popover, ActionIcon, Group, Divider } from "@mantine/core";
 import { DatePicker, TimePicker } from "@mantine/dates";
+import type { DateValue, DatesProviderValue } from "@mantine/dates";
 import { IconCalendar, IconCheck } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -32,10 +33,10 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
   disabled,
   readonly
 }) => {
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = React.useState<DateValue>(null);
   const [timeValue, setTimeValue] = React.useState<string>("00:00:00");
   const [currentLevel, setCurrentLevel] = React.useState<"month" | "year" | "decade">("month");
-  const [displayedMonth, setDisplayedMonth] = React.useState<Date | undefined>(undefined);
+  const [displayedMonth, setDisplayedMonth] = React.useState<DateValue>(undefined);
 
   // Initialize from text field value when popover opens
   React.useEffect(() => {
@@ -55,17 +56,25 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
     }
   }, [opened, value]);
 
-  const handleDateChange = (date: Date | null | string) => {
-    // Handle case where DatePicker returns a string instead of Date
-    if (typeof date === 'string') {
+  /**
+   * Handle date selection from DatePicker
+   * Note: Mantine's DatePicker onChange can return Date | null or string depending on configuration
+   */
+  const handleDateChange = (date: DateValue | string) => {
+    if (date === null || date === undefined) {
+      setSelectedDate(null);
+    } else if (typeof date === 'string') {
+      // Handle string input: parse and convert to Date
       const parsed = dayjs.utc(date, 'YYYY-MM-DD', true);
       if (parsed.isValid()) {
         setSelectedDate(new Date(parsed.year(), parsed.month(), parsed.date()));
       } else {
         setSelectedDate(null);
       }
-    } else {
+    } else if (date instanceof Date) {
       setSelectedDate(date);
+    } else {
+      setSelectedDate(null);
     }
   };
 
@@ -73,6 +82,10 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
     setTimeValue(time);
   };
 
+  /**
+   * Handle month navigation in DatePicker
+   * Note: Mantine's DatePicker onDateChange prop expects (date: string) => void
+   */
   const handleDisplayedMonthChange = (date: string) => {
     const parsed = dayjs.utc(date, 'YYYY-MM-DD', true);
     if (parsed.isValid()) {
@@ -80,14 +93,19 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
     }
   };
 
+  /**
+   * Format and submit the selected date/time
+   * Uses defensive type checking to ensure selectedDate is a valid Date instance
+   */
   const handleSubmit = () => {
+    // Handle null/undefined case
     if (!selectedDate) {
       onDateTimeChange("");
       return;
     }
 
-    // Check if it's actually a Date object
-    if (typeof selectedDate.getFullYear !== 'function') {
+    // Type guard: ensure it's actually a Date instance
+    if (!(selectedDate instanceof Date) || typeof selectedDate.getFullYear !== 'function') {
       onDateTimeChange("");
       return;
     }

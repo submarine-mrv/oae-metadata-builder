@@ -5,6 +5,7 @@ import type { FieldProps } from "@rjsf/utils";
 import { TextInput, Text, Tooltip, ActionIcon, Box } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
 import MapBoundingBoxSelectorProper from "./MapBoundingBoxSelectorProper";
+import { validateSpatialBounds } from "@/utils/spatialUtils";
 
 // parse "W S E N" string from nested object
 function readBox(formData: any): string {
@@ -18,45 +19,6 @@ function writeBox(s: string): any {
   const trimmed = s.trim();
   if (!trimmed) return null; // satisfies anyOf null
   return { geo: { box: trimmed } }; // minimal Place->GeoShape structure that satisfies the schema
-}
-
-// validate spatial bounds according to WKT conventions
-function validateSpatialBounds(boxString: string): string | null {
-  const trimmed = boxString.trim();
-  if (!trimmed) return null; // empty is valid (null)
-
-  const parts = trimmed.split(/\s+/);
-  if (parts.length !== 4) {
-    return "Must contain exactly 4 numbers: W S E N";
-  }
-
-  const [west, south, east, north] = parts.map(Number);
-
-  // Check if all parts are valid numbers
-  if (
-    parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))
-  ) {
-    return "All values must be valid numbers";
-  }
-
-  // WKT longitude bounds: -180 to 180
-  if (west < -180 || west > 180 || east < -180 || east > 180) {
-    return "Longitude (W, E) must be between -180 and 180";
-  }
-
-  // WKT latitude bounds: -90 to 90
-  if (south < -90 || south > 90 || north < -90 || north > 90) {
-    return "Latitude (S, N) must be between -90 and 90";
-  }
-
-  // Logical bounds check
-  // Note: W and E are positional (left/right edges), so west > east is valid for antimeridian crossing
-
-  if (north <= south) {
-    return "North latitude must be greater than South latitude";
-  }
-
-  return null; // valid
 }
 
 const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
