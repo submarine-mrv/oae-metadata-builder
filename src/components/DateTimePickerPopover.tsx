@@ -1,7 +1,7 @@
 import React from "react";
 import { Popover, ActionIcon, Group, Divider } from "@mantine/core";
 import { DatePicker, TimePicker } from "@mantine/dates";
-import type { DateValue, DatesProviderValue } from "@mantine/dates";
+import type { DateValue } from "@mantine/dates";
 import { IconCalendar, IconCheck } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
