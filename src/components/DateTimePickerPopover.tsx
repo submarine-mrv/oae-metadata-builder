@@ -36,7 +36,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
   const [selectedDate, setSelectedDate] = React.useState<DateValue>(null);
   const [timeValue, setTimeValue] = React.useState<string>("00:00:00");
   const [currentLevel, setCurrentLevel] = React.useState<"month" | "year" | "decade">("month");
-  const [displayedMonth, setDisplayedMonth] = React.useState<DateValue>(undefined);
+  const [displayedMonth, setDisplayedMonth] = React.useState<DateValue>(null);
 
   // Initialize from text field value when popover opens
   React.useEffect(() => {
@@ -50,7 +50,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
         setTimeValue(parsed.format("HH:mm:ss"));
       } else {
         setSelectedDate(null);
-        setDisplayedMonth(undefined); // Let DatePicker use default (current month)
+        setDisplayedMonth(null); // Let DatePicker use default (current month)
         setTimeValue("00:00:00");
       }
     }
@@ -61,7 +61,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
    * Note: Mantine's DatePicker onChange can return Date | null or string depending on configuration
    */
   const handleDateChange = (date: DateValue | string) => {
-    if (date === null || date === undefined) {
+    if (date === null) {
       setSelectedDate(null);
     } else if (typeof date === 'string') {
       // Handle string input: parse and convert to Date
@@ -150,7 +150,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
           value={selectedDate}
           onChange={handleDateChange}
           onLevelChange={setCurrentLevel}
-          date={displayedMonth}
+          date={displayedMonth ?? undefined}
           onDateChange={handleDisplayedMonthChange}
           weekendDays={[]}
           size="sm"
