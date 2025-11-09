@@ -73,6 +73,13 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
     setTimeValue(time);
   };
 
+  const handleDisplayedMonthChange = (date: string) => {
+    const parsed = dayjs.utc(date, 'YYYY-MM-DD', true);
+    if (parsed.isValid()) {
+      setDisplayedMonth(new Date(parsed.year(), parsed.month(), parsed.date()));
+    }
+  };
+
   const handleSubmit = () => {
     if (!selectedDate) {
       onDateTimeChange("");
@@ -126,7 +133,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
           onChange={handleDateChange}
           onLevelChange={setCurrentLevel}
           date={displayedMonth}
-          onDateChange={setDisplayedMonth}
+          onDateChange={handleDisplayedMonthChange}
           weekendDays={[]}
           size="sm"
         />
