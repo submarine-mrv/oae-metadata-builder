@@ -261,6 +261,12 @@ export default function ExperimentPage() {
     });
 
   const customValidate = (data: any, errors: any) => {
+    // Validate spatial coverage is not empty
+    const sc = data?.spatial_coverage;
+    if (!sc || !sc.geo || !sc.geo.box || sc.geo.box.trim() === "") {
+      errors?.spatial_coverage?.addError("Spatial Coverage is required");
+    }
+
     // Validate vertical coverage depths
     const vc = data?.vertical_coverage;
     if (vc) {

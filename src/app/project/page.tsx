@@ -183,6 +183,12 @@ export default function ProjectPage() {
     });
 
   const customValidate = (data: any, errors: any) => {
+    // Validate spatial coverage is not empty
+    const sc = data?.spatial_coverage;
+    if (!sc || !sc.geo || !sc.geo.box || sc.geo.box.trim() === "") {
+      errors?.spatial_coverage?.addError("Spatial Coverage is required");
+    }
+
     const t = data?.temporal_coverage as string | undefined;
     if (!t) errors?.temporal_coverage?.addError("Start date is required.");
     else {
