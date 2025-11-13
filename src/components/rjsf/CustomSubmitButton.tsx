@@ -1,4 +1,5 @@
-import { Button, Modal, Text, Group } from "@mantine/core";
+import { Button, Modal, Group, Alert } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useState, useRef } from "react";
 import {
   FormContextType,
@@ -68,7 +69,15 @@ export default function CustomSubmitButton<
         title="Download Metadata"
         centered
       >
-        <Text mb="md">{warningMessage}</Text>
+        <Alert
+          icon={<IconAlertTriangle size={20} />}
+          title="Partial Download"
+          color="yellow"
+          variant="light"
+          mb="md"
+        >
+          {warningMessage}
+        </Alert>
         <Group justify="flex-end" gap="sm">
           <Button variant="default" onClick={handleCancel}>
             Cancel
