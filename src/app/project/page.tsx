@@ -7,9 +7,11 @@ import {
   Stack,
   Button,
   Box,
-  Group
+  Group,
+  Modal,
+  Alert
 } from "@mantine/core";
-import { IconCode, IconX } from "@tabler/icons-react";
+import { IconCode, IconX, IconAlertTriangle } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -45,7 +47,6 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
   <CustomSubmitButton
     {...props}
     buttonText="Download Project Metadata"
-    metadataType="project"
   />
 );
 
@@ -58,6 +59,8 @@ export default function ProjectPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [pendingDownloadData, setPendingDownloadData] = useState<any>(null);
 
   useEffect(() => {
     setActiveTab("project");
@@ -93,12 +96,6 @@ export default function ProjectPage() {
   }, [forceValidation]);
 
   const downloadJsonFile = (data: any) => {
-    // Don't download if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -109,6 +106,31 @@ export default function ProjectPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleFormSubmit = ({ formData }: any) => {
+    // Don't show modal if this submit was triggered just to show validation errors
+    if (skipDownload) {
+      setSkipDownload(false); // Reset flag
+      return;
+    }
+
+    // Form is valid - show confirmation modal
+    setPendingDownloadData(formData);
+    setShowDownloadModal(true);
+  };
+
+  const handleDownloadConfirm = () => {
+    setShowDownloadModal(false);
+    if (pendingDownloadData) {
+      downloadJsonFile(pendingDownloadData);
+      setPendingDownloadData(null);
+    }
+  };
+
+  const handleDownloadCancel = () => {
+    setShowDownloadModal(false);
+    setPendingDownloadData(null);
   };
 
   useEffect(() => {
@@ -236,7 +258,7 @@ export default function ProjectPage() {
               uiSchema={uiSchema}
               formData={state.projectData}
               onChange={(e) => updateProjectData(e.formData)}
-              onSubmit={({ formData }) => downloadJsonFile(formData)}
+              onSubmit={handleFormSubmit}
               validator={validator}
               customValidate={customValidate}
               transformErrors={transformErrors}
@@ -338,6 +360,33 @@ export default function ProjectPage() {
           </Box>
         )}
       </div>
+
+      {/* Download Confirmation Modal */}
+      <Modal
+        opened={showDownloadModal}
+        onClose={handleDownloadCancel}
+        title="Download Metadata"
+        centered
+      >
+        <Alert
+          icon={<IconAlertTriangle size={20} />}
+          title="Partial Download"
+          color="yellow"
+          variant="light"
+          mb="md"
+        >
+          This will only download project-level metadata. To download all
+          metadata, click export metadata button in the upper right corner.
+        </Alert>
+        <Group justify="flex-end" gap="sm">
+          <Button variant="default" onClick={handleDownloadCancel}>
+            Cancel
+          </Button>
+          <Button variant="filled" onClick={handleDownloadConfirm}>
+            Continue
+          </Button>
+        </Group>
+      </Modal>
     </div>
   );
 }

@@ -8,9 +8,11 @@ import {
   Stack,
   Button,
   Box,
-  Group
+  Group,
+  Modal,
+  Alert
 } from "@mantine/core";
-import { IconCode, IconX, IconArrowLeft } from "@tabler/icons-react";
+import { IconCode, IconX, IconArrowLeft, IconAlertTriangle } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -56,7 +58,6 @@ const ExperimentSubmitButton = (props: SubmitButtonProps) => (
   <CustomSubmitButton
     {...props}
     buttonText="Download Experiment Metadata"
-    metadataType="experiment"
   />
 );
 
@@ -74,6 +75,8 @@ export default function ExperimentPage() {
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [pendingDownloadData, setPendingDownloadData] = useState<any>(null);
 
   const activeExperimentId = state.activeExperimentId;
   const experiment = activeExperimentId
@@ -201,12 +204,6 @@ export default function ExperimentPage() {
   );
 
   const downloadJsonFile = (data: any) => {
-    // Don't download if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -217,6 +214,31 @@ export default function ExperimentPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleFormSubmit = ({ formData: submittedData }: any) => {
+    // Don't show modal if this submit was triggered just to show validation errors
+    if (skipDownload) {
+      setSkipDownload(false); // Reset flag
+      return;
+    }
+
+    // Form is valid - show confirmation modal
+    setPendingDownloadData(submittedData);
+    setShowDownloadModal(true);
+  };
+
+  const handleDownloadConfirm = () => {
+    setShowDownloadModal(false);
+    if (pendingDownloadData) {
+      downloadJsonFile(pendingDownloadData);
+      setPendingDownloadData(null);
+    }
+  };
+
+  const handleDownloadCancel = () => {
+    setShowDownloadModal(false);
+    setPendingDownloadData(null);
   };
 
   const transformErrors = (errors: any[]) =>
@@ -316,7 +338,7 @@ export default function ExperimentPage() {
               uiSchema={activeUiSchema}
               formData={formData}
               onChange={handleFormChange}
-              onSubmit={({ formData }) => downloadJsonFile(formData)}
+              onSubmit={handleFormSubmit}
               validator={validator}
               customValidate={customValidate}
               transformErrors={transformErrors}
@@ -420,6 +442,33 @@ export default function ExperimentPage() {
           </Box>
         )}
       </div>
+
+      {/* Download Confirmation Modal */}
+      <Modal
+        opened={showDownloadModal}
+        onClose={handleDownloadCancel}
+        title="Download Metadata"
+        centered
+      >
+        <Alert
+          icon={<IconAlertTriangle size={20} />}
+          title="Partial Download"
+          color="yellow"
+          variant="light"
+          mb="md"
+        >
+          This will only download experiment-level metadata. To download all
+          metadata, click export metadata button in the upper right corner.
+        </Alert>
+        <Group justify="flex-end" gap="sm">
+          <Button variant="default" onClick={handleDownloadCancel}>
+            Cancel
+          </Button>
+          <Button variant="filled" onClick={handleDownloadConfirm}>
+            Continue
+          </Button>
+        </Group>
+      </Modal>
     </>
   );
 }
