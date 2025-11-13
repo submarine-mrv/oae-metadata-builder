@@ -7,19 +7,28 @@ import {
   SubmitButtonProps
 } from "@rjsf/utils";
 
+interface CustomSubmitButtonProps<
+  T = any,
+  S extends StrictRJSFSchema = RJSFSchema,
+  F extends FormContextType = any
+> extends SubmitButtonProps<T, S, F> {
+  buttonText?: string;
+  metadataType?: "project" | "experiment";
+}
+
 export default function CustomSubmitButton<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any
->(props: SubmitButtonProps<T, S, F>) {
-  const { uiSchema } = props;
+>(props: CustomSubmitButtonProps<T, S, F>) {
+  const { buttonText = "Download Metadata File", metadataType } = props;
   const [opened, setOpened] = useState(false);
   const hiddenSubmitRef = useRef<HTMLButtonElement>(null);
 
-  // Get custom config from uiSchema
-  const buttonText = uiSchema?.["ui:submitButtonText"] || "Download Metadata File";
-  const warningMessage = uiSchema?.["ui:submitWarningMessage"] ||
-    "This will only download metadata. To download all metadata, click export metadata button in the upper right corner.";
+  // Generate warning message based on metadataType
+  const warningMessage = metadataType
+    ? `This will only download ${metadataType}-level metadata. To download all metadata, click export metadata button in the upper right corner.`
+    : "This will only download metadata. To download all metadata, click export metadata button in the upper right corner.";
 
   const handleVisibleButtonClick = () => {
     setOpened(true);

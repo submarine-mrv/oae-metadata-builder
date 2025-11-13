@@ -33,11 +33,21 @@ import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
+import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
+
+// Create a wrapper for the submit button with project-specific configuration
+const ProjectSubmitButton = (props: SubmitButtonProps) => (
+  <CustomSubmitButton
+    {...props}
+    buttonText="Download Project Metadata"
+    metadataType="project"
+  />
+);
 
 export default function ProjectPage() {
   const { state, updateProjectData, setActiveTab, setTriggerValidation } =
@@ -251,7 +261,7 @@ export default function ProjectPage() {
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
-                  SubmitButton: CustomSubmitButton
+                  SubmitButton: ProjectSubmitButton
                 }
               }}
               fields={{

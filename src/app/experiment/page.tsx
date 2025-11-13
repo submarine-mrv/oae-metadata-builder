@@ -44,11 +44,21 @@ import {
   getTracerSchema,
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
+import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
+
+// Create a wrapper for the submit button with experiment-specific configuration
+const ExperimentSubmitButton = (props: SubmitButtonProps) => (
+  <CustomSubmitButton
+    {...props}
+    buttonText="Download Experiment Metadata"
+    metadataType="experiment"
+  />
+);
 
 export default function ExperimentPage() {
   const router = useRouter();
@@ -332,7 +342,7 @@ export default function ExperimentPage() {
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
-                  SubmitButton: CustomSubmitButton
+                  SubmitButton: ExperimentSubmitButton
                 }
               }}
               fields={{

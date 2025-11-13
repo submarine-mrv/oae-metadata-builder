@@ -53,9 +53,6 @@ const textAreaWidget = {
 // // Old style ordering and UI customizations for react-jsonschema-form
 const uiSchemaOld = {
   "ui:title": "",
-  "ui:submitButtonText": "Download Project Metadata",
-  "ui:submitWarningMessage":
-    "This will only download project-level metadata. To download all metadata, click export metadata button in the upper right corner.",
   "ui:options": {
     expandable: false
   },
