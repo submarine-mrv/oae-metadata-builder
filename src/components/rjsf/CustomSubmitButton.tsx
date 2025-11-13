@@ -1,6 +1,6 @@
 import { Button, Modal, Group, Alert } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FormContextType,
   RJSFSchema,
@@ -24,22 +24,50 @@ export default function CustomSubmitButton<
 >(props: CustomSubmitButtonProps<T, S, F>) {
   const { buttonText = "Download Metadata File", metadataType } = props;
   const [opened, setOpened] = useState(false);
-  const hiddenSubmitRef = useRef<HTMLButtonElement>(null);
+  const [bypassModal, setBypassModal] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Find the parent form element on mount
+  useEffect(() => {
+    if (submitButtonRef.current) {
+      formRef.current = submitButtonRef.current.closest("form");
+    }
+  }, []);
 
   // Generate warning message based on metadataType
   const warningMessage = metadataType
     ? `This will only download ${metadataType}-level metadata. To download all metadata, click export metadata button in the upper right corner.`
     : "This will only download metadata. To download all metadata, click export metadata button in the upper right corner.";
 
-  const handleVisibleButtonClick = () => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // If we're bypassing the modal (user clicked Continue), let form submit normally
+    if (bypassModal) {
+      setBypassModal(false);
+      return;
+    }
+
+    // Otherwise, prevent submission and check validity first
+    e.preventDefault();
+
+    // Check if form is valid using HTML5 validation
+    const form = formRef.current;
+    if (form && !form.checkValidity()) {
+      // Form is invalid - trigger native validation UI by submitting
+      form.reportValidity();
+      return;
+    }
+
+    // Form is valid - show the modal
     setOpened(true);
   };
 
   const handleContinue = () => {
     setOpened(false);
-    // Trigger the actual form submission by clicking the hidden submit button
+    setBypassModal(true);
+    // Trigger the actual form submission
     setTimeout(() => {
-      hiddenSubmitRef.current?.click();
+      submitButtonRef.current?.click();
     }, 0);
   };
 
@@ -49,18 +77,15 @@ export default function CustomSubmitButton<
 
   return (
     <>
-      {/* Visible button that shows modal */}
-      <Button type="button" variant="filled" onClick={handleVisibleButtonClick}>
+      {/* Submit button that shows modal or submits based on state */}
+      <Button
+        ref={submitButtonRef}
+        type="submit"
+        variant="filled"
+        onClick={handleSubmit}
+      >
         {buttonText}
       </Button>
-
-      {/* Hidden submit button that actually submits the form */}
-      <button
-        ref={hiddenSubmitRef}
-        type="submit"
-        style={{ display: "none" }}
-        aria-hidden="true"
-      />
 
       {/* Confirmation Modal */}
       <Modal
