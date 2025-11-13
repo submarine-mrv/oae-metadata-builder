@@ -8,11 +8,9 @@ import {
   Stack,
   Button,
   Box,
-  Group,
-  Modal,
-  Alert
+  Group
 } from "@mantine/core";
-import { IconCode, IconX, IconArrowLeft, IconAlertTriangle } from "@tabler/icons-react";
+import { IconCode, IconX, IconArrowLeft } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -35,7 +33,9 @@ import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import Navigation from "@/components/Navigation";
+import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
+import { useMetadataDownload } from "@/hooks/useMetadataDownload";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -75,10 +75,19 @@ export default function ExperimentPage() {
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [pendingDownloadData, setPendingDownloadData] = useState<any>(null);
 
   const activeExperimentId = state.activeExperimentId;
+
+  const {
+    showDownloadModal,
+    handleFormSubmit,
+    handleDownloadConfirm,
+    handleDownloadCancel
+  } = useMetadataDownload({
+    filename: `experiment-${activeExperimentId || "metadata"}.json`,
+    skipDownload,
+    onSkipDownloadChange: setSkipDownload
+  });
   const experiment = activeExperimentId
     ? state.experiments.find((exp) => exp.id === activeExperimentId)
     : null;
@@ -203,44 +212,6 @@ export default function ExperimentPage() {
     [isInitialLoad, formData, activeExperimentId, updateExperiment]
   );
 
-  const downloadJsonFile = (data: any) => {
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `experiment-${activeExperimentId || "metadata"}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleFormSubmit = ({ formData: submittedData }: any) => {
-    // Don't show modal if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
-    // Form is valid - show confirmation modal
-    setPendingDownloadData(submittedData);
-    setShowDownloadModal(true);
-  };
-
-  const handleDownloadConfirm = () => {
-    setShowDownloadModal(false);
-    if (pendingDownloadData) {
-      downloadJsonFile(pendingDownloadData);
-      setPendingDownloadData(null);
-    }
-  };
-
-  const handleDownloadCancel = () => {
-    setShowDownloadModal(false);
-    setPendingDownloadData(null);
-  };
-
   const transformErrors = (errors: any[]) =>
     errors.map((e) => {
       if (
@@ -261,12 +232,6 @@ export default function ExperimentPage() {
     });
 
   const customValidate = (data: any, errors: any) => {
-    // Validate spatial coverage is not empty
-    const sc = data?.spatial_coverage;
-    if (!sc || !sc.geo || !sc.geo.box || sc.geo.box.trim() === "") {
-      errors?.spatial_coverage?.addError("Spatial Coverage is required");
-    }
-
     // Validate vertical coverage depths
     const vc = data?.vertical_coverage;
     if (vc) {
@@ -449,32 +414,12 @@ export default function ExperimentPage() {
         )}
       </div>
 
-      {/* Download Confirmation Modal */}
-      <Modal
+      <DownloadConfirmationModal
         opened={showDownloadModal}
         onClose={handleDownloadCancel}
-        title="Download Metadata"
-        centered
-      >
-        <Alert
-          icon={<IconAlertTriangle size={20} />}
-          title="Partial Download"
-          color="yellow"
-          variant="light"
-          mb="md"
-        >
-          This will only download experiment-level metadata. To download all
-          metadata, click export metadata button in the upper right corner.
-        </Alert>
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={handleDownloadCancel}>
-            Cancel
-          </Button>
-          <Button variant="filled" onClick={handleDownloadConfirm}>
-            Continue
-          </Button>
-        </Group>
-      </Modal>
+        onConfirm={handleDownloadConfirm}
+        metadataType="experiment"
+      />
     </>
   );
 }

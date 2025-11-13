@@ -7,11 +7,9 @@ import {
   Stack,
   Button,
   Box,
-  Group,
-  Modal,
-  Alert
+  Group
 } from "@mantine/core";
-import { IconCode, IconX, IconAlertTriangle } from "@tabler/icons-react";
+import { IconCode, IconX } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -33,8 +31,10 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
+import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
+import { useMetadataDownload } from "@/hooks/useMetadataDownload";
 import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -59,8 +59,17 @@ export default function ProjectPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [pendingDownloadData, setPendingDownloadData] = useState<any>(null);
+
+  const {
+    showDownloadModal,
+    handleFormSubmit,
+    handleDownloadConfirm,
+    handleDownloadCancel
+  } = useMetadataDownload({
+    filename: "oae-project-metadata.json",
+    skipDownload,
+    onSkipDownloadChange: setSkipDownload
+  });
 
   useEffect(() => {
     setActiveTab("project");
@@ -94,44 +103,6 @@ export default function ProjectPage() {
       setForceValidation(false);
     }
   }, [forceValidation]);
-
-  const downloadJsonFile = (data: any) => {
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "oae-project-metadata.json";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleFormSubmit = ({ formData }: any) => {
-    // Don't show modal if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
-    // Form is valid - show confirmation modal
-    setPendingDownloadData(formData);
-    setShowDownloadModal(true);
-  };
-
-  const handleDownloadConfirm = () => {
-    setShowDownloadModal(false);
-    if (pendingDownloadData) {
-      downloadJsonFile(pendingDownloadData);
-      setPendingDownloadData(null);
-    }
-  };
-
-  const handleDownloadCancel = () => {
-    setShowDownloadModal(false);
-    setPendingDownloadData(null);
-  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -183,12 +154,6 @@ export default function ProjectPage() {
     });
 
   const customValidate = (data: any, errors: any) => {
-    // Validate spatial coverage is not empty
-    const sc = data?.spatial_coverage;
-    if (!sc || !sc.geo || !sc.geo.box || sc.geo.box.trim() === "") {
-      errors?.spatial_coverage?.addError("Spatial Coverage is required");
-    }
-
     const t = data?.temporal_coverage as string | undefined;
     if (!t) errors?.temporal_coverage?.addError("Start date is required.");
     else {
@@ -367,32 +332,12 @@ export default function ProjectPage() {
         )}
       </div>
 
-      {/* Download Confirmation Modal */}
-      <Modal
+      <DownloadConfirmationModal
         opened={showDownloadModal}
         onClose={handleDownloadCancel}
-        title="Download Metadata"
-        centered
-      >
-        <Alert
-          icon={<IconAlertTriangle size={20} />}
-          title="Partial Download"
-          color="yellow"
-          variant="light"
-          mb="md"
-        >
-          This will only download project-level metadata. To download all
-          metadata, click export metadata button in the upper right corner.
-        </Alert>
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={handleDownloadCancel}>
-            Cancel
-          </Button>
-          <Button variant="filled" onClick={handleDownloadConfirm}>
-            Continue
-          </Button>
-        </Group>
-      </Modal>
+        onConfirm={handleDownloadConfirm}
+        metadataType="project"
+      />
     </div>
   );
 }
