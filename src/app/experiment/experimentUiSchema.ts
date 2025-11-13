@@ -28,6 +28,9 @@ const halfWidthStyle = {
 
 const experimentUiSchema = {
   "ui:title": "",
+  "ui:submitButtonText": "Download Experiment Metadata",
+  "ui:submitWarningMessage":
+    "This will only download experiment-level metadata. To download all metadata, click export metadata button in the upper right corner.",
   "ui:options": {
     expandable: false
   },
