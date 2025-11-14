@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import IsoIntervalWidgetVertical from "./IsoIntervalWidgetVertical";
 import SpatialCoverageMiniMap from "./SpatialCoverageMiniMap";
+import { FieldLabelSmall } from "./rjsf/FieldLabel";
 
 const ExternalProjectField: React.FC<FieldProps> = (props) => {
   const {
@@ -67,15 +68,15 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
               {/* Name field */}
               {schema.properties?.name && (
                 <Box mb="md">
-                  <Text
-                    size="sm"
-                    style={{ fontWeight: 500, marginBottom: "4px" }}
-                  >
-                    Name{" "}
-                    {schema.required?.includes("name") && (
-                      <span style={{ color: "red" }}>*</span>
-                    )}
-                  </Text>
+                  <FieldLabelSmall
+                    label="Name"
+                    description={
+                      typeof schema.properties.name === "object"
+                        ? schema.properties.name.description
+                        : undefined
+                    }
+                    required={schema.required?.includes("name")}
+                  />
                   <TextInput
                     value={formData.name || ""}
                     onChange={(e) =>
@@ -115,9 +116,15 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
         {/* Description field */}
         {schema.properties?.description && (
           <Box>
-            <Text size="sm" style={{ fontWeight: 500, marginBottom: "4px" }}>
-              Description
-            </Text>
+            <FieldLabelSmall
+              label="Description"
+              description={
+                typeof schema.properties.description === "object"
+                  ? schema.properties.description.description
+                  : undefined
+              }
+              required={schema.required?.includes("description")}
+            />
             <Textarea
               value={formData.description || ""}
               onChange={(e) =>
@@ -136,6 +143,12 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
             value={formData.related_links || []}
             onChange={(links) => handleFieldChange("related_links", links)}
             disabled={disabled || readonly}
+            description={
+              typeof schema.properties.related_links === "object"
+                ? schema.properties.related_links.description
+                : undefined
+            }
+            required={schema.required?.includes("related_links")}
           />
         )}
       </Stack>
@@ -148,12 +161,16 @@ interface RelatedLinksFieldProps {
   value: string[];
   onChange: (links: string[]) => void;
   disabled?: boolean;
+  description?: string;
+  required?: boolean;
 }
 
 const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
   value,
   onChange,
-  disabled
+  disabled,
+  description,
+  required = false
 }) => {
   const [search, setSearch] = React.useState("");
 
@@ -180,9 +197,11 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
 
   return (
     <Box>
-      <Text size="sm" style={{ fontWeight: 500, marginBottom: "4px" }}>
-        Related Links
-      </Text>
+      <FieldLabelSmall
+        label="Related Links"
+        description={description}
+        required={required}
+      />
       <PillsInput>
         <Pill.Group>
           {value.map((link, index) => (

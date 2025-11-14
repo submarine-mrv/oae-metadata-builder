@@ -33,7 +33,6 @@ import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
-import CustomObjectFieldTemplate from "@/components/rjsf/ObjectFieldTemplate";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 import experimentUiSchema from "./experimentUiSchema";
@@ -332,7 +331,6 @@ export default function ExperimentPage() {
                 ArrayFieldItemButtonsTemplate:
                   CustomArrayFieldItemButtonsTemplate,
                 TitleFieldTemplate: CustomTitleFieldTemplate,
-                ObjectFieldTemplate: CustomObjectFieldTemplate,
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
