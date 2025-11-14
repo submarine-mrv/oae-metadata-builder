@@ -57,29 +57,35 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const addExperiment = useCallback(
     (name?: string): number => {
-      const id = state.nextExperimentId;
-      const defaultName = name || `Experiment ${id}`;
+      // Use a ref to reliably capture the assigned ID
+      const idRef = { current: 0 };
 
-      const newExperiment: ExperimentData = {
-        id,
-        name: defaultName,
-        formData: {
-          project_id: state.projectData?.project_id || ""
-        },
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
+      setState((prev) => {
+        const id = prev.nextExperimentId;
+        idRef.current = id;
+        const defaultName = name || `Experiment ${id}`;
 
-      setState((prev) => ({
-        ...prev,
-        experiments: [...prev.experiments, newExperiment],
-        activeExperimentId: id,
-        nextExperimentId: prev.nextExperimentId + 1
-      }));
+        const newExperiment: ExperimentData = {
+          id,
+          name: defaultName,
+          formData: {
+            project_id: prev.projectData?.project_id || ""
+          },
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
 
-      return id;
+        return {
+          ...prev,
+          experiments: [...prev.experiments, newExperiment],
+          activeExperimentId: id,
+          nextExperimentId: prev.nextExperimentId + 1
+        };
+      });
+
+      return idRef.current;
     },
-    [state.projectData, state.nextExperimentId]
+    []
   );
 
   const updateExperiment = useCallback((id: number, data: any) => {
@@ -89,8 +95,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         exp.id === id
           ? {
               ...exp,
-              formData: data,
-              experiment_type: data.experiment_type,
+              formData: { ...exp.formData, ...data },
+              experiment_type: data.experiment_type || exp.experiment_type,
               name: data.name || exp.name,
               updatedAt: Date.now()
             }

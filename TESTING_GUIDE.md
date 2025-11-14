@@ -2,10 +2,6 @@
 
 ## Quick Start
 
-The test suite has been configured to work around PostCSS/Tailwind CSS issues during testing.
-
-### Running Tests
-
 ```bash
 # Run all tests
 npm test
@@ -17,15 +13,65 @@ npm run test:ui
 npm run test:coverage
 
 # Run specific test file
-npm test -- src/utils/__tests__/validation.test.ts
+npm test -- src/contexts/__tests__/AppStateContext.test.tsx
 
-# Run in watch mode
+# Run in watch mode (for development)
 npm test -- --watch
 ```
 
-## PostCSS Configuration Fix
+## Current Test Suite
 
-The `postcss.config.mjs` has been updated to conditionally skip the Tailwind CSS plugin during testing:
+**Status**: ✅ 77 passing tests, 21 skipped (98 total)
+
+### Passing Tests (77 tests)
+
+1. **AppStateContext** (`src/contexts/__tests__/AppStateContext.test.tsx`) - 42 tests
+   - Project data management
+   - Experiment CRUD operations
+   - State synchronization
+   - Auto-incrementing IDs
+   - Completion calculations
+   - Import/export
+
+2. **Validation** (`src/utils/__tests__/validation.test.ts`) - 14 tests
+   - Required field validation
+   - Conditional requirements
+   - Error message generation
+   - Form submission validation
+
+3. **Schema Views** (`src/utils/__tests__/schemaViews.test.ts`) - 21 tests
+   - Schema transformations
+   - Conditional field visibility
+   - Protocol metadata extraction
+   - Sea names decoration
+
+### Skipped Tests (21 tests)
+
+4. **Bundle Schema** (`scripts/__tests__/bundle-schema.test.mjs`) - 21 skipped
+   - Build-time integration tests
+   - Require schema files and git context
+   - Documented for future integration test setup
+
+## Test Environment
+
+### Configuration Files
+
+**vitest.config.ts**
+- jsdom environment for React testing
+- Path aliases configured (`@/` → `src/`)
+- Coverage thresholds: 70% lines, 70% functions, 60% branches
+- Excludes RJSF custom widgets and layout files
+
+**src/test/setup.ts**
+- Global test setup with automatic cleanup
+- Mocks for Next.js router
+- Mocks for window APIs (URL, scrollTo, matchMedia)
+- Mock Blob constructor for downloads
+- Console error suppression for known warnings
+
+### PostCSS Configuration
+
+The `postcss.config.mjs` conditionally skips Tailwind CSS during testing:
 
 ```javascript
 const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
@@ -35,46 +81,66 @@ const config = {
 };
 ```
 
-The `vitest.config.ts` sets `VITEST=true` in the test environment to trigger this.
+## Writing New Tests
 
-## If Tests Still Fail to Start
+### For State Management
 
-If you get PostCSS errors when running tests, try:
+```typescript
+import { describe, it, expect } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { AppStateProvider, useAppState } from '../AppStateContext';
 
-1. **Set environment variable manually:**
-   ```bash
-   VITEST=true npm test
-   ```
+describe('MyFeature', () => {
+  it('should update state correctly', () => {
+    const { result } = renderHook(() => useAppState(), {
+      wrapper: AppStateProvider
+    });
 
-2. **Alternative: Temporarily disable CSS processing in vitest.config.ts:**
-   ```typescript
-   test: {
-     css: false,  // Change from true to false
-     // ... rest of config
-   }
-   ```
+    act(() => {
+      result.current.updateProjectData({ project_id: 'test' });
+    });
 
-3. **Check that postcss.config.mjs has the conditional logic:**
-   The file should check for `process.env.VITEST` and return empty plugins array.
+    expect(result.current.state.projectData.project_id).toBe('test');
+  });
+});
+```
 
-## Expected Test Results
+### For Utility Functions
 
-After fixing the PostCSS issue, you should see tests run for:
+```typescript
+import { describe, it, expect } from 'vitest';
+import { validateProject } from '../validation';
 
-1. ✅ Schema Views (src/utils/__tests__/schemaViews.test.ts)
-2. ✅ Validation (src/utils/__tests__/validation.test.ts)
-3. ✅ Experiment Page (src/app/experiment/__tests__/page.test.tsx)
-4. ✅ Project Page (src/app/project/__tests__/page.test.tsx)
-5. ✅ Bundle Schema (scripts/__tests__/bundle-schema.test.mjs)
-6. ✅ Export/Import (src/utils/__tests__/exportImport.test.ts)
-7. ✅ AppStateContext (src/contexts/__tests__/AppStateContext.test.tsx)
-8. ✅ Navigation (src/components/__tests__/Navigation.test.tsx)
+describe('MyUtility', () => {
+  it('should validate correctly', () => {
+    const result = validateProject({ project_id: 'test' });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('project_description is required');
+  });
+});
+```
+
+### For Schema Transformations
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { getProjectSchema } from '../schemaViews';
+import schema from '../../schemas/bundle.json';
+
+describe('MyTransformation', () => {
+  it('should transform schema correctly', () => {
+    const projectSchema = getProjectSchema(schema);
+    expect(projectSchema.$defs).toBeDefined();
+    expect(projectSchema.properties.project_id).toBeDefined();
+  });
+});
+```
 
 ## Common Issues and Solutions
 
 ### Issue: "Cannot find module '@/...'"
 
-**Solution:** The path alias is configured in `vitest.config.ts`. Ensure it's set:
+**Solution**: The path alias is configured in `vitest.config.ts`:
 ```typescript
 resolve: {
   alias: {
@@ -83,113 +149,30 @@ resolve: {
 }
 ```
 
-### Issue: Tests failing with "useAppState must be used within AppStateProvider"
+### Issue: PostCSS errors during tests
 
-**Solution:** This is expected for some tests that intentionally test error conditions. The error is suppressed in console output via `src/test/setup.ts`.
+**Solution**:
+1. Ensure `VITEST=true` is set in environment
+2. Check `postcss.config.mjs` has conditional logic
+3. Alternatively, set `css: false` in vitest.config.ts
 
 ### Issue: Mock-related errors
 
-**Solution:** Some tests require mocks for:
-- Next.js router (mocked in setup.ts)
-- RJSF components (mocked in individual test files)
-- Window APIs (mocked in setup.ts)
-
-Ensure `src/test/setup.ts` is being loaded.
-
-### Issue: Component tests failing with React errors
-
-**Solution:** Ensure these are installed:
-```bash
-npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
-```
-
-## Test Coverage
-
-Expected coverage (configured thresholds):
-- Lines: 70%
-- Functions: 70%
-- Branches: 60%
-- Statements: 70%
-
-To see detailed coverage:
-```bash
-npm run test:coverage
-```
-
-Coverage report will be in `coverage/` directory. Open `coverage/index.html` in a browser.
-
-## Excluded from Coverage
-
-These files are intentionally excluded from coverage:
-- `src/components/rjsf/**` - Custom RJSF widgets (mostly presentational)
-- `src/app/**/layout.tsx` - Next.js layout files
-- `src/app/**/loading.tsx` - Next.js loading states
-- Test files themselves
-
-## Writing New Tests
-
-### For Utility Functions
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { myFunction } from '../myModule';
-
-describe('MyModule', () => {
-  it('should do something', () => {
-    const result = myFunction('input');
-    expect(result).toBe('expected');
-  });
-});
-```
-
-### For React Components
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
-import MyComponent from '../MyComponent';
-
-describe('MyComponent', () => {
-  it('should render', () => {
-    render(<MyComponent />);
-    expect(screen.getByText('Hello')).toBeInTheDocument();
-  });
-
-  it('should handle click', async () => {
-    const user = userEvent.setup();
-    render(<MyComponent />);
-    await user.click(screen.getByRole('button'));
-    // Assert expected behavior
-  });
-});
-```
-
-### For Components Using AppStateContext
-
-```typescript
-import { AppStateProvider } from '@/contexts/AppStateContext';
-
-it('should work with context', () => {
-  render(
-    <AppStateProvider>
-      <MyComponent />
-    </AppStateProvider>
-  );
-  // Test component
-});
-```
+**Solution**: Ensure `src/test/setup.ts` is being loaded. It provides mocks for:
+- Next.js router (useRouter, usePathname, useSearchParams)
+- Window APIs (URL.createObjectURL, scrollTo, matchMedia)
+- Blob constructor
 
 ## Debugging Tests
 
 ### Run single test file
 ```bash
-npm test -- src/utils/__tests__/validation.test.ts
+npm test -- src/contexts/__tests__/AppStateContext.test.tsx
 ```
 
-### Run single test
+### Run single test by name
 ```bash
-npm test -- -t "should validate valid project data"
+npm test -- -t "should add experiment with auto-incrementing ID"
 ```
 
 ### Enable verbose output
@@ -202,35 +185,64 @@ npm test -- --reporter=verbose
 npm run test:ui
 ```
 
-This opens a browser UI where you can:
-- See test results in real-time
-- Filter tests
-- View detailed error messages
-- Debug individual tests
+The test UI provides:
+- Real-time test results
+- Test filtering
+- Detailed error messages
+- Individual test debugging
+
+## Test Coverage
+
+View detailed coverage:
+```bash
+npm run test:coverage
+```
+
+Coverage report will be in `coverage/` directory. Open `coverage/index.html` in browser.
+
+**Excluded from coverage**:
+- `src/components/rjsf/**` - RJSF custom widgets
+- `src/app/**/layout.tsx` - Next.js layouts
+- `src/app/**/loading.tsx` - Next.js loading states
+- Test files
 
 ## CI/CD Integration
 
-To run tests in CI:
+Tests run automatically on every PR via GitHub Actions (`.github/workflows/test.yml`).
 
+**Jobs**:
+- **Test**: Runs all tests, blocks merge if tests fail
+- **Build**: Verifies production build
+
+**To run in CI**:
 ```yaml
-# .github/workflows/test.yml
 - name: Run tests
   run: npm test -- --run
 
-- name: Upload coverage
-  run: npm run test:coverage -- --run
+- name: Run build
+  run: npm run build
 ```
 
 The `--run` flag ensures tests exit after running (no watch mode).
 
+## Testing Philosophy
+
+See [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for detailed information about:
+- What we test and why
+- What we don't test (yet)
+- When to add new tests
+- Test quality standards
+- Future improvements
+
 ## Next Steps
 
-1. Run `npm test` to verify all tests pass
-2. Run `npm run test:coverage` to check coverage
-3. Fix any failing tests
-4. Add more tests as needed for new features
-5. Keep tests up to date as code changes
+1. ✅ Run `npm test` to verify all tests pass
+2. ✅ Run `npm run test:coverage` to check coverage
+3. ✅ Review [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for testing philosophy
+4. ✅ Add tests for new features following the patterns above
+5. ✅ Keep tests up to date as code changes
 
-## Questions?
+---
 
-See `TEST_SUITE_SUMMARY.md` for detailed information about what each test file covers.
+**Last Updated**: 2025-11-14
+**Test Suite Version**: v1.0

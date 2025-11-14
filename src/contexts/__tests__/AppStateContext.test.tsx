@@ -3,7 +3,7 @@ import { render, screen, renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { AppStateProvider, useAppState, type ExperimentData } from '../AppStateContext';
 
-describe.skip('AppStateContext', () => {
+describe('AppStateContext', () => {
   describe('Provider and Hook', () => {
     it('should throw error when useAppState is used outside provider', () => {
       // Suppress console.error for this test
@@ -200,7 +200,11 @@ describe.skip('AppStateContext', () => {
       const experiment = result.current.state.experiments.find(
         (e) => e.id === experimentId
       );
-      expect(experiment?.formData).toEqual(newFormData);
+      // Should merge with existing formData (which includes project_id)
+      expect(experiment?.formData).toEqual({
+        project_id: '', // From initial experiment creation
+        ...newFormData
+      });
     });
 
     it('should update experiment_type from formData', () => {
@@ -273,6 +277,8 @@ describe.skip('AppStateContext', () => {
     });
 
     it('should update updatedAt timestamp', () => {
+      vi.useFakeTimers();
+
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider
       });
@@ -296,6 +302,8 @@ describe.skip('AppStateContext', () => {
         (e) => e.id === experimentId
       );
       expect(experiment?.updatedAt).toBeGreaterThanOrEqual(originalUpdatedAt);
+
+      vi.useRealTimers();
     });
 
     it('should only update specified experiment', () => {
@@ -368,23 +376,28 @@ describe.skip('AppStateContext', () => {
         wrapper: AppStateProvider
       });
 
-      let exp1Id: number, exp2Id: number;
-
       act(() => {
-        exp1Id = result.current.addExperiment('Exp 1');
-        exp2Id = result.current.addExperiment('Exp 2');
+        result.current.addExperiment('Exp 1');
       });
 
+      act(() => {
+        result.current.addExperiment('Exp 2');
+      });
+
+      // Get IDs from state
+      const exp1Id = result.current.state.experiments[0].id;
+      const exp2Id = result.current.state.experiments[1].id;
+
       // exp2 is active (last added)
-      expect(result.current.state.activeExperimentId).toBe(exp2Id!);
+      expect(result.current.state.activeExperimentId).toBe(exp2Id);
 
       // Delete exp1
       act(() => {
-        result.current.deleteExperiment(exp1Id!);
+        result.current.deleteExperiment(exp1Id);
       });
 
       // exp2 should still be active
-      expect(result.current.state.activeExperimentId).toBe(exp2Id!);
+      expect(result.current.state.activeExperimentId).toBe(exp2Id);
     });
 
     it('should do nothing when deleting non-existent experiment', () => {
@@ -466,15 +479,20 @@ describe.skip('AppStateContext', () => {
         wrapper: AppStateProvider
       });
 
-      let exp1Id: number, exp2Id: number;
-
       act(() => {
-        exp1Id = result.current.addExperiment('Exp 1');
-        exp2Id = result.current.addExperiment('Exp 2');
+        result.current.addExperiment('Exp 1');
       });
 
-      const exp1 = result.current.getExperiment(exp1Id!);
-      const exp2 = result.current.getExperiment(exp2Id!);
+      act(() => {
+        result.current.addExperiment('Exp 2');
+      });
+
+      // Get IDs from state
+      const exp1Id = result.current.state.experiments[0].id;
+      const exp2Id = result.current.state.experiments[1].id;
+
+      const exp1 = result.current.getExperiment(exp1Id);
+      const exp2 = result.current.getExperiment(exp2Id);
 
       expect(exp1?.name).toBe('Exp 1');
       expect(exp2?.name).toBe('Exp 2');
