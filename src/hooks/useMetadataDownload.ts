@@ -14,27 +14,6 @@ export interface UseMetadataDownloadReturn {
   handleDownloadCancel: () => void;
 }
 
-// Helper function to clean empty spatial_coverage objects
-function cleanEmptySpatialCoverage(data: any): any {
-  if (!data || typeof data !== "object") return data;
-
-  const cleaned = { ...data };
-
-  // Check if spatial_coverage exists and is an empty object or has no valid box
-  if (cleaned.spatial_coverage) {
-    const sc = cleaned.spatial_coverage;
-    const hasNoBox = !sc.geo || !sc.geo.box || sc.geo.box.trim() === "";
-    const isEmpty = Object.keys(sc).length === 0;
-
-    if (isEmpty || hasNoBox) {
-      // Remove the spatial_coverage field entirely
-      delete cleaned.spatial_coverage;
-    }
-  }
-
-  return cleaned;
-}
-
 export function useMetadataDownload({
   filename,
   skipDownload = false,
@@ -44,10 +23,7 @@ export function useMetadataDownload({
   const [pendingDownloadData, setPendingDownloadData] = useState<any>(null);
 
   const downloadJsonFile = (data: any) => {
-    // Clean empty spatial_coverage before download
-    const cleanedData = cleanEmptySpatialCoverage(data);
-
-    const jsonString = JSON.stringify(cleanedData, null, 2);
+    const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

@@ -236,7 +236,8 @@ export default function ProjectPage() {
               omitExtraData={false}
               liveOmit={false}
               experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" }
+                arrayMinItems: { populate: "all" },
+                emptyObjectFields: "skipEmptyDefaults"
               }}
               widgets={{
                 IsoIntervalWidget,

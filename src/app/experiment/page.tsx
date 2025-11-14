@@ -316,7 +316,8 @@ export default function ExperimentPage() {
               omitExtraData={false}
               liveOmit={false}
               experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" }
+                arrayMinItems: { populate: "all" },
+                emptyObjectFields: "skipEmptyDefaults"
               }}
               widgets={{
                 CustomSelectWidget: CustomSelectWidget,
