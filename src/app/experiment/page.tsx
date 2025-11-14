@@ -422,6 +422,7 @@ export default function ExperimentPage() {
         onClose={handleDownloadCancel}
         onConfirm={handleDownloadConfirm}
         metadataType="experiment"
+        title="Download Experiment Metadata"
       />
     </>
   );

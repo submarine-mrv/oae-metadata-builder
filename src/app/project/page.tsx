@@ -340,6 +340,7 @@ export default function ProjectPage() {
         onClose={handleDownloadCancel}
         onConfirm={handleDownloadConfirm}
         metadataType="project"
+        title="Download Project Metadata"
       />
     </div>
   );

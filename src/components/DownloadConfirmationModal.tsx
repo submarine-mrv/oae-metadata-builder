@@ -7,19 +7,21 @@ interface DownloadConfirmationModalProps {
   onClose: () => void;
   onConfirm: () => void;
   metadataType: "project" | "experiment" | "dataset";
+  title: string;
 }
 
 export default function DownloadConfirmationModal({
   opened,
   onClose,
   onConfirm,
-  metadataType
+  metadataType,
+  title
 }: DownloadConfirmationModalProps) {
   return (
     <Modal
       opened={opened}
       onClose={onClose}
-      title="Download Metadata"
+      title={title}
       centered
     >
       <Alert
@@ -30,7 +32,7 @@ export default function DownloadConfirmationModal({
         mb="md"
       >
         This will only download {metadataType}-level metadata. To download all
-        metadata, click export metadata button in the upper right corner.
+        metadata, return to the main page and click the &quot;Export Metadata&quot; button in the upper right corner.
       </Alert>
       <Group justify="flex-end" gap="sm">
         <Button variant="default" onClick={onClose}>
