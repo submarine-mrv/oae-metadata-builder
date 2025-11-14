@@ -20,6 +20,7 @@ import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import DosingLocationWidget from "@/components/DosingLocationWidget";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
@@ -32,6 +33,7 @@ import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
+import CustomObjectFieldTemplate from "@/components/rjsf/ObjectFieldTemplate";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 import experimentUiSchema from "./experimentUiSchema";
@@ -326,9 +328,11 @@ export default function ExperimentPage() {
               templates={{
                 DescriptionFieldTemplate: NoDescription,
                 ArrayFieldTemplate: CustomArrayFieldTemplate,
+                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
                 ArrayFieldItemButtonsTemplate:
                   CustomArrayFieldItemButtonsTemplate,
                 TitleFieldTemplate: CustomTitleFieldTemplate,
+                ObjectFieldTemplate: CustomObjectFieldTemplate,
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
