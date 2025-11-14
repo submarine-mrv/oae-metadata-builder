@@ -23,6 +23,7 @@ import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
@@ -245,6 +246,7 @@ export default function ProjectPage() {
               templates={{
                 DescriptionFieldTemplate: NoDescription,
                 ArrayFieldTemplate: CustomArrayFieldTemplate,
+                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
                 ArrayFieldItemButtonsTemplate:
                   CustomArrayFieldItemButtonsTemplate,
                 TitleFieldTemplate: CustomTitleFieldTemplate,

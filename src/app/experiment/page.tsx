@@ -20,6 +20,7 @@ import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import DosingLocationWidget from "@/components/DosingLocationWidget";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
@@ -326,6 +327,7 @@ export default function ExperimentPage() {
               templates={{
                 DescriptionFieldTemplate: NoDescription,
                 ArrayFieldTemplate: CustomArrayFieldTemplate,
+                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
                 ArrayFieldItemButtonsTemplate:
                   CustomArrayFieldItemButtonsTemplate,
                 TitleFieldTemplate: CustomTitleFieldTemplate,
