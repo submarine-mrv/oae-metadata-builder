@@ -34,7 +34,9 @@ import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import Navigation from "@/components/Navigation";
+import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
+import { useMetadataDownload } from "@/hooks/useMetadataDownload";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -45,11 +47,20 @@ import {
   getTracerSchema,
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
+import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
+
+// Create a wrapper for the submit button with experiment-specific configuration
+const ExperimentSubmitButton = (props: SubmitButtonProps) => (
+  <CustomSubmitButton
+    {...props}
+    buttonText="Download Experiment Metadata"
+  />
+);
 
 export default function ExperimentPage() {
   const router = useRouter();
@@ -67,6 +78,17 @@ export default function ExperimentPage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const activeExperimentId = state.activeExperimentId;
+
+  const {
+    showDownloadModal,
+    handleFormSubmit,
+    handleDownloadConfirm,
+    handleDownloadCancel
+  } = useMetadataDownload({
+    filename: `experiment-${activeExperimentId || "metadata"}.json`,
+    skipDownload,
+    onSkipDownloadChange: setSkipDownload
+  });
   const experiment = activeExperimentId
     ? state.experiments.find((exp) => exp.id === activeExperimentId)
     : null;
@@ -191,25 +213,6 @@ export default function ExperimentPage() {
     [isInitialLoad, formData, activeExperimentId, updateExperiment]
   );
 
-  const downloadJsonFile = (data: any) => {
-    // Don't download if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `experiment-${activeExperimentId || "metadata"}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const transformErrors = (errors: any[]) =>
     errors.map((e) => {
       if (
@@ -307,14 +310,15 @@ export default function ExperimentPage() {
               uiSchema={activeUiSchema}
               formData={formData}
               onChange={handleFormChange}
-              onSubmit={({ formData }) => downloadJsonFile(formData)}
+              onSubmit={handleFormSubmit}
               validator={validator}
               customValidate={customValidate}
               transformErrors={transformErrors}
               omitExtraData={false}
               liveOmit={false}
               experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" }
+                arrayMinItems: { populate: "all" },
+                emptyObjectFields: "skipEmptyDefaults"
               }}
               widgets={{
                 CustomSelectWidget: CustomSelectWidget,
@@ -334,7 +338,7 @@ export default function ExperimentPage() {
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
-                  SubmitButton: CustomSubmitButton
+                  SubmitButton: ExperimentSubmitButton
                 }
               }}
               fields={{
@@ -412,6 +416,14 @@ export default function ExperimentPage() {
           </Box>
         )}
       </div>
+
+      <DownloadConfirmationModal
+        opened={showDownloadModal}
+        onClose={handleDownloadCancel}
+        onConfirm={handleDownloadConfirm}
+        metadataType="experiment"
+        title="Download Experiment Metadata"
+      />
     </>
   );
 }

@@ -32,13 +32,24 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
+import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
+import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
+
+// Create a wrapper for the submit button with project-specific configuration
+const ProjectSubmitButton = (props: SubmitButtonProps) => (
+  <CustomSubmitButton
+    {...props}
+    buttonText="Download Project Metadata"
+  />
+);
 
 export default function ProjectPage() {
   const { state, updateProjectData, setActiveTab, setTriggerValidation } =
@@ -49,6 +60,17 @@ export default function ProjectPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
+
+  const {
+    showDownloadModal,
+    handleFormSubmit,
+    handleDownloadConfirm,
+    handleDownloadCancel
+  } = useMetadataDownload({
+    filename: "oae-project-metadata.json",
+    skipDownload,
+    onSkipDownloadChange: setSkipDownload
+  });
 
   useEffect(() => {
     setActiveTab("project");
@@ -82,25 +104,6 @@ export default function ProjectPage() {
       setForceValidation(false);
     }
   }, [forceValidation]);
-
-  const downloadJsonFile = (data: any) => {
-    // Don't download if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "oae-project-metadata.json";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -227,14 +230,15 @@ export default function ProjectPage() {
               uiSchema={uiSchema}
               formData={state.projectData}
               onChange={(e) => updateProjectData(e.formData)}
-              onSubmit={({ formData }) => downloadJsonFile(formData)}
+              onSubmit={handleFormSubmit}
               validator={validator}
               customValidate={customValidate}
               transformErrors={transformErrors}
               omitExtraData={false}
               liveOmit={false}
               experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" }
+                arrayMinItems: { populate: "all" },
+                emptyObjectFields: "skipEmptyDefaults"
               }}
               widgets={{
                 IsoIntervalWidget,
@@ -253,7 +257,7 @@ export default function ProjectPage() {
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
-                  SubmitButton: CustomSubmitButton
+                  SubmitButton: ProjectSubmitButton
                 }
               }}
               fields={{
@@ -330,6 +334,14 @@ export default function ProjectPage() {
           </Box>
         )}
       </div>
+
+      <DownloadConfirmationModal
+        opened={showDownloadModal}
+        onClose={handleDownloadCancel}
+        onConfirm={handleDownloadConfirm}
+        metadataType="project"
+        title="Download Project Metadata"
+      />
     </div>
   );
 }
