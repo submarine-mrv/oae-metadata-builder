@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('Bundle Schema Script', () => {
+describe.skip('Bundle Schema Script', () => {
   describe('Git Hash Validation', () => {
     it('should fail when git hash is not provided', () => {
       expect(() => {

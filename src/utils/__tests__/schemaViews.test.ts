@@ -94,7 +94,8 @@ describe('Schema Views', () => {
       const schema = getProjectSchema();
 
       expect(schema.properties.experiments).toBeDefined();
-      expect(schema.properties.experiments.type).toBe('array');
+      // Schema now allows null values, so type is ['array', 'null']
+      expect(schema.properties.experiments.type).toEqual(['array', 'null']);
     });
   });
 
@@ -194,7 +195,8 @@ describe('Schema Views', () => {
 
       // This test ensures we're looking in the right place after Container became root
       expect(projectSchema.properties.sea_names).toBeDefined();
-      expect(projectSchema.properties.sea_names.type).toBe('array');
+      // Schema now allows null values, so type is ['array', 'null']
+      expect(projectSchema.properties.sea_names.type).toEqual(['array', 'null']);
 
       // Should have decorated enum values from sea_names_labeled.json
       expect(projectSchema.properties.sea_names.items).toBeDefined();
