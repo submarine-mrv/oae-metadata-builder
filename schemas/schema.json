@@ -222,7 +222,6 @@
             "required": [
                 "description",
                 "spatial_coverage",
-                "vertical_coverage",
                 "experiment_id",
                 "experiment_type",
                 "investigators",
@@ -586,7 +585,6 @@
                 "dosing_description",
                 "description",
                 "spatial_coverage",
-                "vertical_coverage",
                 "experiment_id",
                 "experiment_type",
                 "investigators",
@@ -839,7 +837,6 @@
                 "dosing_description",
                 "description",
                 "spatial_coverage",
-                "vertical_coverage",
                 "experiment_id",
                 "experiment_type",
                 "investigators",
@@ -1110,6 +1107,7 @@
                     ]
                 },
                 "funding": {
+                    "description": "Include the name of the funder, funder country, project title, project ID, and the project start and end dates. If there is no funding source (e.g., in the case of commercial projects), leave this field empty.",
                     "items": {
                         "$ref": "#/$defs/MonetaryGrant"
                     },
@@ -1524,7 +1522,6 @@
                 "dosing_description",
                 "description",
                 "spatial_coverage",
-                "vertical_coverage",
                 "experiment_id",
                 "experiment_type",
                 "investigators",

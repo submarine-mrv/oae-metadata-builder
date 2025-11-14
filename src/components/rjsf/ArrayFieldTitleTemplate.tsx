@@ -70,7 +70,7 @@ export default function CustomArrayFieldTitleTemplate<
         <DescriptionModal
           opened={modalOpen}
           onClose={() => setModalOpen(false)}
-          title={title}
+          title={title || ""}
           description={description}
         />
       )}

@@ -9,8 +9,7 @@ import {
   ObjectFieldTemplatePropertyType,
   ObjectFieldTemplateProps,
   RJSFSchema,
-  StrictRJSFSchema,
-  titleId
+  StrictRJSFSchema
 } from "@rjsf/utils";
 import FieldLabel from "./FieldLabel";
 
@@ -59,13 +58,19 @@ export default function CustomObjectFieldTemplate<
   const hasNestedStyle = uiOptions?.style;
   const useModal = uiOptions?.descriptionModal === true;
 
+  // Get description as string (schema.description is string, description prop can be ReactElement)
+  const descriptionText = typeof description === "string"
+    ? description
+    : schema?.description;
+
   return (
     <Container id={idSchema.$id} p={0}>
       {/* Render title OUTSIDE the styled box */}
       {title && hasNestedStyle && (
         <FieldLabel
           label={title}
-          description={schema?.description || description}
+          description={descriptionText}
+          required={required}
           useModal={useModal}
           order={4}
           fw={500}
@@ -78,7 +83,8 @@ export default function CustomObjectFieldTemplate<
         {title && !hasNestedStyle && (
           <FieldLabel
             label={title}
-            description={schema?.description || description}
+            description={descriptionText}
+            required={required}
             useModal={useModal}
             order={4}
             fw={500}

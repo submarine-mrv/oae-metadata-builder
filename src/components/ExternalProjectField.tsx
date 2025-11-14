@@ -43,7 +43,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     onFocus: () => {}, // No-op function for focus events
     disabled,
     readonly,
-    required: false, // Override required for ExternalProject fields - they should be optional
+    required: schema.required?.includes(fieldName) || false, // Check if field is required in schema
     schema: fieldSchema,
     uiSchema: uiSchema?.[fieldName] || {},
     idSchema: { ...idSchema, $id: `${idSchema.$id}_${fieldName}` },
@@ -71,7 +71,10 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                     size="sm"
                     style={{ fontWeight: 500, marginBottom: "4px" }}
                   >
-                    Name
+                    Name{" "}
+                    {schema.required?.includes("name") && (
+                      <span style={{ color: "red" }}>*</span>
+                    )}
                   </Text>
                   <TextInput
                     value={formData.name || ""}
@@ -86,20 +89,12 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
 
               {/* Temporal coverage */}
               {schema.properties?.temporal_coverage && (
-                <Box>
-                  <Text
-                    size="sm"
-                    style={{ fontWeight: 500, marginBottom: "8px" }}
-                  >
-                    Temporal Coverage
-                  </Text>
-                  <IsoIntervalWidgetVertical
-                    {...createWidgetProps(
-                      "temporal_coverage",
-                      schema.properties.temporal_coverage
-                    )}
-                  />
-                </Box>
+                <IsoIntervalWidgetVertical
+                  {...createWidgetProps(
+                    "temporal_coverage",
+                    schema.properties.temporal_coverage
+                  )}
+                />
               )}
             </Grid.Col>
 
