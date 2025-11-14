@@ -51,8 +51,8 @@ vi.mock('@/utils/schemaViews', () => ({
 }));
 
 // Mock RJSF components
-vi.mock('@rjsf/mantine', () => ({
-  default: ({ formData, onChange, onSubmit }: any) => {
+vi.mock('@rjsf/mantine', () => {
+  const MockForm = ({ formData, onChange, onSubmit }: any) => {
     // Simulate RJSF behavior: calls onChange on mount
     React.useEffect(() => {
       onChange?.({ formData: formData || {} });
@@ -70,8 +70,12 @@ vi.mock('@rjsf/mantine', () => ({
         <button type="submit">Submit</button>
       </form>
     );
-  }
-}));
+  };
+
+  return {
+    default: MockForm
+  };
+});
 
 // Mock custom components
 vi.mock('@/components/Navigation', () => ({
