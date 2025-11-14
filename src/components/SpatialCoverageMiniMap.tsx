@@ -26,7 +26,7 @@ function readBox(formData: any): string {
 // write nested object from "W S E N" string
 function writeBox(s: string): any {
   const trimmed = s.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return undefined; // Return undefined instead of null to avoid empty objects
   return { geo: { box: trimmed } };
 }
 
