@@ -12,10 +12,9 @@
  * - Maintains proper focus, blur, and change event handling
  */
 
-import React, { useCallback, FocusEvent, useState } from 'react';
-import { TextInput, NumberInput, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
-import DescriptionModal from './DescriptionModal';
+import React, { useCallback, FocusEvent } from 'react';
+import { TextInput, NumberInput, Box } from '@mantine/core';
+import { FieldDescriptionIcon } from './FieldDescriptionIcon';
 import {
   FormContextType,
   RJSFSchema,
@@ -48,7 +47,6 @@ export default function BaseInputWidget<
 
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
-  const [modalOpened, setModalOpened] = useState(false);
 
   // Simple check: use NumberInput for number/integer schema types
   const isNumberType = schema.type === 'number' || schema.type === 'integer';
@@ -128,67 +126,15 @@ export default function BaseInputWidget<
   );
 
   return (
-    <>
-      <Box style={{ position: 'relative' }}>
-        {input}
-        {description && !hideLabel && (
-          <Box style={{
-            position: 'absolute',
-            top: '2px',
-            left: '0',
-            display: 'flex',
-            alignItems: 'center',
-            pointerEvents: 'none'
-          }}>
-            <Text
-              size="sm"
-              fw={500}
-              style={{
-                visibility: 'hidden',
-                marginRight: '4px'
-              }}
-            >
-              {label}{required && ' *'}
-            </Text>
-            <Box style={{ pointerEvents: 'auto' }}>
-              {useModal ? (
-                <ActionIcon
-                  variant="transparent"
-                  size="xs"
-                  color="gray"
-                  onClick={() => setModalOpened(true)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <IconInfoCircle size={14} />
-                </ActionIcon>
-              ) : (
-                <Tooltip
-                  label={description}
-                  position="top"
-                  withArrow
-                  multiline
-                  maw={400}
-                  style={{ wordWrap: "break-word" }}
-                >
-                  <ActionIcon variant="transparent" size="xs" color="gray">
-                    <IconInfoCircle size={14} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
-            </Box>
-          </Box>
-        )}
-      </Box>
-
-      {useModal && description && (
-        <DescriptionModal
-          opened={modalOpened}
-          onClose={() => setModalOpened(false)}
-          title={label}
-          description={description}
-        />
-      )}
-
-    </>
+    <Box style={{ position: 'relative' }}>
+      {input}
+      <FieldDescriptionIcon
+        label={label}
+        required={required}
+        description={description}
+        hideLabel={hideLabel}
+        useModal={useModal}
+      />
+    </Box>
   );
 }
