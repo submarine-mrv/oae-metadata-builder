@@ -3,6 +3,8 @@
  * Used for cleaning form data when switching between types
  */
 
+import { ExperimentType, ExperimentFormData } from "@/types/forms";
+
 // Common fields present in all experiment types
 const COMMON_FIELDS = [
   "experiment_id",
@@ -53,7 +55,7 @@ const TRACER_FIELDS = [
 /**
  * Returns the set of valid fields for a given experiment type
  */
-export function getValidFieldsForType(experimentType: string): Set<string> {
+export function getValidFieldsForType(experimentType: ExperimentType): Set<string> {
   const validFields = new Set(COMMON_FIELDS);
 
   switch (experimentType) {
@@ -83,18 +85,18 @@ export function getValidFieldsForType(experimentType: string): Set<string> {
  * Removes fields that don't belong to the new type
  */
 export function cleanFormDataForType(
-  formData: any,
-  experimentType: string
-): any {
+  formData: ExperimentFormData,
+  experimentType: ExperimentType
+): ExperimentFormData {
   const validFields = getValidFieldsForType(experimentType);
-  const cleanedData: any = {};
+  const cleanedData: Record<string, unknown> = {};
 
   // Keep only fields that are valid for this experiment type
   Object.keys(formData).forEach((key) => {
     if (validFields.has(key)) {
-      cleanedData[key] = formData[key];
+      cleanedData[key] = (formData as Record<string, unknown>)[key];
     }
   });
 
-  return cleanedData;
+  return cleanedData as ExperimentFormData;
 }
