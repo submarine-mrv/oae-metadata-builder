@@ -204,9 +204,9 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
       />
       <PillsInput>
         <Pill.Group>
-          {value.map((link, index) => (
+          {value.map((link) => (
             <Pill
-              key={index}
+              key={link}
               withRemoveButton
               onRemove={() => !disabled && handleRemove(link)}
             >

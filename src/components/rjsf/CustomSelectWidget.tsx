@@ -1,4 +1,4 @@
-import { FocusEvent, useCallback, useMemo } from "react";
+import { FocusEvent, useMemo } from "react";
 import { Select, MultiSelect, Group, Title, Anchor } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
 import {
@@ -50,48 +50,39 @@ export default function CustomSelectWidget<
     themeProps as typeof themeProps & { descriptionModal?: boolean };
   const viewAllLink = VIEW_ALL_LINKS[label || ""];
 
-  const handleChange = useCallback(
-    (nextValue: any) => {
-      if (!disabled && !readonly && onChange) {
-        onChange(
-          enumOptionsValueForIndex<S>(nextValue, enumOptions, emptyValue)
-        );
-      }
-    },
-    [onChange, disabled, readonly, enumOptions, emptyValue]
-  );
+  const handleChange = (nextValue: any) => {
+    if (!disabled && !readonly && onChange) {
+      onChange(
+        enumOptionsValueForIndex<S>(nextValue, enumOptions, emptyValue)
+      );
+    }
+  };
 
-  const handleBlur = useCallback(
-    ({ target }: FocusEvent<HTMLInputElement>) => {
-      if (onBlur) {
-        onBlur(
-          id,
-          enumOptionsValueForIndex<S>(
-            target && target.value,
-            enumOptions,
-            emptyValue
-          )
-        );
-      }
-    },
-    [onBlur, id, enumOptions, emptyValue]
-  );
+  const handleBlur = ({ target }: FocusEvent<HTMLInputElement>) => {
+    if (onBlur) {
+      onBlur(
+        id,
+        enumOptionsValueForIndex<S>(
+          target && target.value,
+          enumOptions,
+          emptyValue
+        )
+      );
+    }
+  };
 
-  const handleFocus = useCallback(
-    ({ target }: FocusEvent<HTMLInputElement>) => {
-      if (onFocus) {
-        onFocus(
-          id,
-          enumOptionsValueForIndex<S>(
-            target && target.value,
-            enumOptions,
-            emptyValue
-          )
-        );
-      }
-    },
-    [onFocus, id, enumOptions, emptyValue]
-  );
+  const handleFocus = ({ target }: FocusEvent<HTMLInputElement>) => {
+    if (onFocus) {
+      onFocus(
+        id,
+        enumOptionsValueForIndex<S>(
+          target && target.value,
+          enumOptions,
+          emptyValue
+        )
+      );
+    }
+  };
 
   const selectedIndexes = enumOptionsIndexForValue<S>(
     value,

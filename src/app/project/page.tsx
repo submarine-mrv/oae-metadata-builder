@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Container,
   Title,
@@ -60,6 +60,7 @@ export default function ProjectPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
+  const formRef = useRef<any>(null);
 
   const {
     showDownloadModal,
@@ -94,12 +95,9 @@ export default function ProjectPage() {
   // Trigger form submission when forceValidation is true
   useEffect(() => {
     if (forceValidation) {
-      // Find and click the submit button
-      const submitButton = document.querySelector(
-        'button[type="submit"]'
-      ) as HTMLButtonElement;
-      if (submitButton) {
-        submitButton.click();
+      // Trigger form submission using RJSF Form's submit method
+      if (formRef.current?.submit) {
+        formRef.current.submit();
       }
       setForceValidation(false);
     }
@@ -226,6 +224,7 @@ export default function ProjectPage() {
             </Stack>
 
             <Form
+              ref={formRef}
               schema={schema}
               uiSchema={uiSchema}
               formData={state.projectData}
