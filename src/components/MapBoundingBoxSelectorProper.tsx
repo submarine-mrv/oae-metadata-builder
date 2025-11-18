@@ -19,12 +19,10 @@ import {
   isValidLatitude
 } from "@/utils/spatialUtils";
 import {
-  MAP_TILE_STYLE,
   DEFAULT_MAP_CENTER,
-  DEFAULT_ZOOM,
-  MAPLIBRE_GL_CSS_URL,
-  MAPLIBRE_GL_JS_URL
+  DEFAULT_ZOOM
 } from "@/config/maps";
+import { useMapLibreGL } from "@/hooks/useMapLibreGL";
 
 // Extend Window interface to include maplibregl
 declare global {
@@ -47,7 +45,6 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   initialBounds = ""
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
   const startPointRef = useRef<{ lng: number; lat: number } | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [currentBounds, setCurrentBounds] = useState<string>(initialBounds);
@@ -55,7 +52,13 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     lng: number;
     lat: number;
   } | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Use the MapLibre hook for map initialization
+  const { mapInstance, isLoaded: mapLoaded } = useMapLibreGL(mapRef, {
+    center: DEFAULT_MAP_CENTER,
+    zoom: DEFAULT_ZOOM,
+    interactive: true
+  }, opened);
 
   // Individual coordinate states
   const [north, setNorth] = useState<number | string>("");
@@ -129,9 +132,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         setCurrentBounds(boundsString);
 
         // Update map if it's loaded and coordinates are valid
-        if (mapInstanceRef.current && mapLoaded && newNorth > newSouth) {
+        if (mapInstance && mapLoaded && newNorth > newSouth) {
           addBoundingBox(
-            mapInstanceRef.current,
+            mapInstance,
             newWest,
             newSouth,
             newEast,
@@ -139,7 +142,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
           );
           // For fitBounds: if W > E (antimeridian), translate E to +360 range
           const fitEast = adjustEastForAntimeridian(newWest, newEast);
-          mapInstanceRef.current.fitBounds(
+          mapInstance.fitBounds(
             [
               [newWest, newSouth],
               [fitEast, newNorth]
@@ -155,89 +158,32 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     [createBoundsString, mapLoaded]
   );
 
-  const initializeMap = useCallback(() => {
-    if (!mapRef.current || !window.maplibregl || mapInstanceRef.current) return;
-
-    const map = new window.maplibregl.Map({
-      container: mapRef.current,
-      style: MAP_TILE_STYLE,
-      center: DEFAULT_MAP_CENTER,
-      zoom: DEFAULT_ZOOM
-    });
-
-    mapInstanceRef.current = map;
-
-    map.on("load", () => {
-      setMapLoaded(true);
-
-      // Add initial bounds if provided
-      if (initialBounds.trim()) {
-        const parts = initialBounds.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [west, south, east, north] = parts;
-          addBoundingBox(map, west, south, east, north);
-          // Smooth zoom to bounds with animation - handle antimeridian
-          const fitEast = adjustEastForAntimeridian(west, east);
-          map.fitBounds(
-            [
-              [west, south],
-              [fitEast, north]
-            ],
-            {
-              padding: 50
-              // Remove duration: 0 to restore smooth animation
-            }
-          );
-          setCurrentBounds(initialBounds);
-        }
-      }
-    });
-
-    return map;
-  }, [initialBounds]);
-
-  // Load MapLibre and initialize map when modal opens
+  // Load initial bounds when map is ready
   useEffect(() => {
-    if (!opened) return;
+    if (!mapInstance || !mapLoaded) return;
 
-    const loadAndInitialize = async () => {
-      try {
-        // Load MapLibre if not already loaded
-        if (!window.maplibregl) {
-          // Load CSS
-          if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = MAPLIBRE_GL_CSS_URL;
-            document.head.appendChild(link);
+    // Add initial bounds if provided
+    if (initialBounds.trim()) {
+      const parts = initialBounds.trim().split(/\s+/).map(Number);
+      if (parts.length === 4) {
+        const [west, south, east, north] = parts;
+        addBoundingBox(mapInstance, west, south, east, north);
+        // Smooth zoom to bounds with animation - handle antimeridian
+        const fitEast = adjustEastForAntimeridian(west, east);
+        mapInstance.fitBounds(
+          [
+            [west, south],
+            [fitEast, north]
+          ],
+          {
+            padding: 50
+            // Remove duration: 0 to restore smooth animation
           }
-
-          // Load JS
-          const script = document.createElement("script");
-          script.src = MAPLIBRE_GL_JS_URL;
-
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () =>
-              reject(new Error("Failed to load MapLibre GL"));
-            document.head.appendChild(script);
-          });
-        }
-
-        // Wait for next tick to ensure DOM is ready
-        requestAnimationFrame(() => {
-          if (mapRef.current && !mapInstanceRef.current) {
-            initializeMap();
-          }
-        });
-      } catch (error) {
-        console.error("MapLibre loading failed:", error);
-        // You could add user-friendly error notification here
+        );
+        setCurrentBounds(initialBounds);
       }
-    };
-
-    loadAndInitialize();
-  }, [opened, initializeMap]);
+    }
+  }, [mapInstance, mapLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addBoundingBox = (
     map: any,
@@ -302,8 +248,8 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   };
 
   const startSelection = () => {
-    if (!mapInstanceRef.current) return;
-    const map = mapInstanceRef.current;
+    if (!mapInstance) return;
+    const map = mapInstance;
 
     setIsSelecting(true);
     setStartPoint(null);
@@ -413,9 +359,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   useEffect(() => {
     if (!opened) {
       // Clean up map instance
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
       }
 
       // Reset all state

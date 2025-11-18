@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { FieldProps } from "@rjsf/utils";
 import { Box, Text, Tooltip, ActionIcon } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";
@@ -10,12 +10,10 @@ import {
   adjustEastForAntimeridian
 } from "@/utils/spatialUtils";
 import {
-  MAP_TILE_STYLE,
   DEFAULT_MAP_CENTER,
-  DEFAULT_MINI_MAP_ZOOM,
-  MAPLIBRE_GL_CSS_URL,
-  MAPLIBRE_GL_JS_URL
+  DEFAULT_MINI_MAP_ZOOM
 } from "@/config/maps";
+import { useMapLibreGL } from "@/hooks/useMapLibreGL";
 
 // parse "W S E N" string from nested object
 function readBox(formData: any): string {
@@ -35,14 +33,19 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
     props;
 
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
   const [value, setValue] = useState<string>(readBox(formData));
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Check if there are RJSF validation errors
   const hasValidationErrors = rawErrors && rawErrors.length > 0;
   const [showMapModal, setShowMapModal] = useState(false);
-  const [miniMapLoaded, setMiniMapLoaded] = useState(false);
+
+  // Use the MapLibre hook for map initialization
+  const { mapInstance, isLoaded: miniMapLoaded } = useMapLibreGL(mapRef, {
+    center: DEFAULT_MAP_CENTER,
+    zoom: DEFAULT_MINI_MAP_ZOOM,
+    interactive: false
+  }, true);
 
   const label = uiSchema?.["ui:title"] ?? schema?.title ?? "Spatial coverage";
 
@@ -60,46 +63,31 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
     onChange(newData);
   };
 
-  // Initialize mini map when component mounts
-  const initializeMiniMap = useCallback(() => {
-    if (!mapRef.current || mapInstanceRef.current || !window.maplibregl) return;
+  // Load initial data when map is ready
+  useEffect(() => {
+    if (!mapInstance || !miniMapLoaded) return;
 
-    const map = new window.maplibregl.Map({
-      container: mapRef.current,
-      style: MAP_TILE_STYLE,
-      center: DEFAULT_MAP_CENTER,
-      zoom: DEFAULT_MINI_MAP_ZOOM,
-      interactive: false, // Make it non-interactive for preview
-      attributionControl: false
-    });
-
-    mapInstanceRef.current = map;
-
-    map.on("load", () => {
-      setMiniMapLoaded(true);
-
-      // Add bounding box if we have coordinates
-      if (value.trim()) {
-        const parts = value.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [west, south, east, north] = parts;
-          addBoundingBox(map, west, south, east, north);
-          // Handle antimeridian for fitBounds
-          const fitEast = adjustEastForAntimeridian(west, east);
-          map.fitBounds(
-            [
-              [west, south],
-              [fitEast, north]
-            ],
-            {
-              padding: 20,
-              duration: 0
-            }
-          );
-        }
+    // Add bounding box if we have coordinates
+    if (value.trim()) {
+      const parts = value.trim().split(/\s+/).map(Number);
+      if (parts.length === 4) {
+        const [west, south, east, north] = parts;
+        addBoundingBox(mapInstance, west, south, east, north);
+        // Handle antimeridian for fitBounds
+        const fitEast = adjustEastForAntimeridian(west, east);
+        mapInstance.fitBounds(
+          [
+            [west, south],
+            [fitEast, north]
+          ],
+          {
+            padding: 20,
+            duration: 0
+          }
+        );
       }
-    });
-  }, [value]);
+    }
+  }, [mapInstance, miniMapLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addBoundingBox = (
     map: any,
@@ -163,54 +151,16 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
     });
   };
 
-  // Load MapLibre and initialize mini map
-  useEffect(() => {
-    const loadAndInit = async () => {
-      try {
-        if (!window.maplibregl) {
-          // Load CSS
-          if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = MAPLIBRE_GL_CSS_URL;
-            document.head.appendChild(link);
-          }
-
-          // Load JS
-          const script = document.createElement("script");
-          script.src = MAPLIBRE_GL_JS_URL;
-
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () =>
-              reject(new Error("Failed to load MapLibre GL"));
-            document.head.appendChild(script);
-          });
-        }
-
-        requestAnimationFrame(() => {
-          if (mapRef.current && !mapInstanceRef.current) {
-            initializeMiniMap();
-          }
-        });
-      } catch (error) {
-        console.error("MapLibre loading failed:", error);
-      }
-    };
-
-    loadAndInit();
-  }, [initializeMiniMap]);
-
   // Update mini map when value changes
   useEffect(() => {
-    if (mapInstanceRef.current && miniMapLoaded && value.trim()) {
+    if (mapInstance && miniMapLoaded && value.trim()) {
       const parts = value.trim().split(/\s+/).map(Number);
       if (parts.length === 4) {
         const [west, south, east, north] = parts;
-        addBoundingBox(mapInstanceRef.current, west, south, east, north);
+        addBoundingBox(mapInstance, west, south, east, north);
         // Handle antimeridian for fitBounds
         const fitEast = adjustEastForAntimeridian(west, east);
-        mapInstanceRef.current.fitBounds(
+        mapInstance.fitBounds(
           [
             [west, south],
             [fitEast, north]
@@ -221,21 +171,21 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
           }
         );
       }
-    } else if (mapInstanceRef.current && miniMapLoaded && !value.trim()) {
+    } else if (mapInstance && miniMapLoaded && !value.trim()) {
       // Remove bounding box if no value
-      if (mapInstanceRef.current.getSource("bbox")) {
-        mapInstanceRef.current.removeLayer("bbox-fill");
-        mapInstanceRef.current.removeLayer("bbox-outline");
-        mapInstanceRef.current.removeSource("bbox");
+      if (mapInstance.getSource("bbox")) {
+        mapInstance.removeLayer("bbox-fill");
+        mapInstance.removeLayer("bbox-outline");
+        mapInstance.removeSource("bbox");
       }
       // Reset to default view
-      mapInstanceRef.current.flyTo({
+      mapInstance.flyTo({
         center: DEFAULT_MAP_CENTER,
         zoom: DEFAULT_MINI_MAP_ZOOM,
         duration: 500
       });
     }
-  }, [value, miniMapLoaded]);
+  }, [value, miniMapLoaded, mapInstance]);
 
   return (
     <>
