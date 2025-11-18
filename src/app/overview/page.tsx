@@ -20,20 +20,19 @@ import {
   IconTrash
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import { useTabNavigation } from "@/hooks/useTabNavigation";
 
 export default function OverviewPage() {
   const {
     state,
     setActiveTab,
     addExperiment,
-    setActiveExperiment,
     deleteExperiment,
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage
   } = useAppState();
-  const router = useRouter();
+  const { navigateToProject, navigateToExperiment } = useTabNavigation();
 
   useEffect(() => {
     setActiveTab("overview");
@@ -44,20 +43,15 @@ export default function OverviewPage() {
   const handleCreateExperiment = () => {
     // addExperiment will auto-generate "Experiment N" if no name provided
     const id = addExperiment();
-    setActiveExperiment(id);
-    setActiveTab("experiment");
-    router.push("/experiment");
+    navigateToExperiment(id);
   };
 
   const handleEditProject = () => {
-    setActiveTab("project");
-    router.push("/project");
+    navigateToProject();
   };
 
   const handleEditExperiment = (id: number) => {
-    setActiveExperiment(id);
-    setActiveTab("experiment");
-    router.push("/experiment");
+    navigateToExperiment(id);
   };
 
   const handleDeleteExperiment = (id: number, e: React.MouseEvent) => {
