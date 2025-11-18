@@ -131,37 +131,31 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const getExperiment = useCallback(
-    (id: number) => {
-      return state.experiments.find((exp) => exp.id === id);
-    },
-    [state.experiments]
-  );
+  const getExperiment = (id: number) => {
+    return state.experiments.find((exp) => exp.id === id);
+  };
 
   // Calculate completion percentage based on filled required fields
-  const calculateCompletionPercentage = useCallback(
-    (data: any, requiredFields: string[]): number => {
-      if (!data || Object.keys(data).length === 0) return 0;
+  const calculateCompletionPercentage = (data: any, requiredFields: string[]): number => {
+    if (!data || Object.keys(data).length === 0) return 0;
 
-      let filledFields = 0;
-      requiredFields.forEach((field) => {
-        const value = data[field];
-        if (value !== undefined && value !== null && value !== "") {
-          if (Array.isArray(value) && value.length > 0) filledFields++;
-          else if (typeof value === "object" && Object.keys(value).length > 0)
-            filledFields++;
-          else if (typeof value === "string" && value.trim() !== "")
-            filledFields++;
-          else if (typeof value === "number") filledFields++;
-        }
-      });
+    let filledFields = 0;
+    requiredFields.forEach((field) => {
+      const value = data[field];
+      if (value !== undefined && value !== null && value !== "") {
+        if (Array.isArray(value) && value.length > 0) filledFields++;
+        else if (typeof value === "object" && Object.keys(value).length > 0)
+          filledFields++;
+        else if (typeof value === "string" && value.trim() !== "")
+          filledFields++;
+        else if (typeof value === "number") filledFields++;
+      }
+    });
 
-      return Math.round((filledFields / requiredFields.length) * 100);
-    },
-    []
-  );
+    return Math.round((filledFields / requiredFields.length) * 100);
+  };
 
-  const getProjectCompletionPercentage = useCallback(() => {
+  const getProjectCompletionPercentage = () => {
     // Key required fields for project
     const requiredFields = [
       "project_id",
@@ -172,70 +166,69 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       "temporal_coverage"
     ];
     return calculateCompletionPercentage(state.projectData, requiredFields);
-  }, [state.projectData, calculateCompletionPercentage]);
+  };
 
-  const getExperimentCompletionPercentage = useCallback(
-    (id: number) => {
-      const experiment = state.experiments.find((exp) => exp.id === id);
-      if (!experiment) return 0;
+  const getExperimentCompletionPercentage = (id: number) => {
+    const experiment = state.experiments.find((exp) => exp.id === id);
+    if (!experiment) return 0;
 
-      // Base experiment required fields
-      let requiredFields = [
-        "experiment_id",
-        "experiment_type",
-        "description",
-        "spatial_coverage",
-        "vertical_coverage",
-        "investigators",
-        "start_datetime",
-        "end_datetime"
+    // Base experiment required fields
+    let requiredFields = [
+      "experiment_id",
+      "experiment_type",
+      "description",
+      "spatial_coverage",
+      "vertical_coverage",
+      "investigators",
+      "start_datetime",
+      "end_datetime"
+    ];
+
+    // If it's an intervention, add intervention-specific required fields
+    if (experiment.experiment_type === "intervention") {
+      requiredFields = [
+        ...requiredFields,
+        "alkalinity_feedstock_processing",
+        "alkalinity_feedstock_form",
+        "alkalinity_feedstock",
+        "alkalinity_feedstock_description",
+        "equilibration",
+        "dosing_location",
+        "dosing_dispersal_hydrologic_location",
+        "dosing_delivery_type",
+        "alkalinity_dosing_effluent_density",
+        "dosing_depth",
+        "dosing_description",
+        "dosing_regimen",
+        "dosing_data"
       ];
+    }
 
-      // If it's an intervention, add intervention-specific required fields
-      if (experiment.experiment_type === "intervention") {
-        requiredFields = [
-          ...requiredFields,
-          "alkalinity_feedstock_processing",
-          "alkalinity_feedstock_form",
-          "alkalinity_feedstock",
-          "alkalinity_feedstock_description",
-          "equilibration",
-          "dosing_location",
-          "dosing_dispersal_hydrologic_location",
-          "dosing_delivery_type",
-          "alkalinity_dosing_effluent_density",
-          "dosing_depth",
-          "dosing_description",
-          "dosing_regimen",
-          "dosing_data"
-        ];
-      }
-
-      return calculateCompletionPercentage(experiment.formData, requiredFields);
-    },
-    [state.experiments, calculateCompletionPercentage]
-  );
+    return calculateCompletionPercentage(experiment.formData, requiredFields);
+  };
 
   // Import all data (project + experiments) from imported file
   const importAllData = useCallback(
     (projectData: any, experiments: ExperimentData[]) => {
-      // Reassign experiment IDs to avoid conflicts
-      const nextId = state.nextExperimentId;
-      const experimentsWithNewIds = experiments.map((exp, index) => ({
-        ...exp,
-        id: nextId + index
-      }));
+      setState((prev) => {
+        // Reassign experiment IDs to avoid conflicts
+        const nextId = prev.nextExperimentId;
+        const experimentsWithNewIds = experiments.map((exp, index) => ({
+          ...exp,
+          id: nextId + index
+        }));
 
-      setState({
-        projectData,
-        experiments: experimentsWithNewIds,
-        activeTab: "overview",
-        activeExperimentId: null,
-        nextExperimentId: nextId + experiments.length,
-        triggerValidation: false
+        return {
+          projectData,
+          experiments: experimentsWithNewIds,
+          activeTab: "overview",
+          activeExperimentId: null,
+          nextExperimentId: nextId + experiments.length,
+          triggerValidation: false
+        };
       });
     },
-    [state.nextExperimentId]
+    []
   );
 
   const setTriggerValidation = useCallback((trigger: boolean) => {
