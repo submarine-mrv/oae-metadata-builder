@@ -36,7 +36,15 @@ import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
-import type { SubmitButtonProps } from "@rjsf/utils";
+import type {
+  SubmitButtonProps,
+  RJSFSchema,
+  RJSFValidationError,
+  ErrorTransformer,
+  CustomValidator,
+  FormValidation
+} from "@rjsf/utils";
+import { ProjectFormData } from "@/types/forms";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -54,7 +62,7 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
 export default function ProjectPage() {
   const { state, updateProjectData, setActiveTab, setTriggerValidation } =
     useAppState();
-  const [schema] = useState<any>(() => getProjectSchema());
+  const [schema] = useState<RJSFSchema>(() => getProjectSchema());
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
@@ -128,7 +136,7 @@ export default function ProjectPage() {
     };
   }, [isResizing]);
 
-  const transformErrors = (errors: any[]) =>
+  const transformErrors: ErrorTransformer = (errors) =>
     errors.map((e) => {
       if (e.property === ".temporal_coverage" && e.name === "pattern") {
         return {
@@ -154,16 +162,17 @@ export default function ProjectPage() {
       return e;
     });
 
-  const customValidate = (data: any, errors: any) => {
+  const customValidate: CustomValidator = (formData, errors) => {
+    const data = formData as ProjectFormData;
     const t = data?.temporal_coverage as string | undefined;
-    if (!t) errors?.temporal_coverage?.addError("Start date is required.");
+    if (!t) (errors?.temporal_coverage as FormValidation)?.addError("Start date is required.");
     else {
       const [start, end] = t.split("/");
       if (start && end && end !== "..") {
         const s = +new Date(start),
           e = +new Date(end);
         if (Number.isFinite(s) && Number.isFinite(e) && e < s) {
-          errors?.temporal_coverage?.addError("End date must be ≥ start date.");
+          (errors?.temporal_coverage as FormValidation)?.addError("End date must be ≥ start date.");
         }
       }
     }
@@ -175,7 +184,7 @@ export default function ProjectPage() {
       const maxDepth = vc.max_depth_in_m;
 
       if (typeof maxDepth === "number" && maxDepth > 0) {
-        errors?.vertical_coverage?.max_depth_in_m?.addError(
+        ((errors?.vertical_coverage as Record<string, FormValidation>)?.max_depth_in_m as FormValidation)?.addError(
           "Maximum depth must be 0 or negative (below sea surface)."
         );
       }
@@ -185,7 +194,7 @@ export default function ProjectPage() {
         typeof maxDepth === "number" &&
         minDepth < maxDepth
       ) {
-        errors?.vertical_coverage?.min_depth_in_m?.addError(
+        ((errors?.vertical_coverage as Record<string, FormValidation>)?.min_depth_in_m as FormValidation)?.addError(
           "Minimum depth must be greater than or equal to maximum depth."
         );
       }
