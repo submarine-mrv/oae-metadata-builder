@@ -7,7 +7,7 @@ describe('AppStateContext', () => {
   describe('Provider and Hook', () => {
     it('should throw error when useAppState is used outside provider', () => {
       // Suppress console.error for this test
-      const spy = vi.spyOn(console, 'error').mockImplementation();
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => useAppState());
@@ -189,7 +189,7 @@ describe('AppStateContext', () => {
 
       const newFormData = {
         experiment_id: 'exp-001',
-        experiment_type: 'baseline',
+        experiment_type: 'baseline' as const,
         description: 'Updated description'
       };
 
@@ -242,9 +242,11 @@ describe('AppStateContext', () => {
       });
 
       act(() => {
+        // Name is not part of ExperimentFormData, it's handled separately
+        // Use type assertion for test purposes
         result.current.updateExperiment(experimentId!, {
           name: 'Updated Name'
-        });
+        } as any);
       });
 
       const experiment = result.current.state.experiments.find(
@@ -729,21 +731,21 @@ describe('AppStateContext', () => {
         {
           id: 1, // Original ID from imported file
           name: 'Imported 1',
-          formData: {},
+          formData: { experiment_id: 'imp-1' },
           createdAt: Date.now(),
           updatedAt: Date.now()
         },
         {
           id: 2, // Original ID from imported file
           name: 'Imported 2',
-          formData: {},
+          formData: { experiment_id: 'imp-2' },
           createdAt: Date.now(),
           updatedAt: Date.now()
         }
       ];
 
       act(() => {
-        result.current.importAllData({}, importedExperiments);
+        result.current.importAllData({ project_id: 'test-project' }, importedExperiments);
       });
 
       // IDs should be reassigned starting from nextExperimentId
@@ -760,21 +762,21 @@ describe('AppStateContext', () => {
         {
           id: 1,
           name: 'Exp 1',
-          formData: {},
+          formData: { experiment_id: 'exp-1' },
           createdAt: Date.now(),
           updatedAt: Date.now()
         },
         {
           id: 2,
           name: 'Exp 2',
-          formData: {},
+          formData: { experiment_id: 'exp-2' },
           createdAt: Date.now(),
           updatedAt: Date.now()
         }
       ];
 
       act(() => {
-        result.current.importAllData({}, importedExperiments);
+        result.current.importAllData({ project_id: 'test-project' }, importedExperiments);
       });
 
       // nextExperimentId should be 1 (initial) + 2 (imported) = 3
@@ -794,7 +796,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.activeExperimentId).not.toBeNull();
 
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({ project_id: 'test-project' }, []);
       });
 
       // Should be reset to null
@@ -813,7 +815,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.activeTab).toBe('project');
 
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({ project_id: 'test-project' }, []);
       });
 
       expect(result.current.state.activeTab).toBe('overview');
@@ -831,7 +833,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.triggerValidation).toBe(true);
 
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({ project_id: 'test-project' }, []);
       });
 
       expect(result.current.state.triggerValidation).toBe(false);
