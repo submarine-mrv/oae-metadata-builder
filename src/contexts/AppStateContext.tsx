@@ -1,17 +1,13 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback } from "react";
-
-export interface ExperimentData {
-  id: number; // Internal integer ID for tracking
-  name: string;
-  formData: any;
-  experiment_type?: string;
-  createdAt: number;
-  updatedAt: number;
-}
+import {
+  ProjectFormData,
+  ExperimentData,
+  ExperimentFormData
+} from "@/types/forms";
 
 export interface AppState {
-  projectData: any;
+  projectData: ProjectFormData;
   experiments: ExperimentData[];
   activeTab: "overview" | "project" | "experiment";
   activeExperimentId: number | null; // Changed to number
@@ -21,18 +17,21 @@ export interface AppState {
 
 interface AppStateContextType {
   state: AppState;
-  updateProjectData: (data: any) => void;
+  updateProjectData: (data: ProjectFormData) => void;
   addExperiment: (name?: string) => number;
-  updateExperiment: (id: number, data: any) => void;
+  updateExperiment: (id: number, data: Partial<ExperimentFormData>) => void;
   deleteExperiment: (id: number) => void;
   setActiveTab: (tab: "overview" | "project" | "experiment") => void;
   setActiveExperiment: (id: number | null) => void;
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
-  importAllData: (projectData: any, experiments: ExperimentData[]) => void;
+  importAllData: (projectData: ProjectFormData, experiments: ExperimentData[]) => void;
   setTriggerValidation: (trigger: boolean) => void;
 }
+
+// Re-export types from forms for backward compatibility
+export type { ExperimentData, ProjectFormData, ExperimentFormData } from "@/types/forms";
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
   undefined
@@ -48,7 +47,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     triggerValidation: false
   });
 
-  const updateProjectData = useCallback((data: any) => {
+  const updateProjectData = useCallback((data: ProjectFormData) => {
     setState((prev) => ({
       ...prev,
       projectData: data
@@ -69,6 +68,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           id,
           name: defaultName,
           formData: {
+            experiment_id: "",
             project_id: prev.projectData?.project_id || ""
           },
           createdAt: Date.now(),
@@ -88,7 +88,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const updateExperiment = useCallback((id: number, data: any) => {
+  const updateExperiment = useCallback((id: number, data: Partial<ExperimentFormData>) => {
     setState((prev) => ({
       ...prev,
       experiments: prev.experiments.map((exp) =>
@@ -97,7 +97,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               ...exp,
               formData: { ...exp.formData, ...data },
               experiment_type: data.experiment_type || exp.experiment_type,
-              name: data.name || exp.name,
+              name: (data as Record<string, unknown>).name as string || exp.name,
               updatedAt: Date.now()
             }
           : exp
@@ -140,7 +140,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // Calculate completion percentage based on filled required fields
   const calculateCompletionPercentage = useCallback(
-    (data: any, requiredFields: string[]): number => {
+    (data: Record<string, unknown>, requiredFields: string[]): number => {
       if (!data || Object.keys(data).length === 0) return 0;
 
       let filledFields = 0;
@@ -148,7 +148,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const value = data[field];
         if (value !== undefined && value !== null && value !== "") {
           if (Array.isArray(value) && value.length > 0) filledFields++;
-          else if (typeof value === "object" && Object.keys(value).length > 0)
+          else if (typeof value === "object" && Object.keys(value as Record<string, unknown>).length > 0)
             filledFields++;
           else if (typeof value === "string" && value.trim() !== "")
             filledFields++;
@@ -171,7 +171,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       "spatial_coverage",
       "temporal_coverage"
     ];
-    return calculateCompletionPercentage(state.projectData, requiredFields);
+    return calculateCompletionPercentage(state.projectData as unknown as Record<string, unknown>, requiredFields);
   }, [state.projectData, calculateCompletionPercentage]);
 
   const getExperimentCompletionPercentage = useCallback(
@@ -211,14 +211,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ];
       }
 
-      return calculateCompletionPercentage(experiment.formData, requiredFields);
+      return calculateCompletionPercentage(experiment.formData as unknown as Record<string, unknown>, requiredFields);
     },
     [state.experiments, calculateCompletionPercentage]
   );
 
   // Import all data (project + experiments) from imported file
   const importAllData = useCallback(
-    (projectData: any, experiments: ExperimentData[]) => {
+    (projectData: ProjectFormData, experiments: ExperimentData[]) => {
       // Reassign experiment IDs to avoid conflicts
       const nextId = state.nextExperimentId;
       const experimentsWithNewIds = experiments.map((exp, index) => ({

@@ -47,7 +47,16 @@ import {
   getTracerSchema,
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
-import type { SubmitButtonProps } from "@rjsf/utils";
+import type {
+  SubmitButtonProps,
+  RJSFSchema,
+  UiSchema,
+  RJSFValidationError,
+  ErrorTransformer,
+  CustomValidator,
+  FormValidation
+} from "@rjsf/utils";
+import { ExperimentFormData } from "@/types/forms";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -67,9 +76,11 @@ export default function ExperimentPage() {
   const { state, updateExperiment, setActiveTab, setTriggerValidation } =
     useAppState();
 
-  const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
-  const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
-  const [formData, setFormData] = useState<any>({});
+  const [activeSchema, setActiveSchema] = useState<RJSFSchema>(() => getExperimentSchema());
+  const [activeUiSchema, setActiveUiSchema] = useState<UiSchema>(experimentUiSchema);
+  const [formData, setFormData] = useState<ExperimentFormData>({
+    experiment_id: ""
+  });
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
@@ -185,7 +196,7 @@ export default function ExperimentPage() {
   }, [isResizing]);
 
   const handleFormChange = useCallback(
-    (e: any) => {
+    (e: { formData?: ExperimentFormData }) => {
       // Don't save to global state until initial data is loaded
       // This prevents RJSF's onChange on mount from overwriting real data with empty data
       if (isInitialLoad) {
@@ -193,6 +204,7 @@ export default function ExperimentPage() {
       }
 
       let newData = e.formData;
+      if (!newData) return;
 
       // Check if experiment_type changed
       const oldType = formData.experiment_type;
@@ -213,7 +225,7 @@ export default function ExperimentPage() {
     [isInitialLoad, formData, activeExperimentId, updateExperiment]
   );
 
-  const transformErrors = (errors: any[]) =>
+  const transformErrors: ErrorTransformer = (errors) =>
     errors.map((e) => {
       if (
         (e.property === ".spatial_coverage.geo.box" && e.name === "required") ||
@@ -232,7 +244,8 @@ export default function ExperimentPage() {
       return e;
     });
 
-  const customValidate = (data: any, errors: any) => {
+  const customValidate: CustomValidator = (formData, errors) => {
+    const data = formData as ExperimentFormData;
     // Validate vertical coverage depths
     const vc = data?.vertical_coverage;
     if (vc) {
@@ -240,7 +253,7 @@ export default function ExperimentPage() {
       const maxDepth = vc.max_depth_in_m;
 
       if (typeof maxDepth === "number" && maxDepth > 0) {
-        errors?.vertical_coverage?.max_depth_in_m?.addError(
+        ((errors?.vertical_coverage as Record<string, FormValidation>)?.max_depth_in_m as FormValidation)?.addError(
           "Maximum depth must be 0 or negative (below sea surface)."
         );
       }
@@ -250,7 +263,7 @@ export default function ExperimentPage() {
         typeof maxDepth === "number" &&
         minDepth < maxDepth
       ) {
-        errors?.vertical_coverage?.min_depth_in_m?.addError(
+        ((errors?.vertical_coverage as Record<string, FormValidation>)?.min_depth_in_m as FormValidation)?.addError(
           "Minimum depth must be greater than or equal to maximum depth."
         );
       }

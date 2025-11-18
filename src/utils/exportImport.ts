@@ -1,10 +1,14 @@
-import { ExperimentData } from "@/contexts/AppStateContext";
+import {
+  ExperimentData,
+  ProjectFormData,
+  ExperimentFormData
+} from "@/types/forms";
 import { getProtocolMetadata } from "./schemaViews";
 
 /**
  * Project schema fields that should be in the root project data
  */
-const PROJECT_FIELDS = [
+const PROJECT_FIELDS: (keyof ProjectFormData)[] = [
   "project_id",
   "project_description",
   "mcdr_pathway",
@@ -28,14 +32,23 @@ const PROJECT_FIELDS = [
  * Cleans projectData to only include valid Project schema fields
  * Removes any experiment-specific fields that may have leaked in
  */
-function cleanProjectData(data: any): any {
-  const cleaned: any = {};
+function cleanProjectData(data: Record<string, unknown>): ProjectFormData {
+  const cleaned: Record<string, unknown> = {};
   PROJECT_FIELDS.forEach((field) => {
     if (data[field] !== undefined) {
       cleaned[field] = data[field];
     }
   });
-  return cleaned;
+  return cleaned as ProjectFormData;
+}
+
+export interface ExportData {
+  version: string;
+  protocol_git_hash: string;
+  metadata_builder_git_hash: string;
+  project: ProjectFormData & {
+    experiments: ExperimentFormData[];
+  };
 }
 
 /**
@@ -43,14 +56,14 @@ function cleanProjectData(data: any): any {
  * with version metadata from the protocol
  */
 export function exportMetadata(
-  projectData: any,
+  projectData: ProjectFormData,
   experiments: ExperimentData[]
 ): void {
   // Get version metadata from schema
   const protocolMetadata = getProtocolMetadata();
 
   // Clean project data to remove any experiment fields
-  const cleanedProjectData = cleanProjectData(projectData);
+  const cleanedProjectData = cleanProjectData(projectData as Record<string, unknown>);
 
   // Combine clean project data with experiment form data
   const projectWithExperiments = {
@@ -59,7 +72,7 @@ export function exportMetadata(
   };
 
   // Wrap in Container object
-  const exportData = {
+  const exportData: ExportData = {
     version: protocolMetadata.version,
     protocol_git_hash: protocolMetadata.gitHash,
     metadata_builder_git_hash: "", // Leave empty for now
@@ -91,14 +104,14 @@ export function exportMetadata(
  */
 export async function importMetadata(
   file: File
-): Promise<{ projectData: any; experiments: ExperimentData[] }> {
+): Promise<{ projectData: ProjectFormData; experiments: ExperimentData[] }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const data = JSON.parse(content);
+        const data = JSON.parse(content) as ExportData;
 
         // Expect Container format: { version, protocol_git_hash, project: {...} }
         const projectDataRaw = data.project || {};
@@ -106,13 +119,13 @@ export async function importMetadata(
 
         // Remove experiments from project data and clean to only keep Project fields
         const { experiments: _, ...rawProjectData } = projectDataRaw;
-        const projectData = cleanProjectData(rawProjectData);
+        const projectData = cleanProjectData(rawProjectData as Record<string, unknown>);
 
         // Convert experiment data to ExperimentData format
         const experiments: ExperimentData[] = experimentsData.map(
-          (expData: any, index: number) => ({
+          (expData: ExperimentFormData, index: number) => ({
             id: index + 1, // Will be reassigned based on nextExperimentId
-            name: expData.name || expData.experiment_id || `Experiment ${index + 1}`,
+            name: (expData as Record<string, unknown>).name as string || expData.experiment_id || `Experiment ${index + 1}`,
             formData: expData,
             experiment_type: expData.experiment_type,
             createdAt: Date.now(),
