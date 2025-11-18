@@ -8,20 +8,17 @@ import {
   Card,
   Group,
   Button,
-  Progress,
   Badge,
   SimpleGrid
 } from "@mantine/core";
 import {
   IconPlus,
-  IconFolder,
-  IconFlask,
-  IconEdit,
-  IconTrash
+  IconFlask
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import { CompletionCard } from "@/components/CompletionCard";
 
 export default function OverviewPage() {
   const {
@@ -61,24 +58,9 @@ export default function OverviewPage() {
   };
 
   const handleDeleteExperiment = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
     if (confirm("Are you sure you want to delete this experiment?")) {
       deleteExperiment(id);
     }
-  };
-
-  const getCompletionColor = (percentage: number) => {
-    if (percentage === 0) return "gray";
-    if (percentage < 33) return "red";
-    if (percentage < 67) return "yellow";
-    if (percentage < 100) return "blue";
-    return "green";
-  };
-
-  const getCompletionLabel = (percentage: number) => {
-    if (percentage === 0) return "Not Started";
-    if (percentage < 100) return "In Progress";
-    return "Complete";
   };
 
   return (
@@ -95,45 +77,12 @@ export default function OverviewPage() {
           </div>
 
           {/* Project Card */}
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Group justify="space-between" mb="md">
-              <Group>
-                <IconFolder size={24} />
-                <div>
-                  <Text fw={600} size="lg">
-                    Project Metadata
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    {state.projectData?.project_id || "No project ID set"}
-                  </Text>
-                </div>
-              </Group>
-              <Button
-                leftSection={<IconEdit size={16} />}
-                onClick={handleEditProject}
-              >
-                Edit Project
-              </Button>
-            </Group>
-
-            <Stack gap="xs">
-              <Group justify="space-between">
-                <Text size="sm">Completion</Text>
-                <Badge color={getCompletionColor(projectCompletion)}>
-                  {getCompletionLabel(projectCompletion)}
-                </Badge>
-              </Group>
-              <Progress
-                value={projectCompletion}
-                size="xl"
-                radius="md"
-                color={getCompletionColor(projectCompletion)}
-              />
-              <Text size="xs" c="dimmed" ta="right">
-                {projectCompletion}% complete
-              </Text>
-            </Stack>
-          </Card>
+          <CompletionCard
+            title="Project Metadata"
+            subtitle={state.projectData?.project_id || "No project ID set"}
+            progress={projectCompletion}
+            onEdit={handleEditProject}
+          />
 
           {/* Experiments Section */}
           <div>
@@ -173,72 +122,24 @@ export default function OverviewPage() {
               </Card>
             ) : (
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-                {state.experiments.map((experiment) => {
-                  const completion = getExperimentCompletionPercentage(
-                    experiment.id
-                  );
-                  return (
-                    <Card
-                      key={experiment.id}
-                      shadow="sm"
-                      padding="lg"
-                      radius="md"
-                      withBorder
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleEditExperiment(experiment.id)}
-                    >
-                      <Stack gap="sm">
-                        <Group justify="space-between">
-                          <Group gap="xs">
-                            <IconFlask size={20} />
-                            <Text fw={600}>{experiment.name}</Text>
-                          </Group>
-                          <Button
-                            variant="subtle"
-                            color="red"
-                            size="xs"
-                            onClick={(e) =>
-                              handleDeleteExperiment(experiment.id, e)
-                            }
-                          >
-                            <IconTrash size={16} />
-                          </Button>
-                        </Group>
-
-                        {experiment.experiment_type && (
-                          <Badge variant="light" size="sm">
-                            {experiment.experiment_type === "intervention"
-                              ? "Intervention"
-                              : experiment.experiment_type}
-                          </Badge>
-                        )}
-
-                        <Stack gap="xs">
-                          <Group justify="space-between">
-                            <Text size="xs">Progress</Text>
-                            <Badge
-                              size="xs"
-                              color={getCompletionColor(completion)}
-                            >
-                              {completion}%
-                            </Badge>
-                          </Group>
-                          <Progress
-                            value={completion}
-                            size="md"
-                            radius="md"
-                            color={getCompletionColor(completion)}
-                          />
-                        </Stack>
-
-                        <Text size="xs" c="dimmed">
-                          Last updated:{" "}
-                          {new Date(experiment.updatedAt).toLocaleString()}
-                        </Text>
-                      </Stack>
-                    </Card>
-                  );
-                })}
+                {state.experiments.map((experiment) => (
+                  <CompletionCard
+                    key={experiment.id}
+                    title={experiment.name}
+                    badge={
+                      experiment.experiment_type && (
+                        <Badge variant="light" color="blue">
+                          {experiment.experiment_type}
+                        </Badge>
+                      )
+                    }
+                    progress={getExperimentCompletionPercentage(experiment.id)}
+                    onEdit={() => handleEditExperiment(experiment.id)}
+                    onDelete={(e) => handleDeleteExperiment(experiment.id, e)}
+                    lastUpdated={experiment.updatedAt}
+                    showDeleteButton={true}
+                  />
+                ))}
               </SimpleGrid>
             )}
           </div>
