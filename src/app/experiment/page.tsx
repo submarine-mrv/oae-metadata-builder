@@ -45,6 +45,7 @@ import {
   getTracerSchema,
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
+import { transformFormErrors } from "@/utils/errorTransformer";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -178,9 +179,7 @@ export default function ExperimentPage() {
 
       if (oldType && newType && oldType !== newType) {
         // Experiment type changed - clean fields that don't belong to new type
-        console.log(`Experiment type changed from ${oldType} to ${newType}`);
         newData = cleanFormDataForType(newData, newType);
-        console.log("Cleaned data:", newData);
       }
 
       setFormData(newData);
@@ -209,25 +208,6 @@ export default function ExperimentPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-
-  const transformErrors = (errors: any[]) =>
-    errors.map((e) => {
-      if (
-        (e.property === ".spatial_coverage.geo.box" && e.name === "required") ||
-        (e.property === ".spatial_coverage.geo" && e.name === "required") ||
-        (e.property === ".spatial_coverage" && e.name === "required") ||
-        (e.property === "." &&
-          e.name === "required" &&
-          e.params?.missingProperty === "spatial_coverage")
-      ) {
-        return {
-          ...e,
-          property: ".spatial_coverage",
-          message: "Spatial Coverage is required"
-        };
-      }
-      return e;
-    });
 
   const customValidate = (data: any, errors: any) => {
     // Validate vertical coverage depths
