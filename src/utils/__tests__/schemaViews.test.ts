@@ -27,11 +27,11 @@ describe('Schema Views', () => {
     });
 
     it('should have Container definition in $defs', () => {
-      const schema = getBaseSchema();
+      const schema = getBaseSchema() as any;
 
-      expect(schema.$defs.Container).toBeDefined();
-      expect(schema.$defs.Project).toBeDefined();
-      expect(schema.$defs.Experiment).toBeDefined();
+      expect(schema.$defs?.Container).toBeDefined();
+      expect(schema.$defs?.Project).toBeDefined();
+      expect(schema.$defs?.Experiment).toBeDefined();
     });
   });
 
@@ -61,10 +61,10 @@ describe('Schema Views', () => {
     });
 
     it('should have required project fields', () => {
-      const schema = getProjectSchema();
+      const schema = getProjectSchema() as any;
 
-      expect(schema.properties.project_id).toBeDefined();
-      expect(schema.properties.project_description).toBeDefined();
+      expect(schema.properties?.project_id).toBeDefined();
+      expect(schema.properties?.project_description).toBeDefined();
       expect(schema.properties.mcdr_pathway).toBeDefined();
       expect(schema.properties.sea_names).toBeDefined();
       expect(schema.properties.spatial_coverage).toBeDefined();
@@ -72,15 +72,15 @@ describe('Schema Views', () => {
     });
 
     it('should preserve all $defs from base schema', () => {
-      const baseSchema = getBaseSchema();
-      const projectSchema = getProjectSchema();
+      const baseSchema = getBaseSchema() as any;
+      const projectSchema = getProjectSchema() as any;
 
       expect(projectSchema.$defs).toBeDefined();
-      expect(Object.keys(projectSchema.$defs).length).toBeGreaterThan(0);
+      expect(Object.keys(projectSchema.$defs || {}).length).toBeGreaterThan(0);
 
       // Should have same definitions as base
-      expect(projectSchema.$defs.SpatialCoverage).toBeDefined();
-      expect(projectSchema.$defs.MCDRPathway).toBeDefined();
+      expect(projectSchema.$defs?.SpatialCoverage).toBeDefined();
+      expect(projectSchema.$defs?.MCDRPathway).toBeDefined();
     });
 
     it('should preserve protocol metadata', () => {
@@ -108,11 +108,11 @@ describe('Schema Views', () => {
     });
 
     it('should have required experiment fields', () => {
-      const schema = getExperimentSchema();
+      const schema = getExperimentSchema() as any;
 
-      expect(schema.properties.experiment_id).toBeDefined();
-      expect(schema.properties.experiment_type).toBeDefined();
-      expect(schema.properties.description).toBeDefined();
+      expect(schema.properties?.experiment_id).toBeDefined();
+      expect(schema.properties?.experiment_type).toBeDefined();
+      expect(schema.properties?.description).toBeDefined();
       expect(schema.properties.investigators).toBeDefined();
     });
 

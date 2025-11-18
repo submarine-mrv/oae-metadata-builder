@@ -7,21 +7,27 @@
  */
 
 import baseSchema from "@/../public/schema.bundled.json";
+import type { RJSFSchema } from "@rjsf/utils";
+
+export interface ProtocolMetadata {
+  version: string;
+  gitHash: string;
+}
 
 /**
  * Gets the base Container schema with all definitions and metadata
  */
-export function getBaseSchema() {
-  return baseSchema;
+export function getBaseSchema(): RJSFSchema {
+  return baseSchema as RJSFSchema;
 }
 
 /**
  * Gets protocol version metadata from the schema
  */
-export function getProtocolMetadata() {
+export function getProtocolMetadata(): ProtocolMetadata {
   return {
-    version: baseSchema["x-protocol-version"] || "",
-    gitHash: baseSchema["x-protocol-git-hash"] || ""
+    version: (baseSchema as Record<string, string>)["x-protocol-version"] || "",
+    gitHash: (baseSchema as Record<string, string>)["x-protocol-git-hash"] || ""
   };
 }
 
@@ -29,7 +35,7 @@ export function getProtocolMetadata() {
  * Creates a schema view by extracting a definition from $defs and
  * making it the root schema while preserving all $defs and metadata
  */
-function createSchemaView(defName: string, schemaId: string) {
+function createSchemaView(defName: string, schemaId: string): RJSFSchema {
   const def = (baseSchema as any).$defs?.[defName];
 
   if (!def) {
@@ -44,40 +50,40 @@ function createSchemaView(defName: string, schemaId: string) {
     properties: def.properties,
     required: def.required,
     additionalProperties: def.additionalProperties
-  };
+  } as RJSFSchema;
 }
 
 /**
  * Gets the Project schema for the project form
  */
-export function getProjectSchema() {
+export function getProjectSchema(): RJSFSchema {
   return createSchemaView("Project", "ProjectSchema");
 }
 
 /**
  * Gets the Experiment schema for the experiment form
  */
-export function getExperimentSchema() {
+export function getExperimentSchema(): RJSFSchema {
   return createSchemaView("Experiment", "ExperimentSchema");
 }
 
 /**
  * Gets the Intervention schema for intervention-type experiments
  */
-export function getInterventionSchema() {
+export function getInterventionSchema(): RJSFSchema {
   return createSchemaView("Intervention", "InterventionSchema");
 }
 
 /**
  * Gets the Tracer schema for tracer-type experiments
  */
-export function getTracerSchema() {
+export function getTracerSchema(): RJSFSchema {
   return createSchemaView("Tracer", "TracerSchema");
 }
 
 /**
  * Gets the InterventionWithTracer schema
  */
-export function getInterventionWithTracerSchema() {
+export function getInterventionWithTracerSchema(): RJSFSchema {
   return createSchemaView("InterventionWithTracer", "InterventionWithTracerSchema");
 }
