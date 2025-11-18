@@ -1,5 +1,7 @@
 "use client";
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+
+const AUTOSAVE_KEY = "oae-metadata-autosave";
 
 export interface ExperimentData {
   id: number; // Internal integer ID for tracking
@@ -19,6 +21,15 @@ export interface AppState {
   triggerValidation: boolean; // Flag to trigger form validation
 }
 
+interface SavedSession {
+  projectData: any;
+  experiments: ExperimentData[];
+  nextExperimentId: number;
+  savedAt: number;
+  projectName: string;
+  experimentNames: string[];
+}
+
 interface AppStateContextType {
   state: AppState;
   updateProjectData: (data: any) => void;
@@ -32,6 +43,11 @@ interface AppStateContextType {
   getExperimentCompletionPercentage: (id: number) => number;
   importAllData: (projectData: any, experiments: ExperimentData[]) => void;
   setTriggerValidation: (trigger: boolean) => void;
+  getSavedSession: () => SavedSession | null;
+  restoreSession: () => void;
+  clearSavedSession: () => void;
+  shouldShowRestoreModal: boolean;
+  dismissRestoreModal: () => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -47,6 +63,61 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     nextExperimentId: 1,
     triggerValidation: false
   });
+
+  const [shouldShowRestoreModal, setShouldShowRestoreModal] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Check for saved session on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedData = localStorage.getItem(AUTOSAVE_KEY);
+    if (savedData) {
+      try {
+        const session: SavedSession = JSON.parse(savedData);
+        // Only show restore modal if there's meaningful data
+        const hasProjectData = session.projectData && Object.keys(session.projectData).length > 1; // More than just empty project_id
+        const hasExperiments = session.experiments && session.experiments.length > 0;
+
+        if (hasProjectData || hasExperiments) {
+          setShouldShowRestoreModal(true);
+        }
+      } catch (error) {
+        console.error("Failed to parse saved session:", error);
+        localStorage.removeItem(AUTOSAVE_KEY);
+      }
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // Auto-save state changes (but not on initial render)
+  useEffect(() => {
+    if (!isInitialized) return;
+    if (typeof window === "undefined") return;
+
+    // Don't auto-save if state is empty/default
+    const hasProjectData = state.projectData && Object.keys(state.projectData).length > 1;
+    const hasExperiments = state.experiments.length > 0;
+
+    if (!hasProjectData && !hasExperiments) {
+      return;
+    }
+
+    const session: SavedSession = {
+      projectData: state.projectData,
+      experiments: state.experiments,
+      nextExperimentId: state.nextExperimentId,
+      savedAt: Date.now(),
+      projectName: state.projectData?.project_id || "",
+      experimentNames: state.experiments.map(exp => exp.name)
+    };
+
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(session));
+    } catch (error) {
+      console.error("Failed to save session:", error);
+    }
+  }, [state.projectData, state.experiments, state.nextExperimentId, isInitialized]);
 
   const updateProjectData = useCallback((data: any) => {
     setState((prev) => ({
@@ -234,6 +305,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         nextExperimentId: nextId + experiments.length,
         triggerValidation: false
       });
+
+      // Clear saved session when importing new data
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(AUTOSAVE_KEY);
+      }
+      setShouldShowRestoreModal(false);
     },
     [state.nextExperimentId]
   );
@@ -244,6 +321,47 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       triggerValidation: trigger
     }));
   }, []);
+
+  const getSavedSession = useCallback((): SavedSession | null => {
+    if (typeof window === "undefined") return null;
+
+    const savedData = localStorage.getItem(AUTOSAVE_KEY);
+    if (!savedData) return null;
+
+    try {
+      return JSON.parse(savedData);
+    } catch (error) {
+      console.error("Failed to parse saved session:", error);
+      return null;
+    }
+  }, []);
+
+  const restoreSession = useCallback(() => {
+    const session = getSavedSession();
+    if (!session) return;
+
+    setState({
+      projectData: session.projectData,
+      experiments: session.experiments,
+      activeTab: "overview",
+      activeExperimentId: null,
+      nextExperimentId: session.nextExperimentId,
+      triggerValidation: false
+    });
+
+    setShouldShowRestoreModal(false);
+  }, [getSavedSession]);
+
+  const clearSavedSession = useCallback(() => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(AUTOSAVE_KEY);
+    setShouldShowRestoreModal(false);
+  }, []);
+
+  const dismissRestoreModal = useCallback(() => {
+    setShouldShowRestoreModal(false);
+    clearSavedSession();
+  }, [clearSavedSession]);
 
   const value: AppStateContextType = {
     state,
@@ -257,7 +375,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
     importAllData,
-    setTriggerValidation
+    setTriggerValidation,
+    getSavedSession,
+    restoreSession,
+    clearSavedSession,
+    shouldShowRestoreModal,
+    dismissRestoreModal
   };
 
   return (
