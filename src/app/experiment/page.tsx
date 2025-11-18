@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Container,
@@ -76,6 +76,7 @@ export default function ExperimentPage() {
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const formRef = useRef<any>(null);
 
   const activeExperimentId = state.activeExperimentId;
 
@@ -115,12 +116,9 @@ export default function ExperimentPage() {
   // Trigger form submission when forceValidation is true
   useEffect(() => {
     if (forceValidation) {
-      // Find and click the submit button
-      const submitButton = document.querySelector(
-        'button[type="submit"]'
-      ) as HTMLButtonElement;
-      if (submitButton) {
-        submitButton.click();
+      // Trigger form submission using RJSF Form's submit method
+      if (formRef.current?.submit) {
+        formRef.current.submit();
       }
       setForceValidation(false);
     }
@@ -306,6 +304,7 @@ export default function ExperimentPage() {
             </Stack>
 
             <Form
+              ref={formRef}
               schema={activeSchema}
               uiSchema={activeUiSchema}
               formData={formData}
