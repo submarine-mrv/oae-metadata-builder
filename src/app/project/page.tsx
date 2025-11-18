@@ -36,6 +36,7 @@ import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import { useResizer } from "@/hooks/useResizer";
 import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -56,8 +57,11 @@ export default function ProjectPage() {
     useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
   const [showJsonPreview, setShowJsonPreview] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
+  const { width: sidebarWidth, isResizing, setIsResizing } = useResizer({
+    minWidth: 300,
+    maxWidth: 800,
+    initialWidth: 500
+  });
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
 
@@ -105,28 +109,6 @@ export default function ProjectPage() {
     }
   }, [forceValidation]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
 
   const transformErrors = (errors: any[]) =>
     errors.map((e) => {

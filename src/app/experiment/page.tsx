@@ -37,6 +37,7 @@ import Navigation from "@/components/Navigation";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import { useResizer } from "@/hooks/useResizer";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -71,8 +72,11 @@ export default function ExperimentPage() {
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
   const [showJsonPreview, setShowJsonPreview] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
+  const { width: sidebarWidth, isResizing, setIsResizing } = useResizer({
+    minWidth: 300,
+    maxWidth: 800,
+    initialWidth: 500
+  });
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -161,28 +165,6 @@ export default function ExperimentPage() {
     }
   }, [formData.experiment_type]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
 
   const handleFormChange = useCallback(
     (e: any) => {
