@@ -12,7 +12,7 @@
  * - Maintains proper focus, blur, and change event handling
  */
 
-import React, { useCallback, FocusEvent, useState } from 'react';
+import React, { FocusEvent, useState } from 'react';
 import { TextInput, NumberInput, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
@@ -53,41 +53,29 @@ export default function BaseInputWidget<
   // Simple check: use NumberInput for number/integer schema types
   const isNumberType = schema.type === 'number' || schema.type === 'integer';
 
-  const handleNumberChange = useCallback(
-    (value: number | string) => {
-      if (onChange) {
-        onChange(value);
-      }
-    },
-    [onChange]
-  );
+  const handleNumberChange = (value: number | string) => {
+    if (onChange) {
+      onChange(value);
+    }
+  };
 
-  const handleTextChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (onChange) {
-        onChange(event.target.value === '' ? undefined : event.target.value);
-      }
-    },
-    [onChange]
-  );
+  const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (onChange) {
+      onChange(event.target.value === '' ? undefined : event.target.value);
+    }
+  };
 
-  const handleBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      if (onBlur) {
-        onBlur(id, event.target.value);
-      }
-    },
-    [onBlur, id]
-  );
+  const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
+    if (onBlur) {
+      onBlur(id, event.target.value);
+    }
+  };
 
-  const handleFocus = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      if (onFocus) {
-        onFocus(id, event.target.value);
-      }
-    },
-    [onFocus, id]
-  );
+  const handleFocus = (event: FocusEvent<HTMLInputElement>) => {
+    if (onFocus) {
+      onFocus(id, event.target.value);
+    }
+  };
 
   const renderLabel = () => {
     if (hideLabel) return undefined;

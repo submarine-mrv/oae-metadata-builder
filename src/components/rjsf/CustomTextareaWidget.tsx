@@ -1,4 +1,4 @@
-import React, { useCallback, FocusEvent, useState } from 'react';
+import React, { FocusEvent, useState } from 'react';
 import { Textarea, Group, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
@@ -39,32 +39,23 @@ export default function CustomTextareaWidget<
   const [modalOpened, setModalOpened] = useState(false);
   const rows = options?.rows || 4;
 
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      if (onChange) {
-        onChange(event.target.value === '' ? undefined : event.target.value);
-      }
-    },
-    [onChange]
-  );
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (onChange) {
+      onChange(event.target.value === '' ? undefined : event.target.value);
+    }
+  };
 
-  const handleBlur = useCallback(
-    (event: FocusEvent<HTMLTextAreaElement>) => {
-      if (onBlur) {
-        onBlur(id, event.target.value);
-      }
-    },
-    [onBlur, id]
-  );
+  const handleBlur = (event: FocusEvent<HTMLTextAreaElement>) => {
+    if (onBlur) {
+      onBlur(id, event.target.value);
+    }
+  };
 
-  const handleFocus = useCallback(
-    (event: FocusEvent<HTMLTextAreaElement>) => {
-      if (onFocus) {
-        onFocus(id, event.target.value);
-      }
-    },
-    [onFocus, id]
-  );
+  const handleFocus = (event: FocusEvent<HTMLTextAreaElement>) => {
+    if (onFocus) {
+      onFocus(id, event.target.value);
+    }
+  };
 
   const renderLabel = () => {
     if (hideLabel) return undefined;
