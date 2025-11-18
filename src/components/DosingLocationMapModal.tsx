@@ -13,6 +13,8 @@ import {
   Select
 } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
+import { useMapLibreGL } from "@/hooks/useMapLibreGL";
+import { DEFAULT_MAP_CENTER } from "@/config/maps";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -34,12 +36,16 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
   onChange
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const lineLayerIdRef = useRef<string | null>(null);
   const startPointRef = useRef<{ lng: number; lat: number } | null>(null);
 
-  const [mapLoaded, setMapLoaded] = useState(false);
+  // Use the MapLibre hook for map initialization
+  const { mapInstance, isLoaded: mapLoaded } = useMapLibreGL(mapRef, {
+    center: DEFAULT_MAP_CENTER,
+    zoom: 2,
+    interactive: true
+  }, isOpen);
   const [isSelecting, setIsSelecting] = useState(false);
   const [localMode, setLocalMode] = useState<DosingMode | null>(mode);
 
@@ -127,8 +133,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
   // Clear line layer helper
   const clearLineLayer = () => {
-    if (lineLayerIdRef.current && mapInstanceRef.current) {
-      const map = mapInstanceRef.current;
+    if (lineLayerIdRef.current && mapInstance) {
+      const map = mapInstance;
       if (map.getLayer(lineLayerIdRef.current)) {
         map.removeLayer(lineLayerIdRef.current);
       }
@@ -190,17 +196,17 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         typeof newLon1 === "number" &&
         typeof newLat2 === "number" &&
         typeof newLon2 === "number" &&
-        mapInstanceRef.current &&
+        mapInstance &&
         mapLoaded
       ) {
-        addLine(mapInstanceRef.current, newLat1, newLon1, newLat2, newLon2);
+        addLine(mapInstance, newLat1, newLon1, newLat2, newLon2);
 
         // Fit bounds to line
         const bounds = new window.maplibregl.LngLatBounds(
           [newLon1, newLat1],
           [newLon2, newLat2]
         );
-        mapInstanceRef.current.fitBounds(bounds, {
+        mapInstance.fitBounds(bounds, {
           padding: 50,
           duration: 500
         });
@@ -211,8 +217,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
   // Start draw line selection mode (for line mode)
   const startLineSelection = useCallback(() => {
-    if (!mapInstanceRef.current) return;
-    const map = mapInstanceRef.current;
+    if (!mapInstance) return;
+    const map = mapInstance;
 
     setIsSelecting(true);
     startPointRef.current = null;
@@ -323,17 +329,17 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         typeof newSouth === "number" &&
         typeof newEast === "number" &&
         typeof newNorth === "number" &&
-        mapInstanceRef.current &&
+        mapInstance &&
         mapLoaded
       ) {
         addBoundingBox(
-          mapInstanceRef.current,
+          mapInstance,
           newWest,
           newSouth,
           newEast,
           newNorth
         );
-        mapInstanceRef.current.fitBounds(
+        mapInstance.fitBounds(
           [
             [newWest, newSouth],
             [newEast, newNorth]
@@ -355,7 +361,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       if (
         typeof newLat === "number" &&
         typeof newLon === "number" &&
-        mapInstanceRef.current &&
+        mapInstance &&
         mapLoaded
       ) {
         // Clear existing markers
@@ -365,11 +371,11 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         // Add new marker
         const marker = new window.maplibregl.Marker({ color: "#228be6" })
           .setLngLat([newLon, newLat])
-          .addTo(mapInstanceRef.current);
+          .addTo(mapInstance);
         markersRef.current.push(marker);
 
         // Fly to the point
-        mapInstanceRef.current.flyTo({
+        mapInstance.flyTo({
           center: [newLon, newLat],
           zoom: 8,
           duration: 500
@@ -381,8 +387,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
   // Start draw selection mode (for box mode)
   const startSelection = useCallback(() => {
-    if (!mapInstanceRef.current) return;
-    const map = mapInstanceRef.current;
+    if (!mapInstance) return;
+    const map = mapInstance;
 
     setIsSelecting(true);
     startPointRef.current = null;
@@ -431,131 +437,79 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     map.on("click", onMapClick);
   }, [addBoundingBox]);
 
-  // Initialize map function
-  const initializeMap = useCallback(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
-
-    const map = new window.maplibregl.Map({
-      container: mapRef.current,
-      style: "https://tiles.openfreemap.org/styles/positron",
-      center: [-123.0, 47.5],
-      zoom: 2
-    });
-
-    mapInstanceRef.current = map;
-
-    map.on("load", () => {
-      setMapLoaded(true);
-
-      // Load existing box data if in box mode
-      if (localMode === "box" && geoData?.box) {
-        const parts = geoData.box.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [w, s, e, n] = parts;
-          addBoundingBox(map, w, s, e, n);
-          map.fitBounds(
-            [
-              [w, s],
-              [e, n]
-            ],
-            { padding: 50 }
-          );
-        }
-      }
-
-      // Load existing line data if in line mode
-      if (localMode === "line" && geoData?.line) {
-        const parts = geoData.line.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [lat1, lon1, lat2, lon2] = parts;
-          addLine(map, lat1, lon1, lat2, lon2);
-          const bounds = new window.maplibregl.LngLatBounds(
-            [lon1, lat1],
-            [lon2, lat2]
-          );
-          map.fitBounds(bounds, { padding: 50 });
-        }
-      }
-
-      // Load existing point data if in point mode
-      if (localMode === "point" && geoData?.latitude !== undefined && geoData?.longitude !== undefined) {
-        const lat = geoData.latitude;
-        const lon = geoData.longitude;
-        const marker = new window.maplibregl.Marker({ color: "#228be6" })
-          .setLngLat([lon, lat])
-          .addTo(map);
-        markersRef.current.push(marker);
-        map.flyTo({ center: [lon, lat], zoom: 8, duration: 0 });
-      }
-
-      // Add click handler for point mode only
-      if (localMode === "point") {
-        map.on("click", (e: any) => {
-          const { lng, lat } = e.lngLat;
-          setPointLat(lat);
-          setPointLon(lng);
-        });
-      }
-    });
-  }, [localMode, geoData, addBoundingBox, addLine]);
-
-  // Load MapLibre and initialize map when modal opens
+  // Load existing data when map is ready
   useEffect(() => {
-    if (!isOpen) return;
+    if (!mapInstance || !mapLoaded) return;
 
-    const loadAndInitialize = async () => {
-      // Load MapLibre if not already loaded
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href =
-            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
-        }
-
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
+    // Load existing box data if in box mode
+    if (localMode === "box" && geoData?.box) {
+      const parts = geoData.box.trim().split(/\s+/).map(Number);
+      if (parts.length === 4) {
+        const [w, s, e, n] = parts;
+        addBoundingBox(mapInstance, w, s, e, n);
+        mapInstance.fitBounds(
+          [
+            [w, s],
+            [e, n]
+          ],
+          { padding: 50 }
+        );
       }
+    }
 
-      // Wait for next tick to ensure DOM is ready
-      requestAnimationFrame(() => {
-        if (mapRef.current && !mapInstanceRef.current) {
-          initializeMap();
-        }
-      });
-    };
-
-    loadAndInitialize();
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+    // Load existing line data if in line mode
+    if (localMode === "line" && geoData?.line) {
+      const parts = geoData.line.trim().split(/\s+/).map(Number);
+      if (parts.length === 4) {
+        const [lat1, lon1, lat2, lon2] = parts;
+        addLine(mapInstance, lat1, lon1, lat2, lon2);
+        const bounds = new window.maplibregl.LngLatBounds(
+          [lon1, lat1],
+          [lon2, lat2]
+        );
+        mapInstance.fitBounds(bounds, { padding: 50 });
       }
-    };
-  }, [isOpen, initializeMap]);
+    }
+
+    // Load existing point data if in point mode
+    if (localMode === "point" && geoData?.latitude !== undefined && geoData?.longitude !== undefined) {
+      const lat = geoData.latitude;
+      const lon = geoData.longitude;
+      const marker = new window.maplibregl.Marker({ color: "#228be6" })
+        .setLngLat([lon, lat])
+        .addTo(mapInstance);
+      markersRef.current.push(marker);
+      mapInstance.flyTo({ center: [lon, lat], zoom: 8, duration: 0 });
+    }
+
+    // Add click handler for point mode only
+    if (localMode === "point") {
+      const handleClick = (e: any) => {
+        const { lng, lat } = e.lngLat;
+        setPointLat(lat);
+        setPointLon(lng);
+      };
+      mapInstance.on("click", handleClick);
+
+      return () => {
+        mapInstance.off("click", handleClick);
+      };
+    }
+  }, [mapInstance, mapLoaded, localMode, geoData, addBoundingBox, addLine]);
 
   // Update markers for point mode
   useEffect(() => {
-    if (!mapInstanceRef.current || localMode !== "point") return;
+    if (!mapInstance || localMode !== "point") return;
 
     clearMarkers();
 
     if (typeof pointLat === "number" && typeof pointLon === "number") {
       const marker = new window.maplibregl.Marker({ color: "#228be6" })
         .setLngLat([pointLon, pointLat])
-        .addTo(mapInstanceRef.current);
+        .addTo(mapInstance);
       markersRef.current.push(marker);
 
-      mapInstanceRef.current.flyTo({ center: [pointLon, pointLat], zoom: 8 });
+      mapInstance.flyTo({ center: [pointLon, pointLat], zoom: 8 });
     }
   }, [pointLat, pointLon, localMode]);
 
@@ -581,10 +535,10 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
     // Clear bounding box visualization
     if (
-      mapInstanceRef.current &&
-      mapInstanceRef.current.getSource("dosing-bbox")
+      mapInstance &&
+      mapInstance.getSource("dosing-bbox")
     ) {
-      const map = mapInstanceRef.current;
+      const map = mapInstance;
       if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
       if (map.getLayer("dosing-bbox-outline"))
         map.removeLayer("dosing-bbox-outline");

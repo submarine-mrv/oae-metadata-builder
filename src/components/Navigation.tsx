@@ -15,20 +15,14 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
 import { exportMetadata, importMetadata } from "@/utils/exportImport";
 import { validateAllData } from "@/utils/validation";
+import { useTabNavigation } from "@/hooks/useTabNavigation";
 
 export default function Navigation() {
-  const { state, setActiveTab, setActiveExperiment, importAllData, setTriggerValidation } =
+  const { state, importAllData, setTriggerValidation } =
     useAppState();
   const router = useRouter();
+  const { navigateToTab, navigateToOverview, navigateToProject, navigateToExperiment } = useTabNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleNavigation = (
-    tab: "overview" | "project" | "experiment",
-    path: string
-  ) => {
-    setActiveTab(tab);
-    router.push(path);
-  };
 
   const handleExport = async () => {
     // Validate all data before exporting
@@ -73,7 +67,7 @@ export default function Navigation() {
 
       // Navigate to the first page with errors
       if (!validation.projectValidation.isValid) {
-        router.push("/project");
+        navigateToProject();
         // Set trigger after navigation starts
         setTimeout(() => setTriggerValidation(true), 50);
       } else if (invalidExperiments.length > 0) {
@@ -83,9 +77,7 @@ export default function Navigation() {
           (exp) => exp.id === experimentId
         );
         if (experiment) {
-          setActiveExperiment(experimentId);
-          setActiveTab("experiment");
-          router.push("/experiment");
+          navigateToExperiment(experimentId);
           // Set trigger after navigation starts
           setTimeout(() => setTriggerValidation(true), 50);
         }
@@ -137,7 +129,7 @@ export default function Navigation() {
         <Button
           variant={state.activeTab === "overview" ? "filled" : "subtle"}
           leftSection={<IconHome size={16} />}
-          onClick={() => handleNavigation("overview", "/")}
+          onClick={() => navigateToOverview()}
         >
           Home
         </Button>
@@ -145,7 +137,7 @@ export default function Navigation() {
         <Button
           variant={state.activeTab === "project" ? "filled" : "subtle"}
           leftSection={<IconFolder size={16} />}
-          onClick={() => handleNavigation("project", "/project")}
+          onClick={() => navigateToProject()}
         >
           Project
         </Button>
@@ -153,7 +145,7 @@ export default function Navigation() {
         <Button
           variant={state.activeTab === "experiment" ? "filled" : "subtle"}
           leftSection={<IconFlask size={16} />}
-          onClick={() => handleNavigation("experiment", "/experiment")}
+          onClick={() => navigateToExperiment()}
         >
           Experiments
         </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { FieldProps } from "@rjsf/utils";
 import {
   Box,
@@ -13,6 +13,8 @@ import {
 } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";
 import DosingLocationMapModal from "./DosingLocationMapModal";
+import { useMapLibreGL } from "@/hooks/useMapLibreGL";
+import { DEFAULT_MAP_CENTER } from "@/config/maps";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -72,10 +74,15 @@ const DosingLocationWidget: React.FC<FieldProps> = (props) => {
     inferMode(formData)
   );
   const [showMapModal, setShowMapModal] = useState(false);
-  const [miniMapLoaded, setMiniMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+
+  // Use the MapLibre hook for map initialization
+  const { mapInstance, isLoaded: miniMapLoaded } = useMapLibreGL(mapRef, {
+    center: DEFAULT_MAP_CENTER,
+    zoom: 2,
+    interactive: false
+  }, true);
 
   // Update selected mode when formData changes externally
   useEffect(() => {
@@ -147,71 +154,10 @@ const DosingLocationWidget: React.FC<FieldProps> = (props) => {
     }
   };
 
-  // Initialize mini map preview
-  const initializeMiniMap = useCallback(() => {
-    if (!mapRef.current || miniMapLoaded) return;
-
-    try {
-      const map = new window.maplibregl.Map({
-        container: mapRef.current,
-        style: "https://tiles.openfreemap.org/styles/positron",
-        center: [-123.0, 47.5],
-        zoom: 2,
-        interactive: false,
-        attributionControl: false
-      });
-
-      mapInstanceRef.current = map;
-
-      map.on("load", () => {
-        setMiniMapLoaded(true);
-      });
-    } catch (error) {
-      console.error("Error initializing mini map:", error);
-    }
-  }, [miniMapLoaded]);
-
-  useEffect(() => {
-    // Always load the map preview
-    if (typeof window === "undefined" || miniMapLoaded) return;
-
-    const loadAndInitialize = async () => {
-      // Load MapLibre if not already loaded
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href =
-            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
-        }
-
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
-      }
-
-      // Wait for next tick to ensure DOM is ready
-      requestAnimationFrame(() => {
-        if (mapRef.current && !miniMapLoaded) {
-          initializeMiniMap();
-        }
-      });
-    };
-
-    loadAndInitialize();
-  }, [initializeMiniMap, miniMapLoaded]);
-
   // Update mini map visualization when formData changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !miniMapLoaded || !selectedMode) return;
-    const map = mapInstanceRef.current;
+    if (!mapInstance || !miniMapLoaded || !selectedMode) return;
+    const map = mapInstance;
 
     // Clear existing visualizations
     if (markerRef.current) {

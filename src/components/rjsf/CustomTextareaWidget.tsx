@@ -1,4 +1,4 @@
-import React, { useCallback, FocusEvent, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Textarea, Group, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
@@ -9,6 +9,7 @@ import {
   StrictRJSFSchema,
   WidgetProps,
 } from '@rjsf/utils';
+import { useInputHandlers } from '@/hooks/useInputHandlers';
 
 export default function CustomTextareaWidget<
   T = any,
@@ -48,23 +49,7 @@ export default function CustomTextareaWidget<
     [onChange]
   );
 
-  const handleBlur = useCallback(
-    (event: FocusEvent<HTMLTextAreaElement>) => {
-      if (onBlur) {
-        onBlur(id, event.target.value);
-      }
-    },
-    [onBlur, id]
-  );
-
-  const handleFocus = useCallback(
-    (event: FocusEvent<HTMLTextAreaElement>) => {
-      if (onFocus) {
-        onFocus(id, event.target.value);
-      }
-    },
-    [onFocus, id]
-  );
+  const { handleBlur, handleFocus } = useInputHandlers(id, onBlur, onFocus);
 
   const renderLabel = () => {
     if (hideLabel) return undefined;

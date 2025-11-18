@@ -1,4 +1,4 @@
-import React, { useCallback, FocusEvent, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { TextInput, Group, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
@@ -9,6 +9,7 @@ import {
   StrictRJSFSchema,
   WidgetProps,
 } from '@rjsf/utils';
+import { useInputHandlers } from '@/hooks/useInputHandlers';
 
 export default function CustomTextInputWidget<
   T = any,
@@ -46,23 +47,7 @@ export default function CustomTextInputWidget<
     [onChange]
   );
 
-  const handleBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      if (onBlur) {
-        onBlur(id, event.target.value);
-      }
-    },
-    [onBlur, id]
-  );
-
-  const handleFocus = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      if (onFocus) {
-        onFocus(id, event.target.value);
-      }
-    },
-    [onFocus, id]
-  );
+  const { handleBlur, handleFocus } = useInputHandlers(id, onBlur, onFocus);
 
   const renderLabel = () => {
     if (hideLabel) return undefined;
