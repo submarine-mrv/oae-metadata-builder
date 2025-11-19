@@ -2,19 +2,7 @@ import React from "react";
 import { Popover, ActionIcon } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
 import { IconCalendar } from "@tabler/icons-react";
-import dayjs from "dayjs";
-
-const parseToDate = (dateStr: string): Date | null => {
-  if (!dateStr) return null;
-  // Use dayjs without strict parsing to be more flexible
-  const d = dayjs(dateStr);
-  return d.isValid() ? d.toDate() : null;
-};
-
-const formatFromDate = (date: Date | null): string => {
-  if (!date) return "";
-  return dayjs(date).format("YYYY-MM-DD");
-};
+import { parseToDate, formatFromDate } from "@/utils/dateUtils";
 
 interface DatePickerPopoverProps {
   opened: boolean;

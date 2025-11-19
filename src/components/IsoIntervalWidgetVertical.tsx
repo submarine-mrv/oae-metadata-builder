@@ -2,27 +2,8 @@
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";
 import { TextInput, Stack } from "@mantine/core";
-import dayjs from "dayjs";
 import DatePickerPopover from "./DatePickerPopover";
-
-function parseInterval(v?: string | null): { start: string; end: string } {
-  if (!v || typeof v !== "string") return { start: "", end: "" };
-  const [start, end] = v.split("/");
-  return {
-    start: start || "",
-    end: end && end !== ".." ? end : ""
-  };
-}
-function buildInterval(start: string, end: string): string | undefined {
-  if (!start) return undefined;
-  return `${start}/${end || ".."}`;
-}
-
-const validateDate = (input: string) => {
-  if (!input) return true; // empty is valid
-  const d = dayjs(input, "YYYY-MM-DD", true);
-  return d.isValid();
-};
+import { parseInterval, buildInterval, validateDate } from "@/utils/dateUtils";
 
 const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
   id,

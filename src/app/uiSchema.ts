@@ -1,57 +1,14 @@
 // uiSchema.ts
 
-// Grid style does not actually work as intenteded with "addable" fields
-// once you edit an added element in the array, the entire entry collapses
-// so we are not using this for now.
-//
-// const uiSchemaGrid = {
-//   "ui:field": "LayoutGridField",
-//   "ui:layoutGrid": {
-//     "ui:row": [
-//       { "ui:row": [{ "ui:col": ["project_id"] }] },
-//       { "ui:row": [{ "ui:col": ["sea_names"] }] },
-//       { "ui:row": [{ "ui:col": ["project_description"] }] },
-//       { "ui:row": [{ "ui:col": ["previous_or_ongoing_colocated_research"] }] }
-//     ]
-//   },
-//   project_description: {
-//     "ui:widget": "textarea",
-//     "ui:options": { rows: 6 }
-//   },
-
-//   previous_or_ongoing_colocated_research: {
-//     "ui:options": {
-//       addable: true,
-//       orderable: false
-//     },
-//     items: {
-//       "ui:field": "ExternalProjectField"
-//     }
-//   }
-// };
-
 // Generate formatted enum names from schema
 import schema from "../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
+import { textAreaWidget, nestedItemStyle } from "./experiment/uiSchemaConstants";
 
 const enumNames = generateEnumNames(schema, ["MCDRPathway"]);
 
-const nestedItemStyle = {
-  border: "1px solid #ccc",
-  borderRadius: "5px",
-  padding: "16px",
-  margin: "8px 0",
-  background: "#f9f9f9"
-};
-
-const textAreaWidget = {
-  "ui:widget": "textarea",
-  "ui:options": { rows: 5 },
-  "ui:descriptionModal": true
-};
-
-// // Old style ordering and UI customizations for react-jsonschema-form
-const uiSchemaOld = {
+// UI schema configuration for project form
+const projectUiSchema = {
   "ui:title": "",
   "ui:options": {
     expandable: false
@@ -171,4 +128,4 @@ const uiSchemaOld = {
   }
 };
 
-export default uiSchemaOld;
+export default projectUiSchema;
