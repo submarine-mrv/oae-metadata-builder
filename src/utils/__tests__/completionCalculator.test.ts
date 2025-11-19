@@ -157,15 +157,18 @@ describe("completionCalculator", () => {
       expect(result).toBeLessThan(10); // Very low completion
     });
 
-    it("should count numbers as filled", () => {
+    it("should count numbers as filled and use base fields when no type specified", () => {
       const data = {
-        some_number: 42,
-        another_number: 0, // Zero should count
+        experiment_id: "test-123",
+        experiment_type: "baseline",
+        description: "Test experiment",
+        vertical_coverage: { min_depth_in_m: 0 }, // Number zero should count
         empty_string: ""
       };
 
       const result = calculateFormCompletion(data);
-      expect(result).toBeGreaterThan(50); // 2 out of 3 fields filled
+      // 4 out of 8 base fields filled (experiment_id, experiment_type, description, vertical_coverage)
+      expect(result).toBe(50);
     });
   });
 });

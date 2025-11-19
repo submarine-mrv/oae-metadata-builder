@@ -84,9 +84,7 @@ export function calculateFormCompletion(
 ): number {
   if (!formData || Object.keys(formData).length === 0) return 0;
 
-  const requiredFields = experimentType
-    ? getRequiredFieldsForType(experimentType)
-    : Object.keys(formData);
+  const requiredFields = getRequiredFieldsForType(experimentType);
 
   let filledFields = 0;
 
