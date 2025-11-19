@@ -212,46 +212,6 @@ export default function ExperimentPage() {
     [isInitialLoad, formData, activeExperimentId, updateExperiment]
   );
 
-<<<<<<< HEAD
-  const downloadJsonFile = (data: any) => {
-    // Don't download if this submit was triggered just to show validation errors
-    if (skipDownload) {
-      setSkipDownload(false); // Reset flag
-      return;
-    }
-
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `experiment-${activeExperimentId || "metadata"}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-=======
-  const transformErrors = (errors: any[]) =>
-    errors.map((e) => {
-      if (
-        (e.property === ".spatial_coverage.geo.box" && e.name === "required") ||
-        (e.property === ".spatial_coverage.geo" && e.name === "required") ||
-        (e.property === ".spatial_coverage" && e.name === "required") ||
-        (e.property === "." &&
-          e.name === "required" &&
-          e.params?.missingProperty === "spatial_coverage")
-      ) {
-        return {
-          ...e,
-          property: ".spatial_coverage",
-          message: "Spatial Coverage is required"
-        };
-      }
-      return e;
-    });
->>>>>>> origin/main
-
   const customValidate = (data: any, errors: any) => {
     // Validate vertical coverage depths
     const vc = data?.vertical_coverage;
