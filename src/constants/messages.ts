@@ -1,11 +1,6 @@
 // messages.ts - Centralized user-facing messages and text constants
 
 export const MESSAGES = {
-  form: {
-    noExperiments:
-      "No experiments yet. Create your first experiment to get started.",
-    experimentCreatedDefault: (id: number) => `Experiment ${id}`
-  },
   validation: {
     isoInterval:
       "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/..",

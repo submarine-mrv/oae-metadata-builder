@@ -290,7 +290,7 @@ export default function ExperimentPage() {
               onSubmit={({ formData }) => downloadJsonFile(formData)}
               validator={validator}
               customValidate={customValidate}
-              transformErrors={transformErrors}
+              transformErrors={transformFormErrors}
               omitExtraData={false}
               liveOmit={false}
               experimental_defaultFormStateBehavior={{
