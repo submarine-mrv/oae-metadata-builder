@@ -1,10 +1,11 @@
 import { renderHook } from "@testing-library/react";
+import { vi } from "vitest";
 import { useInputHandlers } from "../useInputHandlers";
 
 describe("useInputHandlers", () => {
   it("should call onBlur with correct arguments", () => {
-    const onBlur = jest.fn();
-    const onFocus = jest.fn();
+    const onBlur = vi.fn();
+    const onFocus = vi.fn();
     const { result } = renderHook(() => useInputHandlers("test-id", onBlur, onFocus));
 
     const mockEvent = {
@@ -18,8 +19,8 @@ describe("useInputHandlers", () => {
   });
 
   it("should call onFocus with correct arguments", () => {
-    const onBlur = jest.fn();
-    const onFocus = jest.fn();
+    const onBlur = vi.fn();
+    const onFocus = vi.fn();
     const { result } = renderHook(() => useInputHandlers("test-id", onBlur, onFocus));
 
     const mockEvent = {
@@ -53,7 +54,7 @@ describe("useInputHandlers", () => {
   });
 
   it("should work with textarea elements", () => {
-    const onBlur = jest.fn();
+    const onBlur = vi.fn();
     const { result } = renderHook(() => useInputHandlers("test-id", onBlur));
 
     const mockEvent = {

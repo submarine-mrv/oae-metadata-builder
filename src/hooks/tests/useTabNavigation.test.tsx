@@ -1,26 +1,27 @@
 import { renderHook } from "@testing-library/react";
+import { vi, type Mock } from "vitest";
 import { useTabNavigation } from "../useTabNavigation";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 
 // Mock dependencies
-jest.mock("next/navigation", () => ({
-  useRouter: jest.fn()
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn()
 }));
 
-jest.mock("@/contexts/AppStateContext", () => ({
-  useAppState: jest.fn()
+vi.mock("@/contexts/AppStateContext", () => ({
+  useAppState: vi.fn()
 }));
 
 describe("useTabNavigation", () => {
-  const mockPush = jest.fn();
-  const mockSetActiveTab = jest.fn();
-  const mockSetActiveExperiment = jest.fn();
+  const mockPush = vi.fn();
+  const mockSetActiveTab = vi.fn();
+  const mockSetActiveExperiment = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
-    (useAppState as jest.Mock).mockReturnValue({
+    vi.clearAllMocks();
+    (useRouter as Mock).mockReturnValue({ push: mockPush });
+    (useAppState as Mock).mockReturnValue({
       setActiveTab: mockSetActiveTab,
       setActiveExperiment: mockSetActiveExperiment
     });
