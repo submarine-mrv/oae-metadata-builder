@@ -9,7 +9,7 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconCode, IconX } from "@tabler/icons-react";
+import { IconX } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -35,6 +35,7 @@ import Navigation from "@/components/Navigation";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
+import { transformFormErrors } from "@/utils/errorTransformer";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
 import type { SubmitButtonProps } from "@rjsf/utils";
 
@@ -128,32 +129,6 @@ export default function ProjectPage() {
     };
   }, [isResizing]);
 
-  const transformErrors = (errors: any[]) =>
-    errors.map((e) => {
-      if (e.property === ".temporal_coverage" && e.name === "pattern") {
-        return {
-          ...e,
-          message:
-            "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/.."
-        };
-      }
-      if (
-        (e.property === ".spatial_coverage.geo.box" && e.name === "required") ||
-        (e.property === ".spatial_coverage.geo" && e.name === "required") ||
-        (e.property === ".spatial_coverage" && e.name === "required") ||
-        (e.property === "." &&
-          e.name === "required" &&
-          e.params?.missingProperty === "spatial_coverage")
-      ) {
-        return {
-          ...e,
-          property: ".spatial_coverage", // Normalize property to spatial_coverage level
-          message: "Spatial Coverage is required"
-        };
-      }
-      return e;
-    });
-
   const customValidate = (data: any, errors: any) => {
     const t = data?.temporal_coverage as string | undefined;
     if (!t) errors?.temporal_coverage?.addError("Start date is required.");
@@ -210,13 +185,6 @@ export default function ProjectPage() {
             <Stack gap="sm">
               <Group justify="space-between" align="center">
                 <Title order={2}>Project Metadata</Title>
-                {/*<Button*/}
-                {/*  variant={showJsonPreview ? "filled" : "outline"}*/}
-                {/*  leftSection={<IconCode size={16} />}*/}
-                {/*  onClick={() => setShowJsonPreview(!showJsonPreview)}*/}
-                {/*>*/}
-                {/*  JSON Preview*/}
-                {/*</Button>*/}
               </Group>
               <Text c="dimmed">
                 Create standardized metadata for your Ocean Alkalinity
@@ -233,7 +201,7 @@ export default function ProjectPage() {
               onSubmit={handleFormSubmit}
               validator={validator}
               customValidate={customValidate}
-              transformErrors={transformErrors}
+              transformErrors={transformFormErrors}
               omitExtraData={false}
               liveOmit={false}
               experimental_defaultFormStateBehavior={{

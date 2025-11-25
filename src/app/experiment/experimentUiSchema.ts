@@ -1,30 +1,13 @@
 // experimentUiSchema.ts - UI configuration for experiment forms
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
+import { textAreaWidget, nestedItemStyle, halfWidthStyle } from "./uiSchemaConstants";
 
 // Generate formatted enum names from schema
 const enumNames = generateEnumNames(schema, [
   "ExperimentType",
   "ResearcherIDType"
 ]);
-
-const nestedItemStyle = {
-  border: "1px solid #ccc",
-  borderRadius: "5px",
-  padding: "16px",
-  margin: "8px 0",
-  background: "#f9f9f9"
-};
-
-const textAreaWidget = {
-  "ui:widget": "textarea",
-  "ui:options": { rows: 5 },
-  "ui:descriptionModal": true
-};
-
-const halfWidthStyle = {
-  "ui:style": { width: "50%" }
-};
 
 const experimentUiSchema = {
   "ui:title": "",

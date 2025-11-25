@@ -4,6 +4,7 @@
 import experimentUiSchema from "./experimentUiSchema";
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
+import { textAreaWidget, halfWidthStyle } from "./uiSchemaConstants";
 
 // Generate formatted enum names for tracer-specific enums
 const enumNames = generateEnumNames(schema, [
@@ -11,17 +12,6 @@ const enumNames = generateEnumNames(schema, [
   "HydrologicLocation",
   "DosingDeliveryType"
 ]);
-
-const textAreaWidget = {
-  "ui:widget": "textarea",
-  "ui:options": { rows: 5 }
-};
-
-const halfWidthStyle = {
-  "ui:style": {
-    width: "50%"
-  }
-};
 
 // Create tracer uiSchema by inheriting from experiment uiSchema
 const tracerUiSchema = {
