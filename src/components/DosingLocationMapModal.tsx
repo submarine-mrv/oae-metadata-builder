@@ -212,7 +212,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         });
       }
     },
-    [addLine, mapLoaded]
+    [addLine, mapInstance, mapLoaded]
   );
 
   // Start draw line selection mode (for line mode)
@@ -256,7 +256,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     };
 
     map.on("click", onMapClick);
-  }, [addLine]);
+  }, [addLine, clearLineLayer, mapInstance]);
 
   // Add bounding box helper (for box mode)
   const addBoundingBox = useCallback(
@@ -351,7 +351,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         );
       }
     },
-    [addBoundingBox, mapLoaded]
+    [addBoundingBox, mapInstance, mapLoaded]
   );
 
   // Handle manual coordinate input changes (for point mode)
@@ -382,7 +382,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         });
       }
     },
-    [mapLoaded]
+    [mapInstance, mapLoaded]
   );
 
   // Start draw selection mode (for box mode)
@@ -435,7 +435,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     };
 
     map.on("click", onMapClick);
-  }, [addBoundingBox]);
+  }, [addBoundingBox, mapInstance]);
 
   // Load existing data when map is ready
   useEffect(() => {
