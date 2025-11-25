@@ -42,8 +42,6 @@ export default function Navigation() {
         errorMessages.push(
           `Project has ${validation.projectValidation.errorCount} error(s)`
         );
-        // Log project errors for debugging
-        console.log("Project validation errors:", validation.projectValidation.errors);
       }
 
       const invalidExperiments = Array.from(
@@ -54,11 +52,6 @@ export default function Navigation() {
         errorMessages.push(
           `${invalidExperiments.length} experiment(s) have validation errors`
         );
-        // Log experiment errors for debugging
-        invalidExperiments.forEach(([expId, val]) => {
-          const exp = state.experiments.find((e) => e.id === expId);
-          console.log(`Experiment "${exp?.name}" (${exp?.experiment_type}) validation errors:`, val.errors);
-        });
       }
 
       alert(

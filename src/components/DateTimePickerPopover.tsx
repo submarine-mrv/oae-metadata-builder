@@ -5,10 +5,9 @@ import type { DateValue } from "@mantine/dates";
 import { IconCalendar, IconCheck } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import { DATETIME_FORMAT } from "@/utils/dateUtils";
 
 dayjs.extend(utc);
-
-const DATETIME_FORMAT = "YYYY-MM-DD HH:mm:ss";
 
 /**
  * DateTimePickerPopover - Visual date/time picker in a popover
