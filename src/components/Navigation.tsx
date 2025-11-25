@@ -21,7 +21,7 @@ export default function Navigation() {
   const { state, importAllData, setTriggerValidation } =
     useAppState();
   const router = useRouter();
-  const { navigateToTab, navigateToOverview, navigateToProject, navigateToExperiment } = useTabNavigation();
+  const { navigateToOverview, navigateToProject, navigateToExperiment } = useTabNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -29,12 +29,6 @@ export default function Navigation() {
     const validation = validateAllData(state.projectData, state.experiments);
 
     if (!validation.isAllValid) {
-      // Count total errors
-      let totalErrors = validation.projectValidation.errorCount;
-      validation.experimentValidations.forEach((expVal) => {
-        totalErrors += expVal.errorCount;
-      });
-
       // Show alert with error summary
       const errorMessages: string[] = [];
 
@@ -46,7 +40,7 @@ export default function Navigation() {
 
       const invalidExperiments = Array.from(
         validation.experimentValidations.entries()
-      ).filter(([_, val]) => !val.isValid);
+      ).filter(([, val]) => !val.isValid);
 
       if (invalidExperiments.length > 0) {
         errorMessages.push(

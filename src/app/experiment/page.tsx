@@ -10,7 +10,7 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconCode, IconX, IconArrowLeft } from "@tabler/icons-react";
+import { IconX, IconArrowLeft } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";

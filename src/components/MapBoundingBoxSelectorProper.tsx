@@ -7,14 +7,12 @@ import {
   Text,
   Box,
   Stack,
-  Grid,
   NumberInput,
   Group
 } from "@mantine/core";
 import {
   normalizeLongitude,
   adjustEastForAntimeridian,
-  prepareBoundsForRendering,
   DEGREES_IN_CIRCLE,
   isValidLatitude
 } from "@/utils/spatialUtils";
@@ -358,18 +356,12 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   // Reset state when modal closes
   useEffect(() => {
     if (!opened) {
-      // Clean up map instance
-      if (mapInstance) {
-        mapInstance.remove();
-        mapInstance = null;
-      }
-
+      // Map cleanup is handled by the useMapLibreGL hook
       // Reset all state
       setCurrentBounds(initialBounds);
       setIsSelecting(false);
       setStartPoint(null);
       startPointRef.current = null;
-      setMapLoaded(false);
       parseBounds(initialBounds);
     }
   }, [opened, initialBounds, parseBounds]);

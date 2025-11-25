@@ -7,8 +7,6 @@ import {
   Text,
   Tooltip,
   ActionIcon,
-  Select,
-  TextInput,
   Stack
 } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";

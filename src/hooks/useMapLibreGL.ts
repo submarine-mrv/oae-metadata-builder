@@ -21,7 +21,7 @@ interface UseMapLibreGLReturn {
 }
 
 export function useMapLibreGL(
-  containerRef: React.RefObject<HTMLDivElement>,
+  containerRef: React.RefObject<HTMLDivElement | null>,
   config: MapLibreConfig = {},
   shouldLoad: boolean = true
 ): UseMapLibreGLReturn {

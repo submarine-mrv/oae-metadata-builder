@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Textarea, Group, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
+import { Textarea, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
 import {
