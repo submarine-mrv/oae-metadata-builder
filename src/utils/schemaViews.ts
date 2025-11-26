@@ -43,11 +43,7 @@ function createSchemaView(defName: string, schemaId: string) {
     description: def.description,
     properties: def.properties,
     required: def.required,
-    // IMPORTANT: Set additionalProperties to true when allOf exists
-    // This allows conditional fields in allOf blocks to render properly
-    // Without this, RJSF rejects conditional fields since they're not in properties
-    additionalProperties: def.allOf ? true : def.additionalProperties,
-    ...(def.allOf && { allOf: def.allOf })
+    additionalProperties: def.additionalProperties
   };
 }
 
