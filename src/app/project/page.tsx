@@ -37,7 +37,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
-import { useResizer } from "@/hooks/useResizer";
+import { useJsonPreview } from "@/hooks/useJsonPreview";
 import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -57,8 +57,12 @@ export default function ProjectPage() {
   const { state, updateProjectData, setActiveTab, setTriggerValidation } =
     useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
-  const { width: sidebarWidth, isResizing, setIsResizing } = useResizer({
+  const {
+    isVisible: showJsonPreview,
+    hide: hideJsonPreview,
+    width: sidebarWidth,
+    setIsResizing
+  } = useJsonPreview({
     minWidth: 300,
     maxWidth: 800,
     initialWidth: 500
@@ -261,7 +265,7 @@ export default function ProjectPage() {
               <Button
                 variant="subtle"
                 size="xs"
-                onClick={() => setShowJsonPreview(false)}
+                onClick={hideJsonPreview}
               >
                 <IconX size={16} />
               </Button>

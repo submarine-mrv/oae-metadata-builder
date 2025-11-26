@@ -37,7 +37,7 @@ import Navigation from "@/components/Navigation";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
-import { useResizer } from "@/hooks/useResizer";
+import { useJsonPreview } from "@/hooks/useJsonPreview";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -72,8 +72,12 @@ export default function ExperimentPage() {
   const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
-  const { width: sidebarWidth, isResizing, setIsResizing } = useResizer({
+  const {
+    isVisible: showJsonPreview,
+    hide: hideJsonPreview,
+    width: sidebarWidth,
+    setIsResizing
+  } = useJsonPreview({
     minWidth: 300,
     maxWidth: 800,
     initialWidth: 500
@@ -355,7 +359,7 @@ export default function ExperimentPage() {
               <Button
                 variant="subtle"
                 size="xs"
-                onClick={() => setShowJsonPreview(false)}
+                onClick={hideJsonPreview}
               >
                 <IconX size={16} />
               </Button>
