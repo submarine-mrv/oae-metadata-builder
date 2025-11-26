@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef } from "react";
-import { Group, Button, Text, Menu } from "@mantine/core";
+import { Group, Button, Text, Menu, Switch } from "@mantine/core";
 import {
   IconHome,
   IconFlask,
@@ -18,7 +18,7 @@ import { validateAllData } from "@/utils/validation";
 import { useTabNavigation } from "@/hooks/useTabNavigation";
 
 export default function Navigation() {
-  const { state, importAllData, setTriggerValidation } =
+  const { state, importAllData, setTriggerValidation, toggleJsonPreview } =
     useAppState();
   const router = useRouter();
   const { navigateToOverview, navigateToProject, navigateToExperiment } = useTabNavigation();
@@ -181,6 +181,21 @@ export default function Navigation() {
               onClick={() => router.push("/how-to")}
             >
               How-to Guide
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item
+              closeMenuOnClick={false}
+              onClick={(e) => {
+                e.preventDefault();
+                toggleJsonPreview();
+              }}
+            >
+              <Switch
+                label="JSON Preview"
+                checked={state.showJsonPreview}
+                onChange={toggleJsonPreview}
+                onClick={(e) => e.stopPropagation()}
+              />
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>

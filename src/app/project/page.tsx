@@ -54,12 +54,10 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
 );
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab, setTriggerValidation } =
+  const { state, updateProjectData, setActiveTab, setTriggerValidation, setShowJsonPreview } =
     useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
   const {
-    isVisible: showJsonPreview,
-    hide: hideJsonPreview,
     width: sidebarWidth,
     setIsResizing
   } = useJsonPreview({
@@ -67,6 +65,7 @@ export default function ProjectPage() {
     maxWidth: 800,
     initialWidth: 500
   });
+  const showJsonPreview = state.showJsonPreview;
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
 
@@ -265,7 +264,7 @@ export default function ProjectPage() {
               <Button
                 variant="subtle"
                 size="xs"
-                onClick={hideJsonPreview}
+                onClick={() => setShowJsonPreview(false)}
               >
                 <IconX size={16} />
               </Button>

@@ -66,15 +66,13 @@ const ExperimentSubmitButton = (props: SubmitButtonProps) => (
 
 export default function ExperimentPage() {
   const router = useRouter();
-  const { state, updateExperiment, setActiveTab, setTriggerValidation } =
+  const { state, updateExperiment, setActiveTab, setTriggerValidation, setShowJsonPreview } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
   const {
-    isVisible: showJsonPreview,
-    hide: hideJsonPreview,
     width: sidebarWidth,
     setIsResizing
   } = useJsonPreview({
@@ -82,6 +80,7 @@ export default function ExperimentPage() {
     maxWidth: 800,
     initialWidth: 500
   });
+  const showJsonPreview = state.showJsonPreview;
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -359,7 +358,7 @@ export default function ExperimentPage() {
               <Button
                 variant="subtle"
                 size="xs"
-                onClick={hideJsonPreview}
+                onClick={() => setShowJsonPreview(false)}
               >
                 <IconX size={16} />
               </Button>

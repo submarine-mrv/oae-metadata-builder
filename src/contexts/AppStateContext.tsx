@@ -21,6 +21,7 @@ export interface AppState {
   activeExperimentId: number | null; // Changed to number
   nextExperimentId: number; // Auto-incrementing counter
   triggerValidation: boolean; // Flag to trigger form validation
+  showJsonPreview: boolean; // JSON Preview sidebar visibility
 }
 
 interface AppStateContextType {
@@ -36,6 +37,8 @@ interface AppStateContextType {
   getExperimentCompletionPercentage: (id: number) => number;
   importAllData: (projectData: any, experiments: ExperimentData[]) => void;
   setTriggerValidation: (trigger: boolean) => void;
+  toggleJsonPreview: () => void;
+  setShowJsonPreview: (show: boolean) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -49,7 +52,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     activeTab: "overview",
     activeExperimentId: null,
     nextExperimentId: 1,
-    triggerValidation: false
+    triggerValidation: false,
+    showJsonPreview: false
   });
 
   const updateProjectData = useCallback((data: any) => {
@@ -175,7 +179,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         activeTab: "overview",
         activeExperimentId: null,
         nextExperimentId: nextId + experiments.length,
-        triggerValidation: false
+        triggerValidation: false,
+        showJsonPreview: false
       });
     },
     [state.nextExperimentId]
@@ -185,6 +190,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       triggerValidation: trigger
+    }));
+  }, []);
+
+  const toggleJsonPreview = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      showJsonPreview: !prev.showJsonPreview
+    }));
+  }, []);
+
+  const setShowJsonPreview = useCallback((show: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      showJsonPreview: show
     }));
   }, []);
 
@@ -200,7 +219,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
     importAllData,
-    setTriggerValidation
+    setTriggerValidation,
+    toggleJsonPreview,
+    setShowJsonPreview
   };
 
   return (
