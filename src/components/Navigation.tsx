@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef } from "react";
-import { Group, Button, Text, Menu } from "@mantine/core";
+import { Group, Button, Text, Menu, Switch } from "@mantine/core";
 import {
   IconHome,
   IconFlask,
@@ -15,32 +15,20 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
 import { exportMetadata, importMetadata } from "@/utils/exportImport";
 import { validateAllData } from "@/utils/validation";
+import { useTabNavigation } from "@/hooks/useTabNavigation";
 
 export default function Navigation() {
-  const { state, setActiveTab, setActiveExperiment, importAllData, setTriggerValidation } =
+  const { state, importAllData, setTriggerValidation, toggleJsonPreview } =
     useAppState();
   const router = useRouter();
+  const { navigateToOverview, navigateToProject, navigateToExperiment } = useTabNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleNavigation = (
-    tab: "overview" | "project" | "experiment",
-    path: string
-  ) => {
-    setActiveTab(tab);
-    router.push(path);
-  };
 
   const handleExport = async () => {
     // Validate all data before exporting
     const validation = validateAllData(state.projectData, state.experiments);
 
     if (!validation.isAllValid) {
-      // Count total errors
-      let totalErrors = validation.projectValidation.errorCount;
-      validation.experimentValidations.forEach((expVal) => {
-        totalErrors += expVal.errorCount;
-      });
-
       // Show alert with error summary
       const errorMessages: string[] = [];
 
@@ -52,7 +40,7 @@ export default function Navigation() {
 
       const invalidExperiments = Array.from(
         validation.experimentValidations.entries()
-      ).filter(([_, val]) => !val.isValid);
+      ).filter(([, val]) => !val.isValid);
 
       if (invalidExperiments.length > 0) {
         errorMessages.push(
@@ -66,7 +54,7 @@ export default function Navigation() {
 
       // Navigate to the first page with errors
       if (!validation.projectValidation.isValid) {
-        router.push("/project");
+        navigateToProject();
         // Set trigger after navigation starts
         setTimeout(() => setTriggerValidation(true), 50);
       } else if (invalidExperiments.length > 0) {
@@ -76,9 +64,7 @@ export default function Navigation() {
           (exp) => exp.id === experimentId
         );
         if (experiment) {
-          setActiveExperiment(experimentId);
-          setActiveTab("experiment");
-          router.push("/experiment");
+          navigateToExperiment(experimentId);
           // Set trigger after navigation starts
           setTimeout(() => setTriggerValidation(true), 50);
         }
@@ -119,7 +105,9 @@ export default function Navigation() {
       justify="space-between"
       style={{
         borderBottom: "1px solid #dee2e6",
-        backgroundColor: "#f8f9fa"
+        backgroundColor: "#f8f9fa",
+        position: "relative",
+        zIndex: 1100
       }}
     >
       <Group gap="md">
@@ -130,7 +118,7 @@ export default function Navigation() {
         <Button
           variant={state.activeTab === "overview" ? "filled" : "subtle"}
           leftSection={<IconHome size={16} />}
-          onClick={() => handleNavigation("overview", "/")}
+          onClick={() => navigateToOverview()}
         >
           Home
         </Button>
@@ -138,7 +126,7 @@ export default function Navigation() {
         <Button
           variant={state.activeTab === "project" ? "filled" : "subtle"}
           leftSection={<IconFolder size={16} />}
-          onClick={() => handleNavigation("project", "/project")}
+          onClick={() => navigateToProject()}
         >
           Project
         </Button>
@@ -146,7 +134,7 @@ export default function Navigation() {
         <Button
           variant={state.activeTab === "experiment" ? "filled" : "subtle"}
           leftSection={<IconFlask size={16} />}
-          onClick={() => handleNavigation("experiment", "/experiment")}
+          onClick={() => navigateToExperiment()}
         >
           Experiments
         </Button>
@@ -176,7 +164,7 @@ export default function Navigation() {
           style={{ display: "none" }}
         />
 
-        <Menu shadow="md" width={200}>
+        <Menu shadow="md" width={200} withinPortal zIndex={2000}>
           <Menu.Target>
             <Button variant="subtle">
               <IconMenu2 size={18} />
@@ -195,6 +183,21 @@ export default function Navigation() {
               onClick={() => router.push("/how-to")}
             >
               How-to Guide
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item
+              closeMenuOnClick={false}
+              onClick={(e) => {
+                e.preventDefault();
+                toggleJsonPreview();
+              }}
+            >
+              <Switch
+                label="JSON Preview"
+                checked={state.showJsonPreview}
+                onChange={toggleJsonPreview}
+                onClick={(e) => e.stopPropagation()}
+              />
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>

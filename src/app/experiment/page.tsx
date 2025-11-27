@@ -10,7 +10,7 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconCode, IconX, IconArrowLeft } from "@tabler/icons-react";
+import { IconX, IconArrowLeft } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -37,6 +37,7 @@ import Navigation from "@/components/Navigation";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import { useJsonPreview } from "@/hooks/useJsonPreview";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -65,15 +66,21 @@ const ExperimentSubmitButton = (props: SubmitButtonProps) => (
 
 export default function ExperimentPage() {
   const router = useRouter();
-  const { state, updateExperiment, setActiveTab, setTriggerValidation } =
+  const { state, updateExperiment, setActiveTab, setTriggerValidation, setShowJsonPreview } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
+  const {
+    width: sidebarWidth,
+    setIsResizing
+  } = useJsonPreview({
+    minWidth: 300,
+    maxWidth: 800,
+    initialWidth: 500
+  });
+  const showJsonPreview = state.showJsonPreview;
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -162,28 +169,6 @@ export default function ExperimentPage() {
     }
   }, [formData.experiment_type]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
 
   const handleFormChange = useCallback(
     (e: any) => {
@@ -344,7 +329,7 @@ export default function ExperimentPage() {
               borderLeft: "1px solid #dee2e6",
               display: "flex",
               flexDirection: "column",
-              zIndex: 1000
+              zIndex: 900
             }}
           >
             {/* Resize handle */}

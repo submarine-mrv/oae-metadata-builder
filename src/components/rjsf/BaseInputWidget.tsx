@@ -12,7 +12,7 @@
  * - Maintains proper focus, blur, and change event handling
  */
 
-import React, { useCallback, FocusEvent, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { TextInput, NumberInput, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import DescriptionModal from './DescriptionModal';
@@ -22,6 +22,7 @@ import {
   StrictRJSFSchema,
   WidgetProps,
 } from '@rjsf/utils';
+import { useInputHandlers } from '@/hooks/useInputHandlers';
 
 export default function BaseInputWidget<
   T = any,
@@ -71,23 +72,7 @@ export default function BaseInputWidget<
     [onChange]
   );
 
-  const handleBlur = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      if (onBlur) {
-        onBlur(id, event.target.value);
-      }
-    },
-    [onBlur, id]
-  );
-
-  const handleFocus = useCallback(
-    (event: FocusEvent<HTMLInputElement>) => {
-      if (onFocus) {
-        onFocus(id, event.target.value);
-      }
-    },
-    [onFocus, id]
-  );
+  const { handleBlur, handleFocus } = useInputHandlers(id, onBlur, onFocus);
 
   const renderLabel = () => {
     if (hideLabel) return undefined;

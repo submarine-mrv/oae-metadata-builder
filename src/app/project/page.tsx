@@ -37,6 +37,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import { useJsonPreview } from "@/hooks/useJsonPreview";
 import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -53,12 +54,18 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
 );
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab, setTriggerValidation } =
+  const { state, updateProjectData, setActiveTab, setTriggerValidation, setShowJsonPreview } =
     useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
+  const {
+    width: sidebarWidth,
+    setIsResizing
+  } = useJsonPreview({
+    minWidth: 300,
+    maxWidth: 800,
+    initialWidth: 500
+  });
+  const showJsonPreview = state.showJsonPreview;
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
 
@@ -106,28 +113,6 @@ export default function ProjectPage() {
     }
   }, [forceValidation]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
 
   const customValidate = (data: any, errors: any) => {
     const t = data?.temporal_coverage as string | undefined;
@@ -250,7 +235,7 @@ export default function ProjectPage() {
               borderLeft: "1px solid #dee2e6",
               display: "flex",
               flexDirection: "column",
-              zIndex: 1000
+              zIndex: 900
             }}
           >
             {/* Resize handle */}
