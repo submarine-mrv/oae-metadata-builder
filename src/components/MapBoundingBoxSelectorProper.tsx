@@ -373,7 +373,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       title="Select Bounding Box"
       size="xl"
       centered
-      zIndex={1100}
+      zIndex={1200}
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">

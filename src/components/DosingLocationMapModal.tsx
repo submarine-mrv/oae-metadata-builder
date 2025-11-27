@@ -664,6 +664,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       onClose={onClose}
       title="Set Dosing Location"
       size="xl"
+      zIndex={1200}
     >
       <Stack gap="md">
         <Select
