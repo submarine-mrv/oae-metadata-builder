@@ -105,7 +105,9 @@ export default function Navigation() {
       justify="space-between"
       style={{
         borderBottom: "1px solid #dee2e6",
-        backgroundColor: "#f8f9fa"
+        backgroundColor: "#f8f9fa",
+        position: "relative",
+        zIndex: 1100
       }}
     >
       <Group gap="md">
@@ -162,7 +164,7 @@ export default function Navigation() {
           style={{ display: "none" }}
         />
 
-        <Menu shadow="md" width={200}>
+        <Menu shadow="md" width={200} withinPortal zIndex={2000}>
           <Menu.Target>
             <Button variant="subtle">
               <IconMenu2 size={18} />

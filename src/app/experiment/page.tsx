@@ -329,7 +329,7 @@ export default function ExperimentPage() {
               borderLeft: "1px solid #dee2e6",
               display: "flex",
               flexDirection: "column",
-              zIndex: 1000
+              zIndex: 900
             }}
           >
             {/* Resize handle */}
