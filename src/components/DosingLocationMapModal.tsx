@@ -674,6 +674,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           value={localMode}
           onChange={(value) => handleModeChange(value as DosingMode | null)}
           required
+          comboboxProps={{ zIndex: 1300 }}
         />
 
         {localMode === "box" && (
