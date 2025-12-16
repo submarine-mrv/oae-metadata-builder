@@ -18,28 +18,35 @@ import { FieldLabelSmall } from "./rjsf/FieldLabel";
 
 const ExternalProjectField: React.FC<FieldProps> = (props) => {
   const {
-    formData = {},
+    formData,
     onChange,
     disabled,
     readonly,
     schema,
     uiSchema,
-    idSchema
+    fieldPathId
   } = props;
 
+  // Handle null/undefined formData
+  const data = formData || {};
+
   const handleFieldChange = (fieldName: string, value: any) => {
-    onChange({
-      ...formData,
+    // For a custom Field managing a complex object, we merge the changes ourselves
+    const updatedData = {
+      ...data,
       [fieldName]: value
-    }, []);
+    };
+
+    // v6 onChange: pass merged data with absolute path to this field
+    onChange(updatedData, fieldPathId.path, undefined, fieldPathId.$id);
   };
   // Helper for creating props for custom widgets (WidgetProps)
   const createWidgetProps = (fieldName: string, fieldSchema: any) => ({
-    id: `${idSchema.$id}_${fieldName}`,
+    id: `${fieldPathId.$id}_${fieldName}`,
     name: fieldName,
-    value: formData[fieldName],
-    formData: formData[fieldName],
-    onChange: (data: any) => handleFieldChange(fieldName, data.formData || data),
+    value: data[fieldName],
+    formData: data[fieldName],
+    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData.formData || widgetData),
     onBlur: () => {},
     onFocus: () => {},
     disabled,
@@ -56,12 +63,11 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
 
   // Helper for creating props for custom fields (FieldProps)
   const createFieldProps = (fieldName: string, fieldSchema: any) => ({
-    id: `${idSchema.$id}_${fieldName}`,
+    id: `${fieldPathId.$id}_${fieldName}`,
     name: fieldName,
-    value: formData[fieldName],
-    formData: formData[fieldName],
-    onChange: (data: any, _path?: FieldPathList) =>
-      handleFieldChange(fieldName, data.formData || data),
+    value: data[fieldName],
+    formData: data[fieldName],
+    onChange: (fieldData: any) => handleFieldChange(fieldName, fieldData),
     onBlur: () => {},
     onFocus: () => {},
     disabled,
@@ -69,8 +75,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     required: schema.required?.includes(fieldName) || false,
     schema: fieldSchema,
     uiSchema: uiSchema?.[fieldName] || {},
-    idSchema: { ...idSchema, $id: `${idSchema.$id}_${fieldName}` },
-    fieldPathId: { $id: `${idSchema.$id}_${fieldName}`, path: [fieldName] },
+    fieldPathId: { $id: `${fieldPathId.$id}_${fieldName}`, path: [...fieldPathId.path, fieldName] },
     options: {},
     label: fieldName,
     placeholder: "",
@@ -101,7 +106,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                     required={schema.required?.includes("name")}
                   />
                   <TextInput
-                    value={formData.name || ""}
+                    value={data.name || ""}
                     onChange={(e) =>
                       handleFieldChange("name", e.currentTarget.value)
                     }
@@ -149,7 +154,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
               required={schema.required?.includes("description")}
             />
             <Textarea
-              value={formData.description || ""}
+              value={data.description || ""}
               onChange={(e) =>
                 handleFieldChange("description", e.currentTarget.value)
               }
@@ -163,7 +168,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
         {/* Related links field */}
         {schema.properties?.related_links && (
           <RelatedLinksField
-            value={formData.related_links || []}
+            value={data.related_links || []}
             onChange={(links) => handleFieldChange("related_links", links)}
             disabled={disabled || readonly}
             description={

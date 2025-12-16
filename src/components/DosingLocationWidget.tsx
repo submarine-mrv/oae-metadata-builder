@@ -109,7 +109,8 @@ const DosingLocationWidget: React.FC<FieldProps> = (props) => {
       newData.dosing_location_file = undefined;
     }
 
-    onChange(newData, []);
+    // v6: Pass data with absolute path to this field
+    onChange(newData, props.fieldPathId.path, undefined, props.fieldPathId.$id);
   };
 
   // Get display text based on mode

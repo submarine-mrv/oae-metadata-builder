@@ -18,7 +18,6 @@ import type { DescriptionFieldProps } from "@rjsf/utils";
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
 import uiSchema from "../uiSchema";
-import SpatialCoverageFlatField from "@/components/SpatialCoverageFlatField";
 import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
@@ -229,7 +228,6 @@ export default function ProjectPage() {
                 }
               }}
               fields={{
-                SpatialCoverageFlat: SpatialCoverageFlatField,
                 SpatialCoverageMiniMap: SpatialCoverageMiniMap,
                 ExternalProjectField: ExternalProjectField
               }}
