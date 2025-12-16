@@ -42,6 +42,10 @@ import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
 import { cleanFormDataForType } from "@/utils/experimentFields";
 import {
+  cleanupConditionalFields,
+  type ConditionalFieldPair
+} from "@/utils/conditionalFields";
+import {
   getExperimentSchema,
   getInterventionSchema,
   getTracerSchema,
@@ -62,6 +66,21 @@ const ExperimentSubmitButton = (props: SubmitButtonProps) => (
     buttonText="Download Experiment Metadata"
   />
 );
+
+// Conditional field pairs for experiment forms
+// These define which custom fields should be cleaned up when their trigger conditions are not met
+const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
+  {
+    triggerField: "alkalinity_feedstock",
+    triggerValue: "other",
+    customField: "alkalinity_feedstock_custom"
+  },
+  {
+    triggerField: "alkalinity_feedstock_processing",
+    triggerValue: "other",
+    customField: "alkalinity_feedstock_processing_custom"
+  }
+];
 
 export default function ExperimentPage() {
   const router = useRouter();
@@ -203,6 +222,10 @@ export default function ExperimentPage() {
         // Experiment type changed - clean fields that don't belong to new type
         newData = cleanFormDataForType(newData, newType);
       }
+
+      // Clean up conditional custom fields when trigger conditions are not met
+      // This prevents orphaned fields from rendering as "additional properties"
+      newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
 
       setFormData(newData);
       if (activeExperimentId) {
