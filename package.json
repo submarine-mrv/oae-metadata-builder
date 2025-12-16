@@ -23,7 +23,7 @@
     "ajv": "8.17.1",
     "ajv-formats": "2.1.1",
     "dayjs": "^1.11.18",
-    "next": "15.5.2",
+    "next": "^15.5.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-markdown": "^10.1.0"
@@ -39,8 +39,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.3.0",
-    "@vitest/coverage-v8": "^2.0.0",
-    "@vitest/ui": "^2.0.0",
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "^4.0.15",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "jsdom": "^24.0.0",
@@ -48,6 +48,6 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^2.0.0"
+    "vitest": "^4.0.15"
   }
 }
