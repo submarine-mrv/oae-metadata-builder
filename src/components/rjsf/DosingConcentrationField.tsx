@@ -29,7 +29,8 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
     disabled,
     readonly,
     schema: fieldSchema,
-    uiSchema
+    uiSchema,
+    fieldPathId
   } = props;
 
   // Get DosingConcentration schema definition
@@ -42,10 +43,13 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    onChange({
-      ...formData,
+    const data = formData || {};
+    const updatedData = {
+      ...data,
       [fieldName]: value
-    });
+    };
+    // v6: Pass merged data with absolute path to this field
+    onChange(updatedData, fieldPathId.path, undefined, fieldPathId.$id);
   };
 
   // Determine if fields should be disabled (when value is variable/provided as file)

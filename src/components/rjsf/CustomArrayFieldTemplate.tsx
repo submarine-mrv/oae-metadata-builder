@@ -2,8 +2,6 @@ import {
   getTemplate,
   getUiOptions,
   ArrayFieldTemplateProps,
-  ArrayFieldItemTemplateType,
-  buttonId,
   FormContextType,
   RJSFSchema,
   StrictRJSFSchema,
@@ -19,7 +17,7 @@ export default function CustomArrayFieldTemplate<
     canAdd,
     className,
     disabled,
-    idSchema,
+    fieldPathId,
     items,
     onAddClick,
     readonly,
@@ -36,11 +34,6 @@ export default function CustomArrayFieldTemplate<
     registry,
     uiOptions,
   );
-  const ArrayFieldItemTemplate = getTemplate<'ArrayFieldItemTemplate', T, S, F>(
-    'ArrayFieldItemTemplate',
-    registry,
-    uiOptions,
-  );
   const ArrayFieldTitleTemplate = getTemplate<'ArrayFieldTitleTemplate', T, S, F>(
     'ArrayFieldTitleTemplate',
     registry,
@@ -53,7 +46,7 @@ export default function CustomArrayFieldTemplate<
 
   const legend = (uiOptions.title || title) && (
     <ArrayFieldTitleTemplate
-      idSchema={idSchema}
+      fieldPathId={fieldPathId}
       required={required}
       title={uiOptions.title || title}
       schema={schema}
@@ -63,11 +56,11 @@ export default function CustomArrayFieldTemplate<
   );
 
   return (
-    <Fieldset legend={legend} className={className} id={idSchema.$id}>
+    <Fieldset legend={legend} className={className} id={fieldPathId.$id}>
       {(uiOptions.description || schema.description) && (
         <ArrayFieldDescriptionTemplate
           description={uiOptions.description || schema.description}
-          idSchema={idSchema}
+          fieldPathId={fieldPathId}
           schema={schema}
           uiSchema={uiSchema}
           registry={registry}
@@ -75,22 +68,17 @@ export default function CustomArrayFieldTemplate<
       )}
 
       <Box className='row rjsf-array-item-list'>
-        {items &&
-          items.map(({ key, ...itemProps }: ArrayFieldItemTemplateType<T, S, F>) => (
-            <ArrayFieldItemTemplate key={key} {...itemProps} />
-          ))}
+        {items}
       </Box>
 
       {canAdd && (
         <Group justify='flex-start'>
           <AddButton
-            id={buttonId<T>(idSchema, 'add')}
             className='rjsf-array-item-add'
             disabled={disabled || readonly}
             onClick={onAddClick}
             uiSchema={uiSchema}
             registry={registry}
-            iconType='md'
           />
         </Group>
       )}

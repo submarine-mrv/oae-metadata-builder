@@ -4,7 +4,7 @@ import React from "react";
 import type { FieldProps } from "@rjsf/utils";
 import { TextInput, Text, Tooltip, ActionIcon, Box } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
-import MapBoundingBoxSelectorProper from "./MapBoundingBoxSelectorProper";
+import MapBoundingBoxSelectorProper from "../MapBoundingBoxSelectorProper";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
 
 // parse "W S E N" string from nested object
@@ -23,7 +23,7 @@ function writeBox(s: string): any {
 
 const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
   const {
-    idSchema,
+    fieldPathId,
     formData,
     onChange,
     disabled,
@@ -35,7 +35,7 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
 
   // This field completely replaces any default object/anyOf rendering
 
-  const id = idSchema.$id;
+  const id = fieldPathId.$id;
   const [value, setValue] = React.useState<string>(readBox(formData));
   const [validationError, setValidationError] = React.useState<string | null>(
     null
@@ -64,7 +64,8 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
     const error = validateSpatialBounds(newValue);
     setValidationError(error);
     const newData = writeBox(newValue);
-    onChange(newData);
+    // v6: Pass data with absolute path to this field
+    onChange(newData, fieldPathId.path, undefined, fieldPathId.$id);
   };
 
   // Return only our custom component, not any default children

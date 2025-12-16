@@ -45,3 +45,4 @@ next-env.d.ts
 src/app/local-testing
 CLAUDE.md
 .claude/
+.beads/

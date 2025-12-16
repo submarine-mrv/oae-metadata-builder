@@ -4,7 +4,11 @@
 import experimentUiSchema from "./experimentUiSchema";
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
-import { textAreaWidget, nestedItemStyle, halfWidthStyle } from "./uiSchemaConstants";
+import {
+  textAreaWidget,
+  nestedItemStyle,
+  halfWidthStyle
+} from "./uiSchemaConstants";
 
 // Generate formatted enum names for intervention-specific enums
 const enumNames = generateEnumNames(schema, [
@@ -35,7 +39,7 @@ const interventionUiSchema = {
     "alkalinity_feedstock_processing_custom",
     "alkalinity_feedstock_form",
     "alkalinity_feedstock",
-    // alkalinity_feedstock_other appears conditionally via if/then in schema
+    // alkalinity_feedstock_custom appears conditionally via if/then in schema
     "alkalinity_feedstock_custom",
     "alkalinity_feedstock_co2_removal_potential",
     "alkalinity_feedstock_description",
