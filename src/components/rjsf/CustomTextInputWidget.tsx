@@ -85,7 +85,7 @@ export default function CustomTextInputWidget<
           onChange={handleChange}
           onBlur={handleBlur}
           onFocus={handleFocus}
-          aria-describedby={ariaDescribedByIds<T>(id)}
+          aria-describedby={ariaDescribedByIds(id)}
         />
         {description && !hideLabel && (
           <Box style={{

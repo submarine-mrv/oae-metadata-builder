@@ -1,7 +1,5 @@
-import { useMemo } from 'react';
 import {
-  ArrayFieldItemButtonsTemplateType,
-  buttonId,
+  ArrayFieldItemButtonsTemplateProps,
   FormContextType,
   RJSFSchema,
   StrictRJSFSchema,
@@ -13,29 +11,26 @@ export default function CustomArrayFieldItemButtonsTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any,
->(props: ArrayFieldItemButtonsTemplateType<T, S, F>) {
+>(props: ArrayFieldItemButtonsTemplateProps<T, S, F>) {
   const {
     disabled,
     hasRemove,
-    idSchema,
-    index,
-    onDropIndexClick,
+    fieldPathId,
+    onRemoveItem,
     readonly,
   } = props;
-  
-  const onRemoveClick = useMemo(() => onDropIndexClick(index), [index, onDropIndexClick]);
 
   return (
     <>
       {hasRemove && (
         <ActionIcon
-          id={buttonId<T>(idSchema, 'remove')}
+          id={`${fieldPathId.$id}-remove`}
           className='rjsf-array-item-remove'
           size='sm'
           variant='subtle'
           color='red'
           disabled={disabled || readonly}
-          onClick={onRemoveClick}
+          onClick={onRemoveItem}
         >
           <IconTrash size={16} />
         </ActionIcon>

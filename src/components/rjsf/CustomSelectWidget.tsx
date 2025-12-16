@@ -155,7 +155,7 @@ export default function CustomSelectWidget<
         }
         searchable
         {...mantineProps}
-        aria-describedby={ariaDescribedByIds<T>(id)}
+        aria-describedby={ariaDescribedByIds(id)}
         comboboxProps={{ withinPortal: false }}
       />
     </div>

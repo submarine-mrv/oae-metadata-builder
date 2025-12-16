@@ -27,9 +27,16 @@ export function getProtocolMetadata() {
 
 /**
  * Creates a schema view by extracting a definition from $defs and
- * making it the root schema while preserving all $defs and metadata
+ * making it the root schema while preserving all $defs and metadata.
+ *
+ * @param defName - The name of the definition in $defs
+ * @param schemaId - The $id to assign to the schema view
+ * @param hasConditionalFields - If true, sets additionalProperties: true which is
+ *   required for allOf/if/then conditionals to work. Only set this for schemas
+ *   that have conditional fields (e.g., Intervention), as it causes RJSF to
+ *   render nested object properties as additional properties.
  */
-function createSchemaView(defName: string, schemaId: string) {
+function createSchemaView(defName: string, schemaId: string, hasConditionalFields = false) {
   const def = (baseSchema as any).$defs?.[defName];
 
   if (!def) {
@@ -43,7 +50,11 @@ function createSchemaView(defName: string, schemaId: string) {
     description: def.description,
     properties: def.properties,
     required: def.required,
-    additionalProperties: def.additionalProperties
+    // Only set additionalProperties: true for schemas with allOf/if/then conditionals.
+    // This is required for conditional fields to render, but causes issues with
+    // nested object properties being rendered as additional properties.
+    additionalProperties: hasConditionalFields ? true : def.additionalProperties,
+    allOf: def.allOf
   };
 }
 
@@ -62,10 +73,11 @@ export function getExperimentSchema() {
 }
 
 /**
- * Gets the Intervention schema for intervention-type experiments
+ * Gets the Intervention schema for intervention-type experiments.
+ * Has conditional fields (allOf/if/then) so needs additionalProperties: true.
  */
 export function getInterventionSchema() {
-  return createSchemaView("Intervention", "InterventionSchema");
+  return createSchemaView("Intervention", "InterventionSchema", true);
 }
 
 /**
@@ -76,8 +88,13 @@ export function getTracerSchema() {
 }
 
 /**
- * Gets the InterventionWithTracer schema
+ * Gets the InterventionWithTracer schema.
+ * Has conditional fields (allOf/if/then) so needs additionalProperties: true.
  */
 export function getInterventionWithTracerSchema() {
-  return createSchemaView("InterventionWithTracer", "InterventionWithTracerSchema");
+  return createSchemaView(
+    "InterventionWithTracer",
+    "InterventionWithTracerSchema",
+    true
+  );
 }

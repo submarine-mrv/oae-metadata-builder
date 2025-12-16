@@ -57,7 +57,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
     const error = validateSpatialBounds(newValue);
     setValidationError(error);
     const newData = writeBox(newValue);
-    onChange(newData);
+    onChange(newData, []);
   };
 
   // Initialize mini map when component mounts

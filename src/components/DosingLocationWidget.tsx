@@ -109,7 +109,7 @@ const DosingLocationWidget: React.FC<FieldProps> = (props) => {
       newData.dosing_location_file = undefined;
     }
 
-    onChange(newData);
+    onChange(newData, []);
   };
 
   // Get display text based on mode

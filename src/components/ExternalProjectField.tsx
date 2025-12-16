@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { FieldProps } from "@rjsf/utils";
+import type { FieldProps, FieldPathList } from "@rjsf/utils";
 import {
   Grid,
   Box,
@@ -31,28 +31,51 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     onChange({
       ...formData,
       [fieldName]: value
-    });
+    }, []);
   };
+  // Helper for creating props for custom widgets (WidgetProps)
   const createWidgetProps = (fieldName: string, fieldSchema: any) => ({
     id: `${idSchema.$id}_${fieldName}`,
     name: fieldName,
     value: formData[fieldName],
     formData: formData[fieldName],
-    onChange: (data: any) =>
-      handleFieldChange(fieldName, data.formData || data),
-    onBlur: () => {}, // No-op function for blur events
-    onFocus: () => {}, // No-op function for focus events
+    onChange: (data: any) => handleFieldChange(fieldName, data.formData || data),
+    onBlur: () => {},
+    onFocus: () => {},
     disabled,
     readonly,
-    required: schema.required?.includes(fieldName) || false, // Check if field is required in schema
+    required: schema.required?.includes(fieldName) || false,
     schema: fieldSchema,
     uiSchema: uiSchema?.[fieldName] || {},
-    idSchema: { ...idSchema, $id: `${idSchema.$id}_${fieldName}` },
     options: {},
     label: fieldName,
     placeholder: "",
     rawErrors: [],
-    registry: props.registry // Pass through the registry from props
+    registry: props.registry
+  });
+
+  // Helper for creating props for custom fields (FieldProps)
+  const createFieldProps = (fieldName: string, fieldSchema: any) => ({
+    id: `${idSchema.$id}_${fieldName}`,
+    name: fieldName,
+    value: formData[fieldName],
+    formData: formData[fieldName],
+    onChange: (data: any, _path?: FieldPathList) =>
+      handleFieldChange(fieldName, data.formData || data),
+    onBlur: () => {},
+    onFocus: () => {},
+    disabled,
+    readonly,
+    required: schema.required?.includes(fieldName) || false,
+    schema: fieldSchema,
+    uiSchema: uiSchema?.[fieldName] || {},
+    idSchema: { ...idSchema, $id: `${idSchema.$id}_${fieldName}` },
+    fieldPathId: { $id: `${idSchema.$id}_${fieldName}`, path: [fieldName] },
+    options: {},
+    label: fieldName,
+    placeholder: "",
+    rawErrors: [],
+    registry: props.registry
   });
 
   return (
@@ -103,7 +126,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
             {schema.properties?.spatial_coverage && (
               <Grid.Col span={6}>
                 <SpatialCoverageMiniMap
-                  {...createWidgetProps(
+                  {...createFieldProps(
                     "spatial_coverage",
                     schema.properties.spatial_coverage
                   )}

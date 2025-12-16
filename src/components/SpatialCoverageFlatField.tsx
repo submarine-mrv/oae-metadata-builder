@@ -64,7 +64,7 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
     const error = validateSpatialBounds(newValue);
     setValidationError(error);
     const newData = writeBox(newValue);
-    onChange(newData);
+    onChange(newData, []);
   };
 
   // Return only our custom component, not any default children

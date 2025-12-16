@@ -45,7 +45,7 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
     onChange({
       ...formData,
       [fieldName]: value
-    });
+    }, []);
   };
 
   // Determine if fields should be disabled (when value is variable/provided as file)
