@@ -29,6 +29,8 @@ interface AppStateContextType {
   getExperimentCompletionPercentage: (id: number) => number;
   importAllData: (projectData: ProjectFormData, experiments: ExperimentData[]) => void;
   setTriggerValidation: (trigger: boolean) => void;
+  setShowJsonPreview: (show: boolean) => void;
+  toggleJsonPreview: () => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -42,7 +44,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     activeTab: "overview",
     activeExperimentId: null,
     nextExperimentId: 1,
-    triggerValidation: false
+    triggerValidation: false,
+    showJsonPreview: false
   });
 
   const updateProjectData = useCallback((data: ProjectFormData) => {
@@ -165,14 +168,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         id: nextId + index
       }));
 
-      setState({
+      setState((prev) => ({
         projectData,
         experiments: experimentsWithNewIds,
         activeTab: "overview",
         activeExperimentId: null,
         nextExperimentId: nextId + experiments.length,
-        triggerValidation: false
-      });
+        triggerValidation: false,
+        showJsonPreview: prev.showJsonPreview
+      }));
     },
     [state.nextExperimentId]
   );
@@ -181,6 +185,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       triggerValidation: trigger
+    }));
+  }, []);
+
+  const setShowJsonPreview = useCallback((show: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      showJsonPreview: show
+    }));
+  }, []);
+
+  const toggleJsonPreview = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      showJsonPreview: !prev.showJsonPreview
     }));
   }, []);
 
@@ -196,7 +214,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
     importAllData,
-    setTriggerValidation
+    setTriggerValidation,
+    setShowJsonPreview,
+    toggleJsonPreview
   };
 
   return (

@@ -10,7 +10,7 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconCode, IconX, IconArrowLeft } from "@tabler/icons-react";
+import { IconX, IconArrowLeft } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -84,13 +84,12 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
 
 export default function ExperimentPage() {
   const router = useRouter();
-  const { state, updateExperiment, setActiveTab, setTriggerValidation } =
+  const { state, updateExperiment, setActiveTab, setTriggerValidation, setShowJsonPreview } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
@@ -292,8 +291,6 @@ export default function ExperimentPage() {
         <div
           style={{
             flex: 1,
-            marginRight: showJsonPreview ? sidebarWidth : 0,
-            transition: "margin-right 0.2s ease-in-out",
             overflow: "auto"
           }}
         >
@@ -355,19 +352,17 @@ export default function ExperimentPage() {
           </Container>
         </div>
 
-        {showJsonPreview && (
+        {state.showJsonPreview && (
           <Box
             style={{
-              position: "fixed",
-              right: 0,
-              top: 60,
               width: sidebarWidth,
+              minWidth: sidebarWidth,
               height: "calc(100vh - 60px)",
               backgroundColor: "#f8f9fa",
               borderLeft: "1px solid #dee2e6",
               display: "flex",
               flexDirection: "column",
-              zIndex: 1000
+              position: "relative"
             }}
           >
             {/* Resize handle */}
@@ -379,8 +374,7 @@ export default function ExperimentPage() {
                 width: "4px",
                 height: "100%",
                 backgroundColor: "transparent",
-                cursor: "col-resize",
-                zIndex: 1001
+                cursor: "col-resize"
               }}
               onMouseDown={() => setIsResizing(true)}
             />
