@@ -31,6 +31,9 @@ export const dataVizColors = {
   progressBlue: "#76A3AB",    // Medium/in-progress (darker CtS shade)
   progressGreen: "#A3BC8A",   // Good/complete (darker CtS shade)
 
+  // Qualitative/categorical colors from brand guidelines
+  ocean: "#005967",           // Deep teal - used for links
+
   // Extended palette for charts
   teal: "#81C7D0",
   mint: "#BFE69F",
@@ -287,13 +290,13 @@ export const theme = createTheme({
       },
     },
 
-    // Anchor styling with coral accent
+    // Anchor styling with ocean (qualitative categorical) color
     Anchor: {
       styles: {
         root: {
-          color: brandColors.coral,
+          color: dataVizColors.ocean,
           "&:hover": {
-            color: "#D9480F",
+            color: "#004451",  // Darker shade on hover
           },
         },
       },
@@ -330,6 +333,7 @@ export const cssVars = {
   "--progress-orange": dataVizColors.progressOrange,
   "--progress-blue": dataVizColors.progressBlue,
   "--progress-green": dataVizColors.progressGreen,
+  "--viz-ocean": dataVizColors.ocean,
   "--viz-teal": dataVizColors.teal,
   "--viz-mint": dataVizColors.mint,
   "--viz-peach": dataVizColors.peach,

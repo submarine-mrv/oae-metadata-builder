@@ -127,7 +127,6 @@ export default function CustomSelectWidget<
               href={viewAllLink}
               target="_blank"
               size="sm"
-              c="blue"
               style={{ display: "flex", alignItems: "center", gap: "4px" }}
             >
               view all

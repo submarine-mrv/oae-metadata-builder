@@ -32,6 +32,9 @@
   /* Darker accents */
   --brand-abyssal: #4F656A;
 
+  /* Qualitative/categorical colors */
+  --viz-ocean: #005967;        /* Deep teal - used for links */
+
   /* Semantic mappings */
   /* Using Shell (light grey) for cleaner appearance */
   --background: var(--brand-shell);
