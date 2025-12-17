@@ -1,6 +1,17 @@
 "use client";
 import React, { useRef } from "react";
-import { Group, Button, Menu, Switch, SegmentedControl, ActionIcon, Tooltip, Text, Image, Box } from "@mantine/core";
+import {
+  Group,
+  Button,
+  Menu,
+  Switch,
+  SegmentedControl,
+  ActionIcon,
+  Tooltip,
+  Text,
+  Image,
+  Box
+} from "@mantine/core";
 import {
   IconMenu2,
   IconInfoCircle,
@@ -14,8 +25,14 @@ import { exportMetadata, importMetadata } from "@/utils/exportImport";
 import { validateAllData } from "@/utils/validation";
 
 export default function Navigation() {
-  const { state, setActiveTab, setActiveExperiment, importAllData, setTriggerValidation, toggleJsonPreview } =
-    useAppState();
+  const {
+    state,
+    setActiveTab,
+    setActiveExperiment,
+    importAllData,
+    setTriggerValidation,
+    toggleJsonPreview
+  } = useAppState();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,12 +142,7 @@ export default function Navigation() {
     >
       {/* Logo and title - left aligned */}
       <Group gap="sm">
-        <Image
-          src="/cts-logo.png"
-          alt="Carbon to Sea"
-          h={32}
-          w="auto"
-        />
+        <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
         <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
           OAE Metadata Builder
         </Text>
@@ -138,6 +150,9 @@ export default function Navigation() {
 
       {/* Navigation tabs - centered */}
       <SegmentedControl
+        style={{
+          backgroundColor: "var(--brand-sunlight)"
+        }}
         value={state.activeTab}
         onChange={handleNavigation}
         data={[
