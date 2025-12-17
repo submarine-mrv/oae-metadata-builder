@@ -1,5 +1,12 @@
-import { ExperimentData } from "@/contexts/AppStateContext";
 import { getProtocolMetadata } from "./schemaViews";
+import type {
+  ProjectFormData,
+  ExperimentFormData,
+  ExperimentState,
+  FormDataRecord,
+  ExportContainer,
+  ImportResult
+} from "@/types/forms";
 
 /**
  * Project schema fields that should be in the root project data
@@ -28,8 +35,8 @@ const PROJECT_FIELDS = [
  * Cleans projectData to only include valid Project schema fields
  * Removes any experiment-specific fields that may have leaked in
  */
-function cleanProjectData(data: any): any {
-  const cleaned: any = {};
+function cleanProjectData(data: FormDataRecord): ProjectFormData {
+  const cleaned: ProjectFormData = {};
   PROJECT_FIELDS.forEach((field) => {
     if (data[field] !== undefined) {
       cleaned[field] = data[field];
@@ -43,8 +50,8 @@ function cleanProjectData(data: any): any {
  * with version metadata from the protocol
  */
 export function exportMetadata(
-  projectData: any,
-  experiments: ExperimentData[]
+  projectData: ProjectFormData,
+  experiments: ExperimentState[]
 ): void {
   // Get version metadata from schema
   const protocolMetadata = getProtocolMetadata();
@@ -89,9 +96,7 @@ export function exportMetadata(
  * Imports project and experiment data from a JSON file in Container format
  * Returns an object with project data and experiments array
  */
-export async function importMetadata(
-  file: File
-): Promise<{ projectData: any; experiments: ExperimentData[] }> {
+export async function importMetadata(file: File): Promise<ImportResult> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -108,11 +113,14 @@ export async function importMetadata(
         const { experiments: _, ...rawProjectData } = projectDataRaw;
         const projectData = cleanProjectData(rawProjectData);
 
-        // Convert experiment data to ExperimentData format
-        const experiments: ExperimentData[] = experimentsData.map(
-          (expData: any, index: number) => ({
+        // Convert experiment data to ExperimentState format
+        const experiments: ExperimentState[] = experimentsData.map(
+          (expData: ExperimentFormData, index: number) => ({
             id: index + 1, // Will be reassigned based on nextExperimentId
-            name: expData.name || expData.experiment_id || `Experiment ${index + 1}`,
+            name:
+              (expData.name as string) ||
+              (expData.experiment_id as string) ||
+              `Experiment ${index + 1}`,
             formData: expData,
             experiment_type: expData.experiment_type,
             createdAt: Date.now(),

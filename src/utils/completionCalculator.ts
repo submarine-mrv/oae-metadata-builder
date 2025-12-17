@@ -1,5 +1,7 @@
 // completionCalculator.ts - Calculate form completion percentages
 
+import type { FormDataRecord, ProjectFormData, ExperimentFormData } from "@/types/forms";
+
 // Define required fields for different form types
 const REQUIRED_FIELDS_MAP = {
   project: [
@@ -79,7 +81,7 @@ function getRequiredFieldsForType(experimentType?: string): string[] {
  * @returns Completion percentage (0-100)
  */
 export function calculateFormCompletion(
-  formData: any,
+  formData: ExperimentFormData | FormDataRecord | null | undefined,
   experimentType?: string
 ): number {
   if (!formData || Object.keys(formData).length === 0) return 0;
@@ -111,7 +113,9 @@ export function calculateFormCompletion(
  * @param projectData - Project form data
  * @returns Completion percentage (0-100)
  */
-export function calculateProjectCompletion(projectData: any): number {
+export function calculateProjectCompletion(
+  projectData: ProjectFormData | FormDataRecord | null | undefined
+): number {
   if (!projectData || Object.keys(projectData).length === 0) return 0;
 
   const requiredFields = REQUIRED_FIELDS_MAP.project;

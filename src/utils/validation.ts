@@ -8,6 +8,12 @@ import {
   getTracerSchema,
   getInterventionWithTracerSchema
 } from "./schemaViews";
+import type {
+  ProjectFormData,
+  ExperimentFormData,
+  ExperimentState,
+  FormDataRecord
+} from "@/types/forms";
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
@@ -21,10 +27,10 @@ export interface ValidationResult {
 /**
  * Validates project data against the project schema
  */
-export function validateProject(projectData: any): ValidationResult {
+export function validateProject(projectData: ProjectFormData): ValidationResult {
   try {
     const schema = getProjectSchema();
-    const result = validator.validateFormData(projectData, schema as any);
+    const result = validator.validateFormData(projectData, schema);
 
     return {
       isValid: result.errors.length === 0,
@@ -45,7 +51,7 @@ export function validateProject(projectData: any): ValidationResult {
  * Validates experiment data against the appropriate experiment schema
  * based on the experiment_type field
  */
-export function validateExperiment(experimentData: any): ValidationResult {
+export function validateExperiment(experimentData: ExperimentFormData): ValidationResult {
   try {
     // Select the appropriate schema based on experiment_type
     const experimentType = experimentData.experiment_type;
@@ -62,7 +68,7 @@ export function validateExperiment(experimentData: any): ValidationResult {
       schema = getExperimentSchema();
     }
 
-    const result = validator.validateFormData(experimentData, schema as any);
+    const result = validator.validateFormData(experimentData, schema);
 
     return {
       isValid: result.errors.length === 0,
@@ -84,8 +90,8 @@ export function validateExperiment(experimentData: any): ValidationResult {
  * Returns validation results for both project and experiments
  */
 export function validateAllData(
-  projectData: any,
-  experiments: Array<{ id: number; name: string; formData: any }>
+  projectData: ProjectFormData,
+  experiments: Array<Pick<ExperimentState, "id" | "name" | "formData">>
 ): {
   projectValidation: ValidationResult;
   experimentValidations: Map<number, ValidationResult>;

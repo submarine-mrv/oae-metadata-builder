@@ -10,6 +10,8 @@
  *          field !== triggerValue → customField data should be removed
  */
 
+import type { FormDataRecord } from "@/types/forms";
+
 /**
  * Configuration for a conditional field pair
  */
@@ -17,7 +19,7 @@ export interface ConditionalFieldPair {
   /** The field name that triggers the conditional (e.g., "alkalinity_feedstock") */
   triggerField: string;
   /** The value that triggers the conditional field to appear (e.g., "other") */
-  triggerValue: any;
+  triggerValue: unknown;
   /** The conditional field name that appears when condition is met (e.g., "alkalinity_feedstock_custom") */
   customField: string;
 }
@@ -49,11 +51,11 @@ export interface ConditionalFieldPair {
  *   setFormData(newData);
  * };
  */
-export function cleanupConditionalFields(
-  formData: any,
+export function cleanupConditionalFields<T extends FormDataRecord>(
+  formData: T,
   conditionalPairs: ConditionalFieldPair[]
-): any {
-  let cleanedData = { ...formData };
+): T {
+  let cleanedData = { ...formData } as T;
 
   conditionalPairs.forEach(({ triggerField, triggerValue, customField }) => {
     const currentValue = cleanedData[triggerField];
@@ -62,7 +64,7 @@ export function cleanupConditionalFields(
     if (currentValue !== triggerValue && customField in cleanedData) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [customField]: _removed, ...rest } = cleanedData;
-      cleanedData = rest;
+      cleanedData = rest as T;
     }
   });
 

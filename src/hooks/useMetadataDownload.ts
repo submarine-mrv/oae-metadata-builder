@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormDataRecord } from "@/types/forms";
 
 export interface UseMetadataDownloadOptions {
   filename: string;
@@ -8,8 +9,8 @@ export interface UseMetadataDownloadOptions {
 
 export interface UseMetadataDownloadReturn {
   showDownloadModal: boolean;
-  pendingDownloadData: any;
-  handleFormSubmit: ({ formData }: any) => void;
+  pendingDownloadData: FormDataRecord | null;
+  handleFormSubmit: (e: { formData?: FormDataRecord }) => void;
   handleDownloadConfirm: () => void;
   handleDownloadCancel: () => void;
 }
@@ -20,9 +21,10 @@ export function useMetadataDownload({
   onSkipDownloadChange
 }: UseMetadataDownloadOptions): UseMetadataDownloadReturn {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [pendingDownloadData, setPendingDownloadData] = useState<any>(null);
+  const [pendingDownloadData, setPendingDownloadData] =
+    useState<FormDataRecord | null>(null);
 
-  const downloadJsonFile = (data: any) => {
+  const downloadJsonFile = (data: FormDataRecord) => {
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -35,7 +37,7 @@ export function useMetadataDownload({
     URL.revokeObjectURL(url);
   };
 
-  const handleFormSubmit = ({ formData }: any) => {
+  const handleFormSubmit = ({ formData }: { formData?: FormDataRecord }) => {
     // Don't show modal if this submit was triggered just to show validation errors
     if (skipDownload) {
       onSkipDownloadChange?.(false);
@@ -43,7 +45,7 @@ export function useMetadataDownload({
     }
 
     // Form is valid - show confirmation modal
-    setPendingDownloadData(formData);
+    setPendingDownloadData(formData ?? null);
     setShowDownloadModal(true);
   };
 
