@@ -27,7 +27,8 @@ describe('AppStateContext', () => {
         activeTab: 'overview',
         activeExperimentId: null,
         nextExperimentId: 1,
-        triggerValidation: false
+        triggerValidation: false,
+        showJsonPreview: false
       });
     });
   });

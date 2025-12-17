@@ -52,10 +52,9 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
 );
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab, setTriggerValidation } =
+  const { state, updateProjectData, setActiveTab, setTriggerValidation, setShowJsonPreview } =
     useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
@@ -175,8 +174,6 @@ export default function ProjectPage() {
         <div
           style={{
             flex: 1,
-            marginRight: showJsonPreview ? sidebarWidth : 0,
-            transition: "margin-right 0.2s ease-in-out",
             overflow: "auto"
           }}
         >
@@ -236,19 +233,17 @@ export default function ProjectPage() {
           </Container>
         </div>
 
-        {showJsonPreview && (
+        {state.showJsonPreview && (
           <Box
             style={{
-              position: "fixed",
-              right: 0,
-              top: 60,
               width: sidebarWidth,
+              minWidth: sidebarWidth,
               height: "calc(100vh - 60px)",
               backgroundColor: "#f8f9fa",
               borderLeft: "1px solid #dee2e6",
               display: "flex",
               flexDirection: "column",
-              zIndex: 1000
+              position: "relative"
             }}
           >
             {/* Resize handle */}
@@ -260,8 +255,7 @@ export default function ProjectPage() {
                 width: "4px",
                 height: "100%",
                 backgroundColor: "transparent",
-                cursor: "col-resize",
-                zIndex: 1001
+                cursor: "col-resize"
               }}
               onMouseDown={() => setIsResizing(true)}
             />

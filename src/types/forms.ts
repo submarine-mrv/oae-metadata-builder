@@ -89,6 +89,7 @@ export interface AppFormState {
   activeExperimentId: number | null;
   nextExperimentId: number;
   triggerValidation: boolean;
+  showJsonPreview: boolean;
 }
 
 // =============================================================================
