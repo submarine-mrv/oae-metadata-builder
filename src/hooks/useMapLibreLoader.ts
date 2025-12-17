@@ -1,11 +1,12 @@
 /**
  * useMapLibreLoader - Hook to load MapLibre GL library dynamically
  *
- * Consolidates the repeated MapLibre CSS/JS loading pattern used across:
- * - SpatialCoverageMiniMap
- * - MapBoundingBoxSelectorProper
- * - DosingLocationMapModal
- * - DosingLocationWidget
+ * Currently used by:
+ * - SpatialCoverageField
+ * - SpatialCoverageMapModal
+ *
+ * TODO: Integrate with DosingLocationField and DosingLocationMapModal
+ * (these currently have their own inline MapLibre loading logic)
  *
  * @returns Object with `isLoaded` boolean and `error` if loading failed
  */

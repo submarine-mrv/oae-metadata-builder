@@ -4,7 +4,7 @@ import React from "react";
 import type { FieldProps } from "@rjsf/utils";
 import { TextInput, Text, Tooltip, ActionIcon, Box } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
-import MapBoundingBoxSelectorProper from "../MapBoundingBoxSelectorProper";
+import SpatialCoverageMapModal from "../SpatialCoverageMapModal";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
 
 // parse "W S E N" string from nested object
@@ -125,7 +125,7 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
         </Text>
       </div>
 
-      <MapBoundingBoxSelectorProper
+      <SpatialCoverageMapModal
         opened={showMap}
         onClose={() => setShowMap(false)}
         onSelect={(bounds) => {

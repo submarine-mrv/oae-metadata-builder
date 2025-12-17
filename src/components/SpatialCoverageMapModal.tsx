@@ -28,14 +28,14 @@ import {
   DEFAULT_ZOOM
 } from "@/config/maps";
 
-interface MapBoundingBoxSelectorProps {
+interface SpatialCoverageMapModalProps {
   opened: boolean;
   onClose: () => void;
   onSelect: (bounds: string) => void;
   initialBounds?: string;
 }
 
-const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
+const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   opened,
   onClose,
   onSelect,
@@ -427,4 +427,4 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   );
 };
 
-export default MapBoundingBoxSelectorProper;
+export default SpatialCoverageMapModal;

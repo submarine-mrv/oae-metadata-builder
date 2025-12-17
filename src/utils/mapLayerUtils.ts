@@ -1,11 +1,12 @@
 /**
  * Map Layer Utilities - Reusable functions for MapLibre GL map visualizations
  *
- * Consolidates the repeated map layer patterns used across:
- * - SpatialCoverageMiniMap
- * - MapBoundingBoxSelectorProper
- * - DosingLocationMapModal
- * - DosingLocationWidget
+ * Currently used by:
+ * - SpatialCoverageField
+ * - SpatialCoverageMapModal
+ *
+ * TODO: Integrate with DosingLocationField and DosingLocationMapModal
+ * (these currently have their own inline implementations for addLine/addBoundingBox)
  */
 
 import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
@@ -48,8 +49,11 @@ interface BoundingBoxOptions {
  *
  * @example
  * ```tsx
+ * // Basic usage with default source ID "bbox"
  * addBoundingBox(map, -123.5, 47.2, -122.0, 47.8);
- * addBoundingBox(map, west, south, east, north, { sourceId: "dosing-bbox" });
+ *
+ * // With custom source ID for multiple bounding boxes
+ * addBoundingBox(map, west, south, east, north, { sourceId: "custom-bbox" });
  * ```
  */
 export function addBoundingBox(

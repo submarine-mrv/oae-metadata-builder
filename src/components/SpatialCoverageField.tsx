@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { FieldProps } from "@rjsf/utils";
 import { Box, Text, Tooltip, ActionIcon } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";
-import MapBoundingBoxSelectorProper from "./MapBoundingBoxSelectorProper";
+import SpatialCoverageMapModal from "./SpatialCoverageMapModal";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
 import {
   addBoundingBox,
@@ -32,7 +32,7 @@ function writeBox(s: string): any {
   return { geo: { box: trimmed } };
 }
 
-const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
+const SpatialCoverageField: React.FC<FieldProps> = (props) => {
   const { formData, onChange, disabled, readonly, required, schema, uiSchema, rawErrors } =
     props;
 
@@ -226,7 +226,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
         )}
       </Box>
 
-      <MapBoundingBoxSelectorProper
+      <SpatialCoverageMapModal
         opened={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSelect={(bounds) => {
@@ -239,4 +239,4 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
   );
 };
 
-export default SpatialCoverageMiniMap;
+export default SpatialCoverageField;

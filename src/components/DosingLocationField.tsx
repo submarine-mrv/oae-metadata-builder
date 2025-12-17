@@ -56,7 +56,7 @@ function formatBox(formData: any): string {
   return "";
 }
 
-const DosingLocationWidget: React.FC<FieldProps> = (props) => {
+const DosingLocationField: React.FC<FieldProps> = (props) => {
   const {
     formData,
     onChange,
@@ -432,4 +432,4 @@ const DosingLocationWidget: React.FC<FieldProps> = (props) => {
   );
 };
 
-export default DosingLocationWidget;
+export default DosingLocationField;
