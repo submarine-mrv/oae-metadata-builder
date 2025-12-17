@@ -744,7 +744,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
               width: "100%",
               height: localMode === "box" ? "250px" : "400px",
               borderRadius: "4px",
-              border: "1px solid #ccc",
+              border: "1px solid var(--brand-twilight)",
               opacity: !localMode ? 0.5 : 1
             }}
           />
@@ -762,9 +762,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255, 255, 255, 0.75)",
+                backgroundColor: "rgba(242, 238, 235, 0.9)",  /* brand-sand with opacity */
                 borderRadius: "4px",
-                border: "1px solid #ccc",
+                border: "1px solid var(--brand-twilight)",
                 padding: "8px",
                 pointerEvents: "none"
               }}

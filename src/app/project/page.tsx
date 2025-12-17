@@ -168,9 +168,9 @@ export default function ProjectPage() {
   };
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
       <Navigation />
-      <div style={{ display: "flex", height: "calc(100vh - 60px)" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
         <div
           style={{
             flex: 1,
@@ -238,7 +238,6 @@ export default function ProjectPage() {
             style={{
               width: sidebarWidth,
               minWidth: sidebarWidth,
-              height: "calc(100vh - 60px)",
               backgroundColor: "#f8f9fa",
               borderLeft: "1px solid #dee2e6",
               display: "flex",

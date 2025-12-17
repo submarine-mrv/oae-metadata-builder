@@ -145,12 +145,12 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
           style={{
             width: "100%",
             height: "300px",
-            border: (validationError || hasValidationErrors) ? "2px solid #fa5252" : "1px solid #ced4da",
+            border: (validationError || hasValidationErrors) ? "2px solid #fa5252" : "1px solid var(--brand-twilight)",
             borderRadius: "4px",
             cursor: disabled || readonly ? "default" : "pointer",
             position: "relative",
             overflow: "hidden",
-            backgroundColor: "#f8f9fa"
+            backgroundColor: "var(--brand-sand)"
           }}
         >
           {/* Mini map preview */}
@@ -179,7 +179,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255, 255, 255, 0.85)",
+                backgroundColor: "rgba(242, 238, 235, 0.9)",  /* brand-sand with opacity */
                 borderRadius: "4px",
                 padding: "8px"
               }}
@@ -196,7 +196,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
             <Tooltip label="Edit location">
               <ActionIcon
                 variant="filled"
-                color="blue"
+                color="abyssal"
                 size="md"
                 style={{
                   position: "absolute",

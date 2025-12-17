@@ -8,11 +8,11 @@ export const textAreaWidget = {
 };
 
 export const nestedItemStyle = {
-  border: "1px solid #ccc",
+  border: "1px solid var(--brand-twilight)",
   borderRadius: "5px",
   padding: "16px",
   margin: "8px 0",
-  background: "#f9f9f9"
+  background: "var(--brand-sand)"  // Slightly darker than Shell background
 };
 
 export const halfWidthStyle = {

@@ -11,11 +11,11 @@ import FieldLabel, { FieldLabelSmall } from "./FieldLabel";
 const enumNames = generateEnumNames(schema, ["MassConcentrationUnit"]);
 
 const nestedItemStyle = {
-  border: "1px solid #ccc",
+  border: "1px solid var(--brand-twilight)",
   borderRadius: "5px",
   padding: "16px",
   margin: "8px 0",
-  background: "#f9f9f9"
+  background: "var(--brand-sand)"
 };
 
 /**

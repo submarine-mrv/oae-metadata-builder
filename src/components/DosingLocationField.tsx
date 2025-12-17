@@ -335,7 +335,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
       </Text>
       <Box
         style={{
-          border: hasValidationErrors ? "2px solid red" : "1px solid #ccc",
+          border: hasValidationErrors ? "2px solid red" : "1px solid var(--brand-twilight)",
           borderRadius: "4px",
           padding: "8px",
           cursor: disabled || readonly ? "default" : "pointer",
@@ -374,7 +374,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "rgba(255, 255, 255, 0.85)",
+              backgroundColor: "rgba(242, 238, 235, 0.9)",  /* brand-sand with opacity */
               borderRadius: "4px",
               padding: "8px"
             }}
@@ -391,7 +391,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
           <Tooltip label="Edit location">
             <ActionIcon
               variant="filled"
-              color="blue"
+              color="abyssal"
               size="md"
               style={{
                 position: "absolute",

@@ -317,7 +317,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
           style={{
             height: "400px",
             width: "100%",
-            border: "1px solid #ccc",
+            border: "1px solid var(--brand-twilight)",
             borderRadius: "4px",
             position: "relative"
           }}

@@ -6,7 +6,7 @@ import {
   RJSFSchema,
   StrictRJSFSchema
 } from "@rjsf/utils";
-import { Group, Title, ActionIcon, Tooltip } from "@mantine/core";
+import { Group, Text, ActionIcon, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import DescriptionModal from "./DescriptionModal";
 
@@ -29,18 +29,18 @@ export default function CustomArrayFieldTitleTemplate<
   if (!description) {
     // No description - just render the title with proper styling
     return (
-      <Title order={4} size="sm" fw={500}>
+      <Text size="sm" fw={500}>
         {title} {required && <span style={{ color: "red" }}>*</span>}
-      </Title>
+      </Text>
     );
   }
 
   return (
     <>
       <Group gap={4} wrap="nowrap" align="center">
-        <Title order={4} size="sm" fw={500} style={{ margin: 0 }}>
+        <Text size="sm" fw={500} style={{ margin: 0 }}>
           {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Title>
+        </Text>
         {useModal ? (
           <ActionIcon
             variant="transparent"

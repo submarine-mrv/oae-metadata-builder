@@ -1,10 +1,7 @@
 "use client";
 import React, { useRef } from "react";
-import { Group, Button, Text, Menu, Switch } from "@mantine/core";
+import { Group, Button, Menu, Switch, SegmentedControl, ActionIcon, Tooltip, Text, Image, Box } from "@mantine/core";
 import {
-  IconHome,
-  IconFlask,
-  IconFolder,
   IconMenu2,
   IconInfoCircle,
   IconHelp,
@@ -22,12 +19,15 @@ export default function Navigation() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleNavigation = (
-    tab: "overview" | "project" | "experiment",
-    path: string
-  ) => {
+  const handleNavigation = (value: string) => {
+    const tab = value as "overview" | "project" | "experiment";
     setActiveTab(tab);
-    router.push(path);
+    const paths: Record<string, string> = {
+      overview: "/",
+      project: "/project",
+      experiment: "/experiment"
+    };
+    router.push(paths[value]);
   };
 
   const handleExport = async () => {
@@ -113,59 +113,61 @@ export default function Navigation() {
   };
 
   return (
-    <Group
-      gap="md"
-      p="md"
-      justify="space-between"
+    <Box
+      px="lg"
+      py="sm"
       style={{
-        borderBottom: "1px solid #dee2e6",
-        backgroundColor: "#f8f9fa"
+        display: "grid",
+        gridTemplateColumns: "1fr auto 1fr",
+        alignItems: "center",
+        gap: "1rem"
       }}
     >
-      <Group gap="md">
-        <Text size="lg" fw={700}>
-          ODP Metadata Builder
+      {/* Logo and title - left aligned */}
+      <Group gap="sm">
+        <Image
+          src="/cts-logo.png"
+          alt="Carbon to Sea"
+          h={32}
+          w="auto"
+        />
+        <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
+          OAE Metadata Builder
         </Text>
-
-        <Button
-          variant={state.activeTab === "overview" ? "filled" : "subtle"}
-          leftSection={<IconHome size={16} />}
-          onClick={() => handleNavigation("overview", "/")}
-        >
-          Home
-        </Button>
-
-        <Button
-          variant={state.activeTab === "project" ? "filled" : "subtle"}
-          leftSection={<IconFolder size={16} />}
-          onClick={() => handleNavigation("project", "/project")}
-        >
-          Project
-        </Button>
-
-        <Button
-          variant={state.activeTab === "experiment" ? "filled" : "subtle"}
-          leftSection={<IconFlask size={16} />}
-          onClick={() => handleNavigation("experiment", "/experiment")}
-        >
-          Experiments
-        </Button>
       </Group>
 
-      <Group gap="sm">
+      {/* Navigation tabs - centered */}
+      <SegmentedControl
+        value={state.activeTab}
+        onChange={handleNavigation}
+        data={[
+          { value: "overview", label: "Overview" },
+          { value: "project", label: "Project" },
+          { value: "experiment", label: "Experiments" }
+        ]}
+        size="md"
+        radius="md"
+      />
+
+      {/* Actions - right aligned */}
+      <Group gap="xs" justify="flex-end">
+        <Tooltip label="Import metadata file">
+          <ActionIcon
+            variant="subtle"
+            size="lg"
+            onClick={handleImportClick}
+            aria-label="Import File"
+          >
+            <IconFileImport size={20} />
+          </ActionIcon>
+        </Tooltip>
+
         <Button
-          variant="light"
-          leftSection={<IconFileImport size={16} />}
-          onClick={handleImportClick}
-        >
-          Import File
-        </Button>
-        <Button
-          variant="light"
+          variant="filled"
           leftSection={<IconDownload size={16} />}
           onClick={handleExport}
         >
-          Export Metadata
+          Export
         </Button>
 
         <input
@@ -178,9 +180,9 @@ export default function Navigation() {
 
         <Menu shadow="md" width={200}>
           <Menu.Target>
-            <Button variant="subtle">
-              <IconMenu2 size={18} />
-            </Button>
+            <ActionIcon variant="subtle" size="lg" aria-label="Menu">
+              <IconMenu2 size={20} />
+            </ActionIcon>
           </Menu.Target>
 
           <Menu.Dropdown>
@@ -214,6 +216,6 @@ export default function Navigation() {
           </Menu.Dropdown>
         </Menu>
       </Group>
-    </Group>
+    </Box>
   );
 }

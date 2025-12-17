@@ -1,9 +1,11 @@
 "use client";
 import { MantineProvider } from "@mantine/core";
 import { AppStateProvider } from "@/contexts/AppStateContext";
-import "./globals.css";
+import { theme } from "@/theme";
+// Import Mantine styles BEFORE globals.css so our styles take precedence
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
+import "./globals.css";
 
 export default function RootLayout({
   children
@@ -12,8 +14,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body>
-        <MantineProvider defaultColorScheme="light">
+        <MantineProvider theme={theme} defaultColorScheme="light">
           <AppStateProvider>{children}</AppStateProvider>
         </MantineProvider>
       </body>
