@@ -4,37 +4,30 @@ import {
   calculateFormCompletion,
   calculateProjectCompletion
 } from "@/utils/completionCalculator";
+import type {
+  ProjectFormData,
+  ExperimentFormData,
+  ExperimentState,
+  AppFormState
+} from "@/types/forms";
 
-export interface ExperimentData {
-  id: number; // Internal integer ID for tracking
-  name: string;
-  formData: any;
-  experiment_type?: string;
-  createdAt: number;
-  updatedAt: number;
-}
+// Re-export types for backward compatibility
+export type ExperimentData = ExperimentState;
 
-export interface AppState {
-  projectData: any;
-  experiments: ExperimentData[];
-  activeTab: "overview" | "project" | "experiment";
-  activeExperimentId: number | null; // Changed to number
-  nextExperimentId: number; // Auto-incrementing counter
-  triggerValidation: boolean; // Flag to trigger form validation
-}
+export type AppState = AppFormState;
 
 interface AppStateContextType {
   state: AppState;
-  updateProjectData: (data: any) => void;
+  updateProjectData: (data: ProjectFormData) => void;
   addExperiment: (name?: string) => number;
-  updateExperiment: (id: number, data: any) => void;
+  updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string }) => void;
   deleteExperiment: (id: number) => void;
   setActiveTab: (tab: "overview" | "project" | "experiment") => void;
   setActiveExperiment: (id: number | null) => void;
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
-  importAllData: (projectData: any, experiments: ExperimentData[]) => void;
+  importAllData: (projectData: ProjectFormData, experiments: ExperimentData[]) => void;
   setTriggerValidation: (trigger: boolean) => void;
 }
 
@@ -52,7 +45,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     triggerValidation: false
   });
 
-  const updateProjectData = useCallback((data: any) => {
+  const updateProjectData = useCallback((data: ProjectFormData) => {
     setState((prev) => ({
       ...prev,
       projectData: data
@@ -92,22 +85,25 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const updateExperiment = useCallback((id: number, data: any) => {
-    setState((prev) => ({
-      ...prev,
-      experiments: prev.experiments.map((exp) =>
-        exp.id === id
-          ? {
-              ...exp,
-              formData: { ...exp.formData, ...data },
-              experiment_type: data.experiment_type || exp.experiment_type,
-              name: data.name || exp.name,
-              updatedAt: Date.now()
-            }
-          : exp
-      )
-    }));
-  }, []);
+  const updateExperiment = useCallback(
+    (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string }) => {
+      setState((prev) => ({
+        ...prev,
+        experiments: prev.experiments.map((exp) =>
+          exp.id === id
+            ? {
+                ...exp,
+                formData: { ...exp.formData, ...data } as ExperimentFormData,
+                experiment_type: data.experiment_type || exp.experiment_type,
+                name: data.name || exp.name,
+                updatedAt: Date.now()
+              }
+            : exp
+        )
+      }));
+    },
+    []
+  );
 
   const deleteExperiment = useCallback((id: number) => {
     setState((prev) => ({
@@ -161,7 +157,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // Import all data (project + experiments) from imported file
   const importAllData = useCallback(
-    (projectData: any, experiments: ExperimentData[]) => {
+    (projectData: ProjectFormData, experiments: ExperimentData[]) => {
       // Reassign experiment IDs to avoid conflicts
       const nextId = state.nextExperimentId;
       const experimentsWithNewIds = experiments.map((exp, index) => ({

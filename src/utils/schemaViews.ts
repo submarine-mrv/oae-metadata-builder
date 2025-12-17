@@ -7,6 +7,7 @@
  */
 
 import baseSchema from "@/../public/schema.bundled.json";
+import type { RJSFSchema } from "@rjsf/utils";
 
 /**
  * Gets the base Container schema with all definitions and metadata
@@ -36,13 +37,15 @@ export function getProtocolMetadata() {
  *   that have conditional fields (e.g., Intervention), as it causes RJSF to
  *   render nested object properties as additional properties.
  */
-function createSchemaView(defName: string, schemaId: string, hasConditionalFields = false) {
+function createSchemaView(defName: string, schemaId: string, hasConditionalFields = false): RJSFSchema {
   const def = (baseSchema as any).$defs?.[defName];
 
   if (!def) {
     throw new Error(`${defName} definition not found in schema`);
   }
 
+  // Cast to unknown first, then to RJSFSchema - needed because the JSON import
+  // has very specific types that are structurally incompatible with JSONSchema7
   return {
     ...baseSchema,
     $id: schemaId,
@@ -55,7 +58,7 @@ function createSchemaView(defName: string, schemaId: string, hasConditionalField
     // nested object properties being rendered as additional properties.
     additionalProperties: hasConditionalFields ? true : def.additionalProperties,
     allOf: def.allOf
-  };
+  } as unknown as RJSFSchema;
 }
 
 /**
