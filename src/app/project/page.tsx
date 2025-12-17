@@ -17,7 +17,7 @@ import type { DescriptionFieldProps } from "@rjsf/utils";
 
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
-import uiSchema from "../uiSchema";
+import uiSchema from "./uiSchema";
 import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
@@ -45,15 +45,17 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 
 // Create a wrapper for the submit button with project-specific configuration
 const ProjectSubmitButton = (props: SubmitButtonProps) => (
-  <CustomSubmitButton
-    {...props}
-    buttonText="Download Project Metadata"
-  />
+  <CustomSubmitButton {...props} buttonText="Download Project Metadata" />
 );
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab, setTriggerValidation, setShowJsonPreview } =
-    useAppState();
+  const {
+    state,
+    updateProjectData,
+    setActiveTab,
+    setTriggerValidation,
+    setShowJsonPreview
+  } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
@@ -168,7 +170,14 @@ export default function ProjectPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden"
+      }}
+    >
       <Navigation />
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
         <div

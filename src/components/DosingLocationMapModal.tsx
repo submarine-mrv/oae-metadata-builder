@@ -762,7 +762,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(242, 238, 235, 0.9)",  /* brand-sand with opacity */
+                backgroundColor: "var(--brand-sunlight-overlay)",
                 borderRadius: "4px",
                 border: "1px solid var(--brand-twilight)",
                 padding: "8px",

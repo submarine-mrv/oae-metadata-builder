@@ -22,6 +22,8 @@
   --brand-shell: #F6F6F5;
   --brand-sand: #F2EEEB;
   --brand-sunlight: #E8EDEE;
+  --brand-sunlight-overlay: rgba(232, 237, 238, 0.7);  /* Sunlight with 70% opacity for overlays */
+    --brand-sunlight-overlay-light: rgba(232, 237, 238, 0.4);  /* Sunlight with 50% opacity for overlays */
 
   /* Mid-tones */
   --brand-twilight: #C1CCCF;

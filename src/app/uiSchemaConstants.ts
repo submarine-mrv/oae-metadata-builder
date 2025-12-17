@@ -12,7 +12,7 @@ export const nestedItemStyle = {
   borderRadius: "5px",
   padding: "16px",
   margin: "8px 0",
-  background: "var(--brand-sand)"  // Slightly darker than Shell background
+  background: "var(--brand-sunlight-overlay-light)" // Slightly darker than Shell background
 };
 
 export const halfWidthStyle = {

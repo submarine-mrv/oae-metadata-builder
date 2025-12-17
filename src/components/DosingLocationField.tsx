@@ -374,7 +374,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "rgba(242, 238, 235, 0.9)",  /* brand-sand with opacity */
+              backgroundColor: "var(--brand-sunlight-overlay)",
               borderRadius: "4px",
               padding: "8px"
             }}
