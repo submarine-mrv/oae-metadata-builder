@@ -82,6 +82,41 @@ test.describe("Conditional Dropdown Fields", () => {
       // Custom field should now be hidden
       await expect(customInput).not.toBeVisible();
     });
+
+    test("custom field value is cleared when switching away from 'Other'", async ({ page }) => {
+      // Select "Other" and fill in a custom value
+      await page.locator("#root_alkalinity_feedstock").click();
+      await page.waitForTimeout(200);
+      await page.getByRole("option", { name: "Other" }).click();
+      await page.waitForTimeout(300);
+
+      const customInput = page.getByLabel("Alkalinity Feedstock (Custom)");
+      await customInput.fill("My Custom Feedstock");
+      await expect(customInput).toHaveValue("My Custom Feedstock");
+
+      // Switch to a known option
+      await page.locator("#root_alkalinity_feedstock").click();
+      await page.waitForTimeout(200);
+      await page.getByRole("option", { name: "Calcium Carbonate" }).click();
+      await page.waitForTimeout(300);
+
+      // Custom field should be hidden and removed from DOM
+      await expect(customInput).not.toBeVisible();
+
+      // Verify the custom field is actually not in the DOM (not just hidden)
+      const customFieldCount = await page.locator("#root_alkalinity_feedstock_custom").count();
+      expect(customFieldCount).toBe(0);
+
+      // Switch back to "Other" - field should appear empty (value was cleared)
+      await page.locator("#root_alkalinity_feedstock").click();
+      await page.waitForTimeout(200);
+      await page.getByRole("option", { name: "Other" }).click();
+      await page.waitForTimeout(300);
+
+      // The custom field should be visible again but EMPTY
+      await expect(customInput).toBeVisible();
+      await expect(customInput).toHaveValue("");
+    });
   });
 
   test.describe("Alkalinity Feedstock Processing", () => {
