@@ -13,7 +13,7 @@ import {
   Pill
 } from "@mantine/core";
 import IsoIntervalWidgetVertical from "./IsoIntervalWidgetVertical";
-import SpatialCoverageMiniMap from "./SpatialCoverageMiniMap";
+import SpatialCoverageField from "./SpatialCoverageField";
 import { FieldLabelSmall } from "./rjsf/FieldLabel";
 
 const ExternalProjectField: React.FC<FieldProps> = (props) => {
@@ -46,7 +46,8 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     name: fieldName,
     value: data[fieldName],
     formData: data[fieldName],
-    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData.formData || widgetData),
+    onChange: (widgetData: any) =>
+      handleFieldChange(fieldName, widgetData.formData || widgetData),
     onBlur: () => {},
     onFocus: () => {},
     disabled,
@@ -75,7 +76,10 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     required: schema.required?.includes(fieldName) || false,
     schema: fieldSchema,
     uiSchema: uiSchema?.[fieldName] || {},
-    fieldPathId: { $id: `${fieldPathId.$id}_${fieldName}`, path: [...fieldPathId.path, fieldName] },
+    fieldPathId: {
+      $id: `${fieldPathId.$id}_${fieldName}`,
+      path: [...fieldPathId.path, fieldName]
+    },
     options: {},
     label: fieldName,
     placeholder: "",
@@ -130,7 +134,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
             {/* Right column - Spatial coverage */}
             {schema.properties?.spatial_coverage && (
               <Grid.Col span={6}>
-                <SpatialCoverageMiniMap
+                <SpatialCoverageField
                   {...createFieldProps(
                     "spatial_coverage",
                     schema.properties.spatial_coverage

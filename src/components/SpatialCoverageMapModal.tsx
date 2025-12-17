@@ -7,40 +7,35 @@ import {
   Text,
   Box,
   Stack,
-  Grid,
   NumberInput,
   Group
 } from "@mantine/core";
 import {
   normalizeLongitude,
-  adjustEastForAntimeridian,
-  prepareBoundsForRendering,
   DEGREES_IN_CIRCLE,
   isValidLatitude
 } from "@/utils/spatialUtils";
 import {
+  addBoundingBox,
+  removeBoundingBox,
+  fitBoundsWithAntimeridian,
+  formatBoundsString
+} from "@/utils/mapLayerUtils";
+import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
+import {
   MAP_TILE_STYLE,
   DEFAULT_MAP_CENTER,
-  DEFAULT_ZOOM,
-  MAPLIBRE_GL_CSS_URL,
-  MAPLIBRE_GL_JS_URL
+  DEFAULT_ZOOM
 } from "@/config/maps";
 
-// Extend Window interface to include maplibregl
-declare global {
-  interface Window {
-    maplibregl?: any;
-  }
-}
-
-interface MapBoundingBoxSelectorProps {
+interface SpatialCoverageMapModalProps {
   opened: boolean;
   onClose: () => void;
   onSelect: (bounds: string) => void;
   initialBounds?: string;
 }
 
-const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
+const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   opened,
   onClose,
   onSelect,
@@ -66,6 +61,9 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   // Validation state for N/S
   const [hasLatitudeError, setHasLatitudeError] = useState(false);
 
+  // Load MapLibre using the shared hook (don't auto-load, only when modal opens)
+  const { isLoaded: mapLibreLoaded, loadMapLibre } = useMapLibreLoader(false);
+
   // Parse bounds string "W S E N" into individual coordinates
   const parseBounds = useCallback((boundsString: string) => {
     const parts = boundsString.trim().split(/\s+/).map(Number);
@@ -85,14 +83,6 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
       setHasLatitudeError(false);
     }
   }, []);
-
-  // Create bounds string from individual coordinates
-  const createBoundsString = useCallback(
-    (w: number, s: number, e: number, n: number): string => {
-      return `${w.toFixed(6)} ${s.toFixed(6)} ${e.toFixed(6)} ${n.toFixed(6)}`;
-    },
-    []
-  );
 
   // Handle manual coordinate input changes
   const handleCoordinateChange = useCallback(
@@ -120,39 +110,17 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         typeof newEast === "number" &&
         typeof newNorth === "number"
       ) {
-        const boundsString = createBoundsString(
-          newWest,
-          newSouth,
-          newEast,
-          newNorth
-        );
+        const boundsString = formatBoundsString(newWest, newSouth, newEast, newNorth);
         setCurrentBounds(boundsString);
 
         // Update map if it's loaded and coordinates are valid
         if (mapInstanceRef.current && mapLoaded && newNorth > newSouth) {
-          addBoundingBox(
-            mapInstanceRef.current,
-            newWest,
-            newSouth,
-            newEast,
-            newNorth
-          );
-          // For fitBounds: if W > E (antimeridian), translate E to +360 range
-          const fitEast = adjustEastForAntimeridian(newWest, newEast);
-          mapInstanceRef.current.fitBounds(
-            [
-              [newWest, newSouth],
-              [fitEast, newNorth]
-            ],
-            {
-              padding: 20,
-              duration: 500
-            }
-          );
+          addBoundingBox(mapInstanceRef.current, newWest, newSouth, newEast, newNorth);
+          fitBoundsWithAntimeridian(mapInstanceRef.current, newWest, newSouth, newEast, newNorth, { padding: 20, duration: 500 });
         }
       }
     },
-    [createBoundsString, mapLoaded]
+    [mapLoaded]
   );
 
   const initializeMap = useCallback(() => {
@@ -176,18 +144,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         if (parts.length === 4) {
           const [west, south, east, north] = parts;
           addBoundingBox(map, west, south, east, north);
-          // Smooth zoom to bounds with animation - handle antimeridian
-          const fitEast = adjustEastForAntimeridian(west, east);
-          map.fitBounds(
-            [
-              [west, south],
-              [fitEast, north]
-            ],
-            {
-              padding: 50
-              // Remove duration: 0 to restore smooth animation
-            }
-          );
+          fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 50 });
           setCurrentBounds(initialBounds);
         }
       }
@@ -196,110 +153,23 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     return map;
   }, [initialBounds]);
 
-  // Load MapLibre and initialize map when modal opens
+  // Load MapLibre when modal opens
   useEffect(() => {
-    if (!opened) return;
-
-    const loadAndInitialize = async () => {
-      try {
-        // Load MapLibre if not already loaded
-        if (!window.maplibregl) {
-          // Load CSS
-          if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = MAPLIBRE_GL_CSS_URL;
-            document.head.appendChild(link);
-          }
-
-          // Load JS
-          const script = document.createElement("script");
-          script.src = MAPLIBRE_GL_JS_URL;
-
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () =>
-              reject(new Error("Failed to load MapLibre GL"));
-            document.head.appendChild(script);
-          });
-        }
-
-        // Wait for next tick to ensure DOM is ready
-        requestAnimationFrame(() => {
-          if (mapRef.current && !mapInstanceRef.current) {
-            initializeMap();
-          }
-        });
-      } catch (error) {
-        console.error("MapLibre loading failed:", error);
-        // You could add user-friendly error notification here
-      }
-    };
-
-    loadAndInitialize();
-  }, [opened, initializeMap]);
-
-  const addBoundingBox = (
-    map: any,
-    west: number,
-    south: number,
-    east: number,
-    north: number
-  ) => {
-    // Remove existing bounding box
-    if (map.getSource("bbox")) {
-      map.removeLayer("bbox-fill");
-      map.removeLayer("bbox-outline");
-      map.removeSource("bbox");
+    if (opened && !mapLibreLoaded) {
+      loadMapLibre();
     }
+  }, [opened, mapLibreLoaded, loadMapLibre]);
 
-    // For rendering: if W > E (antimeridian crossing), translate E to +360 range
-    // so MapLibre draws the short way
-    const renderWest = west;
-    const renderEast = adjustEastForAntimeridian(west, east);
+  // Initialize map once MapLibre is loaded and modal is open
+  useEffect(() => {
+    if (!opened || !mapLibreLoaded) return;
 
-    // Add bounding box as GeoJSON
-    map.addSource("bbox", {
-      type: "geojson",
-      data: {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [renderWest, north],
-              [renderEast, north],
-              [renderEast, south],
-              [renderWest, south],
-              [renderWest, north]
-            ]
-          ]
-        }
+    requestAnimationFrame(() => {
+      if (mapRef.current && !mapInstanceRef.current) {
+        initializeMap();
       }
     });
-
-    // Add fill layer
-    map.addLayer({
-      id: "bbox-fill",
-      type: "fill",
-      source: "bbox",
-      paint: {
-        "fill-color": "#ff7800",
-        "fill-opacity": 0.1
-      }
-    });
-
-    // Add outline layer
-    map.addLayer({
-      id: "bbox-outline",
-      type: "line",
-      source: "bbox",
-      paint: {
-        "line-color": "#ff7800",
-        "line-width": 2
-      }
-    });
-  };
+  }, [opened, mapLibreLoaded, initializeMap]);
 
   const startSelection = () => {
     if (!mapInstanceRef.current) return;
@@ -310,11 +180,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
     startPointRef.current = null;
 
     // Remove existing bounding box
-    if (map.getSource("bbox")) {
-      map.removeLayer("bbox-fill");
-      map.removeLayer("bbox-outline");
-      map.removeSource("bbox");
-    }
+    removeBoundingBox(map);
 
     map.getCanvas().style.cursor = "crosshair";
 
@@ -363,9 +229,7 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
         addBoundingBox(map, west, south, east, north);
 
         // Format as "W S E N"
-        const boundsString = `${west.toFixed(6)} ${south.toFixed(
-          6
-        )} ${east.toFixed(6)} ${north.toFixed(6)}`;
+        const boundsString = formatBoundsString(west, south, east, north);
         setCurrentBounds(boundsString);
 
         // Update individual coordinate states
@@ -563,4 +427,4 @@ const MapBoundingBoxSelectorProper: React.FC<MapBoundingBoxSelectorProps> = ({
   );
 };
 
-export default MapBoundingBoxSelectorProper;
+export default SpatialCoverageMapModal;

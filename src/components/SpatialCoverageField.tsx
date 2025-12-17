@@ -4,17 +4,19 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { FieldProps } from "@rjsf/utils";
 import { Box, Text, Tooltip, ActionIcon } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";
-import MapBoundingBoxSelectorProper from "./MapBoundingBoxSelectorProper";
+import SpatialCoverageMapModal from "./SpatialCoverageMapModal";
+import { validateSpatialBounds } from "@/utils/spatialUtils";
 import {
-  validateSpatialBounds,
-  adjustEastForAntimeridian
-} from "@/utils/spatialUtils";
+  addBoundingBox,
+  removeBoundingBox,
+  fitBoundsWithAntimeridian,
+  parseBoundsString
+} from "@/utils/mapLayerUtils";
+import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
   MAP_TILE_STYLE,
   DEFAULT_MAP_CENTER,
-  DEFAULT_MINI_MAP_ZOOM,
-  MAPLIBRE_GL_CSS_URL,
-  MAPLIBRE_GL_JS_URL
+  DEFAULT_MINI_MAP_ZOOM
 } from "@/config/maps";
 
 // parse "W S E N" string from nested object
@@ -30,7 +32,7 @@ function writeBox(s: string): any {
   return { geo: { box: trimmed } };
 }
 
-const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
+const SpatialCoverageField: React.FC<FieldProps> = (props) => {
   const { formData, onChange, disabled, readonly, required, schema, uiSchema, rawErrors } =
     props;
 
@@ -43,6 +45,9 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
   const hasValidationErrors = rawErrors && rawErrors.length > 0;
   const [showMapModal, setShowMapModal] = useState(false);
   const [miniMapLoaded, setMiniMapLoaded] = useState(false);
+
+  // Load MapLibre using the shared hook
+  const { isLoaded: mapLibreLoaded } = useMapLibreLoader();
 
   const label = uiSchema?.["ui:title"] ?? schema?.title ?? "Spatial coverage";
 
@@ -80,157 +85,42 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
       setMiniMapLoaded(true);
 
       // Add bounding box if we have coordinates
-      if (value.trim()) {
-        const parts = value.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [west, south, east, north] = parts;
-          addBoundingBox(map, west, south, east, north);
-          // Handle antimeridian for fitBounds
-          const fitEast = adjustEastForAntimeridian(west, east);
-          map.fitBounds(
-            [
-              [west, south],
-              [fitEast, north]
-            ],
-            {
-              padding: 20,
-              duration: 0
-            }
-          );
-        }
+      const bounds = parseBoundsString(value);
+      if (bounds) {
+        const { west, south, east, north } = bounds;
+        addBoundingBox(map, west, south, east, north);
+        fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 20, duration: 0 });
       }
     });
   }, [value]);
 
-  const addBoundingBox = (
-    map: any,
-    west: number,
-    south: number,
-    east: number,
-    north: number
-  ) => {
-    // Remove existing bounding box
-    if (map.getSource("bbox")) {
-      map.removeLayer("bbox-fill");
-      map.removeLayer("bbox-outline");
-      map.removeSource("bbox");
-    }
-
-    // For rendering: if W > E (antimeridian crossing), translate E to +360 range
-    // so MapLibre draws the short way
-    const renderWest = west;
-    const renderEast = adjustEastForAntimeridian(west, east);
-
-    // Add bounding box as GeoJSON
-    map.addSource("bbox", {
-      type: "geojson",
-      data: {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [renderWest, north],
-              [renderEast, north],
-              [renderEast, south],
-              [renderWest, south],
-              [renderWest, north]
-            ]
-          ]
-        }
-      }
-    });
-
-    // Add fill layer
-    map.addLayer({
-      id: "bbox-fill",
-      type: "fill",
-      source: "bbox",
-      paint: {
-        "fill-color": "#ff7800",
-        "fill-opacity": 0.1
-      }
-    });
-
-    // Add outline layer
-    map.addLayer({
-      id: "bbox-outline",
-      type: "line",
-      source: "bbox",
-      paint: {
-        "line-color": "#ff7800",
-        "line-width": 2
-      }
-    });
-  };
-
-  // Load MapLibre and initialize mini map
+  // Initialize map when MapLibre is loaded
   useEffect(() => {
-    const loadAndInit = async () => {
-      try {
-        if (!window.maplibregl) {
-          // Load CSS
-          if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = MAPLIBRE_GL_CSS_URL;
-            document.head.appendChild(link);
-          }
+    if (!mapLibreLoaded) return;
 
-          // Load JS
-          const script = document.createElement("script");
-          script.src = MAPLIBRE_GL_JS_URL;
-
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () =>
-              reject(new Error("Failed to load MapLibre GL"));
-            document.head.appendChild(script);
-          });
-        }
-
-        requestAnimationFrame(() => {
-          if (mapRef.current && !mapInstanceRef.current) {
-            initializeMiniMap();
-          }
-        });
-      } catch (error) {
-        console.error("MapLibre loading failed:", error);
+    requestAnimationFrame(() => {
+      if (mapRef.current && !mapInstanceRef.current) {
+        initializeMiniMap();
       }
-    };
-
-    loadAndInit();
-  }, [initializeMiniMap]);
+    });
+  }, [mapLibreLoaded, initializeMiniMap]);
 
   // Update mini map when value changes
   useEffect(() => {
-    if (mapInstanceRef.current && miniMapLoaded && value.trim()) {
-      const parts = value.trim().split(/\s+/).map(Number);
-      if (parts.length === 4) {
-        const [west, south, east, north] = parts;
-        addBoundingBox(mapInstanceRef.current, west, south, east, north);
-        // Handle antimeridian for fitBounds
-        const fitEast = adjustEastForAntimeridian(west, east);
-        mapInstanceRef.current.fitBounds(
-          [
-            [west, south],
-            [fitEast, north]
-          ],
-          {
-            padding: 20,
-            duration: 500
-          }
-        );
-      }
-    } else if (mapInstanceRef.current && miniMapLoaded && !value.trim()) {
+    if (!mapInstanceRef.current || !miniMapLoaded) return;
+
+    const map = mapInstanceRef.current;
+    const bounds = parseBoundsString(value);
+
+    if (bounds) {
+      const { west, south, east, north } = bounds;
+      addBoundingBox(map, west, south, east, north);
+      fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 20, duration: 500 });
+    } else {
       // Remove bounding box if no value
-      if (mapInstanceRef.current.getSource("bbox")) {
-        mapInstanceRef.current.removeLayer("bbox-fill");
-        mapInstanceRef.current.removeLayer("bbox-outline");
-        mapInstanceRef.current.removeSource("bbox");
-      }
+      removeBoundingBox(map);
       // Reset to default view
-      mapInstanceRef.current.flyTo({
+      map.flyTo({
         center: DEFAULT_MAP_CENTER,
         zoom: DEFAULT_MINI_MAP_ZOOM,
         duration: 500
@@ -336,7 +226,7 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
         )}
       </Box>
 
-      <MapBoundingBoxSelectorProper
+      <SpatialCoverageMapModal
         opened={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSelect={(bounds) => {
@@ -349,4 +239,4 @@ const SpatialCoverageMiniMap: React.FC<FieldProps> = (props) => {
   );
 };
 
-export default SpatialCoverageMiniMap;
+export default SpatialCoverageField;

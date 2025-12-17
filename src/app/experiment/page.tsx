@@ -16,8 +16,8 @@ import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import type { DescriptionFieldProps } from "@rjsf/utils";
 
-import SpatialCoverageMiniMap from "@/components/SpatialCoverageMiniMap";
-import DosingLocationWidget from "@/components/DosingLocationWidget";
+import SpatialCoverageField from "@/components/SpatialCoverageField";
+import DosingLocationField from "@/components/DosingLocationField";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
@@ -345,9 +345,9 @@ export default function ExperimentPage() {
                 }
               }}
               fields={{
-                SpatialCoverageMiniMap: SpatialCoverageMiniMap,
+                SpatialCoverageMiniMap: SpatialCoverageField,
                 PlaceholderField: PlaceholderField,
-                DosingLocationField: DosingLocationWidget,
+                DosingLocationField: DosingLocationField,
                 DosingConcentrationField: DosingConcentrationField
               }}
               showErrorList="top"

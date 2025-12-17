@@ -1,9 +1,15 @@
+/**
+ * IsoIntervalWidget - Horizontal date interval input for ISO 8601 interval strings
+ *
+ * For vertical layout, use IsoIntervalWidgetVertical instead.
+ */
 "use client";
+
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";
 import { TextInput, Text, Group } from "@mantine/core";
 import DatePickerPopover from "./DatePickerPopover";
-import { parseInterval, buildInterval, validateDate } from "@/utils/dateUtils";
+import { useIsoInterval } from "@/hooks/useIsoInterval";
 
 const IsoIntervalWidget: React.FC<WidgetProps> = ({
   id,
@@ -16,24 +22,13 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   onFocus,
   label
 }) => {
-  const { start, end } = React.useMemo(
-    () => parseInterval(value as any),
-    [value]
-  );
-  const [startDate, setStartDate] = React.useState(start);
-  const [endDate, setEndDate] = React.useState(end);
-  const [startPickerOpen, setStartPickerOpen] = React.useState(false);
-  const [endPickerOpen, setEndPickerOpen] = React.useState(false);
-  const [startTouched, setStartTouched] = React.useState(false);
-  const [endTouched, setEndTouched] = React.useState(false);
-
-  React.useEffect(() => {
-    setStartDate(start);
-    setEndDate(end);
-  }, [start, end]);
-
-  const emit = (s: string, e: string) =>
-    onChange(buildInterval(s, e) ?? undefined);
+  const interval = useIsoInterval({
+    id,
+    value: value as string | undefined,
+    onChange,
+    onBlur,
+    onFocus
+  });
 
   return (
     <div id={id}>
@@ -46,35 +41,21 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
         <div style={{ position: "relative" }}>
           <TextInput
             label="Start date"
-            value={startDate}
-            onChange={(event) => {
-              const newValue = event.currentTarget.value;
-              setStartDate(newValue);
-              emit(newValue, endDate);
-            }}
-            onBlur={() => {
-              setStartTouched(true);
-              onBlur && onBlur(id, startDate);
-            }}
-            onFocus={() => onFocus && onFocus(id, startDate)}
+            value={interval.startDate}
+            onChange={(event) => interval.handleStartChange(event.currentTarget.value)}
+            onBlur={interval.handleStartBlur}
+            onFocus={interval.handleStartFocus}
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={required}
-            error={
-              startTouched && startDate && !validateDate(startDate)
-                ? "Invalid date format"
-                : undefined
-            }
+            error={interval.startError}
             rightSection={
               <DatePickerPopover
-                opened={startPickerOpen}
-                onChange={setStartPickerOpen}
-                value={startDate}
-                onDateChange={(formatted) => {
-                  setStartDate(formatted);
-                  emit(formatted, endDate);
-                }}
-                onTouched={() => setStartTouched(true)}
+                opened={interval.startPickerOpen}
+                onChange={interval.setStartPickerOpen}
+                value={interval.startDate}
+                onDateChange={interval.handleStartDatePick}
+                onTouched={() => interval.setStartTouched(true)}
                 disabled={disabled}
                 readonly={readonly}
               />
@@ -84,34 +65,20 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
         <div style={{ position: "relative" }}>
           <TextInput
             label="End date (optional)"
-            value={endDate}
-            onChange={(event) => {
-              const newValue = event.currentTarget.value;
-              setEndDate(newValue);
-              emit(startDate, newValue);
-            }}
-            onBlur={() => {
-              setEndTouched(true);
-              onBlur && onBlur(id, endDate);
-            }}
-            onFocus={() => onFocus && onFocus(id, endDate)}
+            value={interval.endDate}
+            onChange={(event) => interval.handleEndChange(event.currentTarget.value)}
+            onBlur={interval.handleEndBlur}
+            onFocus={interval.handleEndFocus}
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
-            error={
-              endTouched && endDate && !validateDate(endDate)
-                ? "Invalid date format"
-                : undefined
-            }
+            error={interval.endError}
             rightSection={
               <DatePickerPopover
-                opened={endPickerOpen}
-                onChange={setEndPickerOpen}
-                value={endDate}
-                onDateChange={(dateStr) => {
-                  setEndDate(dateStr);
-                  emit(startDate, dateStr);
-                }}
-                onTouched={() => setEndTouched(true)}
+                opened={interval.endPickerOpen}
+                onChange={interval.setEndPickerOpen}
+                value={interval.endDate}
+                onDateChange={interval.handleEndDatePick}
+                onTouched={() => interval.setEndTouched(true)}
                 disabled={disabled}
                 readonly={readonly}
               />
