@@ -129,7 +129,7 @@ export default function VariableModal({
     setFormData((prev) => ({
       ...prev,
       [parent]: {
-        ...(prev[parent as keyof ExtendedVariableFormData] as object || {}),
+        ...((prev[parent as keyof ExtendedVariableFormData] as object) || {}),
         [field]: value
       }
     }));
@@ -211,7 +211,7 @@ export default function VariableModal({
           />
 
           <Select
-            label="Was this measured from discrete bottles or continuous sensors?"
+            label="Were the measurements taken from discrete bottles or continuous sensors?"
             placeholder="Select measurement type"
             data={MEASUREMENT_TYPE_OPTIONS}
             value={formData.measurement_type || null}
@@ -350,7 +350,9 @@ export default function VariableModal({
                             <TextInput
                               label="Temperature correction method"
                               placeholder="Method used to correct pH for temperature"
-                              value={formData.temperature_correction_method || ""}
+                              value={
+                                formData.temperature_correction_method || ""
+                              }
                               onChange={(e) =>
                                 updateField(
                                   "temperature_correction_method",
@@ -449,7 +451,9 @@ export default function VariableModal({
                           <TextInput
                             label="Accuracy"
                             placeholder="Instrument accuracy"
-                            value={formData.analyzing_instrument?.accuracy || ""}
+                            value={
+                              formData.analyzing_instrument?.accuracy || ""
+                            }
                             onChange={(e) =>
                               updateNestedField(
                                 "analyzing_instrument",
@@ -613,7 +617,10 @@ export default function VariableModal({
                                 ?.frequency || ""
                             }
                             onChange={(e) =>
-                              updateCalibrationField("frequency", e.target.value)
+                              updateCalibrationField(
+                                "frequency",
+                                e.target.value
+                              )
                             }
                           />
                           <TextInput
@@ -723,7 +730,10 @@ export default function VariableModal({
                           placeholder="Parameters used in the calculation"
                           value={formData.calculation_parameters || ""}
                           onChange={(e) =>
-                            updateField("calculation_parameters", e.target.value)
+                            updateField(
+                              "calculation_parameters",
+                              e.target.value
+                            )
                           }
                         />
                         <Group grow>
@@ -732,7 +742,10 @@ export default function VariableModal({
                             placeholder="e.g., CO2SYS, seacarb"
                             value={formData.calculation_software || ""}
                             onChange={(e) =>
-                              updateField("calculation_software", e.target.value)
+                              updateField(
+                                "calculation_software",
+                                e.target.value
+                              )
                             }
                           />
                           <TextInput
@@ -764,7 +777,10 @@ export default function VariableModal({
                         placeholder="e.g., -999, NaN, NA"
                         value={formData.missing_value_indicators || ""}
                         onChange={(e) =>
-                          updateField("missing_value_indicators", e.target.value)
+                          updateField(
+                            "missing_value_indicators",
+                            e.target.value
+                          )
                         }
                       />
                       <TextInput
