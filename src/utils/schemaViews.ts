@@ -101,3 +101,56 @@ export function getInterventionWithTracerSchema() {
     true
   );
 }
+
+/**
+ * Gets the Dataset schema for the dataset form
+ */
+export function getDatasetSchema() {
+  return createSchemaView("Dataset", "DatasetSchema");
+}
+
+// =============================================================================
+// Variable Schema Getters
+// =============================================================================
+
+/**
+ * Variable type configuration with schema name and user-friendly label
+ */
+export interface VariableTypeConfig {
+  schemaName: string;
+  label: string;
+}
+
+/**
+ * All supported variable types with their user-friendly labels
+ */
+export const VARIABLE_TYPES: VariableTypeConfig[] = [
+  { schemaName: "DICVariable", label: "Dissolved Inorganic Carbon (DIC)" },
+  { schemaName: "TAVariable", label: "Total Alkalinity (TA)" },
+  { schemaName: "PHVariable", label: "pH" },
+  { schemaName: "CO2ContinuousVariable", label: "pCO2/fCO2 (Continuous)" },
+  { schemaName: "CO2DiscreteVariable", label: "pCO2/fCO2 (Discrete)" },
+  { schemaName: "MeasuredVariable", label: "Other Measured Variable" },
+  { schemaName: "CalculatedVariable", label: "Calculated Variable" },
+  { schemaName: "HPLCVariable", label: "HPLC Pigments" },
+  { schemaName: "SedimentVariable", label: "Sediment" },
+  { schemaName: "PhysiologicalVariable", label: "Physiological Response" },
+  { schemaName: "SocioeconomicVariable", label: "Socioeconomic Data" },
+  { schemaName: "NonMeasuredVariable", label: "Non-Measured (External Data)" },
+  { schemaName: "GenericVariable", label: "Other" }
+];
+
+/**
+ * Gets a variable schema by its type name (e.g., "DICVariable", "PHVariable")
+ */
+export function getVariableSchema(variableType: string): RJSFSchema {
+  return createSchemaView(variableType, `${variableType}Schema`);
+}
+
+/**
+ * Gets the user-friendly label for a variable type
+ */
+export function getVariableTypeLabel(variableType: string): string {
+  const config = VARIABLE_TYPES.find((vt) => vt.schemaName === variableType);
+  return config?.label || variableType;
+}

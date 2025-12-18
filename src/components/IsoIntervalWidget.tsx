@@ -20,8 +20,12 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   onChange,
   onBlur,
   onFocus,
-  label
+  label,
+  options
 }) => {
+  // Check if end date is required via ui:options
+  const endDateRequired = options?.endDateRequired === true;
+
   const interval = useIsoInterval({
     id,
     value: value as string | undefined,
@@ -64,13 +68,14 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
         </div>
         <div style={{ position: "relative" }}>
           <TextInput
-            label="End date (optional)"
+            label={endDateRequired ? "End date" : "End date (optional)"}
             value={interval.endDate}
             onChange={(event) => interval.handleEndChange(event.currentTarget.value)}
             onBlur={interval.handleEndBlur}
             onFocus={interval.handleEndFocus}
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
+            required={endDateRequired}
             error={interval.endError}
             rightSection={
               <DatePickerPopover
