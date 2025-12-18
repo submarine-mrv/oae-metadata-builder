@@ -69,10 +69,9 @@ export default function OverviewPage() {
 
   const getCompletionColor = (percentage: number) => {
     if (percentage === 0) return "gray";
-    if (percentage < 33) return "red";
-    if (percentage < 67) return "yellow";
-    if (percentage < 100) return "blue";
-    return "green";
+    if (percentage < 33) return "progressOrange.4";
+    if (percentage < 100) return "progressBlue.4";
+    return "progressGreen.4";
   };
 
   const getCompletionLabel = (percentage: number) => {

@@ -8,7 +8,7 @@ import {
   textAreaWidget,
   nestedItemStyle,
   halfWidthStyle
-} from "./uiSchemaConstants";
+} from "../uiSchemaConstants";
 
 // Generate formatted enum names for intervention-specific enums
 const enumNames = generateEnumNames(schema, [

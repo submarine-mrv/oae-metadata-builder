@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Group, Text, Title, Tooltip, ActionIcon } from "@mantine/core";
+import { Group, Text, Tooltip, ActionIcon } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import DescriptionModal from "./DescriptionModal";
 
@@ -29,18 +29,18 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   // If no description, just render the label
   if (!description) {
     return (
-      <Title order={order} size="sm" fw={fw} mb="xs">
+      <Text size="sm" fw={fw} mb="xs">
         {label} {required && <span style={{ color: "red" }}>*</span>}
-      </Title>
+      </Text>
     );
   }
 
   return (
     <>
       <Group gap={4} mb="xs">
-        <Title order={order} size="sm" fw={fw}>
+        <Text size="sm" fw={fw}>
           {label} {required && <span style={{ color: "red" }}>*</span>}
-        </Title>
+        </Text>
         {useModal ? (
           <ActionIcon
             variant="transparent"

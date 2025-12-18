@@ -1,5 +1,5 @@
 import { FocusEvent, useCallback, useMemo } from "react";
-import { Select, MultiSelect, Group, Title, Anchor } from "@mantine/core";
+import { Select, MultiSelect, Group, Text, Anchor } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
 import {
   ariaDescribedByIds,
@@ -119,15 +119,14 @@ export default function CustomSelectWidget<
     <div>
       {labelText && (
         <Group gap="sm" align="center" mb="xs">
-          <Title order={4} size="sm" fw={500}>
+          <Text size="sm" fw={500}>
             {labelText} {required && <span style={{ color: "red" }}>*</span>}
-          </Title>
+          </Text>
           {viewAllLink && (
             <Anchor
               href={viewAllLink}
               target="_blank"
               size="sm"
-              c="blue"
               style={{ display: "flex", alignItems: "center", gap: "4px" }}
             >
               view all

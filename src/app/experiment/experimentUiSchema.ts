@@ -1,7 +1,11 @@
 // experimentUiSchema.ts - UI configuration for experiment forms
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
-import { textAreaWidget, nestedItemStyle, halfWidthStyle } from "./uiSchemaConstants";
+import {
+  textAreaWidget,
+  nestedItemStyle,
+  halfWidthStyle
+} from "../uiSchemaConstants";
 
 // Generate formatted enum names from schema
 const enumNames = generateEnumNames(schema, [

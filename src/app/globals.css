@@ -1,28 +1,132 @@
+/**
+ * Carbon to Sea Initiative Brand Fonts
+ * - Newsreader: Display/heading font (serif)
+ * - Inter: Body text font (sans-serif)
+ * Note: @import must come before Tailwind
+ */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
+/**
+ * Carbon to Sea Initiative Brand Colors
+ * Based on Brand Guidelines - May 2023
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary brand colors */
+  --brand-hadal: #162326;      /* Primary dark - text, logos */
+  --brand-coral: #EE5919;      /* CTA/accent - buttons, highlights */
+
+  /* Light backgrounds */
+  --brand-white: #FFFFFF;
+  --brand-shell: #F6F6F5;
+  --brand-sand: #F2EEEB;
+  --brand-sunlight: #E8EDEE;
+  --brand-sunlight-overlay: rgba(232, 237, 238, 0.7);  /* Sunlight with 70% opacity for overlays */
+    --brand-sunlight-overlay-light: rgba(232, 237, 238, 0.4);  /* Sunlight with 50% opacity for overlays */
+
+  /* Mid-tones */
+  --brand-twilight: #C1CCCF;
+  --brand-midnight: #7C9298;
+
+  /* Darker accents */
+  --brand-abyssal: #4F656A;
+
+  /* Qualitative/categorical colors */
+  --viz-ocean: #005967;        /* Deep teal - used for links */
+
+  /* Semantic mappings */
+  /* Using Shell (light grey) for cleaner appearance */
+  --background: var(--brand-shell);
+  --foreground: var(--brand-hadal);
+  --muted: var(--brand-twilight);
+  --accent: var(--brand-coral);
+  /* Card/content background - use white for contrast against grey background */
+  --surface: var(--brand-white);
+
+  /* Typography */
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-hadal: var(--brand-hadal);
+  --color-coral: var(--brand-coral);
+  --color-shell: var(--brand-shell);
+  --color-sand: var(--brand-sand);
+  --color-sunlight: var(--brand-sunlight);
+  --color-twilight: var(--brand-twilight);
+  --color-midnight: var(--brand-midnight);
+  --color-abyssal: var(--brand-abyssal);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
 }
 
+/*
+ * Dark mode is disabled - Carbon to Sea brand is designed for light backgrounds.
+ * The brand guidelines specify Shell, Sand, and White as preferred backgrounds.
+ * Uncomment below if dark mode support is needed in the future.
+ */
+/*
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--brand-hadal);
+    --foreground: var(--brand-shell);
   }
 }
+*/
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading styles - using display font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--brand-hadal);
+}
+
+/* Link styling with coral accent */
+a {
+  color: var(--brand-coral);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: #D9480F;
+}
+
+/* Selection highlighting */
+::selection {
+  background-color: var(--brand-twilight);
+  color: var(--brand-hadal);
+}
+
+/* Scrollbar styling (webkit browsers) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--brand-sunlight);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-twilight);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-midnight);
 }
 
 /* Custom RJSF Array styling */
@@ -43,4 +147,55 @@ body {
   top: 16px !important;
   right: 16px !important;
   z-index: 10 !important;
+}
+
+/* ============================================
+   Carbon to Sea Brand Utility Classes
+   ============================================ */
+
+/* Coral CTA button styling - use with Mantine Button color="coral" */
+.btn-coral {
+  background-color: var(--brand-coral) !important;
+  color: white !important;
+}
+
+.btn-coral:hover {
+  background-color: #D9480F !important;
+}
+
+/* Text color utilities */
+.text-hadal { color: var(--brand-hadal); }
+.text-coral { color: var(--brand-coral); }
+.text-midnight { color: var(--brand-midnight); }
+.text-abyssal { color: var(--brand-abyssal); }
+
+/* Background color utilities */
+.bg-shell { background-color: var(--brand-shell); }
+.bg-sand { background-color: var(--brand-sand); }
+.bg-sunlight { background-color: var(--brand-sunlight); }
+.bg-twilight { background-color: var(--brand-twilight); }
+.bg-hadal { background-color: var(--brand-hadal); }
+
+/* Section backgrounds using brand colors */
+.section-light {
+  background-color: var(--brand-shell);
+}
+
+.section-warm {
+  background-color: var(--brand-sand);
+}
+
+.section-cool {
+  background-color: var(--brand-sunlight);
+}
+
+.section-dark {
+  background-color: var(--brand-hadal);
+  color: var(--brand-shell);
+}
+
+/* Focus ring with brand color */
+:focus-visible {
+  outline: 2px solid var(--brand-coral);
+  outline-offset: 2px;
 }

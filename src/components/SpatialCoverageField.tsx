@@ -33,8 +33,16 @@ function writeBox(s: string): any {
 }
 
 const SpatialCoverageField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, required, schema, uiSchema, rawErrors } =
-    props;
+  const {
+    formData,
+    onChange,
+    disabled,
+    readonly,
+    required,
+    schema,
+    uiSchema,
+    rawErrors
+  } = props;
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -89,7 +97,10 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       if (bounds) {
         const { west, south, east, north } = bounds;
         addBoundingBox(map, west, south, east, north);
-        fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 20, duration: 0 });
+        fitBoundsWithAntimeridian(map, west, south, east, north, {
+          padding: 20,
+          duration: 0
+        });
       }
     });
   }, [value]);
@@ -115,7 +126,10 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     if (bounds) {
       const { west, south, east, north } = bounds;
       addBoundingBox(map, west, south, east, north);
-      fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 20, duration: 500 });
+      fitBoundsWithAntimeridian(map, west, south, east, north, {
+        padding: 20,
+        duration: 500
+      });
     } else {
       // Remove bounding box if no value
       removeBoundingBox(map);
@@ -145,12 +159,15 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
           style={{
             width: "100%",
             height: "300px",
-            border: (validationError || hasValidationErrors) ? "2px solid #fa5252" : "1px solid #ced4da",
+            border:
+              validationError || hasValidationErrors
+                ? "2px solid #fa5252"
+                : "1px solid var(--brand-twilight)",
             borderRadius: "4px",
             cursor: disabled || readonly ? "default" : "pointer",
             position: "relative",
             overflow: "hidden",
-            backgroundColor: "#f8f9fa"
+            backgroundColor: "var(--brand-sunlight)"
           }}
         >
           {/* Mini map preview */}
@@ -179,12 +196,15 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255, 255, 255, 0.85)",
+                backgroundColor: "var(--brand-sunlight-overlay)",
                 borderRadius: "4px",
                 padding: "8px"
               }}
             >
-              <IconMap size={32} style={{ marginBottom: "8px", opacity: 0.6 }} />
+              <IconMap
+                size={32}
+                style={{ marginBottom: "8px", opacity: 0.6 }}
+              />
               <Text size="sm" ta="center" c="dimmed">
                 Click to set spatial coverage
               </Text>
@@ -196,7 +216,6 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
             <Tooltip label="Edit location">
               <ActionIcon
                 variant="filled"
-                color="blue"
                 size="md"
                 style={{
                   position: "absolute",

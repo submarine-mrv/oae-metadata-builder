@@ -56,7 +56,7 @@ export default function CustomArrayFieldTemplate<
   );
 
   return (
-    <Fieldset legend={legend} className={className} id={fieldPathId.$id}>
+    <Fieldset legend={legend} className={className} id={fieldPathId.$id} style={{ backgroundColor: 'transparent' }}>
       {(uiOptions.description || schema.description) && (
         <ArrayFieldDescriptionTemplate
           description={uiOptions.description || schema.description}
