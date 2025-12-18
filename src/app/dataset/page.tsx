@@ -7,12 +7,9 @@ import {
   Stack,
   Button,
   Box,
-  Group,
-  Paper,
-  ActionIcon,
-  Table
+  Group
 } from "@mantine/core";
-import { IconX, IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconX } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -32,13 +29,12 @@ import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
-import VariableModal from "@/components/VariableModal";
 import FilenamesField from "@/components/FilenamesField";
+import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
-import { getDatasetSchema, getVariableTypeLabel } from "@/utils/schemaViews";
+import { getDatasetSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
-import type { VariableFormData } from "@/types/forms";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -51,21 +47,12 @@ const DatasetSubmitButton = (props: SubmitButtonProps) => (
 );
 
 export default function DatasetPage() {
-  const {
-    state,
-    updateDataset,
-    getDataset,
-    setActiveTab,
-    setShowJsonPreview
-  } = useAppState();
+  const { state, updateDataset, getDataset, setActiveTab, setShowJsonPreview } =
+    useAppState();
   const [schema] = useState<any>(() => getDatasetSchema());
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
-
-  // Variable modal state
-  const [variableModalOpen, setVariableModalOpen] = useState(false);
-  const [editingVariableIndex, setEditingVariableIndex] = useState<number | null>(null);
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
@@ -73,7 +60,6 @@ export default function DatasetPage() {
     : null;
 
   const formData = currentDataset?.formData || {};
-  const variables = (formData.variables as VariableFormData[]) || [];
 
   const {
     showDownloadModal,
@@ -117,39 +103,6 @@ export default function DatasetPage() {
     if (state.activeDatasetId) {
       updateDataset(state.activeDatasetId, e.formData);
     }
-  };
-
-  const handleAddVariable = () => {
-    setEditingVariableIndex(null);
-    setVariableModalOpen(true);
-  };
-
-  const handleEditVariable = (index: number) => {
-    setEditingVariableIndex(index);
-    setVariableModalOpen(true);
-  };
-
-  const handleDeleteVariable = (index: number) => {
-    if (state.activeDatasetId) {
-      const newVariables = [...variables];
-      newVariables.splice(index, 1);
-      updateDataset(state.activeDatasetId, { variables: newVariables });
-    }
-  };
-
-  const handleVariableSave = (variableData: VariableFormData) => {
-    if (!state.activeDatasetId) return;
-
-    const newVariables = [...variables];
-    if (editingVariableIndex !== null) {
-      // Update existing variable
-      newVariables[editingVariableIndex] = variableData;
-    } else {
-      // Add new variable
-      newVariables.push(variableData);
-    }
-    updateDataset(state.activeDatasetId, { variables: newVariables });
-    setVariableModalOpen(false);
   };
 
   // Show message if no dataset is selected
@@ -219,7 +172,8 @@ export default function DatasetPage() {
                 emptyObjectFields: "skipEmptyDefaults"
               }}
               fields={{
-                FilenamesField: FilenamesField
+                FilenamesField: FilenamesField,
+                VariablesField: VariablesField
               }}
               widgets={{
                 IsoIntervalWidget,
@@ -242,74 +196,6 @@ export default function DatasetPage() {
               }}
               showErrorList="top"
             />
-
-            {/* Variables Section */}
-            <Paper withBorder p="md" mt="xl">
-              <Group justify="space-between" mb="md">
-                <Title order={4}>Variables</Title>
-                <Button
-                  leftSection={<IconPlus size={16} />}
-                  onClick={handleAddVariable}
-                  size="sm"
-                >
-                  Add Variable
-                </Button>
-              </Group>
-
-              {variables.length === 0 ? (
-                <Text c="dimmed" ta="center" py="lg">
-                  No variables added yet. Click &quot;Add Variable&quot; to define
-                  the variables in your dataset.
-                </Text>
-              ) : (
-                <Table striped highlightOnHover>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Variable Name</Table.Th>
-                      <Table.Th>Type</Table.Th>
-                      <Table.Th>Unit</Table.Th>
-                      <Table.Th style={{ width: 100 }}>Actions</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {variables.map((variable, index) => (
-                      <Table.Tr key={index}>
-                        <Table.Td>
-                          {variable.dataset_variable_name || "(unnamed)"}
-                        </Table.Td>
-                        <Table.Td>
-                          {variable.variable_type
-                            ? getVariableTypeLabel(variable.variable_type)
-                            : "(no type)"}
-                        </Table.Td>
-                        <Table.Td>
-                          {variable.variable_unit || "-"}
-                        </Table.Td>
-                        <Table.Td>
-                          <Group gap="xs">
-                            <ActionIcon
-                              variant="subtle"
-                              onClick={() => handleEditVariable(index)}
-                              title="Edit variable"
-                            >
-                              <IconPencil size={16} />
-                            </ActionIcon>
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              onClick={() => handleDeleteVariable(index)}
-                              title="Delete variable"
-                            >
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              )}
-            </Paper>
           </Container>
         </div>
 
@@ -380,13 +266,6 @@ export default function DatasetPage() {
         onConfirm={handleDownloadConfirm}
         metadataType="dataset"
         title="Download Dataset Metadata"
-      />
-
-      <VariableModal
-        opened={variableModalOpen}
-        onClose={() => setVariableModalOpen(false)}
-        onSave={handleVariableSave}
-        initialData={editingVariableIndex !== null ? variables[editingVariableIndex] : undefined}
       />
     </div>
   );

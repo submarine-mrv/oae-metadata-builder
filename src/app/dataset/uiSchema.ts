@@ -30,6 +30,7 @@ const datasetUiSchema = {
     "calibration_files",
     "license",
     "fair_use_data_request",
+    "variables",
     "*"
   ],
   name: {
@@ -155,9 +156,9 @@ const datasetUiSchema = {
     ...textAreaWidget,
     "ui:placeholder": "Statement regarding how this dataset should be used"
   },
-  // Hide variables field - we'll manage it separately with a custom component
+  // Variables field - rendered as a custom field with table and modal
   variables: {
-    "ui:widget": "hidden"
+    "ui:field": "VariablesField"
   }
 };
 
