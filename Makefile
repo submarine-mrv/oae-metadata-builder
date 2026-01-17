@@ -7,18 +7,33 @@ SCHEMA_REPO_PATH ?= ../oae-data-protocol
 SCHEMA_SOURCE = $(SCHEMA_REPO_PATH)/project/jsonschema/oae_data_protocol.schema.json
 SCHEMA_DEST = schemas/schema.json
 
-# Sea names vocabulary URL
-SEA_NAMES_URL = https://vocab.nerc.ac.uk/collection/C16/current/
-SEA_NAMES_DEST = schemas/sea_names_labeled.json
+# NERC Vocabulary Server (NVS) collections
+NVS_BASE_URL = https://vocab.nerc.ac.uk/collection
+NVS_DIR = schemas/nvs
+SEA_NAMES_FILE = $(NVS_DIR)/sea_names.json
+PLATFORM_TYPES_FILE = $(NVS_DIR)/platform_types.json
 
-$(SEA_NAMES_DEST):
-	@echo "Fetching SeaDataNet Sea Areas from NERC Vocabulary Server (NVS)..."
+$(NVS_DIR):
+	mkdir -p $(NVS_DIR)
+
+$(SEA_NAMES_FILE): $(NVS_DIR)
+	@echo "Fetching SeaDataNet Sea Areas (C16) from NVS..."
 	curl -s -H "Accept: application/ld+json" \
-		"$(SEA_NAMES_URL)?_profile=dd" \
-		-o $(SEA_NAMES_DEST)
+		"$(NVS_BASE_URL)/C16/current/?_profile=dd" \
+		-o $(SEA_NAMES_FILE)
+
+$(PLATFORM_TYPES_FILE): $(NVS_DIR)
+	@echo "Fetching Platform Types (L06) from NVS..."
+	curl -s -H "Accept: application/ld+json" \
+		"$(NVS_BASE_URL)/L06/current/?_profile=dd" \
+		-o $(PLATFORM_TYPES_FILE)
+
+.PHONY: nvs-vocabs
+nvs-vocabs: $(SEA_NAMES_FILE) $(PLATFORM_TYPES_FILE)
+	@echo "✓ NVS vocabularies fetched"
 
 .PHONY: schema
-schema: $(SEA_NAMES_DEST)
+schema: nvs-vocabs
 	@echo "Checking oae-data-protocol repository status..."
 	@if [ ! -d "$(SCHEMA_REPO_PATH)/.git" ]; then \
 		echo "Error: $(SCHEMA_REPO_PATH) is not a git repository"; \

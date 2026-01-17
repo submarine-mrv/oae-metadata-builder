@@ -2924,18 +2924,42 @@
     },
     "PlatformType": {
       "description": "",
-      "enum": [
-        "http://vocab.nerc.ac.uk/collection/L06/current/3C/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/32/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/3B/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/42/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/46/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/27/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/48/",
-        "http://vocab.nerc.ac.uk/collection/L06/current/31/"
-      ],
       "title": "PlatformType",
-      "type": "string"
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/3B/",
+          "title": "autonomous surface water vehicle"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/46/",
+          "title": "drifting subsurface profiling float"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/42/",
+          "title": "drifting surface float"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/48/",
+          "title": "mooring"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/31/",
+          "title": "research vessel"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/27/",
+          "title": "sub-surface gliders"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/3C/",
+          "title": "surface gliders"
+        },
+        {
+          "const": "http://vocab.nerc.ac.uk/collection/L06/current/32/",
+          "title": "vessel of opportunity"
+        }
+      ]
     },
     "Project": {
       "additionalProperties": false,
@@ -4376,5 +4400,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "5395ec1804e5ae0d8d396cc33a26deac4a1f8f83"
+  "x-protocol-git-hash": "0000000000000000000000000000000000000000"
 }
