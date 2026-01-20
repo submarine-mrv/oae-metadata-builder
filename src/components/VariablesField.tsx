@@ -13,9 +13,24 @@ import {
 } from "@mantine/core";
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
 import VariableModal from "./VariableModal";
-import { getVariableTypeLabel } from "@/utils/schemaViews";
-import type { VariableFormData } from "@/types/forms";
 import { brandColors } from "@/theme";
+import type { JSONSchema } from "./schemaUtils";
+
+// Variable data type (flexible for schema-driven approach)
+type VariableData = Record<string, unknown>;
+
+/**
+ * Gets a display label for the variable type based on _variableType and _schemaKey
+ */
+function getVariableDisplayLabel(variable: VariableData): string {
+  const varType = variable._variableType as string | undefined;
+  const schemaKey = variable._schemaKey as string | undefined;
+
+  if (varType === "pH") return "pH";
+  if (varType === "observed_property") return "Observed Property";
+  if (schemaKey) return schemaKey;
+  return "(no type)";
+}
 
 /**
  * VariablesField - A custom RJSF field for managing dataset variables.
@@ -23,16 +38,20 @@ import { brandColors } from "@/theme";
  * Integrates with VariableModal for adding and editing variables.
  */
 const VariablesField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, fieldPathId } = props;
+  const { formData, onChange, disabled, readonly, registry, fieldPathId } = props;
+
+  // Get the root schema from RJSF registry
+  const rootSchema = registry.rootSchema as JSONSchema;
 
   // Ensure formData is an array
-  const variables: VariableFormData[] = Array.isArray(formData) ? formData : [];
+  const variables: VariableData[] = Array.isArray(formData) ? formData : [];
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const handleChange = (newVariables: VariableFormData[]) => {
+  const handleChange = (newVariables: VariableData[]) => {
+    // Call onChange with fieldPathId info to properly update the form data
     onChange(newVariables, fieldPathId.path, undefined, fieldPathId.$id);
   };
 
@@ -52,7 +71,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
     handleChange(newVariables);
   };
 
-  const handleSave = (variableData: VariableFormData) => {
+  const handleSave = (variableData: VariableData) => {
     const newVariables = [...variables];
     if (editingIndex !== null) {
       newVariables[editingIndex] = variableData;
@@ -108,14 +127,10 @@ const VariablesField: React.FC<FieldProps> = (props) => {
               {variables.map((variable, index) => (
                 <Table.Tr key={index}>
                   <Table.Td>
-                    {variable.dataset_variable_name || "(unnamed)"}
+                    {(variable.dataset_variable_name as string) || "(unnamed)"}
                   </Table.Td>
-                  <Table.Td>
-                    {variable.variable_type
-                      ? getVariableTypeLabel(variable.variable_type)
-                      : "(no type)"}
-                  </Table.Td>
-                  <Table.Td>{variable.variable_unit || "-"}</Table.Td>
+                  <Table.Td>{getVariableDisplayLabel(variable)}</Table.Td>
+                  <Table.Td>{(variable.units as string) || "-"}</Table.Td>
                   <Table.Td>
                     <Group gap="xs">
                       <ActionIcon
@@ -151,6 +166,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
         initialData={
           editingIndex !== null ? variables[editingIndex] : undefined
         }
+        rootSchema={rootSchema}
       />
     </>
   );
