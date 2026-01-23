@@ -12,7 +12,7 @@ import {
   ActionIcon
 } from "@mantine/core";
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
-import VariableModal from "./VariableModal";
+import VariableModal from "./VariableModal/VariableModal";
 import { brandColors } from "@/theme";
 import type { JSONSchema } from "./schemaUtils";
 
@@ -38,7 +38,8 @@ function getVariableDisplayLabel(variable: VariableData): string {
  * Integrates with VariableModal for adding and editing variables.
  */
 const VariablesField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, registry, fieldPathId } = props;
+  const { formData, onChange, disabled, readonly, registry, fieldPathId } =
+    props;
 
   // Get the root schema from RJSF registry
   const rootSchema = registry.rootSchema as JSONSchema;

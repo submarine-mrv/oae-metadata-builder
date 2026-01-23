@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef
+} from "react";
 import {
   Modal,
   Select,
@@ -13,49 +19,49 @@ import {
   Badge,
   Pill,
   Grid,
-  Box,
+  Box
 } from "@mantine/core";
 import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
   ACCORDION_CONFIG,
   getSchemaKey,
-  normalizeFieldConfig,
+  normalizeFieldConfig
 } from "./variableModalConfig";
 import {
   fieldExistsInSchema,
   isFieldRequired,
   resolveRef,
-  type JSONSchema,
-} from "./schemaUtils";
+  type JSONSchema
+} from "../schemaUtils";
 import SchemaField from "./SchemaField";
 
 // Genesis (measured/calculated) options
 const GENESIS_OPTIONS = [
   { value: "MEASURED", label: "Measured directly" },
-  { value: "CALCULATED", label: "Calculated from other variables" },
+  { value: "CALCULATED", label: "Calculated from other variables" }
 ];
 
 // Sampling (discrete/continuous) options
 const SAMPLING_OPTIONS = [
   { value: "DISCRETE", label: "Discrete bottle samples" },
-  { value: "CONTINUOUS", label: "Continuous autonomous sensors" },
+  { value: "CONTINUOUS", label: "Continuous autonomous sensors" }
 ];
 
 // Human-readable labels for pills
 const VARIABLE_TYPE_LABELS: Record<string, string> = {
   pH: "pH",
-  observed_property: "Observed Property",
+  observed_property: "Observed Property"
 };
 
 const GENESIS_LABELS: Record<string, string> = {
   MEASURED: "Measured",
-  CALCULATED: "Calculated",
+  CALCULATED: "Calculated"
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
   DISCRETE: "Discrete",
-  CONTINUOUS: "Continuous",
+  CONTINUOUS: "Continuous"
 };
 
 interface VariableModalProps {
@@ -83,7 +89,7 @@ export default function VariableModal({
   onClose,
   onSave,
   initialData,
-  rootSchema,
+  rootSchema
 }: VariableModalProps) {
   // Form state
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -149,7 +155,7 @@ export default function VariableModal({
         .map(normalizeFieldConfig)
         .filter((field) =>
           fieldExistsInSchema(field.path, variableSchema, rootSchema)
-        ),
+        )
     })).filter((section) => section.visibleFields.length > 0);
   }, [variableSchema, rootSchema]);
 
@@ -178,7 +184,7 @@ export default function VariableModal({
       ...prev,
       _variableType: value,
       genesis: undefined,
-      sampling: undefined,
+      sampling: undefined
     }));
   };
 
@@ -191,7 +197,7 @@ export default function VariableModal({
     setFormData((prev) => ({
       ...prev,
       genesis: value,
-      sampling: value === "CALCULATED" ? undefined : prev.sampling,
+      sampling: value === "CALCULATED" ? undefined : prev.sampling
     }));
   };
 
@@ -215,7 +221,7 @@ export default function VariableModal({
     onSave({
       ...formData,
       _schemaKey: schemaKey,
-      _variableType: variableType,
+      _variableType: variableType
     });
   };
 
@@ -264,7 +270,7 @@ export default function VariableModal({
       filled,
       total: requiredFields.length,
       allOptional: false,
-      complete: filled === requiredFields.length,
+      complete: filled === requiredFields.length
     };
   };
 
@@ -295,24 +301,36 @@ export default function VariableModal({
                   e.stopPropagation();
                   handleSectionClick("variable-type", false);
                 }}
-                style={{ display: "flex", alignItems: "center", width: "100%", cursor: "pointer" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  cursor: "pointer"
+                }}
               >
                 <Group gap="xs" style={{ flex: 1 }}>
                   <Text fw={500}>Variable Type</Text>
                   {/* Show pills when collapsed and has selections */}
-                  {!openSections.includes("variable-type") && (variableType || genesis || sampling) && (
-                    <Group gap={4} ml="xs">
-                      {variableType && (
-                        <Pill size="sm">{VARIABLE_TYPE_LABELS[variableType] || variableType}</Pill>
-                      )}
-                      {genesis && (
-                        <Pill size="sm">{GENESIS_LABELS[genesis] || genesis}</Pill>
-                      )}
-                      {sampling && (
-                        <Pill size="sm">{SAMPLING_LABELS[sampling] || sampling}</Pill>
-                      )}
-                    </Group>
-                  )}
+                  {!openSections.includes("variable-type") &&
+                    (variableType || genesis || sampling) && (
+                      <Group gap={4} ml="xs">
+                        {variableType && (
+                          <Pill size="sm">
+                            {VARIABLE_TYPE_LABELS[variableType] || variableType}
+                          </Pill>
+                        )}
+                        {genesis && (
+                          <Pill size="sm">
+                            {GENESIS_LABELS[genesis] || genesis}
+                          </Pill>
+                        )}
+                        {sampling && (
+                          <Pill size="sm">
+                            {SAMPLING_LABELS[sampling] || sampling}
+                          </Pill>
+                        )}
+                      </Group>
+                    )}
                 </Group>
                 <Box
                   onClick={(e) => {
@@ -320,12 +338,20 @@ export default function VariableModal({
                     e.stopPropagation();
                     handleSectionClick("variable-type", true);
                   }}
-                  style={{ marginLeft: "0.5rem", padding: "4px", cursor: "pointer", display: "flex", alignItems: "center" }}
+                  style={{
+                    marginLeft: "0.5rem",
+                    padding: "4px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center"
+                  }}
                 >
                   <IconChevronDown
                     size={18}
                     style={{
-                      transform: openSections.includes("variable-type") ? "rotate(180deg)" : "rotate(0deg)",
+                      transform: openSections.includes("variable-type")
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
                       transition: "transform 200ms ease"
                     }}
                   />
@@ -336,11 +362,11 @@ export default function VariableModal({
               <Stack gap="sm">
                 {/* Variable Type Selector */}
                 <Select
-                  label="What is the observed property?"
+                  label="What is the variable type?"
                   placeholder="Select variable type"
                   data={VARIABLE_TYPE_OPTIONS.map((opt) => ({
                     value: opt.value,
-                    label: opt.label,
+                    label: opt.label
                   }))}
                   value={variableType}
                   onChange={handleVariableTypeChange}
@@ -390,7 +416,12 @@ export default function VariableModal({
                         e.stopPropagation();
                         handleSectionClick(section.key, false);
                       }}
-                      style={{ display: "flex", alignItems: "center", width: "100%", cursor: "pointer" }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        width: "100%",
+                        cursor: "pointer"
+                      }}
                     >
                       <Group gap="xs" style={{ flex: 1 }}>
                         <Text fw={500}>{section.label}</Text>
@@ -404,12 +435,20 @@ export default function VariableModal({
                           e.stopPropagation();
                           handleSectionClick(section.key, true);
                         }}
-                        style={{ marginLeft: "0.5rem", padding: "4px", cursor: "pointer", display: "flex", alignItems: "center" }}
+                        style={{
+                          marginLeft: "0.5rem",
+                          padding: "4px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center"
+                        }}
                       >
                         <IconChevronDown
                           size={18}
                           style={{
-                            transform: openSections.includes(section.key) ? "rotate(180deg)" : "rotate(0deg)",
+                            transform: openSections.includes(section.key)
+                              ? "rotate(180deg)"
+                              : "rotate(0deg)",
                             transition: "transform 200ms ease"
                           }}
                         />
@@ -445,9 +484,7 @@ export default function VariableModal({
         <Button
           onClick={handleSave}
           disabled={
-            !schemaKey ||
-            !formData.long_name ||
-            !formData.dataset_variable_name
+            !schemaKey || !formData.long_name || !formData.dataset_variable_name
           }
         >
           {isEditing ? "Update Variable" : "Add Variable"}
@@ -472,7 +509,7 @@ function ProgressBadge({
   filled,
   total,
   allOptional,
-  complete,
+  complete
 }: ProgressBadgeProps) {
   if (allOptional) {
     return (

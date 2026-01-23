@@ -9,7 +9,7 @@ import {
   Group,
   Text,
   Tooltip,
-  ActionIcon,
+  ActionIcon
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import {
@@ -17,9 +17,10 @@ import {
   getNestedValue,
   setNestedValue,
   type JSONSchema,
-  type FieldMetadata,
-} from "./schemaUtils";
-import DescriptionModal from "./rjsf/DescriptionModal";
+  type FieldMetadata
+} from "../schemaUtils";
+import DescriptionModal from "../rjsf/DescriptionModal";
+import { formatEnumTitle } from "@/utils/enumDecorator";
 
 export interface SchemaFieldProps {
   /** Dot-separated path to the field (e.g., "analyzing_instrument.calibration.dye_purified") */
@@ -49,7 +50,7 @@ export default function SchemaField({
   formData,
   onChange,
   descriptionMode = "tooltip",
-  inputType = "text",
+  inputType = "text"
 }: SchemaFieldProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -149,7 +150,14 @@ export default function SchemaField({
   };
 
   // Render the appropriate input based on type
-  return renderInput(metadata, currentValue, handleChange, renderLabel, getPlaceholder, inputType);
+  return renderInput(
+    metadata,
+    currentValue,
+    handleChange,
+    renderLabel,
+    getPlaceholder,
+    inputType
+  );
 }
 
 /**
@@ -181,10 +189,11 @@ function renderInput(
 
   // Enum fields -> Select
   if (type === "enum" || metadata.enum) {
-    const options = metadata.enum?.map((value) => ({
-      value: String(value),
-      label: formatEnumLabel(String(value)),
-    })) || [];
+    const options =
+      metadata.enum?.map((value) => ({
+        value: String(value),
+        label: formatEnumTitle(String(value))
+      })) || [];
 
     return (
       <Select
@@ -236,16 +245,4 @@ function renderInput(
       onChange={(e) => handleChange(e.target.value)}
     />
   );
-}
-
-/**
- * Formats an enum value as a human-readable label.
- * "SURFACE_UNDERWAY" -> "Surface Underway"
- */
-function formatEnumLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
