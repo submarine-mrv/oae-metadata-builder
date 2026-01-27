@@ -37,7 +37,7 @@ export const VARIABLE_SCHEMA_MAP = {
   pH: {
     MEASURED: {
       DISCRETE: "DiscretePHVariable",
-      CONTINUOUS: "ContinuousMeasuredVariable"
+      CONTINUOUS: "ContinuousPHVariable"
     },
     CALCULATED: "CalculatedVariable"
   },
@@ -60,12 +60,22 @@ export type SamplingKey = "DISCRETE" | "CONTINUOUS";
  */
 export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
   if (typeof field === "string") {
-    return { path: field, span: 12, inputType: "text" };
+    return {
+      path: field,
+      span: 12,
+      inputType: "text",
+      descriptionModal: false,
+      placeholderText: undefined,
+      rows: undefined
+    };
   }
   return {
     path: field.path,
     span: field.span ?? 12,
-    inputType: field.inputType ?? "text"
+    inputType: field.inputType ?? "text",
+    descriptionModal: field.descriptionModal ?? false,
+    placeholderText: field.placeholderText,
+    rows: field.rows
   };
 }
 
@@ -86,8 +96,20 @@ export interface FieldConfig {
   path: string;
   /** Grid column span (1-12). Default is 12 (full width) */
   span?: number;
-  /** Input type: "text" (single line), "textarea" (multi-line). Default is "text" */
-  inputType?: "text" | "textarea";
+  /**
+   * Input type:
+   * - "text" (single line) - default
+   * - "textarea" (multi-line)
+   * - "enum_with_other" - enum dropdown with auto-shown custom field when "other" selected
+   * - "boolean_select" - renders boolean as Yes/No dropdown instead of checkbox
+   */
+  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select";
+  /** Show description in a modal popup instead of tooltip. Default is false (tooltip) */
+  descriptionModal?: boolean;
+  /** Placeholder text for the input field */
+  placeholderText?: string;
+  /** Number of rows for textarea inputs. Default is 2-6 (autosize) */
+  rows?: number;
 }
 
 export interface AccordionSection {
@@ -114,10 +136,22 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     label: "Basic Information",
     icon: IconInfoCircle,
     fields: [
-      { path: "long_name", span: 6 },
-      { path: "units", span: 6 },
-      { path: "dataset_variable_name", span: 6 },
-      { path: "dataset_variable_name_qc_flag", span: 6 }
+      { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
+      {
+        path: "units",
+        span: 6,
+        placeholderText: "e.g., umol/kg, dimensionless"
+      },
+      {
+        path: "dataset_variable_name",
+        span: 6,
+        placeholderText: "e.g., pH_total, DIC, TA"
+      },
+      {
+        path: "dataset_variable_name_qc_flag",
+        span: 6,
+        placeholderText: "e.g., pH_flag"
+      }
       // "standard_identifier",
       // Note: genesis, sampling, observation_type are handled specially
       // since they drive the schema selection
@@ -129,10 +163,19 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     icon: IconFlask,
     fields: [
       "observation_type",
-      "sampling_method",
-      { path: "sampling_instrument_type", span: 6 },
-      { path: "sampling_instrument_type_custom", span: 6 },
-      "field_replicate_information"
+      {
+        path: "sampling_method",
+        placeholderText: "Describe how samples were collected"
+      },
+      {
+        path: "sampling_instrument_type",
+        span: 6,
+        inputType: "enum_with_other"
+      },
+      {
+        path: "field_replicate_information",
+        placeholderText: "e.g., triplicate samples"
+      }
     ]
   },
   {
@@ -140,11 +183,25 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     label: "Analysis",
     icon: IconMicroscope,
     fields: [
-      "analyzing_method",
+      {
+        path: "analyzing_method",
+        placeholderText: "Describe the analysis method used"
+      },
       // pH-specific fields (only exist in DiscretePHVariable)
-      { path: "measurement_temperature", span: 6 },
-      { path: "ph_reported_temperature", span: 6 },
-      "temperature_correction_method",
+      {
+        path: "measurement_temperature",
+        span: 6,
+        placeholderText: "Temperature at which pH was measured"
+      },
+      {
+        path: "ph_reported_temperature",
+        span: 6,
+        placeholderText: "Temperature at which pH is reported"
+      },
+      {
+        path: "temperature_correction_method",
+        placeholderText: "Method used to correct pH for temperature"
+      },
       // Continuous sensor fields
       "raw_data_calculation_method",
       "calculation_software_version"
@@ -155,13 +212,36 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     label: "Analyzing Instrument",
     icon: IconTool,
     fields: [
-      { path: "analyzing_instrument.instrument_type", span: 6 },
-      { path: "analyzing_instrument.instrument_type_custom", span: 6 },
-      { path: "analyzing_instrument.manufacturer", span: 6 },
-      { path: "analyzing_instrument.model", span: 6 },
-      "analyzing_instrument.serial_number",
-      { path: "analyzing_instrument.precision", span: 6 },
-      { path: "analyzing_instrument.accuracy", span: 6 }
+      {
+        path: "analyzing_instrument.instrument_type",
+        span: 6,
+        inputType: "enum_with_other"
+      },
+      {
+        path: "analyzing_instrument.manufacturer",
+        span: 6,
+        placeholderText: "e.g., Agilent"
+      },
+      {
+        path: "analyzing_instrument.model",
+        span: 6,
+        placeholderText: "Model number"
+      },
+      {
+        path: "analyzing_instrument.serial_number",
+        span: 6,
+        placeholderText: "Instrument serial number"
+      },
+      {
+        path: "analyzing_instrument.precision",
+        span: 6,
+        placeholderText: "Instrument precision"
+      },
+      {
+        path: "analyzing_instrument.accuracy",
+        span: 6,
+        placeholderText: "Instrument accuracy"
+      }
     ]
   },
   {
@@ -169,28 +249,60 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     label: "Calibration",
     icon: IconAdjustments,
     fields: [
-      // pH-specific calibration (PHCalibration)
+      // Generic calibration (top fields)
       {
         path: "analyzing_instrument.calibration.technique_description",
-        span: 6
+        span: 6,
+        placeholderText: "Details of the calibration technique"
       },
       {
         path: "analyzing_instrument.calibration.calibration_location",
         span: 6
       },
-      "analyzing_instrument.calibration.dye_type_and_manufacturer",
-      { path: "analyzing_instrument.calibration.dye_purified", span: 6 },
+      // Generic calibration
+      {
+        path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
+        placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
+      },
+      {
+        path: "analyzing_instrument.calibration.dye_purified",
+        span: 6,
+        inputType: "boolean_select"
+      },
       {
         path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
-        span: 6
+        span: 6,
+        placeholderText: "Correction method applied"
       },
-      "analyzing_instrument.calibration.dye_correction_method",
-      "analyzing_instrument.calibration.ph_of_standards",
-      "analyzing_instrument.calibration.calibration_temperature",
+      {
+        path: "analyzing_instrument.calibration.dye_correction_method",
+        placeholderText: "Method used to correct for dye effects"
+      },
+      {
+        path: "analyzing_instrument.calibration.ph_of_standards",
+        span: 6,
+        placeholderText: "pH values of calibration standards"
+      },
+      {
+        path: "analyzing_instrument.calibration.calibration_temperature",
+        span: 6,
+        placeholderText: "Temperature of calibration"
+      },
       // Generic calibration fields (shared)
-      { path: "analyzing_instrument.calibration.frequency", span: 6 },
-      "analyzing_instrument.calibration.last_calibration_date",
-      "analyzing_instrument.calibration.method_reference",
+      {
+        path: "analyzing_instrument.calibration.frequency",
+        span: 6,
+        placeholderText: "How often calibrated"
+      },
+      {
+        path: "analyzing_instrument.calibration.last_calibration_date",
+        span: 6,
+        placeholderText: "YYYY-MM-DD"
+      },
+      {
+        path: "analyzing_instrument.calibration.method_reference",
+        placeholderText: "Citation for calibration method"
+      },
       "analyzing_instrument.calibration.calibration_certificates"
     ]
   },
@@ -200,7 +312,11 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     icon: IconCalculator,
     fields: [
       // CalculatedVariable specific
-      "calculation_method_and_parameters"
+      {
+        path: "calculation_method_and_parameters",
+        placeholderText:
+          "e.g., Using CO2SYS with Lueker et al. (2000) constants"
+      }
     ]
   },
   {
@@ -208,12 +324,24 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     label: "Quality Control",
     icon: IconShieldCheck,
     fields: [
-      "qc_steps_taken",
-      { path: "uncertainty", span: 6 },
-      { path: "uncertainty_definition", span: 6 },
+      {
+        path: "qc_steps_taken",
+        inputType: "textarea",
+        placeholderText:
+          "If quality control procedures are described in a separate document uploaded with the data, provide the name of the document here."
+      },
+      { path: "uncertainty", span: 6, placeholderText: "e.g., ±0.01 pH units" },
+      {
+        path: "uncertainty_definition",
+        span: 6,
+        placeholderText: "Description of uncertainty calculation"
+      },
       { path: "qc_researcher", span: 6 },
-      { path: "qc_researcher_institution", span: 6 },
-      "appropriate_use_quality"
+      {
+        path: "qc_researcher_institution",
+        span: 6,
+        placeholderText: "Institution name"
+      }
     ]
   },
   {
@@ -221,10 +349,22 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
     label: "Additional Information",
     icon: IconFileDescription,
     fields: [
-      "missing_value_indicators",
-      "method_reference",
+      {
+        path: "missing_value_indicators",
+        span: 6,
+        placeholderText: "e.g., -999, NaN, NA"
+      },
+      { path: "appropriate_use_quality", span: 6, descriptionModal: true },
+      {
+        path: "method_reference",
+        placeholderText: "Citation for the method used"
+      },
       "measurement_researcher",
-      "other_detailed_information"
+      {
+        path: "other_detailed_information",
+        inputType: "textarea",
+        placeholderText: "Any additional information about this variable"
+      }
     ]
   }
 ];

@@ -35,6 +35,7 @@ import {
   type JSONSchema
 } from "../schemaUtils";
 import SchemaField from "./SchemaField";
+import EnumWithOtherField from "./EnumWithOtherField";
 
 // Genesis (measured/calculated) options
 const GENESIS_OPTIONS = [
@@ -287,78 +288,42 @@ export default function VariableModal({
           multiple
           value={openSections}
           variant="separated"
-          // Disable transition so panel height isn't fixed - allows dynamic content
-          transitionDuration={0}
-          // Hide default chevron - we render our own with separate click handling
           chevron={null}
         >
           {/* Variable Type Selection - Special accordion */}
           <Accordion.Item value="variable-type">
             <Accordion.Control icon={<IconCategory size={18} />}>
-              <Box
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSectionClick("variable-type", false);
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  width: "100%",
-                  cursor: "pointer"
-                }}
-              >
-                <Group gap="xs" style={{ flex: 1 }}>
-                  <Text fw={500}>Variable Type</Text>
-                  {/* Show pills when collapsed and has selections */}
-                  {!openSections.includes("variable-type") &&
-                    (variableType || genesis || sampling) && (
-                      <Group gap={4} ml="xs">
-                        {variableType && (
-                          <Pill size="sm">
-                            {VARIABLE_TYPE_LABELS[variableType] || variableType}
-                          </Pill>
-                        )}
-                        {genesis && (
-                          <Pill size="sm">
-                            {GENESIS_LABELS[genesis] || genesis}
-                          </Pill>
-                        )}
-                        {sampling && (
-                          <Pill size="sm">
-                            {SAMPLING_LABELS[sampling] || sampling}
-                          </Pill>
-                        )}
-                      </Group>
-                    )}
-                </Group>
-                <Box
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSectionClick("variable-type", true);
-                  }}
-                  style={{
-                    marginLeft: "0.5rem",
-                    padding: "4px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center"
-                  }}
-                >
-                  <IconChevronDown
-                    size={18}
-                    style={{
-                      transform: openSections.includes("variable-type")
-                        ? "rotate(180deg)"
-                        : "rotate(0deg)",
-                      transition: "transform 200ms ease"
-                    }}
-                  />
-                </Box>
-              </Box>
+              <AccordionControlContent
+                sectionKey="variable-type"
+                label="Variable Type"
+                isOpen={openSections.includes("variable-type")}
+                onSectionClick={handleSectionClick}
+                collapsedContent={
+                  (variableType || genesis || sampling) && (
+                    <Group gap={4} ml="xs">
+                      {variableType && (
+                        <Pill size="sm">
+                          {VARIABLE_TYPE_LABELS[variableType] || variableType}
+                        </Pill>
+                      )}
+                      {genesis && (
+                        <Pill size="sm">
+                          {GENESIS_LABELS[genesis] || genesis}
+                        </Pill>
+                      )}
+                      {sampling && (
+                        <Pill size="sm">
+                          {SAMPLING_LABELS[sampling] || sampling}
+                        </Pill>
+                      )}
+                    </Group>
+                  )
+                }
+              />
             </Accordion.Control>
-            <Accordion.Panel>
+            <Accordion.Panel
+              key={`variable-type-${variableType || "none"}-${genesis || "none"}`}
+            >
               <Stack gap="sm">
                 {/* Variable Type Selector */}
                 <Select
@@ -410,65 +375,46 @@ export default function VariableModal({
               return (
                 <Accordion.Item key={section.key} value={section.key}>
                   <Accordion.Control icon={<Icon size={18} />}>
-                    <Box
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSectionClick(section.key, false);
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        width: "100%",
-                        cursor: "pointer"
-                      }}
-                    >
-                      <Group gap="xs" style={{ flex: 1 }}>
-                        <Text fw={500}>{section.label}</Text>
-                        {!openSections.includes(section.key) && (
-                          <ProgressBadge {...progress} />
-                        )}
-                      </Group>
-                      <Box
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSectionClick(section.key, true);
-                        }}
-                        style={{
-                          marginLeft: "0.5rem",
-                          padding: "4px",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center"
-                        }}
-                      >
-                        <IconChevronDown
-                          size={18}
-                          style={{
-                            transform: openSections.includes(section.key)
-                              ? "rotate(180deg)"
-                              : "rotate(0deg)",
-                            transition: "transform 200ms ease"
-                          }}
-                        />
-                      </Box>
-                    </Box>
+                    <AccordionControlContent
+                      sectionKey={section.key}
+                      label={section.label}
+                      isOpen={openSections.includes(section.key)}
+                      onSectionClick={handleSectionClick}
+                      collapsedContent={<ProgressBadge {...progress} />}
+                    />
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Grid gutter="sm">
-                      {section.visibleFields.map((field) => (
-                        <Grid.Col key={field.path} span={field.span}>
-                          <SchemaField
+                      {section.visibleFields.map((field) =>
+                        field.inputType === "enum_with_other" ? (
+                          <EnumWithOtherField
+                            key={field.path}
                             fieldPath={field.path}
                             variableSchema={variableSchema}
                             rootSchema={rootSchema}
                             formData={formData}
                             onChange={handleFormChange}
-                            inputType={field.inputType}
+                            descriptionModal={field.descriptionModal}
+                            placeholderText={field.placeholderText}
                           />
-                        </Grid.Col>
-                      ))}
+                        ) : (
+                          <Grid.Col key={field.path} span={field.span}>
+                            <SchemaField
+                              fieldPath={field.path}
+                              variableSchema={variableSchema}
+                              rootSchema={rootSchema}
+                              formData={formData}
+                              onChange={handleFormChange}
+                              inputType={field.inputType}
+                              descriptionMode={
+                                field.descriptionModal ? "modal" : "tooltip"
+                              }
+                              placeholderText={field.placeholderText}
+                              rows={field.rows}
+                            />
+                          </Grid.Col>
+                        )
+                      )}
                     </Grid>
                   </Accordion.Panel>
                 </Accordion.Item>
@@ -497,6 +443,68 @@ export default function VariableModal({
 // =============================================================================
 // Helper Components
 // =============================================================================
+
+interface AccordionControlContentProps {
+  sectionKey: string;
+  label: string;
+  isOpen: boolean;
+  onSectionClick: (sectionKey: string, isChevronClick: boolean) => void;
+  collapsedContent?: React.ReactNode;
+}
+
+/**
+ * Reusable accordion control content with click handling.
+ * - Clicking the title auto-collapses other sections (single mode)
+ * - Clicking the chevron toggles without affecting others (toggle mode)
+ */
+function AccordionControlContent({
+  sectionKey,
+  label,
+  isOpen,
+  onSectionClick,
+  collapsedContent
+}: AccordionControlContentProps) {
+  return (
+    <Box
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSectionClick(sectionKey, false);
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        width: "100%",
+        cursor: "pointer"
+      }}
+    >
+      <Text fw={500} style={{ flex: 1 }}>{label}</Text>
+      {!isOpen && collapsedContent}
+      <Box
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSectionClick(sectionKey, true);
+        }}
+        style={{
+          marginLeft: "0.5rem",
+          padding: "4px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center"
+        }}
+      >
+        <IconChevronDown
+          size={18}
+          style={{
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 200ms ease"
+          }}
+        />
+      </Box>
+    </Box>
+  );
+}
 
 interface ProgressBadgeProps {
   filled: number;

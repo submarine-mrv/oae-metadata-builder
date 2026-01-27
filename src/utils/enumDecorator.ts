@@ -64,7 +64,7 @@ export function formatEnumTitle(value: string): string {
   // Default formatting: snake_case to Title Case
   return value
     .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
 

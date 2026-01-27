@@ -35,8 +35,12 @@ export interface SchemaFieldProps {
   onChange: (newFormData: Record<string, unknown>) => void;
   /** Description display mode */
   descriptionMode?: "tooltip" | "modal" | "placeholder" | "none";
-  /** Input type: "text" (single line) or "textarea" (multi-line). Default is "text" */
-  inputType?: "text" | "textarea";
+  /** Input type: "text", "textarea", or "boolean_select" (Yes/No dropdown). Default is "text" */
+  inputType?: "text" | "textarea" | "boolean_select";
+  /** Custom placeholder text (overrides schema description in placeholder mode) */
+  placeholderText?: string;
+  /** Number of rows for textarea inputs */
+  rows?: number;
 }
 
 /**
@@ -50,7 +54,9 @@ export default function SchemaField({
   formData,
   onChange,
   descriptionMode = "tooltip",
-  inputType = "text"
+  inputType = "text",
+  placeholderText,
+  rows
 }: SchemaFieldProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -143,6 +149,11 @@ export default function SchemaField({
 
   // Get placeholder text
   const getPlaceholder = () => {
+    // Use explicit placeholderText if provided
+    if (placeholderText) {
+      return placeholderText;
+    }
+    // Fall back to description in placeholder mode
     if (descriptionMode === "placeholder" && metadata.description) {
       return metadata.description;
     }
@@ -156,7 +167,8 @@ export default function SchemaField({
     handleChange,
     renderLabel,
     getPlaceholder,
-    inputType
+    inputType,
+    rows
   );
 }
 
@@ -172,11 +184,30 @@ function renderInput(
   handleChange: (value: unknown) => void,
   renderLabel: () => React.ReactNode,
   getPlaceholder: () => string | undefined,
-  inputType: "text" | "textarea"
+  inputType: "text" | "textarea" | "boolean_select",
+  rows?: number
 ) {
   const { type } = metadata;
 
-  // Boolean fields -> Checkbox
+  // Boolean fields as Yes/No dropdown
+  if (type === "boolean" && inputType === "boolean_select") {
+    const boolValue = currentValue === true ? "yes" : currentValue === false ? "no" : null;
+    return (
+      <Select
+        label={renderLabel()}
+        placeholder={getPlaceholder() || "Select an option"}
+        data={[
+          { value: "yes", label: "Yes" },
+          { value: "no", label: "No" }
+        ]}
+        value={boolValue}
+        onChange={(value) => handleChange(value === "yes" ? true : value === "no" ? false : null)}
+        clearable
+      />
+    );
+  }
+
+  // Boolean fields -> Checkbox (default)
   if (type === "boolean") {
     return (
       <Checkbox
@@ -229,9 +260,9 @@ function renderInput(
         placeholder={getPlaceholder()}
         value={String(currentValue || "")}
         onChange={(e) => handleChange(e.target.value)}
-        autosize
-        minRows={2}
-        maxRows={6}
+        autosize={!rows}
+        minRows={rows || 2}
+        maxRows={rows || 6}
       />
     );
   }
