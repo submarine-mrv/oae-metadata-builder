@@ -115,7 +115,7 @@ describe('MyUtility', () => {
   it('should validate correctly', () => {
     const result = validateProject({ project_id: 'test' });
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('project_description is required');
+    expect(result.errors).toContain('project.description is required');
   });
 });
 ```

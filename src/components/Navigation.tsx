@@ -37,12 +37,13 @@ export default function Navigation() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNavigation = (value: string) => {
-    const tab = value as "overview" | "project" | "experiment";
+    const tab = value as "overview" | "project" | "experiment" | "dataset";
     setActiveTab(tab);
     const paths: Record<string, string> = {
       overview: "/",
       project: "/project",
-      experiment: "/experiment"
+      experiment: "/experiment",
+      dataset: "/dataset"
     };
     router.push(paths[value]);
   };
@@ -158,7 +159,8 @@ export default function Navigation() {
         data={[
           { value: "overview", label: "Overview" },
           { value: "project", label: "Project" },
-          { value: "experiment", label: "Experiments" }
+          { value: "experiment", label: "Experiments" },
+          { value: "dataset", label: "Datasets" }
         ]}
         size="md"
         radius="md"

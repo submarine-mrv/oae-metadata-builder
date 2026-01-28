@@ -6,7 +6,7 @@ import type { FormDataRecord, ProjectFormData, ExperimentFormData } from "@/type
 const REQUIRED_FIELDS_MAP = {
   project: [
     "project_id",
-    "project_description",
+    "description",
     "mcdr_pathway",
     "sea_names",
     "spatial_coverage",

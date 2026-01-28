@@ -57,6 +57,33 @@ export interface ExperimentFormData extends FormDataRecord {
   // ... other known fields can be added as needed
 }
 
+/**
+ * Variable form data - schema-driven content
+ * All variable types share these common fields
+ */
+export interface VariableFormData extends FormDataRecord {
+  variable_type?: string; // Discriminator field (e.g., "DICVariable", "PHVariable")
+  dataset_variable_name?: string;
+  long_name?: string;
+  variable_unit?: string;
+  // ... other fields are type-specific and handled via FormDataRecord
+}
+
+/**
+ * Dataset form data - schema-driven content
+ */
+export interface DatasetFormData extends FormDataRecord {
+  project_id?: string;
+  experiment_id?: string;
+  name?: string;
+  description?: string;
+  temporal_coverage?: string;
+  dataset_type?: string;
+  data_product_type?: string;
+  variables?: VariableFormData[];
+  // ... other known fields can be added as needed
+}
+
 // =============================================================================
 // Application State Types
 // =============================================================================
@@ -80,14 +107,33 @@ export interface ExperimentState {
 }
 
 /**
+ * Dataset data as stored in application state
+ */
+export interface DatasetState {
+  /** Internal integer ID for tracking */
+  id: number;
+  /** Display name */
+  name: string;
+  /** Form data (schema-driven) */
+  formData: DatasetFormData;
+  /** Creation timestamp */
+  createdAt: number;
+  /** Last update timestamp */
+  updatedAt: number;
+}
+
+/**
  * Main application state
  */
 export interface AppFormState {
   projectData: ProjectFormData;
   experiments: ExperimentState[];
-  activeTab: "overview" | "project" | "experiment";
+  datasets: DatasetState[];
+  activeTab: "overview" | "project" | "experiment" | "dataset";
   activeExperimentId: number | null;
+  activeDatasetId: number | null;
   nextExperimentId: number;
+  nextDatasetId: number;
   triggerValidation: boolean;
   showJsonPreview: boolean;
 }
@@ -128,6 +174,11 @@ export type ProjectChangeEvent = IChangeEvent<ProjectFormData, RJSFSchema>;
  * Typed RJSF change event for experiment form
  */
 export type ExperimentChangeEvent = IChangeEvent<ExperimentFormData, RJSFSchema>;
+
+/**
+ * Typed RJSF change event for dataset form
+ */
+export type DatasetChangeEvent = IChangeEvent<DatasetFormData, RJSFSchema>;
 
 /**
  * Generic form change handler

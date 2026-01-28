@@ -6,7 +6,7 @@ describe('Validation', () => {
     it('should validate valid project data', () => {
       const validData = {
         project_id: 'test-project-001',
-        project_description: 'A comprehensive test project for OAE research',
+        description: 'A comprehensive test project for OAE research',
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: ['http://vocab.nerc.ac.uk/collection/C16/current/26/'],
         spatial_coverage: {
@@ -39,7 +39,7 @@ describe('Validation', () => {
     it('should fail validation for invalid mcdr_pathway enum value', () => {
       const invalidData = {
         project_id: 'test-project',
-        project_description: 'Test',
+        description: 'Test',
         mcdr_pathway: 'invalid_pathway_value', // Not in enum
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 0 0' } },
@@ -109,8 +109,7 @@ describe('Validation', () => {
         alkalinity_dosing_effluent_density: { is_derived_value: false, is_provided_as_a_file: false },
         dosing_depth: '10',
         dosing_description: 'Test dosing',
-        dosing_regimen: 'Single dose',
-        dosing_data: []
+        dosing_regimen: 'Single dose'
       };
 
       const result = validateExperiment(interventionExperiment);
@@ -177,7 +176,7 @@ describe('Validation', () => {
     it('should validate both project and experiments together', () => {
       const projectData = {
         project_id: 'project-001',
-        project_description: 'Test project',
+        description: 'Test project',
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -241,7 +240,7 @@ describe('Validation', () => {
     it('should validate multiple experiments with different types', () => {
       const projectData = {
         project_id: 'project-001',
-        project_description: 'Test project',
+        description: 'Test project',
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -289,7 +288,7 @@ describe('Validation', () => {
     it('should return false for isAllValid if any experiment fails', () => {
       const validProjectData = {
         project_id: 'project-001',
-        project_description: 'Test',
+        description: 'Test',
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -316,7 +315,7 @@ describe('Validation', () => {
           name: 'Invalid',
           formData: {
             experiment_type: 'baseline',
-            // Missing required fields
+            // Missing required fields (experiment_id, description, etc.)
           }
         }
       ];
@@ -337,7 +336,7 @@ describe('Validation', () => {
 
       const validData = {
         project_id: 'test',
-        project_description: 'Test',
+        description: 'Test',
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 1 1' } },

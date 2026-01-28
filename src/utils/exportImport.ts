@@ -13,7 +13,7 @@ import type {
  */
 const PROJECT_FIELDS = [
   "project_id",
-  "project_description",
+  "description",
   "mcdr_pathway",
   "sea_names",
   "temporal_coverage",

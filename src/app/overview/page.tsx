@@ -16,6 +16,7 @@ import {
   IconPlus,
   IconFolder,
   IconFlask,
+  IconDatabase,
   IconEdit,
   IconTrash
 } from "@tabler/icons-react";
@@ -31,7 +32,10 @@ export default function OverviewPage() {
     setActiveExperiment,
     deleteExperiment,
     getProjectCompletionPercentage,
-    getExperimentCompletionPercentage
+    getExperimentCompletionPercentage,
+    addDataset,
+    setActiveDataset,
+    deleteDataset
   } = useAppState();
   const router = useRouter();
 
@@ -64,6 +68,26 @@ export default function OverviewPage() {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this experiment?")) {
       deleteExperiment(id);
+    }
+  };
+
+  const handleCreateDataset = () => {
+    const id = addDataset();
+    setActiveDataset(id);
+    setActiveTab("dataset");
+    router.push("/dataset");
+  };
+
+  const handleEditDataset = (id: number) => {
+    setActiveDataset(id);
+    setActiveTab("dataset");
+    router.push("/dataset");
+  };
+
+  const handleDeleteDataset = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this dataset?")) {
+      deleteDataset(id);
     }
   };
 
@@ -233,6 +257,98 @@ export default function OverviewPage() {
                         <Text size="xs" c="dimmed">
                           Last updated:{" "}
                           {new Date(experiment.updatedAt).toLocaleString()}
+                        </Text>
+                      </Stack>
+                    </Card>
+                  );
+                })}
+              </SimpleGrid>
+            )}
+          </div>
+
+          {/* Datasets Section */}
+          <div>
+            <Group justify="space-between" mb="md">
+              <div>
+                <Title order={2}>Datasets</Title>
+                <Text size="sm" c="dimmed">
+                  {state.datasets.length} dataset
+                  {state.datasets.length !== 1 ? "s" : ""} created
+                </Text>
+              </div>
+              {state.datasets.length > 0 && (
+                <Button
+                  leftSection={<IconPlus size={16} />}
+                  onClick={handleCreateDataset}
+                >
+                  New Dataset
+                </Button>
+              )}
+            </Group>
+
+            {state.datasets.length === 0 ? (
+              <Card shadow="sm" padding="xl" radius="md" withBorder>
+                <Stack align="center" gap="md">
+                  <IconDatabase size={48} style={{ opacity: 0.3 }} />
+                  <Text c="dimmed" ta="center">
+                    No datasets yet. Create your first dataset to define
+                    variable metadata.
+                  </Text>
+                  <Button
+                    leftSection={<IconPlus size={16} />}
+                    onClick={handleCreateDataset}
+                  >
+                    Create First Dataset
+                  </Button>
+                </Stack>
+              </Card>
+            ) : (
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                {state.datasets.map((dataset) => {
+                  const variableCount =
+                    (dataset.formData.variables?.length as number) || 0;
+                  return (
+                    <Card
+                      key={dataset.id}
+                      shadow="sm"
+                      padding="lg"
+                      radius="md"
+                      withBorder
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleEditDataset(dataset.id)}
+                    >
+                      <Stack gap="sm">
+                        <Group justify="space-between">
+                          <Group gap="xs">
+                            <IconDatabase size={20} />
+                            <Text fw={600}>{dataset.name}</Text>
+                          </Group>
+                          <Button
+                            variant="subtle"
+                            color="red"
+                            size="xs"
+                            onClick={(e) =>
+                              handleDeleteDataset(dataset.id, e)
+                            }
+                          >
+                            <IconTrash size={16} />
+                          </Button>
+                        </Group>
+
+                        {dataset.formData.dataset_type && (
+                          <Badge variant="light" size="sm">
+                            {dataset.formData.dataset_type}
+                          </Badge>
+                        )}
+
+                        <Text size="sm" c="dimmed">
+                          {variableCount} variable
+                          {variableCount !== 1 ? "s" : ""} defined
+                        </Text>
+
+                        <Text size="xs" c="dimmed">
+                          Last updated:{" "}
+                          {new Date(dataset.updatedAt).toLocaleString()}
                         </Text>
                       </Stack>
                     </Card>

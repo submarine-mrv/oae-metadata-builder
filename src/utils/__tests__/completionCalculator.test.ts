@@ -16,7 +16,7 @@ describe("completionCalculator", () => {
     it("should calculate percentage correctly", () => {
       const projectData = {
         project_id: "TEST-001",
-        project_description: "Test description",
+        description: "Test description",
         mcdr_pathway: "ocean_alkalinity_enhancement",
         sea_names: ["North Atlantic Ocean"],
         spatial_coverage: { geo: { box: "0 0 10 10" } },
@@ -30,7 +30,7 @@ describe("completionCalculator", () => {
     it("should handle partially filled data", () => {
       const projectData = {
         project_id: "TEST-001",
-        project_description: "Test description",
+        description: "Test description",
         mcdr_pathway: "ocean_alkalinity_enhancement"
         // Missing 3 required fields
       };
@@ -42,7 +42,7 @@ describe("completionCalculator", () => {
     it("should ignore empty strings", () => {
       const projectData = {
         project_id: "",
-        project_description: "   ", // whitespace only
+        description: "   ", // whitespace only
         mcdr_pathway: "ocean_alkalinity_enhancement"
       };
 
@@ -53,7 +53,7 @@ describe("completionCalculator", () => {
     it("should count non-empty arrays", () => {
       const projectData = {
         project_id: "TEST-001",
-        project_description: "Test",
+        description: "Test",
         mcdr_pathway: "test",
         sea_names: ["Ocean 1", "Ocean 2"], // Non-empty array counts
         spatial_coverage: {},

@@ -64,7 +64,7 @@ describe('Schema Views', () => {
       const schema = getProjectSchema();
 
       expect(schema.properties.project_id).toBeDefined();
-      expect(schema.properties.project_description).toBeDefined();
+      expect(schema.properties.description).toBeDefined();
       expect(schema.properties.mcdr_pathway).toBeDefined();
       expect(schema.properties.sea_names).toBeDefined();
       expect(schema.properties.spatial_coverage).toBeDefined();

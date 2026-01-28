@@ -8,11 +8,14 @@ import type {
   ProjectFormData,
   ExperimentFormData,
   ExperimentState,
+  DatasetFormData,
+  DatasetState,
   AppFormState
 } from "@/types/forms";
 
 // Re-export types for backward compatibility
 export type ExperimentData = ExperimentState;
+export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
 
@@ -22,7 +25,7 @@ interface AppStateContextType {
   addExperiment: (name?: string) => number;
   updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string }) => void;
   deleteExperiment: (id: number) => void;
-  setActiveTab: (tab: "overview" | "project" | "experiment") => void;
+  setActiveTab: (tab: "overview" | "project" | "experiment" | "dataset") => void;
   setActiveExperiment: (id: number | null) => void;
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
@@ -31,6 +34,12 @@ interface AppStateContextType {
   setTriggerValidation: (trigger: boolean) => void;
   setShowJsonPreview: (show: boolean) => void;
   toggleJsonPreview: () => void;
+  // Dataset methods
+  addDataset: (name?: string) => number;
+  updateDataset: (id: number, data: Partial<DatasetFormData> & { name?: string }) => void;
+  deleteDataset: (id: number) => void;
+  setActiveDataset: (id: number | null) => void;
+  getDataset: (id: number) => DatasetData | undefined;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -41,9 +50,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>({
     projectData: { project_id: "" },
     experiments: [],
+    datasets: [],
     activeTab: "overview",
     activeExperimentId: null,
+    activeDatasetId: null,
     nextExperimentId: 1,
+    nextDatasetId: 1,
     triggerValidation: false,
     showJsonPreview: false
   });
@@ -118,7 +130,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setActiveTab = useCallback(
-    (tab: "overview" | "project" | "experiment") => {
+    (tab: "overview" | "project" | "experiment" | "dataset") => {
       setState((prev) => ({
         ...prev,
         activeTab: tab
@@ -158,6 +170,84 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [state.experiments]
   );
 
+  // =============================================================================
+  // Dataset Methods
+  // =============================================================================
+
+  const addDataset = useCallback(
+    (name?: string): number => {
+      const idRef = { current: 0 };
+
+      setState((prev) => {
+        const id = prev.nextDatasetId;
+        idRef.current = id;
+        const defaultName = name || `Dataset ${id}`;
+
+        const newDataset: DatasetData = {
+          id,
+          name: defaultName,
+          formData: {
+            project_id: prev.projectData?.project_id || ""
+          },
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+
+        return {
+          ...prev,
+          datasets: [...prev.datasets, newDataset],
+          activeDatasetId: id,
+          nextDatasetId: prev.nextDatasetId + 1
+        };
+      });
+
+      return idRef.current;
+    },
+    []
+  );
+
+  const updateDataset = useCallback(
+    (id: number, data: Partial<DatasetFormData> & { name?: string }) => {
+      setState((prev) => ({
+        ...prev,
+        datasets: prev.datasets.map((ds) =>
+          ds.id === id
+            ? {
+                ...ds,
+                formData: { ...ds.formData, ...data } as DatasetFormData,
+                name: data.name || ds.name,
+                updatedAt: Date.now()
+              }
+            : ds
+        )
+      }));
+    },
+    []
+  );
+
+  const deleteDataset = useCallback((id: number) => {
+    setState((prev) => ({
+      ...prev,
+      datasets: prev.datasets.filter((ds) => ds.id !== id),
+      activeDatasetId:
+        prev.activeDatasetId === id ? null : prev.activeDatasetId
+    }));
+  }, []);
+
+  const setActiveDataset = useCallback((id: number | null) => {
+    setState((prev) => ({
+      ...prev,
+      activeDatasetId: id
+    }));
+  }, []);
+
+  const getDataset = useCallback(
+    (id: number) => {
+      return state.datasets.find((ds) => ds.id === id);
+    },
+    [state.datasets]
+  );
+
   // Import all data (project + experiments) from imported file
   const importAllData = useCallback(
     (projectData: ProjectFormData, experiments: ExperimentData[]) => {
@@ -171,9 +261,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => ({
         projectData,
         experiments: experimentsWithNewIds,
+        datasets: prev.datasets, // Preserve existing datasets
         activeTab: "overview",
         activeExperimentId: null,
+        activeDatasetId: prev.activeDatasetId,
         nextExperimentId: nextId + experiments.length,
+        nextDatasetId: prev.nextDatasetId,
         triggerValidation: false,
         showJsonPreview: prev.showJsonPreview
       }));
@@ -216,7 +309,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     importAllData,
     setTriggerValidation,
     setShowJsonPreview,
-    toggleJsonPreview
+    toggleJsonPreview,
+    // Dataset methods
+    addDataset,
+    updateDataset,
+    deleteDataset,
+    setActiveDataset,
+    getDataset
   };
 
   return (

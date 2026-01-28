@@ -4,7 +4,11 @@ import { readFile, writeFile } from "node:fs/promises";
 
 const INPUT = "./schemas/schema.json"; // LinkML output
 const OUTPUT = "./public/schema.bundled.json";
-const LABELS = "./schemas/sea_names_labeled.json";
+
+// NVS vocabulary files (fetched via `make nvs-vocabs`)
+const NVS_DIR = "./schemas/nvs";
+const SEA_NAMES_FILE = `${NVS_DIR}/sea_names.json`;
+const PLATFORM_TYPES_FILE = `${NVS_DIR}/platform_types.json`;
 
 // Get protocol git hash from command line argument
 const protocolGitHash = process.argv[3];
@@ -25,46 +29,121 @@ if (!/^[0-9a-f]{40}$/i.test(protocolGitHash)) {
 const base = await $RefParser.bundle(INPUT, {
   dereference: { circular: "ignore" }
 });
-const labels = JSON.parse(await readFile(LABELS, "utf-8"));
 
-function decorateSeaNames(schema, labels) {
-  // sea_names is in Project definition in $defs, not at root
-  const projectDef = schema.$defs?.Project;
-  const sea = projectDef?.properties?.sea_names;
+// Load NVS vocabulary labels
+const seaNameLabels = JSON.parse(await readFile(SEA_NAMES_FILE, "utf-8"));
+const platformTypeLabels = JSON.parse(await readFile(PLATFORM_TYPES_FILE, "utf-8"));
 
-  if (!sea) {
-    console.warn("⚠️  sea_names field not found in Project definition");
+/**
+ * Converts NVS labels array to oneOf format for JSON Schema
+ * @param {Array} labels - Array of { uri, prefLabel } from NVS
+ * @param {Array} [allowedUris] - Optional list of URIs to filter by (from schema enum)
+ * @returns {Array} oneOf array with { const, title }
+ */
+function labelsToOneOf(labels, allowedUris = null) {
+  // Build lookup map from labels
+  const labelMap = new Map(
+    labels
+      .filter((x) => x && x.uri && x.prefLabel)
+      .map(({ uri, prefLabel }) => [uri, prefLabel])
+  );
+
+  // If allowedUris provided, use those and look up labels
+  // Otherwise use all labels
+  const entries = allowedUris
+    ? allowedUris.map((uri) => ({
+        const: uri,
+        title: labelMap.get(uri) || uri.split("/").pop() // fallback to last URI segment
+      }))
+    : Array.from(labelMap.entries()).map(([uri, prefLabel]) => ({
+        const: uri,
+        title: prefLabel
+      }));
+
+  // Dedupe by URI and sort by label
+  return entries
+    .filter((x, i, arr) => arr.findIndex((y) => y.const === x.const) === i)
+    .sort((a, b) => a.title.localeCompare(b.title));
+}
+
+/**
+ * Decorates a schema definition with NVS labels
+ * Supports two patterns:
+ * - "enum": Replaces enum with oneOf (for $defs like PlatformType)
+ * - "array": Sets items.oneOf for array fields (for fields like sea_names)
+ *
+ * @param {Object} schema - The full schema
+ * @param {Object} config - Decoration config
+ * @param {string} config.name - Human-readable name for logging
+ * @param {Array} config.labels - NVS labels array
+ * @param {string} config.defName - Name of the $def to modify (e.g., "PlatformType")
+ * @param {string} [config.fieldPath] - Dot-separated path to field within $def (e.g., "properties.sea_names")
+ * @param {"enum"|"array"} config.type - How to apply the decoration
+ * @returns {Object} Modified schema
+ */
+function decorateWithNvsLabels(schema, config) {
+  const { name, labels, defName, fieldPath, type } = config;
+
+  // Navigate to the target definition
+  let target = schema.$defs?.[defName];
+  if (fieldPath) {
+    for (const key of fieldPath.split(".")) {
+      target = target?.[key];
+    }
+  }
+
+  if (!target) {
+    console.warn(`⚠️  ${name}: target not found at $defs.${defName}${fieldPath ? "." + fieldPath : ""}`);
     return schema;
   }
 
-  const oneOf = labels
-    .filter((x) => x && x.uri && x.prefLabel) // Validate structure
-    .filter((x, i, arr) => arr.findIndex((y) => y.uri === x.uri) === i)
-    .sort((a, b) => a.prefLabel.localeCompare(b.prefLabel))
-    .map(({ uri, prefLabel }) => ({ const: uri, title: prefLabel }));
+  // Get allowed URIs from existing enum if present
+  const allowedUris = target.enum || target.items?.enum || null;
+  const oneOf = labelsToOneOf(labels, allowedUris);
 
   if (oneOf.length === 0) {
-    console.error("❌ No valid sea names found in labels file");
-    throw new Error("Invalid sea names data - check schemas/sea_names_labeled.json");
+    console.error(`❌ No valid labels found for ${name}`);
+    throw new Error(`Invalid NVS data for ${name}`);
   }
 
-  return {
-    ...schema,
-    $defs: {
-      ...schema.$defs,
-      Project: {
-        ...projectDef,
-        properties: {
-          ...projectDef.properties,
-          sea_names: {
-            ...sea,
-            uniqueItems: true,
-            items: { oneOf }
-          }
-        }
+  // Apply decoration based on type
+  let updatedTarget;
+  if (type === "enum") {
+    // Replace enum with oneOf
+    const { enum: _enum, ...rest } = target;
+    updatedTarget = { ...rest, oneOf };
+  } else if (type === "array") {
+    // Set items.oneOf for array fields
+    updatedTarget = { ...target, uniqueItems: true, items: { oneOf } };
+  }
+
+  console.log(`✓ Decorated ${name} with ${oneOf.length} labeled options`);
+
+  // Rebuild schema with updated target
+  if (fieldPath) {
+    // Navigate and rebuild nested structure
+    const pathParts = fieldPath.split(".");
+    const rebuild = (obj, parts, value) => {
+      if (parts.length === 0) return value;
+      const [head, ...tail] = parts;
+      return { ...obj, [head]: rebuild(obj[head], tail, value) };
+    };
+    return {
+      ...schema,
+      $defs: {
+        ...schema.$defs,
+        [defName]: rebuild(schema.$defs[defName], pathParts, updatedTarget)
       }
-    }
-  };
+    };
+  } else {
+    return {
+      ...schema,
+      $defs: {
+        ...schema.$defs,
+        [defName]: updatedTarget
+      }
+    };
+  }
 }
 
 function fixConditionalFields(schema) {
@@ -114,7 +193,30 @@ function fixConditionalFields(schema) {
   return schema;
 }
 
-let decorated = decorateSeaNames(base, labels);
+// NVS decoration configurations
+// Add new entries here when adding more NVS vocabularies
+const nvsDecorations = [
+  {
+    name: "Sea Names",
+    labels: seaNameLabels,
+    defName: "Project",
+    fieldPath: "properties.sea_names",
+    type: "array"
+  },
+  {
+    name: "Platform Types",
+    labels: platformTypeLabels,
+    defName: "PlatformType",
+    type: "enum"
+  }
+];
+
+// Apply all NVS decorations
+let decorated = base;
+for (const config of nvsDecorations) {
+  decorated = decorateWithNvsLabels(decorated, config);
+}
+
 decorated = fixConditionalFields(decorated);
 
 // Add x-protocol-git-hash field to root schema if git hash is provided
