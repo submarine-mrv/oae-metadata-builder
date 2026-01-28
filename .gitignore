@@ -49,3 +49,5 @@ src/app/local-testing
 CLAUDE.md
 .claude/
 .beads/
+test-results/
+playwright-report/
