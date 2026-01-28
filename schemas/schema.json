@@ -413,6 +413,11 @@
                     "title": "Dataset variable name (Quality Flag)",
                     "type": "string"
                 },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
+                    "type": "string"
+                },
                 "long_name": {
                     "description": "Full descriptive name of the variable.",
                     "title": "Variable full name",
@@ -560,6 +565,11 @@
             "additionalProperties": false,
             "description": "Fields for continuous sampling information.",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -578,6 +588,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "field_replicate_information": {
@@ -674,11 +689,13 @@
             },
             "required": [
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -694,6 +711,11 @@
             "additionalProperties": false,
             "description": "pH measured variable from continuous autonomous sensor",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -719,6 +741,11 @@
                     "title": "Dataset variable name (Quality Flag)",
                     "type": "string"
                 },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
+                    "type": "string"
+                },
                 "field_replicate_information": {
                     "description": "Repetition of sample collection and measurement, e.g., triplicate samples.",
                     "title": "Field replicate information",
@@ -813,11 +840,13 @@
             },
             "required": [
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -1006,6 +1035,11 @@
                     "title": "Dataset variable name (Quality Flag)",
                     "type": "string"
                 },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
+                    "type": "string"
+                },
                 "field_replicate_information": {
                     "description": "Repetition of sample collection and measurement, e.g., triplicate samples.",
                     "title": "Field replicate information",
@@ -1100,6 +1134,7 @@
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -1138,6 +1173,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "field_replicate_information": {
@@ -1243,6 +1283,7 @@
                 }
             },
             "required": [
+                "measurement_temperature",
                 "ph_reported_temperature",
                 "analyzing_instrument",
                 "sampling_method",
@@ -1250,6 +1291,7 @@
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -1614,6 +1656,11 @@
             "additionalProperties": false,
             "description": "HPLC (High-Performance Liquid Chromatography) measured variable for pigment analysis. Always measured, not calculated.",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -1627,6 +1674,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "field_replicate_information": {
@@ -1717,11 +1769,13 @@
                 }
             },
             "required": [
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -2224,6 +2278,18 @@
         },
         "MassConcentrationUnit": {
             "description": "",
+            "enum": [
+                "unit:KiloGM-PER-M3",
+                "unit:MicroGM-PER-L",
+                "unit:MicroGM-PER-L-DAY",
+                "unit:MicroGM-PER-MilliL",
+                "unit:MilliGM-PER-L",
+                "unit:MilliGM-PER-M3",
+                "unit:MilliGM-PER-MilliL",
+                "unit:NanoGM-PER-L",
+                "unit:NanoGM-PER-MilliL",
+                "unit:PicoGM-PER-MilliL"
+            ],
             "title": "MassConcentrationUnit",
             "type": "string"
         },
@@ -2299,6 +2365,11 @@
                     "title": "Dataset variable name (Quality Flag)",
                     "type": "string"
                 },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
+                    "type": "string"
+                },
                 "long_name": {
                     "description": "Full descriptive name of the variable.",
                     "title": "Variable full name",
@@ -2361,6 +2432,11 @@
             "additionalProperties": false,
             "description": "Variable that is directly measured in-situ using instruments. Reference: OAPMetadata XSD variables.xsd - basic_measured_observation_base",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -2374,6 +2450,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "field_replicate_information": {
@@ -2464,11 +2545,13 @@
                 }
             },
             "required": [
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -2572,9 +2655,6 @@
                 }
             },
             "required": [
-                "dye_type_and_manufacturer",
-                "dye_purified",
-                "calibration_location",
                 "technique_description"
             ],
             "title": "PHCalibration",
@@ -2742,6 +2822,11 @@
             "additionalProperties": false,
             "description": "Physiological response measured variable for organism response data.",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -2755,6 +2840,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "field_replicate_information": {
@@ -2845,11 +2935,13 @@
                 }
             },
             "required": [
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -2887,6 +2979,7 @@
             "properties": {
                 "country": {
                     "description": "Country to which the platform belongs.",
+                    "title": "Country",
                     "type": "string"
                 },
                 "name": {
@@ -2896,15 +2989,18 @@
                 },
                 "owner": {
                     "description": "Institution that owns the platform.",
+                    "title": "Owner",
                     "type": "string"
                 },
                 "platform_id": {
                     "description": "Synonymous with glider ID, cruise ID. A unique name assigned to oceanographic assets such as buoys, moorings, floats, drifters, towed vehicles like the Scanfish or StingRay. This is synonymous with the BCO-DMO \u201cplatform\u201d parameter (https://www.bco-dmo.org/parameter/932), NERC \u201cplatform type\u201d term (https://vocab.nerc.ac.uk/collection/W06/current/CLSS0001/), and the \u201cplatform_id\u201d term within the Climate and Forecast (CF) metadata conventions (https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html). e.g., ICES platform code (e.g., 33RO).",
+                    "title": "Platform ID",
                     "type": "string"
                 },
                 "platform_type": {
                     "$ref": "#/$defs/PlatformType",
-                    "description": "Controlled vocabularies for the types of the platform: https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/vocabularies/platform-types.html"
+                    "description": "Controlled vocabularies for the types of the platform: https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/vocabularies/platform-types.html",
+                    "title": "Platform Type"
                 }
             },
             "required": [
@@ -3252,6 +3348,11 @@
             "additionalProperties": false,
             "description": "Sediment measured variable for seafloor/sediment sampling data.",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -3265,6 +3366,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "field_replicate_information": {
@@ -3355,11 +3461,13 @@
                 }
             },
             "required": [
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
                 "sampling",
                 "genesis",
+                "sampling_instrument_type",
                 "qc_steps_taken",
                 "uncertainty",
                 "uncertainty_definition",
@@ -3443,6 +3551,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "long_name": {
@@ -3702,6 +3815,11 @@
                 "dataset_variable_name_qc_flag": {
                     "description": "If applicable, the column header name used for the quality control flag corresponding to this variable.",
                     "title": "Dataset variable name (Quality Flag)",
+                    "type": "string"
+                },
+                "dataset_variable_name_raw": {
+                    "description": "If applicable, the column header name used for the raw data corresponding to this variable.",
+                    "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
                 "long_name": {

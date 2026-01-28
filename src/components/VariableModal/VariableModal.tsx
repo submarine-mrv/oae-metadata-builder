@@ -26,7 +26,8 @@ import {
   VARIABLE_TYPE_OPTIONS,
   ACCORDION_CONFIG,
   getSchemaKey,
-  normalizeFieldConfig
+  normalizeFieldConfig,
+  getPlaceholderOverride
 } from "./variableModalConfig";
 import {
   fieldExistsInSchema,
@@ -36,6 +37,7 @@ import {
 } from "../schemaUtils";
 import SchemaField from "./SchemaField";
 import EnumWithOtherField from "./EnumWithOtherField";
+import OptionalWithGateField from "./OptionalWithGateField";
 
 // Genesis (measured/calculated) options
 const GENESIS_OPTIONS = [
@@ -385,19 +387,54 @@ export default function VariableModal({
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Grid gutter="sm">
-                      {section.visibleFields.map((field) =>
-                        field.inputType === "enum_with_other" ? (
-                          <EnumWithOtherField
-                            key={field.path}
-                            fieldPath={field.path}
-                            variableSchema={variableSchema}
-                            rootSchema={rootSchema}
-                            formData={formData}
-                            onChange={handleFormChange}
-                            descriptionModal={field.descriptionModal}
-                            placeholderText={field.placeholderText}
-                          />
-                        ) : (
+                      {section.visibleFields.flatMap((field): React.ReactElement[] => {
+                        // Compute effective placeholder with override support
+                        const effectivePlaceholder =
+                          getPlaceholderOverride(variableType || undefined, field.path) ||
+                          field.placeholderText;
+
+                        // Helper to add row spacer if needed
+                        const maybeAddSpacer = (elements: React.ReactElement[]): React.ReactElement[] => {
+                          if (field.newRowAfter && field.span && field.span < 12) {
+                            elements.push(
+                              <Grid.Col key={`${field.path}-spacer`} span={12 - field.span} />
+                            );
+                          }
+                          return elements;
+                        };
+
+                        if (field.inputType === "enum_with_other") {
+                          return [
+                            <EnumWithOtherField
+                              key={field.path}
+                              fieldPath={field.path}
+                              variableSchema={variableSchema}
+                              rootSchema={rootSchema}
+                              formData={formData}
+                              onChange={handleFormChange}
+                              descriptionModal={field.descriptionModal}
+                              placeholderText={effectivePlaceholder}
+                            />
+                          ];
+                        }
+
+                        if (field.inputType === "optional_with_gate") {
+                          return [
+                            <OptionalWithGateField
+                              key={field.path}
+                              fieldPath={field.path}
+                              variableSchema={variableSchema}
+                              rootSchema={rootSchema}
+                              formData={formData}
+                              onChange={handleFormChange}
+                              descriptionModal={field.descriptionModal}
+                              placeholderText={effectivePlaceholder}
+                              gateLabel={field.gateLabel || "Include this field?"}
+                            />
+                          ];
+                        }
+
+                        return maybeAddSpacer([
                           <Grid.Col key={field.path} span={field.span}>
                             <SchemaField
                               fieldPath={field.path}
@@ -409,12 +446,12 @@ export default function VariableModal({
                               descriptionMode={
                                 field.descriptionModal ? "modal" : "tooltip"
                               }
-                              placeholderText={field.placeholderText}
+                              placeholderText={effectivePlaceholder}
                               rows={field.rows}
                             />
                           </Grid.Col>
-                        )
-                      )}
+                        ]);
+                      })}
                     </Grid>
                   </Accordion.Panel>
                 </Accordion.Item>

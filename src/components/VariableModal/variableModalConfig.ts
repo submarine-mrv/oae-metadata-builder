@@ -39,7 +39,10 @@ export const VARIABLE_SCHEMA_MAP = {
       DISCRETE: "DiscretePHVariable",
       CONTINUOUS: "ContinuousPHVariable"
     },
-    CALCULATED: "CalculatedVariable"
+    CALCULATED: "CalculatedVariable",
+    placeholderOverrides: {
+      units: "NBS scale, total scale, seawater scale, etc."
+    }
   },
   observed_property: {
     MEASURED: {
@@ -47,6 +50,7 @@ export const VARIABLE_SCHEMA_MAP = {
       CONTINUOUS: "ContinuousMeasuredVariable"
     },
     CALCULATED: "CalculatedVariable"
+    // No placeholderOverrides - uses config defaults
   }
 } as const;
 
@@ -66,7 +70,9 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
       inputType: "text",
       descriptionModal: false,
       placeholderText: undefined,
-      rows: undefined
+      rows: undefined,
+      gateLabel: undefined,
+      newRowAfter: false
     };
   }
   return {
@@ -75,7 +81,9 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
     inputType: field.inputType ?? "text",
     descriptionModal: field.descriptionModal ?? false,
     placeholderText: field.placeholderText,
-    rows: field.rows
+    rows: field.rows,
+    gateLabel: field.gateLabel,
+    newRowAfter: field.newRowAfter ?? false
   };
 }
 
@@ -102,14 +110,19 @@ export interface FieldConfig {
    * - "textarea" (multi-line)
    * - "enum_with_other" - enum dropdown with auto-shown custom field when "other" selected
    * - "boolean_select" - renders boolean as Yes/No dropdown instead of checkbox
+   * - "optional_with_gate" - Yes/No gate question that shows text input when "Yes" selected
    */
-  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select";
+  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select" | "optional_with_gate";
   /** Show description in a modal popup instead of tooltip. Default is false (tooltip) */
   descriptionModal?: boolean;
   /** Placeholder text for the input field */
   placeholderText?: string;
   /** Number of rows for textarea inputs. Default is 2-6 (autosize) */
   rows?: number;
+  /** Label for the Yes/No gate question (used with optional_with_gate) */
+  gateLabel?: string;
+  /** Force a new row after this field (fills remaining space with empty col) */
+  newRowAfter?: boolean;
 }
 
 export interface AccordionSection {
@@ -145,12 +158,20 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       {
         path: "dataset_variable_name",
         span: 6,
-        placeholderText: "e.g., pH_total, DIC, TA"
+        placeholderText: "e.g., pH_total, DIC, TA",
+        newRowAfter: true
       },
       {
         path: "dataset_variable_name_qc_flag",
-        span: 6,
+        inputType: "optional_with_gate",
+        gateLabel: "Quality flag is included as a separate column",
         placeholderText: "e.g., pH_flag"
+      },
+      {
+        path: "dataset_variable_name_raw",
+        inputType: "optional_with_gate",
+        gateLabel: "Raw data is included as a separate column",
+        placeholderText: "e.g., pH_raw"
       }
       // "standard_identifier",
       // Note: genesis, sampling, observation_type are handled specially
@@ -399,4 +420,19 @@ export function getSchemaKey(
   // MEASURED needs sampling to determine schema
   if (!sampling) return null;
   return (genesisMap as Record<string, string>)[sampling] || null;
+}
+
+/**
+ * Gets a placeholder override for a specific field based on variable type.
+ * Returns undefined if no override exists (use config default).
+ */
+export function getPlaceholderOverride(
+  variableType: string | undefined,
+  fieldPath: string
+): string | undefined {
+  if (!variableType) return undefined;
+  const typeConfig = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+  if (!typeConfig || !("placeholderOverrides" in typeConfig)) return undefined;
+  const overrides = typeConfig.placeholderOverrides as Record<string, string> | undefined;
+  return overrides?.[fieldPath];
 }

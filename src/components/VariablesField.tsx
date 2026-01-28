@@ -9,12 +9,24 @@ import {
   Button,
   Group,
   Table,
-  ActionIcon
+  ActionIcon,
+  Tooltip
 } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconAlertCircle } from "@tabler/icons-react";
 import VariableModal from "./VariableModal/VariableModal";
 import { brandColors } from "@/theme";
-import type { JSONSchema } from "./schemaUtils";
+import {
+  resolveRef,
+  fieldExistsInSchema,
+  isFieldRequired,
+  getNestedValue,
+  type JSONSchema
+} from "./schemaUtils";
+import {
+  getSchemaKey,
+  ACCORDION_CONFIG,
+  normalizeFieldConfig
+} from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
@@ -30,6 +42,58 @@ function getVariableDisplayLabel(variable: VariableData): string {
   if (varType === "observed_property") return "Observed Property";
   if (schemaKey) return schemaKey;
   return "(no type)";
+}
+
+/**
+ * Counts the number of missing required fields for a variable.
+ * Uses the variable's type selections to determine the appropriate schema,
+ * then checks all fields defined in ACCORDION_CONFIG.
+ */
+function countMissingRequiredFields(
+  variable: VariableData,
+  rootSchema: JSONSchema
+): number {
+  // Get schema key from variable's type selections
+  const schemaKey = getSchemaKey(
+    variable._variableType as string | undefined,
+    variable.genesis as string | undefined,
+    variable.sampling as string | undefined
+  );
+
+  if (!schemaKey || !rootSchema.$defs) return 0;
+
+  const variableSchema = resolveRef(
+    rootSchema.$defs[schemaKey],
+    rootSchema
+  );
+  if (!variableSchema) return 0;
+
+  // Count missing required fields across all accordion sections
+  let missingCount = 0;
+
+  for (const section of ACCORDION_CONFIG) {
+    for (const fieldEntry of section.fields) {
+      const field = normalizeFieldConfig(fieldEntry);
+
+      // Skip fields that don't exist in this schema
+      if (!fieldExistsInSchema(field.path, variableSchema, rootSchema)) {
+        continue;
+      }
+
+      // Check if field is required
+      if (!isFieldRequired(field.path, variableSchema, rootSchema)) {
+        continue;
+      }
+
+      // Check if field is missing
+      const value = getNestedValue(variable, field.path);
+      if (value === undefined || value === null || value === "") {
+        missingCount++;
+      }
+    }
+  }
+
+  return missingCount;
 }
 
 /**
@@ -128,7 +192,20 @@ const VariablesField: React.FC<FieldProps> = (props) => {
               {variables.map((variable, index) => (
                 <Table.Tr key={index}>
                   <Table.Td>
-                    {(variable.dataset_variable_name as string) || "(unnamed)"}
+                    <Group gap="xs">
+                      {(variable.dataset_variable_name as string) || "(unnamed)"}
+                      {(() => {
+                        const missing = countMissingRequiredFields(variable, rootSchema);
+                        if (missing > 0) {
+                          return (
+                            <Tooltip label={`${missing} required field${missing > 1 ? "s" : ""} missing`}>
+                              <IconAlertCircle size={16} color="var(--mantine-color-orange-6)" />
+                            </Tooltip>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </Group>
                   </Table.Td>
                   <Table.Td>{getVariableDisplayLabel(variable)}</Table.Td>
                   <Table.Td>{(variable.units as string) || "-"}</Table.Td>
