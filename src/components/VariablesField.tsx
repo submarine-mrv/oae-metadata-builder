@@ -12,7 +12,7 @@ import {
   ActionIcon,
   Tooltip
 } from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconAlertCircle } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconCopy, IconAlertCircle } from "@tabler/icons-react";
 import VariableModal from "./VariableModal/VariableModal";
 import { brandColors } from "@/theme";
 import {
@@ -136,6 +136,16 @@ const VariablesField: React.FC<FieldProps> = (props) => {
     handleChange(newVariables);
   };
 
+  const handleDuplicate = (index: number) => {
+    const original = variables[index];
+    const duplicate: VariableData = {
+      ...structuredClone(original),
+      dataset_variable_name: `${(original.dataset_variable_name as string) || ""} (Copy)`
+    };
+    const newVariables = [...variables, duplicate];
+    handleChange(newVariables);
+  };
+
   const handleSave = (variableData: VariableData) => {
     const newVariables = [...variables];
     if (editingIndex !== null) {
@@ -185,7 +195,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                 <Table.Th>Variable Name</Table.Th>
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Unit</Table.Th>
-                <Table.Th style={{ width: 100 }}>Actions</Table.Th>
+                <Table.Th style={{ width: 120 }}>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -210,7 +220,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                   <Table.Td>{getVariableDisplayLabel(variable)}</Table.Td>
                   <Table.Td>{(variable.units as string) || "-"}</Table.Td>
                   <Table.Td>
-                    <Group gap="xs">
+                    <Group gap={4} wrap="nowrap">
                       <ActionIcon
                         variant="subtle"
                         onClick={() => handleEdit(index)}
@@ -218,6 +228,14 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                         disabled={isDisabled}
                       >
                         <IconPencil size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="subtle"
+                        onClick={() => handleDuplicate(index)}
+                        title="Duplicate variable"
+                        disabled={isDisabled}
+                      >
+                        <IconCopy size={16} />
                       </ActionIcon>
                       <ActionIcon
                         variant="subtle"
