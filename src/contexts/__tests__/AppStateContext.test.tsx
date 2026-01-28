@@ -24,9 +24,12 @@ describe('AppStateContext', () => {
       expect(result.current.state).toEqual({
         projectData: { project_id: '' },
         experiments: [],
+        datasets: [],
         activeTab: 'overview',
         activeExperimentId: null,
+        activeDatasetId: null,
         nextExperimentId: 1,
+        nextDatasetId: 1,
         triggerValidation: false,
         showJsonPreview: false
       });
@@ -41,7 +44,7 @@ describe('AppStateContext', () => {
 
       const newProjectData = {
         project_id: 'test-project',
-        project_description: 'Test description',
+        description: 'Test description',
         mcdr_pathway: 'ocean_alkalinity_enhancement'
       };
 
@@ -529,7 +532,7 @@ describe('AppStateContext', () => {
       act(() => {
         result.current.updateProjectData({
           project_id: 'test-project',
-          project_description: 'Description',
+          description: 'Description',
           mcdr_pathway: 'ocean_alkalinity_enhancement'
           // Missing: sea_names, spatial_coverage, temporal_coverage
         });
@@ -549,7 +552,7 @@ describe('AppStateContext', () => {
       act(() => {
         result.current.updateProjectData({
           project_id: 'test-project',
-          project_description: 'Description',
+          description: 'Description',
           mcdr_pathway: 'ocean_alkalinity_enhancement',
           sea_names: ['http://vocab.nerc.ac.uk/collection/C16/current/26/'],
           spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -570,7 +573,7 @@ describe('AppStateContext', () => {
       act(() => {
         result.current.updateProjectData({
           project_id: '', // Empty string
-          project_description: '   ', // Whitespace
+          description: '   ', // Whitespace
           mcdr_pathway: 'ocean_alkalinity_enhancement'
         });
       });
@@ -692,7 +695,7 @@ describe('AppStateContext', () => {
 
       const importedProjectData = {
         project_id: 'imported-project',
-        project_description: 'Imported description'
+        description: 'Imported description'
       };
 
       const importedExperiments: ExperimentData[] = [

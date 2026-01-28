@@ -16,7 +16,7 @@ const projectUiSchema = {
   "ui:order": [
     "research_project",
     "project_id",
-    "project_description",
+    "description",
     "mcdr_pathway",
     "sea_names",
     "spatial_coverage",
@@ -59,7 +59,7 @@ const projectUiSchema = {
     "ui:style": { width: "50%" },
     "ui:widget": "CustomSelectWidget"
   },
-  project_description: textAreaWidget,
+  description: textAreaWidget,
   physical_site_description: textAreaWidget,
   social_context_site_description: textAreaWidget,
   social_research_conducted_to_date: textAreaWidget,

@@ -1398,6 +1398,11 @@
           "title": "End Date and Time",
           "type": "string"
         },
+        "experiment_id": {
+          "description": "The experiment to which the data belong. Any naming convention that produces a unique ID is usable. The recommended naming convention is:\nProject ID + Experiment type + Optional numerical indicator to differentiate between various experiments of the same type for a project. A two digit consecutive number beginning with 01",
+          "title": "Experiment ID",
+          "type": "string"
+        },
         "experiment_type": {
           "$ref": "#/$defs/ExperimentType",
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
@@ -1458,6 +1463,7 @@
       "required": [
         "description",
         "spatial_coverage",
+        "experiment_id",
         "experiment_type",
         "investigators",
         "start_datetime",
@@ -1939,6 +1945,11 @@
           "description": "Whether the feedstock was pre-equilibrated or unequilibrated",
           "title": "Equilibration"
         },
+        "experiment_id": {
+          "description": "The experiment to which the data belong. Any naming convention that produces a unique ID is usable. The recommended naming convention is:\nProject ID + Experiment type + Optional numerical indicator to differentiate between various experiments of the same type for a project. A two digit consecutive number beginning with 01",
+          "title": "Experiment ID",
+          "type": "string"
+        },
         "experiment_type": {
           "$ref": "#/$defs/ExperimentType",
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
@@ -2012,6 +2023,7 @@
         "dosing_description",
         "description",
         "spatial_coverage",
+        "experiment_id",
         "experiment_type",
         "investigators",
         "start_datetime",
@@ -2160,6 +2172,11 @@
           "description": "Whether the feedstock was pre-equilibrated or unequilibrated",
           "title": "Equilibration"
         },
+        "experiment_id": {
+          "description": "The experiment to which the data belong. Any naming convention that produces a unique ID is usable. The recommended naming convention is:\nProject ID + Experiment type + Optional numerical indicator to differentiate between various experiments of the same type for a project. A two digit consecutive number beginning with 01",
+          "title": "Experiment ID",
+          "type": "string"
+        },
         "experiment_type": {
           "$ref": "#/$defs/ExperimentType",
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
@@ -2251,6 +2268,7 @@
         "dosing_description",
         "description",
         "spatial_coverage",
+        "experiment_id",
         "experiment_type",
         "investigators",
         "start_datetime",
@@ -3182,6 +3200,11 @@
           "title": "Co-located Operations",
           "type": "string"
         },
+        "description": {
+          "description": "A narrative description of the project. For example, what were the goals of the project? What were the research questions? What were the processes to achieve these goals and answer these questions? Who were the key stakeholders, organizers, project leaders? Was this building off a previous or ongoing project, or is this a new region/experiment/mechanistic study?\nIf there are relevant regulatory parameters and/or limits to dosing trials at this location, these may be described here.",
+          "title": "Project Description",
+          "type": "string"
+        },
         "experiments": {
           "items": {
             "$ref": "#/$defs/Experiment"
@@ -3784,6 +3807,7 @@
       },
       "required": [
         "project_id",
+        "description",
         "temporal_coverage",
         "spatial_coverage",
         "mcdr_pathway"
@@ -4324,6 +4348,11 @@
           "title": "End Date and Time",
           "type": "string"
         },
+        "experiment_id": {
+          "description": "The experiment to which the data belong. Any naming convention that produces a unique ID is usable. The recommended naming convention is:\nProject ID + Experiment type + Optional numerical indicator to differentiate between various experiments of the same type for a project. A two digit consecutive number beginning with 01",
+          "title": "Experiment ID",
+          "type": "string"
+        },
         "experiment_type": {
           "$ref": "#/$defs/ExperimentType",
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
@@ -4408,6 +4437,7 @@
         "dosing_description",
         "description",
         "spatial_coverage",
+        "experiment_id",
         "experiment_type",
         "investigators",
         "start_datetime",
@@ -4550,5 +4580,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "b7f9c5acb4f4b2c2a100770bf3e99b7882ec36f7"
+  "x-protocol-git-hash": "d074595661cea7f0c883d717a4b60797791dd2d0"
 }
