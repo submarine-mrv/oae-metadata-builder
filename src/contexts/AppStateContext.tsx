@@ -30,7 +30,7 @@ interface AppStateContextType {
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
-  importAllData: (projectData: ProjectFormData, experiments: ExperimentData[]) => void;
+  importAllData: (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => void;
   setTriggerValidation: (trigger: boolean) => void;
   setShowJsonPreview: (show: boolean) => void;
   toggleJsonPreview: () => void;
@@ -248,30 +248,37 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [state.datasets]
   );
 
-  // Import all data (project + experiments) from imported file
+  // Import all data (project + experiments + datasets) from imported file
   const importAllData = useCallback(
-    (projectData: ProjectFormData, experiments: ExperimentData[]) => {
+    (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => {
       // Reassign experiment IDs to avoid conflicts
-      const nextId = state.nextExperimentId;
+      const nextExpId = state.nextExperimentId;
       const experimentsWithNewIds = experiments.map((exp, index) => ({
         ...exp,
-        id: nextId + index
+        id: nextExpId + index
+      }));
+
+      // Reassign dataset IDs to avoid conflicts
+      const nextDsId = state.nextDatasetId;
+      const datasetsWithNewIds = datasets.map((ds, index) => ({
+        ...ds,
+        id: nextDsId + index
       }));
 
       setState((prev) => ({
         projectData,
         experiments: experimentsWithNewIds,
-        datasets: prev.datasets, // Preserve existing datasets
+        datasets: datasetsWithNewIds,
         activeTab: "overview",
         activeExperimentId: null,
-        activeDatasetId: prev.activeDatasetId,
-        nextExperimentId: nextId + experiments.length,
-        nextDatasetId: prev.nextDatasetId,
+        activeDatasetId: null,
+        nextExperimentId: nextExpId + experiments.length,
+        nextDatasetId: nextDsId + datasets.length,
         triggerValidation: false,
         showJsonPreview: prev.showJsonPreview
       }));
     },
-    [state.nextExperimentId]
+    [state.nextExperimentId, state.nextDatasetId]
   );
 
   const setTriggerValidation = useCallback((trigger: boolean) => {

@@ -21,20 +21,33 @@ import {
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
-import { exportMetadata, importMetadata } from "@/utils/exportImport";
-import { validateAllData } from "@/utils/validation";
+import { importMetadata } from "@/utils/exportImport";
+import DownloadModal from "@/components/DownloadModal";
+import { useDownloadModal } from "@/hooks/useDownloadModal";
 
 export default function Navigation() {
   const {
     state,
     setActiveTab,
-    setActiveExperiment,
     importAllData,
-    setTriggerValidation,
     toggleJsonPreview
   } = useAppState();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    showModal,
+    sections,
+    openModal,
+    closeModal,
+    handleDownload,
+    handleSectionToggle
+  } = useDownloadModal({
+    projectData: state.projectData,
+    experiments: state.experiments,
+    datasets: state.datasets,
+    defaultSelection: "all"
+  });
 
   const handleNavigation = (value: string) => {
     const tab = value as "overview" | "project" | "experiment" | "dataset";
@@ -48,67 +61,6 @@ export default function Navigation() {
     router.push(paths[value]);
   };
 
-  const handleExport = async () => {
-    // Validate all data before exporting
-    const validation = validateAllData(state.projectData, state.experiments);
-
-    if (!validation.isAllValid) {
-      // Count total errors
-      let totalErrors = validation.projectValidation.errorCount;
-      validation.experimentValidations.forEach((expVal) => {
-        totalErrors += expVal.errorCount;
-      });
-
-      // Show alert with error summary
-      const errorMessages: string[] = [];
-
-      if (!validation.projectValidation.isValid) {
-        errorMessages.push(
-          `Project has ${validation.projectValidation.errorCount} error(s)`
-        );
-      }
-
-      const invalidExperiments = Array.from(
-        validation.experimentValidations.entries()
-      ).filter(([_, val]) => !val.isValid);
-
-      if (invalidExperiments.length > 0) {
-        errorMessages.push(
-          `${invalidExperiments.length} experiment(s) have validation errors`
-        );
-      }
-
-      alert(
-        `Cannot export metadata. Please fix the following errors:\n\n${errorMessages.join("\n")}\n\nCheck the browser console for detailed error information.`
-      );
-
-      // Navigate to the first page with errors
-      if (!validation.projectValidation.isValid) {
-        router.push("/project");
-        // Set trigger after navigation starts
-        setTimeout(() => setTriggerValidation(true), 50);
-      } else if (invalidExperiments.length > 0) {
-        // Navigate to the first invalid experiment
-        const [experimentId] = invalidExperiments[0];
-        const experiment = state.experiments.find(
-          (exp) => exp.id === experimentId
-        );
-        if (experiment) {
-          setActiveExperiment(experimentId);
-          setActiveTab("experiment");
-          router.push("/experiment");
-          // Set trigger after navigation starts
-          setTimeout(() => setTriggerValidation(true), 50);
-        }
-      }
-
-      return;
-    }
-
-    // All data is valid, proceed with export
-    exportMetadata(state.projectData, state.experiments);
-  };
-
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -118,8 +70,8 @@ export default function Navigation() {
     if (!file) return;
 
     try {
-      const { projectData, experiments } = await importMetadata(file);
-      importAllData(projectData, experiments);
+      const { projectData, experiments, datasets } = await importMetadata(file);
+      importAllData(projectData, experiments, datasets);
       // Reset file input
       e.target.value = "";
     } catch (error) {
@@ -131,16 +83,17 @@ export default function Navigation() {
   };
 
   return (
-    <Box
-      px="lg"
-      py="sm"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr auto 1fr",
-        alignItems: "center",
-        gap: "1rem"
-      }}
-    >
+    <>
+      <Box
+        px="lg"
+        py="sm"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: "1rem"
+        }}
+      >
       {/* Logo and title - left aligned */}
       <Group gap="sm">
         <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
@@ -182,7 +135,7 @@ export default function Navigation() {
         <Button
           variant="filled"
           leftSection={<IconDownload size={16} />}
-          onClick={handleExport}
+          onClick={openModal}
         >
           Export
         </Button>
@@ -234,5 +187,15 @@ export default function Navigation() {
         </Menu>
       </Group>
     </Box>
+
+      <DownloadModal
+        opened={showModal}
+        onClose={closeModal}
+        onDownload={handleDownload}
+        title="Download Metadata"
+        sections={sections}
+        onSectionToggle={handleSectionToggle}
+      />
+    </>
   );
 }

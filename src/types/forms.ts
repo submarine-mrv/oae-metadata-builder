@@ -144,6 +144,7 @@ export interface AppFormState {
 
 /**
  * Container structure for exported data (matches JSON Schema Container)
+ * Note: experiments and datasets are top-level arrays, NOT nested in project
  */
 export interface ExportContainer {
   version?: string;
@@ -151,6 +152,7 @@ export interface ExportContainer {
   metadata_builder_git_hash?: string;
   project?: ProjectFormData;
   experiments?: ExperimentFormData[];
+  datasets?: DatasetFormData[];
 }
 
 /**
@@ -159,6 +161,7 @@ export interface ExportContainer {
 export interface ImportResult {
   projectData: ProjectFormData;
   experiments: ExperimentState[];
+  datasets: DatasetState[];
 }
 
 // =============================================================================

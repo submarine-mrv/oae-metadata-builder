@@ -9,7 +9,7 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { IconX, IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -26,85 +26,52 @@ import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemp
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
-import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
-import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
+import DownloadModal from "@/components/DownloadModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { useMetadataDownload } from "@/hooks/useMetadataDownload";
-import type { SubmitButtonProps } from "@rjsf/utils";
+import { useDownloadModal } from "@/hooks/useDownloadModal";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
 
-// Create a wrapper for the submit button with project-specific configuration
-const ProjectSubmitButton = (props: SubmitButtonProps) => (
-  <CustomSubmitButton {...props} buttonText="Download Project Metadata" />
-);
+// Hidden submit button - we don't use RJSF's submit anymore
+const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
   const {
     state,
     updateProjectData,
     setActiveTab,
-    setTriggerValidation,
     setShowJsonPreview
   } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
-  const [forceValidation, setForceValidation] = useState(false);
-  const [skipDownload, setSkipDownload] = useState(false);
 
   const {
-    showDownloadModal,
-    handleFormSubmit,
-    handleDownloadConfirm,
-    handleDownloadCancel
-  } = useMetadataDownload({
-    filename: "oae-project-metadata.json",
-    skipDownload,
-    onSkipDownloadChange: setSkipDownload
+    showModal,
+    sections,
+    openModal,
+    closeModal,
+    handleDownload,
+    handleSectionToggle
+  } = useDownloadModal({
+    projectData: state.projectData,
+    experiments: state.experiments,
+    datasets: state.datasets,
+    defaultSelection: "project"
   });
 
   useEffect(() => {
     setActiveTab("project");
   }, [setActiveTab]);
-
-  // Trigger validation if requested (e.g., from export button in Navigation)
-  useEffect(() => {
-    if (state.triggerValidation) {
-      // Scroll to top of page
-      window.scrollTo({ top: 0, behavior: "smooth" });
-
-      // Trigger validation by forcing a form submit, but skip the download
-      setTimeout(() => {
-        setSkipDownload(true); // Prevent download when just showing validation errors
-        setForceValidation(true);
-        setTriggerValidation(false);
-      }, 100);
-    }
-  }, [state.triggerValidation, setTriggerValidation]);
-
-  // Trigger form submission when forceValidation is true
-  useEffect(() => {
-    if (forceValidation) {
-      // Find and click the submit button
-      const submitButton = document.querySelector(
-        'button[type="submit"]'
-      ) as HTMLButtonElement;
-      if (submitButton) {
-        submitButton.click();
-      }
-      setForceValidation(false);
-    }
-  }, [forceValidation]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -203,7 +170,6 @@ export default function ProjectPage() {
               uiSchema={uiSchema}
               formData={state.projectData}
               onChange={(e) => updateProjectData(e.formData)}
-              onSubmit={handleFormSubmit}
               validator={validator}
               customValidate={customValidate}
               transformErrors={transformFormErrors}
@@ -230,15 +196,25 @@ export default function ProjectPage() {
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
-                  SubmitButton: ProjectSubmitButton
+                  SubmitButton: HiddenSubmitButton
                 }
               }}
               fields={{
                 SpatialCoverageMiniMap: SpatialCoverageField,
                 ExternalProjectField: ExternalProjectField
               }}
-              showErrorList="top"
+              showErrorList={false}
             />
+
+            {/* Download button - bypasses RJSF validation */}
+            <Group justify="flex-end" mt="xl">
+              <Button
+                leftSection={<IconDownload size={18} />}
+                onClick={openModal}
+              >
+                Download Project Metadata
+              </Button>
+            </Group>
           </Container>
         </div>
 
@@ -303,12 +279,13 @@ export default function ProjectPage() {
         )}
       </div>
 
-      <DownloadConfirmationModal
-        opened={showDownloadModal}
-        onClose={handleDownloadCancel}
-        onConfirm={handleDownloadConfirm}
-        metadataType="project"
-        title="Download Project Metadata"
+      <DownloadModal
+        opened={showModal}
+        onClose={closeModal}
+        onDownload={handleDownload}
+        title="Download Metadata"
+        sections={sections}
+        onSectionToggle={handleSectionToggle}
       />
     </div>
   );

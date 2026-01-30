@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Container,
   Title,
@@ -9,11 +9,11 @@ import {
   Box,
   Group
 } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { IconX, IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DescriptionFieldProps, SubmitButtonProps } from "@rjsf/utils";
+import type { DescriptionFieldProps } from "@rjsf/utils";
 
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import uiSchema from "./uiSchema";
@@ -23,28 +23,25 @@ import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemp
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
-import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import Navigation from "@/components/Navigation";
-import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
+import DownloadModal from "@/components/DownloadModal";
 import FilenamesField from "@/components/FilenamesField";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getDatasetSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import { useDownloadModal } from "@/hooks/useDownloadModal";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
 
-// Create a wrapper for the submit button with dataset-specific configuration
-const DatasetSubmitButton = (props: SubmitButtonProps) => (
-  <CustomSubmitButton {...props} buttonText="Download Dataset Metadata" />
-);
+// Hidden submit button - we don't use RJSF's submit anymore
+const HiddenSubmitButton = () => null;
 
 export default function DatasetPage() {
   const { state, updateDataset, getDataset, setActiveTab, setShowJsonPreview } =
@@ -52,25 +49,31 @@ export default function DatasetPage() {
   const [schema] = useState<any>(() => getDatasetSchema());
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
-  const [skipDownload, setSkipDownload] = useState(false);
+
+  const {
+    showModal,
+    sections,
+    openModal,
+    closeModal,
+    handleDownload,
+    handleSectionToggle
+  } = useDownloadModal({
+    projectData: state.projectData,
+    experiments: state.experiments,
+    datasets: state.datasets,
+    defaultSelection: "dataset"
+  });
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
     ? getDataset(state.activeDatasetId)
     : null;
 
-  const formData = currentDataset?.formData || {};
-
-  const {
-    showDownloadModal,
-    handleFormSubmit,
-    handleDownloadConfirm,
-    handleDownloadCancel
-  } = useMetadataDownload({
-    filename: "oae-dataset-metadata.json",
-    skipDownload,
-    onSkipDownloadChange: setSkipDownload
-  });
+  // Memoize formData to prevent dependency changes on every render
+  const formData = useMemo(
+    () => currentDataset?.formData || {},
+    [currentDataset?.formData]
+  );
 
   useEffect(() => {
     setActiveTab("dataset");
@@ -162,7 +165,6 @@ export default function DatasetPage() {
               uiSchema={uiSchema}
               formData={formData}
               onChange={handleFormChange}
-              onSubmit={handleFormSubmit}
               validator={validator}
               transformErrors={transformFormErrors}
               omitExtraData={false}
@@ -191,11 +193,21 @@ export default function DatasetPage() {
                 ErrorListTemplate: CustomErrorList,
                 ButtonTemplates: {
                   AddButton: CustomAddButton,
-                  SubmitButton: DatasetSubmitButton
+                  SubmitButton: HiddenSubmitButton
                 }
               }}
-              showErrorList="top"
+              showErrorList={false}
             />
+
+            {/* Download button - bypasses RJSF validation */}
+            <Group justify="flex-end" mt="xl">
+              <Button
+                leftSection={<IconDownload size={18} />}
+                onClick={openModal}
+              >
+                Download Dataset Metadata
+              </Button>
+            </Group>
           </Container>
         </div>
 
@@ -260,12 +272,13 @@ export default function DatasetPage() {
         )}
       </div>
 
-      <DownloadConfirmationModal
-        opened={showDownloadModal}
-        onClose={handleDownloadCancel}
-        onConfirm={handleDownloadConfirm}
-        metadataType="dataset"
-        title="Download Dataset Metadata"
+      <DownloadModal
+        opened={showModal}
+        onClose={closeModal}
+        onDownload={handleDownload}
+        title="Download Metadata"
+        sections={sections}
+        onSectionToggle={handleSectionToggle}
       />
     </div>
   );
