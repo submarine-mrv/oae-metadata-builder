@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Container,
   Title,
@@ -129,22 +129,16 @@ export default function DatasetPage() {
    * WORKAROUND: See oae-form-99i for why we have separate validation for variables.
    * RJSF validation works for dataset-level fields; variables are validated separately.
    */
-  const handleViewErrors = useCallback(() => {
-    // Close the modal first
+  const handleViewErrors = () => {
     closeModal();
-
-    // Enable error list display
     setShowErrorList(true);
 
-    // Scroll to top where errors will appear
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
     // Trigger RJSF validation by submitting the form
-    // The form has no onSubmit handler, so it will just validate and show errors
+    // HTML5 validation will scroll to the first invalid field
     if (formRef.current) {
       formRef.current.submit();
     }
-  }, [closeModal]);
+  };
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
@@ -252,8 +246,9 @@ export default function DatasetPage() {
               transformErrors={transformFormErrors}
               omitExtraData={false}
               liveOmit={false}
+              noHtml5Validate={false}
               experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" },
+                arrayMinItems: { populate: "never" },
                 emptyObjectFields: "skipEmptyDefaults"
               }}
               fields={{

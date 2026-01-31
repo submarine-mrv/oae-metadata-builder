@@ -73,32 +73,8 @@ export default function DownloadModal({
   return (
     <Modal opened={opened} onClose={onClose} title={title} centered size="md">
       <Stack gap="md">
-        {hasWarnings && (
-          <Alert
-            icon={<IconAlertTriangle size={20} />}
-            title="Some required fields are missing"
-            color="yellow"
-            variant="light"
-          >
-            You can still download as a draft.
-            {onViewErrors && (
-              <>
-                {" "}
-                <Anchor
-                  component="button"
-                  type="button"
-                  onClick={onViewErrors}
-                  size="sm"
-                >
-                  View errors
-                </Anchor>
-              </>
-            )}
-          </Alert>
-        )}
-
         <Stack gap="sm">
-          <Text fw={500}>Select what to include:</Text>
+          <Text>Select which types of metadata to include:</Text>
 
           {sections.map((section) => (
             <Group key={section.key} justify="space-between" wrap="nowrap">
@@ -144,14 +120,45 @@ export default function DownloadModal({
             </Group>
           ))}
         </Stack>
+        {hasWarnings && (
+          <Alert
+            icon={<IconAlertTriangle size={18} />}
+            color="yellow"
+            variant="light"
+            py="sm"
+          >
+            <Text size="sm" c="dark.6">
+              Some required fields are missing or failed validation. You can
+              still download as a draft.
+            </Text>
+          </Alert>
+        )}
 
-        <Group justify="flex-end" gap="sm" mt="md">
-          <Button variant="default" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="filled" onClick={handleDownload} disabled={!hasSelection}>
-            Download
-          </Button>
+        <Group justify="space-between" gap="sm" mt="md">
+          {onViewErrors ? (
+            <Anchor
+              component="button"
+              type="button"
+              onClick={onViewErrors}
+              size="sm"
+            >
+              View validation errors
+            </Anchor>
+          ) : (
+            <span />
+          )}
+          <Group gap="sm">
+            <Button variant="default" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="filled"
+              onClick={handleDownload}
+              disabled={!hasSelection}
+            >
+              Download
+            </Button>
+          </Group>
         </Group>
       </Stack>
     </Modal>

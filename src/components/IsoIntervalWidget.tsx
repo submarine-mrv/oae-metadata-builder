@@ -41,7 +41,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
           {label}
         </Text>
       )}
-      <Group grow>
+      <Group grow align="flex-start">
         <div style={{ position: "relative" }}>
           <TextInput
             label="Start date"

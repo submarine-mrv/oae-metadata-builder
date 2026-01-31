@@ -2,8 +2,8 @@
 
 export const MESSAGES = {
   validation: {
-    isoInterval:
-      "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/..",
+    temporalCoveragePattern:
+      "Start date and end date must be properly formatted",
     spatialCoverage: "Spatial Coverage is required",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
     depthOrder:
