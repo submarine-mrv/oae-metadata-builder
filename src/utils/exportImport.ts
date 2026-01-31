@@ -48,6 +48,14 @@ function cleanProjectData(data: FormDataRecord): ProjectFormData {
 }
 
 /**
+ * Options for exporting metadata
+ */
+export interface ExportOptions {
+  /** Which sections to include in the export. Defaults to all sections. */
+  selectedSections?: string[];
+}
+
+/**
  * Exports project, experiment, and dataset data wrapped in a Container object
  * with version metadata from the protocol.
  *
@@ -55,17 +63,35 @@ function cleanProjectData(data: FormDataRecord): ProjectFormData {
  * - project: single Project object
  * - experiments: array of Experiment objects (top-level, not nested in project)
  * - datasets: array of Dataset objects (top-level)
+ *
+ * @param projectData - Project form data
+ * @param experiments - Array of experiment states
+ * @param datasets - Array of dataset states
+ * @param options - Export options including section selection
  */
 export function exportMetadata(
   projectData: ProjectFormData,
   experiments: ExperimentState[],
-  datasets: DatasetState[]
+  datasets: DatasetState[],
+  options?: ExportOptions
 ): void {
+  // Determine which sections to include (default to all)
+  const selectedSections = options?.selectedSections || [
+    "project",
+    "experiment",
+    "dataset"
+  ];
+  const includeProject = selectedSections.includes("project");
+  const includeExperiments = selectedSections.includes("experiment");
+  const includeDatasets = selectedSections.includes("dataset");
+
   // Get version metadata from schema
   const protocolMetadata = getProtocolMetadata();
 
   // Clean project data to remove any experiment fields that may have leaked in
-  const cleanedProjectData = cleanProjectData(projectData);
+  const cleanedProjectData = includeProject
+    ? cleanProjectData(projectData)
+    : {};
 
   // Build Container object matching schema structure
   const exportData: ExportContainer = {
@@ -73,8 +99,10 @@ export function exportMetadata(
     protocol_git_hash: protocolMetadata.gitHash,
     metadata_builder_git_hash: "", // TODO: populate from build metadata
     project: cleanedProjectData,
-    experiments: experiments.map((exp) => exp.formData),
-    datasets: datasets.map((ds) => ds.formData)
+    experiments: includeExperiments
+      ? experiments.map((exp) => exp.formData)
+      : [],
+    datasets: includeDatasets ? datasets.map((ds) => ds.formData) : []
   };
 
   // Create blob and download

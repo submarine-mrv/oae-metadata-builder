@@ -66,6 +66,7 @@ describe('Validation', () => {
   describe('validateExperiment', () => {
     it('should validate experiment with baseline type', () => {
       const validExperiment = {
+        project_id: 'proj-001',
         experiment_id: 'exp-baseline-001',
         experiment_type: 'baseline',
         description: 'Baseline measurements before intervention',
@@ -188,6 +189,7 @@ describe('Validation', () => {
           id: 1,
           name: 'Baseline',
           formData: {
+            project_id: 'project-001',
             experiment_id: 'exp-001',
             experiment_type: 'baseline',
             description: 'Baseline',
@@ -252,6 +254,7 @@ describe('Validation', () => {
           id: 1,
           name: 'Baseline',
           formData: {
+            project_id: 'project-001',
             experiment_id: 'exp-baseline',
             experiment_type: 'baseline',
             description: 'Baseline',
@@ -266,6 +269,7 @@ describe('Validation', () => {
           id: 2,
           name: 'Control',
           formData: {
+            project_id: 'project-001',
             experiment_id: 'exp-control',
             experiment_type: 'control',
             description: 'Control',
@@ -300,6 +304,7 @@ describe('Validation', () => {
           id: 1,
           name: 'Valid',
           formData: {
+            project_id: 'project-001',
             experiment_id: 'exp-001',
             experiment_type: 'baseline',
             description: 'Valid',
@@ -315,7 +320,7 @@ describe('Validation', () => {
           name: 'Invalid',
           formData: {
             experiment_type: 'baseline',
-            // Missing required fields (experiment_id, description, etc.)
+            // Missing required fields (project_id, experiment_id, description, etc.)
           }
         }
       ];

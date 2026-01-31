@@ -32,7 +32,7 @@ interface UseDownloadModalReturn {
   sections: DownloadSection[];
   openModal: () => void;
   closeModal: () => void;
-  handleDownload: () => void;
+  handleDownload: (selectedSections: string[]) => void;
   handleSectionToggle: (key: string) => void;
 }
 
@@ -165,10 +165,13 @@ export function useDownloadModal({
     setShowModal(false);
   }, []);
 
-  const handleDownload = useCallback(() => {
-    exportMetadata(projectData, experiments, datasets);
-    setShowModal(false);
-  }, [projectData, experiments, datasets]);
+  const handleDownload = useCallback(
+    (selectedSections: string[]) => {
+      exportMetadata(projectData, experiments, datasets, { selectedSections });
+      setShowModal(false);
+    },
+    [projectData, experiments, datasets]
+  );
 
   const handleSectionToggle = useCallback((key: string) => {
     setSections((prev) =>

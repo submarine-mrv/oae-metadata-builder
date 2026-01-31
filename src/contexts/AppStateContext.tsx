@@ -250,7 +250,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // Import all data (project + experiments + datasets) from imported file
   const importAllData = useCallback(
-    (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => {
+    (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[] = []) => {
       // Reassign experiment IDs to avoid conflicts
       const nextExpId = state.nextExperimentId;
       const experimentsWithNewIds = experiments.map((exp, index) => ({
