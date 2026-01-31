@@ -8,7 +8,8 @@ import {
   Stack,
   Text,
   Badge,
-  Tooltip
+  Tooltip,
+  Anchor
 } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 
@@ -30,6 +31,11 @@ interface DownloadModalProps {
   title: string;
   sections: DownloadSection[];
   onSectionToggle: (key: string) => void;
+  /**
+   * Callback when user clicks "View Errors" link.
+   * The page should close the modal, trigger validation, and scroll to errors.
+   */
+  onViewErrors?: () => void;
 }
 
 /**
@@ -43,7 +49,8 @@ export default function DownloadModal({
   onDownload,
   title,
   sections,
-  onSectionToggle
+  onSectionToggle,
+  onViewErrors
 }: DownloadModalProps) {
   // Calculate total missing fields across enabled sections
   const totalMissing = sections
@@ -74,6 +81,19 @@ export default function DownloadModal({
             variant="light"
           >
             You can still download as a draft.
+            {onViewErrors && (
+              <>
+                {" "}
+                <Anchor
+                  component="button"
+                  type="button"
+                  onClick={onViewErrors}
+                  size="sm"
+                >
+                  View errors
+                </Anchor>
+              </>
+            )}
           </Alert>
         )}
 

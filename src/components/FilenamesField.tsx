@@ -11,8 +11,16 @@ import { FieldLabelSmall } from "./rjsf/FieldLabel";
  * Similar to RelatedLinksField in ExternalProjectField.
  */
 const FilenamesField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, schema, name, fieldPathId } =
-    props;
+  const {
+    formData,
+    onChange,
+    disabled,
+    readonly,
+    schema,
+    name,
+    fieldPathId,
+    rawErrors
+  } = props;
 
   // Ensure formData is an array
   const values: string[] = Array.isArray(formData) ? formData : [];
@@ -62,7 +70,11 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
         description={schema.description}
         required={isRequired}
       />
-      <PillsInput>
+      <PillsInput
+        error={
+          rawErrors && rawErrors.length > 0 ? rawErrors.join(", ") : undefined
+        }
+      >
         <Pill.Group>
           {values.map((filename, index) => (
             <Pill

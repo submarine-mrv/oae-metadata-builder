@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   Container,
   Title,
@@ -43,12 +43,70 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
 
+/**
+ * Creates a modified dataset schema for RJSF form validation.
+ *
+ * ============================================================================
+ * WORKAROUND: See beads issue oae-form-99i, GitHub #47
+ * ============================================================================
+ *
+ * This modifies the schema to skip validation of variable array items.
+ * Without this, RJSF validation fails for variables with type-specific fields
+ * (e.g., pH calibration) because the base Variable schema has
+ * `additionalProperties: false`.
+ *
+ * Variables are validated separately using their `_schemaKey` to select the
+ * correct type-specific schema. See `src/utils/datasetValidation.ts`.
+ *
+ * REMOVE THIS when oae-form-c0s is complete (proper polymorphism via
+ * LinkML type_designator and two-schema approach).
+ */
+function createFormSchema() {
+  const schema = getDatasetSchema();
+
+  // Replace variables schema to skip item validation
+  // Variables are rendered by custom VariablesField and validated separately
+  if (schema.properties?.variables) {
+    const originalVars = schema.properties.variables;
+    // Extract title/description if they exist (handle boolean schema case)
+    const title = typeof originalVars === "object" ? originalVars.title : undefined;
+    const description = typeof originalVars === "object" ? originalVars.description : undefined;
+
+    schema.properties = {
+      ...schema.properties,
+      variables: {
+        type: "array",
+        title,
+        description
+      }
+    };
+  }
+
+  return schema;
+}
+
 export default function DatasetPage() {
   const { state, updateDataset, getDataset, setActiveTab, setShowJsonPreview } =
     useAppState();
-  const [schema] = useState<any>(() => getDatasetSchema());
+
+  // Use modified schema that skips variable item validation (workaround - see oae-form-99i)
+  const [schema] = useState<any>(() => createFormSchema());
   const [sidebarWidth, setSidebarWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
+
+  /**
+   * Controls whether RJSF shows the error list.
+   * Set to true when user clicks "View Errors" in the download modal.
+   *
+   * Note: This is part of the validation workaround (oae-form-99i).
+   * For dataset-level fields, RJSF handles validation and field highlighting.
+   * For variables, we use custom validation (see datasetValidation.ts).
+   */
+  const [showErrorList, setShowErrorList] = useState(false);
+
+  // Ref to the RJSF form for triggering validation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formRef = useRef<any>(null);
 
   const {
     showModal,
@@ -63,6 +121,30 @@ export default function DatasetPage() {
     datasets: state.datasets,
     defaultSelection: "dataset"
   });
+
+  /**
+   * Handle "View Errors" click from download modal.
+   * Closes modal, enables error display, and triggers RJSF validation.
+   *
+   * WORKAROUND: See oae-form-99i for why we have separate validation for variables.
+   * RJSF validation works for dataset-level fields; variables are validated separately.
+   */
+  const handleViewErrors = useCallback(() => {
+    // Close the modal first
+    closeModal();
+
+    // Enable error list display
+    setShowErrorList(true);
+
+    // Scroll to top where errors will appear
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Trigger RJSF validation by submitting the form
+    // The form has no onSubmit handler, so it will just validate and show errors
+    if (formRef.current) {
+      formRef.current.submit();
+    }
+  }, [closeModal]);
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
@@ -161,6 +243,7 @@ export default function DatasetPage() {
             </Stack>
 
             <Form
+              ref={formRef}
               schema={schema}
               uiSchema={uiSchema}
               formData={formData}
@@ -196,7 +279,7 @@ export default function DatasetPage() {
                   SubmitButton: HiddenSubmitButton
                 }
               }}
-              showErrorList={false}
+              showErrorList={showErrorList ? "top" : false}
             />
 
             {/* Download button - bypasses RJSF validation */}
@@ -279,6 +362,7 @@ export default function DatasetPage() {
         title="Download Metadata"
         sections={sections}
         onSectionToggle={handleSectionToggle}
+        onViewErrors={handleViewErrors}
       />
     </div>
   );
