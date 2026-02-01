@@ -285,129 +285,129 @@ export default function ExperimentPage() {
 
   return (
     <AppLayout noScroll>
-        <div
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto"
+        }}
+      >
+        <Container size="md" py="lg">
+          <Stack gap="sm" mb="md">
+            <Group align="center" gap="md">
+              <Title order={2}>{experiment.name || "Experiment"}</Title>
+            </Group>
+            <Text c="dimmed">
+              Edit experiment metadata. Fields marked with an asterisk (*) are
+              required.
+            </Text>
+          </Stack>
+
+          <Form
+            schema={activeSchema}
+            uiSchema={activeUiSchema}
+            formData={formData}
+            onChange={handleFormChange}
+            onSubmit={handleFormSubmit}
+            validator={validator}
+            customValidate={customValidate}
+            transformErrors={transformFormErrors}
+            omitExtraData={false}
+            liveOmit={false}
+            experimental_defaultFormStateBehavior={{
+              arrayMinItems: { populate: "all" },
+              emptyObjectFields: "skipEmptyDefaults"
+            }}
+            widgets={{
+              CustomSelectWidget: CustomSelectWidget,
+              TextWidget: BaseInputWidget,
+              textarea: CustomTextareaWidget,
+              DateTimeWidget: DateTimeWidget,
+              PlaceholderWidget: PlaceholderWidget,
+              DosingDepthWidget: DosingDepthWidget
+            }}
+            templates={{
+              DescriptionFieldTemplate: NoDescription,
+              ArrayFieldTemplate: CustomArrayFieldTemplate,
+              ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
+              ArrayFieldItemButtonsTemplate:
+                CustomArrayFieldItemButtonsTemplate,
+              TitleFieldTemplate: CustomTitleFieldTemplate,
+              ErrorListTemplate: CustomErrorList,
+              ButtonTemplates: {
+                AddButton: CustomAddButton,
+                SubmitButton: ExperimentSubmitButton
+              }
+            }}
+            fields={{
+              SpatialCoverageMiniMap: SpatialCoverageField,
+              PlaceholderField: PlaceholderField,
+              DosingLocationField: DosingLocationField,
+              DosingConcentrationField: DosingConcentrationField
+            }}
+            showErrorList="top"
+          />
+        </Container>
+      </div>
+
+      {state.showJsonPreview && (
+        <Box
           style={{
-            flex: 1,
-            overflow: "auto"
+            width: sidebarWidth,
+            minWidth: sidebarWidth,
+            backgroundColor: "#f8f9fa",
+            borderLeft: "1px solid #dee2e6",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative"
           }}
         >
-          <Container size="md" py="lg">
-            <Stack gap="sm" mb="md">
-              <Group align="center" gap="md">
-                <Title order={2}>{experiment.name || "Experiment"}</Title>
-              </Group>
-              <Text c="dimmed">
-                Edit experiment metadata. Fields marked with an asterisk (*) are
-                required.
-              </Text>
-            </Stack>
-
-            <Form
-              schema={activeSchema}
-              uiSchema={activeUiSchema}
-              formData={formData}
-              onChange={handleFormChange}
-              onSubmit={handleFormSubmit}
-              validator={validator}
-              customValidate={customValidate}
-              transformErrors={transformFormErrors}
-              omitExtraData={false}
-              liveOmit={false}
-              experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" },
-                emptyObjectFields: "skipEmptyDefaults"
-              }}
-              widgets={{
-                CustomSelectWidget: CustomSelectWidget,
-                TextWidget: BaseInputWidget,
-                textarea: CustomTextareaWidget,
-                DateTimeWidget: DateTimeWidget,
-                PlaceholderWidget: PlaceholderWidget,
-                DosingDepthWidget: DosingDepthWidget
-              }}
-              templates={{
-                DescriptionFieldTemplate: NoDescription,
-                ArrayFieldTemplate: CustomArrayFieldTemplate,
-                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-                ArrayFieldItemButtonsTemplate:
-                  CustomArrayFieldItemButtonsTemplate,
-                TitleFieldTemplate: CustomTitleFieldTemplate,
-                ErrorListTemplate: CustomErrorList,
-                ButtonTemplates: {
-                  AddButton: CustomAddButton,
-                  SubmitButton: ExperimentSubmitButton
-                }
-              }}
-              fields={{
-                SpatialCoverageMiniMap: SpatialCoverageField,
-                PlaceholderField: PlaceholderField,
-                DosingLocationField: DosingLocationField,
-                DosingConcentrationField: DosingConcentrationField
-              }}
-              showErrorList="top"
-            />
-          </Container>
-        </div>
-
-        {state.showJsonPreview && (
-          <Box
+          {/* Resize handle */}
+          <div
             style={{
-              width: sidebarWidth,
-              minWidth: sidebarWidth,
-              backgroundColor: "#f8f9fa",
-              borderLeft: "1px solid #dee2e6",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative"
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: "4px",
+              height: "100%",
+              backgroundColor: "transparent",
+              cursor: "col-resize"
             }}
+            onMouseDown={() => setIsResizing(true)}
+          />
+
+          {/* Header */}
+          <Group
+            justify="space-between"
+            align="center"
+            p="md"
+            style={{ borderBottom: "1px solid #dee2e6" }}
           >
-            {/* Resize handle */}
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                width: "4px",
-                height: "100%",
-                backgroundColor: "transparent",
-                cursor: "col-resize"
-              }}
-              onMouseDown={() => setIsResizing(true)}
-            />
-
-            {/* Header */}
-            <Group
-              justify="space-between"
-              align="center"
-              p="md"
-              style={{ borderBottom: "1px solid #dee2e6" }}
+            <Text fw={600}>JSON Preview</Text>
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={() => setShowJsonPreview(false)}
             >
-              <Text fw={600}>JSON Preview</Text>
-              <Button
-                variant="subtle"
-                size="xs"
-                onClick={() => setShowJsonPreview(false)}
-              >
-                <IconX size={16} />
-              </Button>
-            </Group>
+              <IconX size={16} />
+            </Button>
+          </Group>
 
-            {/* Content */}
-            <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
-              <pre
-                style={{
-                  fontSize: "0.8rem",
-                  margin: 0,
-                  fontFamily: "monospace",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word"
-                }}
-              >
-                {JSON.stringify(formData, null, 2)}
-              </pre>
-            </Box>
+          {/* Content */}
+          <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
+            <pre
+              style={{
+                fontSize: "0.8rem",
+                margin: 0,
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word"
+              }}
+            >
+              {JSON.stringify(formData, null, 2)}
+            </pre>
           </Box>
-        )}
+        </Box>
+      )}
 
       <DownloadConfirmationModal
         opened={showDownloadModal}

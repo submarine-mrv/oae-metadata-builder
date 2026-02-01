@@ -171,127 +171,127 @@ export default function ProjectPage() {
 
   return (
     <AppLayout noScroll>
-        <div
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto"
+        }}
+      >
+        <Container size="md" py="lg">
+          <Stack gap="sm">
+            <Group justify="space-between" align="center">
+              <Title order={2}>Project Metadata</Title>
+            </Group>
+            <Text c="dimmed">
+              Create standardized metadata for your Ocean Alkalinity
+              Enhancement project. Click the info icons next to field labels
+              for detailed descriptions.
+            </Text>
+          </Stack>
+
+          <Form
+            schema={schema}
+            uiSchema={uiSchema}
+            formData={state.projectData}
+            onChange={(e) => updateProjectData(e.formData)}
+            onSubmit={handleFormSubmit}
+            validator={validator}
+            customValidate={customValidate}
+            transformErrors={transformFormErrors}
+            omitExtraData={false}
+            liveOmit={false}
+            experimental_defaultFormStateBehavior={{
+              arrayMinItems: { populate: "all" },
+              emptyObjectFields: "skipEmptyDefaults"
+            }}
+            widgets={{
+              IsoIntervalWidget,
+              SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
+              CustomSelectWidget: CustomSelectWidget,
+              TextWidget: BaseInputWidget,
+              textarea: CustomTextareaWidget
+            }}
+            templates={{
+              DescriptionFieldTemplate: NoDescription,
+              ArrayFieldTemplate: CustomArrayFieldTemplate,
+              ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
+              ArrayFieldItemButtonsTemplate:
+                CustomArrayFieldItemButtonsTemplate,
+              TitleFieldTemplate: CustomTitleFieldTemplate,
+              ErrorListTemplate: CustomErrorList,
+              ButtonTemplates: {
+                AddButton: CustomAddButton,
+                SubmitButton: ProjectSubmitButton
+              }
+            }}
+            fields={{
+              SpatialCoverageMiniMap: SpatialCoverageField,
+              ExternalProjectField: ExternalProjectField
+            }}
+            showErrorList="top"
+          />
+        </Container>
+      </div>
+
+      {state.showJsonPreview && (
+        <Box
           style={{
-            flex: 1,
-            overflow: "auto"
+            width: sidebarWidth,
+            minWidth: sidebarWidth,
+            backgroundColor: "#f8f9fa",
+            borderLeft: "1px solid #dee2e6",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative"
           }}
         >
-          <Container size="md" py="lg">
-            <Stack gap="sm">
-              <Group justify="space-between" align="center">
-                <Title order={2}>Project Metadata</Title>
-              </Group>
-              <Text c="dimmed">
-                Create standardized metadata for your Ocean Alkalinity
-                Enhancement project. Click the info icons next to field labels
-                for detailed descriptions.
-              </Text>
-            </Stack>
-
-            <Form
-              schema={schema}
-              uiSchema={uiSchema}
-              formData={state.projectData}
-              onChange={(e) => updateProjectData(e.formData)}
-              onSubmit={handleFormSubmit}
-              validator={validator}
-              customValidate={customValidate}
-              transformErrors={transformFormErrors}
-              omitExtraData={false}
-              liveOmit={false}
-              experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" },
-                emptyObjectFields: "skipEmptyDefaults"
-              }}
-              widgets={{
-                IsoIntervalWidget,
-                SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
-                CustomSelectWidget: CustomSelectWidget,
-                TextWidget: BaseInputWidget,
-                textarea: CustomTextareaWidget
-              }}
-              templates={{
-                DescriptionFieldTemplate: NoDescription,
-                ArrayFieldTemplate: CustomArrayFieldTemplate,
-                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-                ArrayFieldItemButtonsTemplate:
-                  CustomArrayFieldItemButtonsTemplate,
-                TitleFieldTemplate: CustomTitleFieldTemplate,
-                ErrorListTemplate: CustomErrorList,
-                ButtonTemplates: {
-                  AddButton: CustomAddButton,
-                  SubmitButton: ProjectSubmitButton
-                }
-              }}
-              fields={{
-                SpatialCoverageMiniMap: SpatialCoverageField,
-                ExternalProjectField: ExternalProjectField
-              }}
-              showErrorList="top"
-            />
-          </Container>
-        </div>
-
-        {state.showJsonPreview && (
-          <Box
+          {/* Resize handle */}
+          <div
             style={{
-              width: sidebarWidth,
-              minWidth: sidebarWidth,
-              backgroundColor: "#f8f9fa",
-              borderLeft: "1px solid #dee2e6",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative"
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: "4px",
+              height: "100%",
+              backgroundColor: "transparent",
+              cursor: "col-resize"
             }}
+            onMouseDown={() => setIsResizing(true)}
+          />
+
+          {/* Header */}
+          <Group
+            justify="space-between"
+            align="center"
+            p="md"
+            style={{ borderBottom: "1px solid #dee2e6" }}
           >
-            {/* Resize handle */}
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                width: "4px",
-                height: "100%",
-                backgroundColor: "transparent",
-                cursor: "col-resize"
-              }}
-              onMouseDown={() => setIsResizing(true)}
-            />
-
-            {/* Header */}
-            <Group
-              justify="space-between"
-              align="center"
-              p="md"
-              style={{ borderBottom: "1px solid #dee2e6" }}
+            <Text fw={600}>JSON Preview</Text>
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={() => setShowJsonPreview(false)}
             >
-              <Text fw={600}>JSON Preview</Text>
-              <Button
-                variant="subtle"
-                size="xs"
-                onClick={() => setShowJsonPreview(false)}
-              >
-                <IconX size={16} />
-              </Button>
-            </Group>
+              <IconX size={16} />
+            </Button>
+          </Group>
 
-            {/* Content */}
-            <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
-              <pre
-                style={{
-                  fontSize: "0.8rem",
-                  margin: 0,
-                  fontFamily: "monospace",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word"
-                }}
-              >
-                {JSON.stringify(state.projectData, null, 2)}
-              </pre>
-            </Box>
+          {/* Content */}
+          <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
+            <pre
+              style={{
+                fontSize: "0.8rem",
+                margin: 0,
+                fontFamily: "monospace",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word"
+              }}
+            >
+              {JSON.stringify(state.projectData, null, 2)}
+            </pre>
           </Box>
-        )}
+        </Box>
+      )}
 
       <DownloadConfirmationModal
         opened={showDownloadModal}

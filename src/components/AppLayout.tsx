@@ -27,9 +27,9 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
       <Navigation />
       {noScroll ? (
         // Children manage their own scrolling (e.g., form + sidebar layout)
-        <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <main style={{ display: "flex", flex: 1, minHeight: 0 }}>
           {children}
-        </div>
+        </main>
       ) : (
         // Standard scrollable content area
         <main style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
