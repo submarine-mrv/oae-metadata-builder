@@ -33,7 +33,7 @@ import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
@@ -263,8 +263,7 @@ export default function ExperimentPage() {
 
   if (!experiment) {
     return (
-      <>
-        <Navigation />
+      <AppLayout>
         <Container size="md" py="lg">
           <Stack gap="md">
             <Title order={2}>No Experiment Selected</Title>
@@ -280,14 +279,12 @@ export default function ExperimentPage() {
             </Button>
           </Stack>
         </Container>
-      </>
+      </AppLayout>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
-      <Navigation />
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <AppLayout noScroll>
         <div
           style={{
             flex: 1,
@@ -411,7 +408,6 @@ export default function ExperimentPage() {
             </Box>
           </Box>
         )}
-      </div>
 
       <DownloadConfirmationModal
         opened={showDownloadModal}
@@ -420,6 +416,6 @@ export default function ExperimentPage() {
         metadataType="experiment"
         title="Download Experiment Metadata"
       />
-    </div>
+    </AppLayout>
   );
 }

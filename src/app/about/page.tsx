@@ -1,12 +1,11 @@
 "use client";
 import React from "react";
 import { Container, Title, Text, Stack, Paper, Anchor } from "@mantine/core";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
 
 export default function AboutPage() {
   return (
-    <>
-      <Navigation />
+    <AppLayout>
       <Container size="md" py="xl">
         <Stack gap="lg">
           <div>
@@ -32,6 +31,6 @@ export default function AboutPage() {
           </Paper>
         </Stack>
       </Container>
-    </>
+    </AppLayout>
   );
 }

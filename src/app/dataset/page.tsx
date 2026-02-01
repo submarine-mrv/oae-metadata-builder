@@ -27,7 +27,7 @@ import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import FilenamesField from "@/components/FilenamesField";
 import VariablesField from "@/components/VariablesField";
@@ -108,15 +108,7 @@ export default function DatasetPage() {
   // Show message if no dataset is selected
   if (!currentDataset) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100vh",
-          overflow: "hidden"
-        }}
-      >
-        <Navigation />
+      <AppLayout>
         <Container size="md" py="xl">
           <Stack align="center" gap="md">
             <Title order={2}>No Dataset Selected</Title>
@@ -125,21 +117,12 @@ export default function DatasetPage() {
             </Text>
           </Stack>
         </Container>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden"
-      }}
-    >
-      <Navigation />
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <AppLayout noScroll>
         <div
           style={{
             flex: 1,
@@ -258,7 +241,6 @@ export default function DatasetPage() {
             </Box>
           </Box>
         )}
-      </div>
 
       <DownloadConfirmationModal
         opened={showDownloadModal}
@@ -267,6 +249,6 @@ export default function DatasetPage() {
         metadataType="dataset"
         title="Download Dataset Metadata"
       />
-    </div>
+    </AppLayout>
   );
 }

@@ -7,12 +7,11 @@ import {
   Stack,
   Paper
 } from "@mantine/core";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
 
 export default function HowToPage() {
   return (
-    <>
-      <Navigation />
+    <AppLayout>
       <Container size="md" py="xl">
         <Stack gap="lg">
           <div>
@@ -42,6 +41,6 @@ export default function HowToPage() {
           </Paper>
         </Stack>
       </Container>
-    </>
+    </AppLayout>
   );
 }

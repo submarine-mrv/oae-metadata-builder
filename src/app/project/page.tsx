@@ -30,7 +30,7 @@ import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
@@ -170,16 +170,7 @@ export default function ProjectPage() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden"
-      }}
-    >
-      <Navigation />
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <AppLayout noScroll>
         <div
           style={{
             flex: 1,
@@ -301,7 +292,6 @@ export default function ProjectPage() {
             </Box>
           </Box>
         )}
-      </div>
 
       <DownloadConfirmationModal
         opened={showDownloadModal}
@@ -310,6 +300,6 @@ export default function ProjectPage() {
         metadataType="project"
         title="Download Project Metadata"
       />
-    </div>
+    </AppLayout>
   );
 }

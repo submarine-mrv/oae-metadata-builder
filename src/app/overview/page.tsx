@@ -22,7 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
 
 export default function OverviewPage() {
   const {
@@ -105,8 +105,7 @@ export default function OverviewPage() {
   };
 
   return (
-    <div>
-      <Navigation />
+    <AppLayout>
       <Container size="lg" py="xl">
         <Stack gap="xl">
           {/* Header */}
@@ -359,6 +358,6 @@ export default function OverviewPage() {
           </div>
         </Stack>
       </Container>
-    </div>
+    </AppLayout>
   );
 }
