@@ -104,9 +104,18 @@ export default function DatasetPage() {
    */
   const [showErrorList, setShowErrorList] = useState(false);
 
+  /**
+   * Tracks whether validation should run after modal closes.
+   * Set when user clicks "View Errors", cleared after validation runs.
+   */
+  const [pendingValidation, setPendingValidation] = useState(false);
+
   // Ref to the RJSF form for triggering validation
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formRef = useRef<any>(null);
+
+  // Ref to the scrollable content container for scrolling to error list
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const {
     showModal,
@@ -124,7 +133,8 @@ export default function DatasetPage() {
 
   /**
    * Handle "View Errors" click from download modal.
-   * Closes modal, enables error display, and triggers RJSF validation.
+   * Closes modal, enables error display, and sets pending validation flag.
+   * Actual validation runs after modal exit transition completes.
    *
    * WORKAROUND: See oae-form-99i for why we have separate validation for variables.
    * RJSF validation works for dataset-level fields; variables are validated separately.
@@ -132,12 +142,34 @@ export default function DatasetPage() {
   const handleViewErrors = () => {
     closeModal();
     setShowErrorList(true);
+    setPendingValidation(true);
+  };
 
-    // Trigger RJSF validation by submitting the form
-    // HTML5 validation will scroll to the first invalid field
-    if (formRef.current) {
+  /**
+   * Callback for when modal exit transition completes.
+   * Triggers validation if pending (from View Errors click).
+   * Using onExitTransitionEnd instead of setTimeout ensures validation
+   * runs at exactly the right moment - after modal is fully closed.
+   */
+  const handleModalExitComplete = () => {
+    if (!pendingValidation) return;
+    setPendingValidation(false);
+
+    // Query the form element directly from DOM (more reliable than RJSF ref)
+    const formElement = document.querySelector('form') as HTMLFormElement | null;
+
+    // reportValidity() shows browser validation bubbles and returns validity status
+    const html5Valid = formElement?.reportValidity() ?? true;
+
+    if (html5Valid && formRef.current) {
+      // HTML5 validation passed - trigger RJSF/JSON schema validation
       formRef.current.submit();
+
+      // Scroll to error list for JSON schema errors
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     }
+    // If HTML5 validation failed, reportValidity() already showed the bubble
+    // and scrolled to the invalid field - no need to do anything else
   };
 
   // Get current dataset
@@ -220,6 +252,7 @@ export default function DatasetPage() {
       <Navigation />
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
         <div
+          ref={scrollContainerRef}
           style={{
             flex: 1,
             overflow: "auto"
@@ -358,6 +391,7 @@ export default function DatasetPage() {
         sections={sections}
         onSectionToggle={handleSectionToggle}
         onViewErrors={handleViewErrors}
+        onExitTransitionEnd={handleModalExitComplete}
       />
     </div>
   );

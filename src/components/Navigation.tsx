@@ -13,7 +13,7 @@ import {
   Box
 } from "@mantine/core";
 import {
-  IconMenu2,
+  IconDotsVertical,
   IconInfoCircle,
   IconHelp,
   IconDownload,
@@ -26,12 +26,8 @@ import DownloadModal from "@/components/DownloadModal";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 
 export default function Navigation() {
-  const {
-    state,
-    setActiveTab,
-    importAllData,
-    toggleJsonPreview
-  } = useAppState();
+  const { state, setActiveTab, importAllData, toggleJsonPreview } =
+    useAppState();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,99 +90,99 @@ export default function Navigation() {
           gap: "1rem"
         }}
       >
-      {/* Logo and title - left aligned */}
-      <Group gap="sm">
-        <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
-        <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
-          OAE Metadata Builder
-        </Text>
-      </Group>
+        {/* Logo and title - left aligned */}
+        <Group gap="sm">
+          <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
+          <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
+            OAE Metadata Builder
+          </Text>
+        </Group>
 
-      {/* Navigation tabs - centered */}
-      <SegmentedControl
-        style={{
-          backgroundColor: "var(--brand-sunlight)"
-        }}
-        value={state.activeTab}
-        onChange={handleNavigation}
-        data={[
-          { value: "overview", label: "Overview" },
-          { value: "project", label: "Project" },
-          { value: "experiment", label: "Experiments" },
-          { value: "dataset", label: "Datasets" }
-        ]}
-        size="md"
-        radius="md"
-      />
-
-      {/* Actions - right aligned */}
-      <Group gap="xs" justify="flex-end">
-        <Tooltip label="Import metadata file">
-          <ActionIcon
-            variant="subtle"
-            size="lg"
-            onClick={handleImportClick}
-            aria-label="Import File"
-          >
-            <IconFileImport size={20} />
-          </ActionIcon>
-        </Tooltip>
-
-        <Button
-          variant="filled"
-          leftSection={<IconDownload size={16} />}
-          onClick={openModal}
-        >
-          Export
-        </Button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleFileChange}
-          style={{ display: "none" }}
+        {/* Navigation tabs - centered */}
+        <SegmentedControl
+          style={{
+            backgroundColor: "var(--brand-sunlight)"
+          }}
+          value={state.activeTab}
+          onChange={handleNavigation}
+          data={[
+            { value: "overview", label: "Overview" },
+            { value: "project", label: "Project" },
+            { value: "experiment", label: "Experiments" },
+            { value: "dataset", label: "Datasets" }
+          ]}
+          size="md"
+          radius="md"
         />
 
-        <Menu shadow="md" width={200}>
-          <Menu.Target>
-            <ActionIcon variant="subtle" size="lg" aria-label="Menu">
-              <IconMenu2 size={20} />
+        {/* Actions - right aligned */}
+        <Group gap="xs" justify="flex-end">
+          <Tooltip label="Import metadata file">
+            <ActionIcon
+              variant="subtle"
+              size="lg"
+              onClick={handleImportClick}
+              aria-label="Import File"
+            >
+              <IconFileImport size={20} />
             </ActionIcon>
-          </Menu.Target>
+          </Tooltip>
 
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<IconInfoCircle size={16} />}
-              onClick={() => router.push("/about")}
-            >
-              About
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<IconHelp size={16} />}
-              onClick={() => router.push("/how-to")}
-            >
-              How-to Guide
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Item
-              closeMenuOnClick={false}
-              onClick={(e) => {
-                e.preventDefault();
-                toggleJsonPreview();
-              }}
-            >
-              <Switch
-                label="JSON Preview"
-                checked={state.showJsonPreview}
-                onChange={toggleJsonPreview}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
-    </Box>
+          <Button
+            variant="filled"
+            leftSection={<IconDownload size={16} />}
+            onClick={openModal}
+          >
+            Export
+          </Button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+
+          <Menu shadow="md" width={200}>
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg" aria-label="Menu">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconInfoCircle size={16} />}
+                onClick={() => router.push("/about")}
+              >
+                About
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconHelp size={16} />}
+                onClick={() => router.push("/how-to")}
+              >
+                How-to Guide
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                closeMenuOnClick={false}
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleJsonPreview();
+                }}
+              >
+                <Switch
+                  label="JSON Preview"
+                  checked={state.showJsonPreview}
+                  onChange={toggleJsonPreview}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+      </Box>
 
       <DownloadModal
         opened={showModal}

@@ -8,8 +8,7 @@ import {
   Stack,
   Text,
   Badge,
-  Tooltip,
-  Anchor
+  Tooltip
 } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 
@@ -36,6 +35,11 @@ interface DownloadModalProps {
    * The page should close the modal, trigger validation, and scroll to errors.
    */
   onViewErrors?: () => void;
+  /**
+   * Callback fired after modal exit transition completes.
+   * Used to trigger validation after modal is fully closed.
+   */
+  onExitTransitionEnd?: () => void;
 }
 
 /**
@@ -50,7 +54,8 @@ export default function DownloadModal({
   title,
   sections,
   onSectionToggle,
-  onViewErrors
+  onViewErrors,
+  onExitTransitionEnd
 }: DownloadModalProps) {
   // Calculate total missing fields across enabled sections
   const totalMissing = sections
@@ -71,7 +76,14 @@ export default function DownloadModal({
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title={title} centered size="md">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      onExitTransitionEnd={onExitTransitionEnd}
+      title={title}
+      centered
+      size="md"
+    >
       <Stack gap="md">
         <Stack gap="sm">
           <Text>Select which types of metadata to include:</Text>
@@ -128,37 +140,23 @@ export default function DownloadModal({
             py="sm"
           >
             <Text size="sm" c="dark.6">
-              Some required fields are missing or failed validation. You can
-              still download as a draft.
+              Some required fields are missing or incomplete. However, you can
+              still download as a draft to save your work in progress.
             </Text>
           </Alert>
         )}
 
-        <Group justify="space-between" gap="sm" mt="md">
-          {onViewErrors ? (
-            <Anchor
-              component="button"
-              type="button"
-              onClick={onViewErrors}
-              size="sm"
-            >
-              View validation errors
-            </Anchor>
-          ) : (
-            <span />
-          )}
-          <Group gap="sm">
-            <Button variant="default" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              variant="filled"
-              onClick={handleDownload}
-              disabled={!hasSelection}
-            >
-              Download
-            </Button>
-          </Group>
+        <Group justify="flex-end" gap="sm" mt="md">
+          <Button variant="default" onClick={onViewErrors || onClose}>
+            Go Back
+          </Button>
+          <Button
+            variant="filled"
+            onClick={handleDownload}
+            disabled={!hasSelection}
+          >
+            {hasWarnings ? "Download Anyway" : "Download"}
+          </Button>
         </Group>
       </Stack>
     </Modal>
