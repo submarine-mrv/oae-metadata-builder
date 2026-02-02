@@ -22,6 +22,7 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
   const { state, setShowJsonPreview } = useAppState();
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [isHoveringHandle, setIsHoveringHandle] = useState(false);
 
   // Handle resize drag
   useEffect(() => {
@@ -54,8 +55,8 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
       style={{
         width: sidebarWidth,
         minWidth: sidebarWidth,
-        backgroundColor: "#f8f9fa",
-        borderLeft: "1px solid #dee2e6",
+        backgroundColor: "var(--mantine-color-gray-0)",
+        borderLeft: "1px solid var(--mantine-color-gray-3)",
         display: "flex",
         flexDirection: "column",
         position: "relative"
@@ -69,10 +70,16 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
           top: 0,
           width: 4,
           height: "100%",
-          backgroundColor: "transparent",
-          cursor: "col-resize"
+          backgroundColor:
+            isResizing || isHoveringHandle
+              ? "var(--mantine-color-gray-4)"
+              : "transparent",
+          cursor: "col-resize",
+          transition: "background-color 150ms ease"
         }}
         onMouseDown={() => setIsResizing(true)}
+        onMouseEnter={() => setIsHoveringHandle(true)}
+        onMouseLeave={() => setIsHoveringHandle(false)}
       />
 
       {/* Header */}
@@ -80,12 +87,13 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
         justify="space-between"
         align="center"
         p="md"
-        style={{ borderBottom: "1px solid #dee2e6" }}
+        style={{ borderBottom: "1px solid var(--mantine-color-gray-3)" }}
       >
         <Text fw={600}>JSON Preview</Text>
         <Button
           variant="subtle"
           size="xs"
+          aria-label="Close JSON preview"
           onClick={() => setShowJsonPreview(false)}
         >
           <IconX size={16} />
