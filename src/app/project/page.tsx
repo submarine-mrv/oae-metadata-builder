@@ -1,15 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Button,
-  Box,
-  Group
-} from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { Container, Title, Text, Stack, Group } from "@mantine/core";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -30,7 +21,8 @@ import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
+import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
@@ -49,16 +41,9 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
 );
 
 export default function ProjectPage() {
-  const {
-    state,
-    updateProjectData,
-    setActiveTab,
-    setTriggerValidation,
-    setShowJsonPreview
-  } = useAppState();
+  const { state, updateProjectData, setActiveTab, setTriggerValidation } =
+    useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
 
@@ -106,29 +91,6 @@ export default function ProjectPage() {
     }
   }, [forceValidation]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
   const customValidate = (data: any, errors: any) => {
     const t = data?.temporal_coverage as string | undefined;
     if (!t) errors?.temporal_coverage?.addError("Start date is required.");
@@ -170,138 +132,70 @@ export default function ProjectPage() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden"
-      }}
-    >
-      <Navigation />
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto"
-          }}
-        >
-          <Container size="md" py="lg">
-            <Stack gap="sm">
-              <Group justify="space-between" align="center">
-                <Title order={2}>Project Metadata</Title>
-              </Group>
-              <Text c="dimmed">
-                Create standardized metadata for your Ocean Alkalinity
-                Enhancement project. Click the info icons next to field labels
-                for detailed descriptions.
-              </Text>
-            </Stack>
-
-            <Form
-              schema={schema}
-              uiSchema={uiSchema}
-              formData={state.projectData}
-              onChange={(e) => updateProjectData(e.formData)}
-              onSubmit={handleFormSubmit}
-              validator={validator}
-              customValidate={customValidate}
-              transformErrors={transformFormErrors}
-              omitExtraData={false}
-              liveOmit={false}
-              experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" },
-                emptyObjectFields: "skipEmptyDefaults"
-              }}
-              widgets={{
-                IsoIntervalWidget,
-                SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
-                CustomSelectWidget: CustomSelectWidget,
-                TextWidget: BaseInputWidget,
-                textarea: CustomTextareaWidget
-              }}
-              templates={{
-                DescriptionFieldTemplate: NoDescription,
-                ArrayFieldTemplate: CustomArrayFieldTemplate,
-                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-                ArrayFieldItemButtonsTemplate:
-                  CustomArrayFieldItemButtonsTemplate,
-                TitleFieldTemplate: CustomTitleFieldTemplate,
-                ErrorListTemplate: CustomErrorList,
-                ButtonTemplates: {
-                  AddButton: CustomAddButton,
-                  SubmitButton: ProjectSubmitButton
-                }
-              }}
-              fields={{
-                SpatialCoverageMiniMap: SpatialCoverageField,
-                ExternalProjectField: ExternalProjectField
-              }}
-              showErrorList="top"
-            />
-          </Container>
-        </div>
-
-        {state.showJsonPreview && (
-          <Box
-            style={{
-              width: sidebarWidth,
-              minWidth: sidebarWidth,
-              backgroundColor: "#f8f9fa",
-              borderLeft: "1px solid #dee2e6",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative"
-            }}
-          >
-            {/* Resize handle */}
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                width: "4px",
-                height: "100%",
-                backgroundColor: "transparent",
-                cursor: "col-resize"
-              }}
-              onMouseDown={() => setIsResizing(true)}
-            />
-
-            {/* Header */}
-            <Group
-              justify="space-between"
-              align="center"
-              p="md"
-              style={{ borderBottom: "1px solid #dee2e6" }}
-            >
-              <Text fw={600}>JSON Preview</Text>
-              <Button
-                variant="subtle"
-                size="xs"
-                onClick={() => setShowJsonPreview(false)}
-              >
-                <IconX size={16} />
-              </Button>
+    <AppLayout noScroll>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto"
+        }}
+      >
+        <Container size="md" py="lg">
+          <Stack gap="sm">
+            <Group justify="space-between" align="center">
+              <Title order={2}>Project Metadata</Title>
             </Group>
+            <Text c="dimmed">
+              Create standardized metadata for your Ocean Alkalinity
+              Enhancement project. Click the info icons next to field labels
+              for detailed descriptions.
+            </Text>
+          </Stack>
 
-            {/* Content */}
-            <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
-              <pre
-                style={{
-                  fontSize: "0.8rem",
-                  margin: 0,
-                  fontFamily: "monospace",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word"
-                }}
-              >
-                {JSON.stringify(state.projectData, null, 2)}
-              </pre>
-            </Box>
-          </Box>
-        )}
+          <Form
+            schema={schema}
+            uiSchema={uiSchema}
+            formData={state.projectData}
+            onChange={(e) => updateProjectData(e.formData)}
+            onSubmit={handleFormSubmit}
+            validator={validator}
+            customValidate={customValidate}
+            transformErrors={transformFormErrors}
+            omitExtraData={false}
+            liveOmit={false}
+            experimental_defaultFormStateBehavior={{
+              arrayMinItems: { populate: "all" },
+              emptyObjectFields: "skipEmptyDefaults"
+            }}
+            widgets={{
+              IsoIntervalWidget,
+              SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
+              CustomSelectWidget: CustomSelectWidget,
+              TextWidget: BaseInputWidget,
+              textarea: CustomTextareaWidget
+            }}
+            templates={{
+              DescriptionFieldTemplate: NoDescription,
+              ArrayFieldTemplate: CustomArrayFieldTemplate,
+              ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
+              ArrayFieldItemButtonsTemplate:
+                CustomArrayFieldItemButtonsTemplate,
+              TitleFieldTemplate: CustomTitleFieldTemplate,
+              ErrorListTemplate: CustomErrorList,
+              ButtonTemplates: {
+                AddButton: CustomAddButton,
+                SubmitButton: ProjectSubmitButton
+              }
+            }}
+            fields={{
+              SpatialCoverageMiniMap: SpatialCoverageField,
+              ExternalProjectField: ExternalProjectField
+            }}
+            showErrorList="top"
+          />
+        </Container>
       </div>
+
+      <JsonPreviewSidebar data={state.projectData} />
 
       <DownloadConfirmationModal
         opened={showDownloadModal}
@@ -310,6 +204,6 @@ export default function ProjectPage() {
         metadataType="project"
         title="Download Project Metadata"
       />
-    </div>
+    </AppLayout>
   );
 }

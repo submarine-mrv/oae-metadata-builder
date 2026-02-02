@@ -79,6 +79,13 @@
 }
 */
 
+html, body {
+  /* Prevent body scroll to eliminate jitter during hydration */
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

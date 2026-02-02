@@ -7,10 +7,9 @@ import {
   Text,
   Stack,
   Button,
-  Box,
   Group
 } from "@mantine/core";
-import { IconX, IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -33,7 +32,8 @@ import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
-import Navigation from "@/components/Navigation";
+import AppLayout from "@/components/AppLayout";
+import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useMetadataDownload } from "@/hooks/useMetadataDownload";
@@ -84,14 +84,12 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
 
 export default function ExperimentPage() {
   const router = useRouter();
-  const { state, updateExperiment, setActiveTab, setTriggerValidation, setShowJsonPreview } =
+  const { state, updateExperiment, setActiveTab, setTriggerValidation } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -180,29 +178,6 @@ export default function ExperimentPage() {
     }
   }, [formData.experiment_type]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
   const handleFormChange = useCallback(
     (e: any) => {
       // Don't save to global state until initial data is loaded
@@ -263,8 +238,7 @@ export default function ExperimentPage() {
 
   if (!experiment) {
     return (
-      <>
-        <Navigation />
+      <AppLayout>
         <Container size="md" py="lg">
           <Stack gap="md">
             <Title order={2}>No Experiment Selected</Title>
@@ -280,138 +254,77 @@ export default function ExperimentPage() {
             </Button>
           </Stack>
         </Container>
-      </>
+      </AppLayout>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
-      <Navigation />
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto"
-          }}
-        >
-          <Container size="md" py="lg">
-            <Stack gap="sm" mb="md">
-              <Group align="center" gap="md">
-                <Title order={2}>{experiment.name || "Experiment"}</Title>
-              </Group>
-              <Text c="dimmed">
-                Edit experiment metadata. Fields marked with an asterisk (*) are
-                required.
-              </Text>
-            </Stack>
-
-            <Form
-              schema={activeSchema}
-              uiSchema={activeUiSchema}
-              formData={formData}
-              onChange={handleFormChange}
-              onSubmit={handleFormSubmit}
-              validator={validator}
-              customValidate={customValidate}
-              transformErrors={transformFormErrors}
-              omitExtraData={false}
-              liveOmit={false}
-              experimental_defaultFormStateBehavior={{
-                arrayMinItems: { populate: "all" },
-                emptyObjectFields: "skipEmptyDefaults"
-              }}
-              widgets={{
-                CustomSelectWidget: CustomSelectWidget,
-                TextWidget: BaseInputWidget,
-                textarea: CustomTextareaWidget,
-                DateTimeWidget: DateTimeWidget,
-                PlaceholderWidget: PlaceholderWidget,
-                DosingDepthWidget: DosingDepthWidget
-              }}
-              templates={{
-                DescriptionFieldTemplate: NoDescription,
-                ArrayFieldTemplate: CustomArrayFieldTemplate,
-                ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-                ArrayFieldItemButtonsTemplate:
-                  CustomArrayFieldItemButtonsTemplate,
-                TitleFieldTemplate: CustomTitleFieldTemplate,
-                ErrorListTemplate: CustomErrorList,
-                ButtonTemplates: {
-                  AddButton: CustomAddButton,
-                  SubmitButton: ExperimentSubmitButton
-                }
-              }}
-              fields={{
-                SpatialCoverageMiniMap: SpatialCoverageField,
-                PlaceholderField: PlaceholderField,
-                DosingLocationField: DosingLocationField,
-                DosingConcentrationField: DosingConcentrationField
-              }}
-              showErrorList="top"
-            />
-          </Container>
-        </div>
-
-        {state.showJsonPreview && (
-          <Box
-            style={{
-              width: sidebarWidth,
-              minWidth: sidebarWidth,
-              backgroundColor: "#f8f9fa",
-              borderLeft: "1px solid #dee2e6",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative"
-            }}
-          >
-            {/* Resize handle */}
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                width: "4px",
-                height: "100%",
-                backgroundColor: "transparent",
-                cursor: "col-resize"
-              }}
-              onMouseDown={() => setIsResizing(true)}
-            />
-
-            {/* Header */}
-            <Group
-              justify="space-between"
-              align="center"
-              p="md"
-              style={{ borderBottom: "1px solid #dee2e6" }}
-            >
-              <Text fw={600}>JSON Preview</Text>
-              <Button
-                variant="subtle"
-                size="xs"
-                onClick={() => setShowJsonPreview(false)}
-              >
-                <IconX size={16} />
-              </Button>
+    <AppLayout noScroll>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto"
+        }}
+      >
+        <Container size="md" py="lg">
+          <Stack gap="sm" mb="md">
+            <Group align="center" gap="md">
+              <Title order={2}>{experiment.name || "Experiment"}</Title>
             </Group>
+            <Text c="dimmed">
+              Edit experiment metadata. Fields marked with an asterisk (*) are
+              required.
+            </Text>
+          </Stack>
 
-            {/* Content */}
-            <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
-              <pre
-                style={{
-                  fontSize: "0.8rem",
-                  margin: 0,
-                  fontFamily: "monospace",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word"
-                }}
-              >
-                {JSON.stringify(formData, null, 2)}
-              </pre>
-            </Box>
-          </Box>
-        )}
+          <Form
+            schema={activeSchema}
+            uiSchema={activeUiSchema}
+            formData={formData}
+            onChange={handleFormChange}
+            onSubmit={handleFormSubmit}
+            validator={validator}
+            customValidate={customValidate}
+            transformErrors={transformFormErrors}
+            omitExtraData={false}
+            liveOmit={false}
+            experimental_defaultFormStateBehavior={{
+              arrayMinItems: { populate: "all" },
+              emptyObjectFields: "skipEmptyDefaults"
+            }}
+            widgets={{
+              CustomSelectWidget: CustomSelectWidget,
+              TextWidget: BaseInputWidget,
+              textarea: CustomTextareaWidget,
+              DateTimeWidget: DateTimeWidget,
+              PlaceholderWidget: PlaceholderWidget,
+              DosingDepthWidget: DosingDepthWidget
+            }}
+            templates={{
+              DescriptionFieldTemplate: NoDescription,
+              ArrayFieldTemplate: CustomArrayFieldTemplate,
+              ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
+              ArrayFieldItemButtonsTemplate:
+                CustomArrayFieldItemButtonsTemplate,
+              TitleFieldTemplate: CustomTitleFieldTemplate,
+              ErrorListTemplate: CustomErrorList,
+              ButtonTemplates: {
+                AddButton: CustomAddButton,
+                SubmitButton: ExperimentSubmitButton
+              }
+            }}
+            fields={{
+              SpatialCoverageMiniMap: SpatialCoverageField,
+              PlaceholderField: PlaceholderField,
+              DosingLocationField: DosingLocationField,
+              DosingConcentrationField: DosingConcentrationField
+            }}
+            showErrorList="top"
+          />
+        </Container>
       </div>
+
+      <JsonPreviewSidebar data={formData} />
 
       <DownloadConfirmationModal
         opened={showDownloadModal}
@@ -420,6 +333,6 @@ export default function ExperimentPage() {
         metadataType="experiment"
         title="Download Experiment Metadata"
       />
-    </div>
+    </AppLayout>
   );
 }
