@@ -49,7 +49,7 @@ export default function Navigation() {
     const tab = value as "overview" | "project" | "experiment" | "dataset";
     setActiveTab(tab);
     const paths: Record<string, string> = {
-      overview: "/",
+      overview: "/overview",
       project: "/project",
       experiment: "/experiment",
       dataset: "/dataset"
