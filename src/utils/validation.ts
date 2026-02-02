@@ -6,13 +6,14 @@ import {
   getExperimentSchema,
   getInterventionSchema,
   getTracerSchema,
-  getInterventionWithTracerSchema
+  getInterventionWithTracerSchema,
+  getDatasetSchema
 } from "./schemaViews";
 import type {
   ProjectFormData,
   ExperimentFormData,
-  ExperimentState,
-  FormDataRecord
+  DatasetFormData,
+  ExperimentState
 } from "@/types/forms";
 
 // Create validator with Draft 2019-09 support
@@ -77,6 +78,29 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
     };
   } catch (error) {
     console.error("Error validating experiment:", error);
+    return {
+      isValid: false,
+      errors: [],
+      errorCount: 1
+    };
+  }
+}
+
+/**
+ * Validates dataset data against the dataset schema
+ */
+export function validateDataset(datasetData: DatasetFormData): ValidationResult {
+  try {
+    const schema = getDatasetSchema();
+    const result = validator.validateFormData(datasetData, schema);
+
+    return {
+      isValid: result.errors.length === 0,
+      errors: result.errors,
+      errorCount: result.errors.length
+    };
+  } catch (error) {
+    console.error("Error validating dataset:", error);
     return {
       isValid: false,
       errors: [],

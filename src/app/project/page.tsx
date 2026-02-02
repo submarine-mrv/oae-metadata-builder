@@ -30,11 +30,13 @@ import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import DownloadModal from "@/components/DownloadModal";
+import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { useDownloadModal } from "@/hooks/useDownloadModal";
+import { validateProject } from "@/utils/validation";
+import { exportProject } from "@/utils/exportImport";
+import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -52,18 +54,9 @@ export default function ProjectPage() {
   } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
-  const {
-    showModal,
-    sections,
-    openModal,
-    closeModal,
-    handleDownload,
-    handleSectionToggle
-  } = useDownloadModal({
-    projectData: state.projectData,
-    experiments: state.experiments,
-    datasets: state.datasets,
-    defaultSelection: "project"
+  const download = useSingleItemDownload({
+    validate: () => validateProject(state.projectData),
+    export: () => exportProject(state.projectData)
   });
 
   useEffect(() => {
@@ -113,6 +106,7 @@ export default function ProjectPage() {
   return (
     <AppLayout noScroll>
       <div
+        ref={download.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -131,6 +125,7 @@ export default function ProjectPage() {
           </Stack>
 
           <Form
+            ref={download.formRef}
             schema={schema}
             uiSchema={uiSchema}
             formData={state.projectData}
@@ -168,14 +163,14 @@ export default function ProjectPage() {
               SpatialCoverageMiniMap: SpatialCoverageField,
               ExternalProjectField: ExternalProjectField
             }}
-            showErrorList={false}
+            showErrorList={download.showErrorList ? "top" : false}
           />
 
           {/* Download button - bypasses RJSF validation */}
           <Group justify="flex-end" mt="xl">
             <Button
               leftSection={<IconDownload size={18} />}
-              onClick={openModal}
+              onClick={download.handleDownloadClick}
             >
               Download Project Metadata
             </Button>
@@ -185,13 +180,14 @@ export default function ProjectPage() {
 
       <JsonPreviewSidebar data={state.projectData} />
 
-      <DownloadModal
-        opened={showModal}
-        onClose={closeModal}
-        onDownload={handleDownload}
-        title="Download Metadata"
-        sections={sections}
-        onSectionToggle={handleSectionToggle}
+      <SingleItemDownloadModal
+        opened={download.showModal}
+        onClose={download.closeModal}
+        onDownload={download.handleDownload}
+        title="Download Project Metadata"
+        errorCount={download.errorCount}
+        onGoBack={download.handleGoBack}
+        onExitTransitionEnd={download.handleModalExitComplete}
       />
     </AppLayout>
   );

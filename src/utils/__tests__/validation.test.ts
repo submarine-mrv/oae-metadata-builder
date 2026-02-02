@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateProject, validateExperiment, validateAllData } from '../validation';
+import { validateProject, validateExperiment, validateDataset, validateAllData } from '../validation';
 
 describe('Validation', () => {
   describe('validateProject', () => {
@@ -331,6 +331,105 @@ describe('Validation', () => {
       expect(result.projectValidation.isValid).toBe(true);
       expect(result.experimentValidations.get(1)?.isValid).toBe(true);
       expect(result.experimentValidations.get(2)?.isValid).toBe(false);
+    });
+  });
+
+  describe('validateDataset', () => {
+    it('should return validation result structure', () => {
+      const data = {
+        project_id: 'test-project-001',
+        experiment_id: 'test-exp-001',
+        name: 'Test Dataset',
+        description: 'A test dataset',
+        temporal_coverage: '2024-01-01/2024-12-31',
+        dataset_type: 'cast',
+        data_product_type: 'raw_sensor_data',
+        platform_info: {
+          platform_type: 'http://vocab.nerc.ac.uk/collection/L06/current/62/'
+        },
+        data_submitter: {
+          name: 'Test User',
+          email: 'test@example.com',
+          affiliation: { name: 'Test Org' }
+        },
+        filenames: ['data.csv']
+      };
+
+      const result = validateDataset(data);
+
+      // Should return proper validation structure
+      expect(result).toHaveProperty('isValid');
+      expect(result).toHaveProperty('errors');
+      expect(result).toHaveProperty('errorCount');
+      expect(typeof result.isValid).toBe('boolean');
+      expect(Array.isArray(result.errors)).toBe(true);
+      expect(typeof result.errorCount).toBe('number');
+    });
+
+    it('should fail validation for invalid email format', () => {
+      const invalidData = {
+        project_id: 'test-project-001',
+        name: 'Test Dataset',
+        description: 'A test dataset',
+        temporal_coverage: '2024-01-01/2024-12-31',
+        dataset_type: 'cast',
+        data_product_type: 'raw_sensor_data',
+        platform_info: {
+          platform_type: 'http://vocab.nerc.ac.uk/collection/L06/current/62/'
+        },
+        data_submitter: {
+          name: 'Test User',
+          email: 'not-an-email', // Invalid email format
+          affiliation: { name: 'Test Org' }
+        },
+        filenames: ['data.csv']
+      };
+
+      const result = validateDataset(invalidData);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errorCount).toBeGreaterThan(0);
+    });
+
+    it('should fail validation for missing required fields', () => {
+      const invalidData = {
+        name: 'Test Dataset',
+        // Missing many required fields
+      };
+
+      const result = validateDataset(invalidData);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errorCount).toBeGreaterThan(0);
+    });
+
+    it('should count multiple validation errors', () => {
+      // Test case matching user's reported issue
+      const invalidData = {
+        project_id: '', // Empty - may be required
+        platform_info: {
+          platform_type: 'http://vocab.nerc.ac.uk/collection/L06/current/62/'
+        },
+        name: 'Testing validation errors',
+        description: 'asdf',
+        temporal_coverage: '2/2', // Invalid format
+        dataset_type: 'cast',
+        data_product_type: 'data_compilation_product',
+        data_submitter: {
+          affiliation: {
+            name: 'asdf'
+          },
+          email: 'asdf', // Invalid email
+          name: 'sdaf'
+        },
+        filenames: ['asdfasdf']
+      };
+
+      const result = validateDataset(invalidData);
+
+      expect(result.isValid).toBe(false);
+      // Should have validation errors (format errors, etc.)
+      expect(result.errorCount).toBeGreaterThan(0);
     });
   });
 

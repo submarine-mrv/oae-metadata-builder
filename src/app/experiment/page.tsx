@@ -33,9 +33,11 @@ import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import AppLayout from "@/components/AppLayout";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import DownloadModal from "@/components/DownloadModal";
+import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useDownloadModal } from "@/hooks/useDownloadModal";
+import { validateExperiment } from "@/utils/validation";
+import { exportSingleExperiment } from "@/utils/exportImport";
+import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -87,18 +89,11 @@ export default function ExperimentPage() {
 
   const activeExperimentId = state.activeExperimentId;
 
-  const {
-    showModal,
-    sections,
-    openModal,
-    closeModal,
-    handleDownload,
-    handleSectionToggle
-  } = useDownloadModal({
-    projectData: state.projectData,
-    experiments: state.experiments,
-    datasets: state.datasets,
-    defaultSelection: "experiment"
+  // Use the download hook - note: formData is used in callbacks
+  // so we use arrow functions to capture current formData
+  const download = useSingleItemDownload({
+    validate: () => validateExperiment(formData),
+    export: () => exportSingleExperiment(state.projectData, formData)
   });
 
   const experiment = activeExperimentId
@@ -227,6 +222,7 @@ export default function ExperimentPage() {
   return (
     <AppLayout noScroll>
       <div
+        ref={download.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -244,6 +240,7 @@ export default function ExperimentPage() {
           </Stack>
 
           <Form
+            ref={download.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}
             formData={formData}
@@ -284,14 +281,14 @@ export default function ExperimentPage() {
               DosingLocationField: DosingLocationField,
               DosingConcentrationField: DosingConcentrationField
             }}
-            showErrorList={false}
+            showErrorList={download.showErrorList ? "top" : false}
           />
 
           {/* Download button - bypasses RJSF validation */}
           <Group justify="flex-end" mt="xl">
             <Button
               leftSection={<IconDownload size={18} />}
-              onClick={openModal}
+              onClick={download.handleDownloadClick}
             >
               Download Experiment Metadata
             </Button>
@@ -301,13 +298,14 @@ export default function ExperimentPage() {
 
       <JsonPreviewSidebar data={formData} />
 
-      <DownloadModal
-        opened={showModal}
-        onClose={closeModal}
-        onDownload={handleDownload}
-        title="Download Metadata"
-        sections={sections}
-        onSectionToggle={handleSectionToggle}
+      <SingleItemDownloadModal
+        opened={download.showModal}
+        onClose={download.closeModal}
+        onDownload={download.handleDownload}
+        title="Download Experiment Metadata"
+        errorCount={download.errorCount}
+        onGoBack={download.handleGoBack}
+        onExitTransitionEnd={download.handleModalExitComplete}
       />
     </AppLayout>
   );

@@ -188,7 +188,7 @@ export default function Navigation() {
         opened={showModal}
         onClose={closeModal}
         onDownload={handleDownload}
-        title="Download Metadata"
+        title="Export All Metadata"
         sections={sections}
         onSectionToggle={handleSectionToggle}
       />

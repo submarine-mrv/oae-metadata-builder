@@ -15,12 +15,13 @@ import { IconAlertTriangle } from "@tabler/icons-react";
 export interface DownloadSection {
   key: string;
   label: string;
+  /** Number of validation errors (missing required fields, format errors, etc.) */
   missingFields: number;
-  incompleteItems?: number; // For variables
-  incompleteItemLabel?: string; // e.g., "variable"
   enabled: boolean;
   disabled?: boolean; // If true, checkbox is grayed out and not toggleable
   disabledReason?: string; // Tooltip/explanation for why it's disabled
+  /** Number of items in this section (e.g., 2 experiments, 3 datasets) */
+  itemCount?: number;
 }
 
 interface DownloadModalProps {
@@ -57,16 +58,12 @@ export default function DownloadModal({
   onViewErrors,
   onExitTransitionEnd
 }: DownloadModalProps) {
-  // Calculate total missing fields across enabled sections
-  const totalMissing = sections
+  // Calculate total validation errors across enabled sections
+  const totalErrors = sections
     .filter((s) => s.enabled)
     .reduce((sum, s) => sum + s.missingFields, 0);
 
-  const totalIncomplete = sections
-    .filter((s) => s.enabled)
-    .reduce((sum, s) => sum + (s.incompleteItems || 0), 0);
-
-  const hasWarnings = totalMissing > 0 || totalIncomplete > 0;
+  const hasWarnings = totalErrors > 0;
   const hasSelection = sections.some((s) => s.enabled);
 
   const handleDownload = () => {
@@ -88,12 +85,20 @@ export default function DownloadModal({
         <Stack gap="sm">
           <Text>Select which types of metadata to include:</Text>
 
-          {sections.map((section) => (
+          {sections.map((section) => {
+            // Build label with item count if > 1 (e.g., "Experiments (2)")
+            // Don't show count for single items like Project
+            const labelWithCount =
+              section.itemCount !== undefined && section.itemCount > 1
+                ? `${section.label} (${section.itemCount})`
+                : section.label;
+
+            return (
             <Group key={section.key} justify="space-between" wrap="nowrap">
               {section.disabled && section.disabledReason ? (
                 <Tooltip label={section.disabledReason} position="right">
                   <Checkbox
-                    label={section.label}
+                    label={labelWithCount}
                     checked={section.enabled}
                     disabled
                     styles={{ label: { color: "var(--mantine-color-dimmed)" } }}
@@ -101,7 +106,7 @@ export default function DownloadModal({
                 </Tooltip>
               ) : (
                 <Checkbox
-                  label={section.label}
+                  label={labelWithCount}
                   checked={section.enabled}
                   disabled={section.disabled}
                   onChange={() => onSectionToggle(section.key)}
@@ -110,19 +115,10 @@ export default function DownloadModal({
               <Group gap="xs">
                 {!section.disabled && section.missingFields > 0 && (
                   <Badge color="orange" variant="light" size="sm">
-                    {section.missingFields} field
-                    {section.missingFields !== 1 ? "s" : ""} missing
+                    {section.missingFields} validation error
+                    {section.missingFields !== 1 ? "s" : ""}
                   </Badge>
                 )}
-                {!section.disabled &&
-                  section.incompleteItems !== undefined &&
-                  section.incompleteItems > 0 && (
-                    <Badge color="orange" variant="light" size="sm">
-                      {section.incompleteItems}{" "}
-                      {section.incompleteItemLabel || "item"}
-                      {section.incompleteItems !== 1 ? "s" : ""} incomplete
-                    </Badge>
-                  )}
                 {section.disabled && section.disabledReason && (
                   <Badge color="gray" variant="light" size="sm">
                     {section.disabledReason}
@@ -130,7 +126,8 @@ export default function DownloadModal({
                 )}
               </Group>
             </Group>
-          ))}
+            );
+          })}
         </Stack>
         {hasWarnings && (
           <Alert

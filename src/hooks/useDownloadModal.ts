@@ -1,16 +1,10 @@
 import { useState, useCallback } from "react";
 import type { DownloadSection } from "@/components/DownloadModal";
 import {
-  countMissingProjectFields,
-  countMissingExperimentFields,
-  countMissingDatasetFields,
-  countIncompleteVariables
-} from "@/utils/completionCalculator";
-import {
-  getProjectSchema,
-  getExperimentSchema,
-  getDatasetSchema
-} from "@/utils/schemaViews";
+  validateProject,
+  validateExperiment,
+  validateDataset
+} from "@/utils/validation";
 import { exportMetadata } from "@/utils/exportImport";
 import type {
   ProjectFormData,
@@ -70,42 +64,31 @@ export function useDownloadModal({
       key: "dataset",
       label: "Datasets",
       missingFields: 0,
-      incompleteItems: 0,
-      incompleteItemLabel: "variable",
       enabled: false
     }
   ]);
 
   const openModal = useCallback(() => {
-    const projectSchema = getProjectSchema();
-    const experimentSchema = getExperimentSchema();
-    const datasetSchema = getDatasetSchema();
-
     // Check if each section has data
     const hasProjectData = Boolean(projectData?.project_id);
     const hasExperiments = experiments.length > 0;
     const hasDatasets = datasets.length > 0;
 
-    // Calculate missing fields for project
-    const projectMissing = hasProjectData
-      ? countMissingProjectFields(projectData, projectSchema)
+    // Validate project using JSON schema validation
+    const projectErrors = hasProjectData
+      ? validateProject(projectData).errorCount
       : 0;
 
-    // Calculate missing fields for experiments (sum all)
-    let experimentMissing = 0;
+    // Validate experiments (sum all errors)
+    let experimentErrors = 0;
     experiments.forEach((exp) => {
-      experimentMissing += countMissingExperimentFields(
-        exp.formData,
-        experimentSchema
-      );
+      experimentErrors += validateExperiment(exp.formData).errorCount;
     });
 
-    // Calculate missing fields for datasets (sum all)
-    let datasetMissing = 0;
-    let incompleteVars = 0;
+    // Validate datasets (sum all errors)
+    let datasetErrors = 0;
     datasets.forEach((ds) => {
-      datasetMissing += countMissingDatasetFields(ds.formData, datasetSchema);
-      incompleteVars += countIncompleteVariables(ds.formData, datasetSchema);
+      datasetErrors += validateDataset(ds.formData).errorCount;
     });
 
     // Determine which sections should be enabled by default
@@ -133,28 +116,29 @@ export function useDownloadModal({
       {
         key: "project",
         label: "Project",
-        missingFields: projectMissing,
+        missingFields: projectErrors,
         enabled: getDefaultEnabled("project", hasProjectData),
         disabled: !hasProjectData,
-        disabledReason: !hasProjectData ? "No project data" : undefined
+        disabledReason: !hasProjectData ? "No project data" : undefined,
+        itemCount: 1 // Project is always 1 item
       },
       {
         key: "experiment",
         label: "Experiments",
-        missingFields: experimentMissing,
+        missingFields: experimentErrors,
         enabled: getDefaultEnabled("experiment", hasExperiments),
         disabled: !hasExperiments,
-        disabledReason: !hasExperiments ? "No experiments created" : undefined
+        disabledReason: !hasExperiments ? "No experiments created" : undefined,
+        itemCount: experiments.length
       },
       {
         key: "dataset",
         label: "Datasets",
-        missingFields: datasetMissing,
-        incompleteItems: incompleteVars,
-        incompleteItemLabel: "variable",
+        missingFields: datasetErrors,
         enabled: getDefaultEnabled("dataset", hasDatasets),
         disabled: !hasDatasets,
-        disabledReason: !hasDatasets ? "No datasets created" : undefined
+        disabledReason: !hasDatasets ? "No datasets created" : undefined,
+        itemCount: datasets.length
       }
     ]);
 

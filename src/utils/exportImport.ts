@@ -125,6 +125,113 @@ export function exportMetadata(
 }
 
 /**
+ * Helper function to download a blob as a file
+ */
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Exports only project metadata as a Container.
+ * Used by Project page download button for single-item export.
+ */
+export function exportProject(projectData: ProjectFormData): void {
+  const protocolMetadata = getProtocolMetadata();
+  const cleanedProjectData = cleanProjectData(projectData);
+
+  const exportData: ExportContainer = {
+    version: protocolMetadata.version,
+    protocol_git_hash: protocolMetadata.gitHash,
+    metadata_builder_git_hash: "",
+    project: cleanedProjectData,
+    experiments: [],
+    datasets: []
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json"
+  });
+
+  const projectId = projectData.project_id || "project";
+  const timestamp = new Date().toISOString().split("T")[0];
+  downloadBlob(blob, `${projectId}-project-${timestamp}.json`);
+}
+
+/**
+ * Exports a single experiment's metadata as a Container.
+ * Used by Experiment page download button for single-item export.
+ *
+ * @param projectData - Project data (for project_id in filename)
+ * @param experiment - The single experiment to export
+ */
+export function exportSingleExperiment(
+  projectData: ProjectFormData,
+  experiment: ExperimentFormData
+): void {
+  const protocolMetadata = getProtocolMetadata();
+
+  const exportData: ExportContainer = {
+    version: protocolMetadata.version,
+    protocol_git_hash: protocolMetadata.gitHash,
+    metadata_builder_git_hash: "",
+    project: {}, // Empty project - only exporting experiment
+    experiments: [experiment],
+    datasets: []
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json"
+  });
+
+  const projectId = projectData.project_id || "project";
+  const experimentId =
+    (experiment.experiment_id as string) ||
+    (experiment.name as string) ||
+    "experiment";
+  const timestamp = new Date().toISOString().split("T")[0];
+  downloadBlob(blob, `${projectId}-${experimentId}-${timestamp}.json`);
+}
+
+/**
+ * Exports a single dataset's metadata as a Container.
+ * Used by Dataset page download button for single-item export.
+ *
+ * @param projectData - Project data (for project_id in filename)
+ * @param dataset - The single dataset to export
+ */
+export function exportSingleDataset(
+  projectData: ProjectFormData,
+  dataset: DatasetFormData
+): void {
+  const protocolMetadata = getProtocolMetadata();
+
+  const exportData: ExportContainer = {
+    version: protocolMetadata.version,
+    protocol_git_hash: protocolMetadata.gitHash,
+    metadata_builder_git_hash: "",
+    project: {}, // Empty project - only exporting dataset
+    experiments: [],
+    datasets: [dataset]
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: "application/json"
+  });
+
+  const projectId = projectData.project_id || "project";
+  const datasetName = (dataset.name as string) || "dataset";
+  const timestamp = new Date().toISOString().split("T")[0];
+  downloadBlob(blob, `${projectId}-${datasetName}-${timestamp}.json`);
+}
+
+/**
  * Imports project, experiment, and dataset data from a JSON file in Container format.
  * Returns an object with project data, experiments array, and datasets array.
  *

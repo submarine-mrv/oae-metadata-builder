@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Container,
   Title,
@@ -27,13 +27,15 @@ import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import DownloadModal from "@/components/DownloadModal";
+import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import FilenamesField from "@/components/FilenamesField";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getDatasetSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { useDownloadModal } from "@/hooks/useDownloadModal";
+import { validateDataset } from "@/utils/validation";
+import { exportSingleDataset } from "@/utils/exportImport";
+import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -92,84 +94,6 @@ export default function DatasetPage() {
   // Use modified schema that skips variable item validation (workaround - see oae-form-99i)
   const [schema] = useState<any>(() => createFormSchema());
 
-  /**
-   * Controls whether RJSF shows the error list.
-   * Set to true when user clicks "View Errors" in the download modal.
-   *
-   * Note: This is part of the validation workaround (oae-form-99i).
-   * For dataset-level fields, RJSF handles validation and field highlighting.
-   * For variables, we use custom validation (see datasetValidation.ts).
-   */
-  const [showErrorList, setShowErrorList] = useState(false);
-
-  /**
-   * Tracks whether validation should run after modal closes.
-   * Set when user clicks "View Errors", cleared after validation runs.
-   */
-  const [pendingValidation, setPendingValidation] = useState(false);
-
-  // Ref to the RJSF form for triggering validation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formRef = useRef<any>(null);
-
-  // Ref to the scrollable content container for scrolling to error list
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const {
-    showModal,
-    sections,
-    openModal,
-    closeModal,
-    handleDownload,
-    handleSectionToggle
-  } = useDownloadModal({
-    projectData: state.projectData,
-    experiments: state.experiments,
-    datasets: state.datasets,
-    defaultSelection: "dataset"
-  });
-
-  /**
-   * Handle "View Errors" click from download modal.
-   * Closes modal, enables error display, and sets pending validation flag.
-   * Actual validation runs after modal exit transition completes.
-   *
-   * WORKAROUND: See oae-form-99i for why we have separate validation for variables.
-   * RJSF validation works for dataset-level fields; variables are validated separately.
-   */
-  const handleViewErrors = () => {
-    closeModal();
-    setShowErrorList(true);
-    setPendingValidation(true);
-  };
-
-  /**
-   * Callback for when modal exit transition completes.
-   * Triggers validation if pending (from View Errors click).
-   * Using onExitTransitionEnd instead of setTimeout ensures validation
-   * runs at exactly the right moment - after modal is fully closed.
-   */
-  const handleModalExitComplete = () => {
-    if (!pendingValidation) return;
-    setPendingValidation(false);
-
-    // Query the form element directly from DOM (more reliable than RJSF ref)
-    const formElement = document.querySelector('form') as HTMLFormElement | null;
-
-    // reportValidity() shows browser validation bubbles and returns validity status
-    const html5Valid = formElement?.reportValidity() ?? true;
-
-    if (html5Valid && formRef.current) {
-      // HTML5 validation passed - trigger RJSF/JSON schema validation
-      formRef.current.submit();
-
-      // Scroll to error list for JSON schema errors
-      scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    }
-    // If HTML5 validation failed, reportValidity() already showed the bubble
-    // and scrolled to the invalid field - no need to do anything else
-  };
-
   // Get current dataset
   const currentDataset = state.activeDatasetId
     ? getDataset(state.activeDatasetId)
@@ -180,6 +104,12 @@ export default function DatasetPage() {
     () => currentDataset?.formData || {},
     [currentDataset?.formData]
   );
+
+  // Use the download hook
+  const download = useSingleItemDownload({
+    validate: () => validateDataset(formData),
+    export: () => exportSingleDataset(state.projectData, formData)
+  });
 
   useEffect(() => {
     setActiveTab("dataset");
@@ -210,7 +140,7 @@ export default function DatasetPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={scrollContainerRef}
+        ref={download.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -228,7 +158,7 @@ export default function DatasetPage() {
           </Stack>
 
           <Form
-            ref={formRef}
+            ref={download.formRef}
             schema={schema}
             uiSchema={uiSchema}
             formData={formData}
@@ -265,14 +195,14 @@ export default function DatasetPage() {
                 SubmitButton: HiddenSubmitButton
               }
             }}
-            showErrorList={showErrorList ? "top" : false}
+            showErrorList={download.showErrorList ? "top" : false}
           />
 
           {/* Download button - bypasses RJSF validation */}
           <Group justify="flex-end" mt="xl">
             <Button
               leftSection={<IconDownload size={18} />}
-              onClick={openModal}
+              onClick={download.handleDownloadClick}
             >
               Download Dataset Metadata
             </Button>
@@ -282,15 +212,14 @@ export default function DatasetPage() {
 
       <JsonPreviewSidebar data={formData} />
 
-      <DownloadModal
-        opened={showModal}
-        onClose={closeModal}
-        onDownload={handleDownload}
-        title="Download Metadata"
-        sections={sections}
-        onSectionToggle={handleSectionToggle}
-        onViewErrors={handleViewErrors}
-        onExitTransitionEnd={handleModalExitComplete}
+      <SingleItemDownloadModal
+        opened={download.showModal}
+        onClose={download.closeModal}
+        onDownload={download.handleDownload}
+        title="Download Dataset Metadata"
+        errorCount={download.errorCount}
+        onGoBack={download.handleGoBack}
+        onExitTransitionEnd={download.handleModalExitComplete}
       />
     </AppLayout>
   );
