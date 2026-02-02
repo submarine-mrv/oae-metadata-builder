@@ -23,10 +23,12 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
 import { importMetadata } from "@/utils/exportImport";
 import DownloadModal from "@/components/DownloadModal";
+import ImportPreviewModal from "@/components/ImportPreviewModal";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
+import { useImportPreview } from "@/hooks/useImportPreview";
 
 export default function Navigation() {
-  const { state, setActiveTab, importAllData, toggleJsonPreview } =
+  const { state, setActiveTab, importSelectedData, toggleJsonPreview } =
     useAppState();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +45,12 @@ export default function Navigation() {
     experiments: state.experiments,
     datasets: state.datasets,
     defaultSelection: "all"
+  });
+
+  const importPreview = useImportPreview({
+    currentProjectData: state.projectData,
+    currentExperiments: state.experiments,
+    currentDatasets: state.datasets
   });
 
   const handleNavigation = (value: string) => {
@@ -67,7 +75,14 @@ export default function Navigation() {
 
     try {
       const { projectData, experiments, datasets } = await importMetadata(file);
-      importAllData(projectData, experiments, datasets);
+
+      // Extract form data from experiment/dataset states
+      const experimentFormData = experiments.map((exp) => exp.formData);
+      const datasetFormData = datasets.map((ds) => ds.formData);
+
+      // Open preview modal instead of auto-importing
+      importPreview.openPreview(file.name, projectData, experimentFormData, datasetFormData);
+
       // Reset file input
       e.target.value = "";
     } catch (error) {
@@ -76,6 +91,13 @@ export default function Navigation() {
         `Failed to import metadata: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
+  };
+
+  const handleImport = () => {
+    const selected = importPreview.getSelectedItems();
+    importSelectedData(selected.project, selected.experiments, selected.datasets);
+    importPreview.closePreview();
+    router.push("/overview");
   };
 
   return (
@@ -191,6 +213,15 @@ export default function Navigation() {
         title="Export All Metadata"
         sections={sections}
         onSectionToggle={handleSectionToggle}
+      />
+
+      <ImportPreviewModal
+        opened={importPreview.state.isOpen}
+        onClose={importPreview.closePreview}
+        filename={importPreview.state.filename}
+        items={importPreview.state.items}
+        onToggleItem={importPreview.toggleItem}
+        onImport={handleImport}
       />
     </>
   );

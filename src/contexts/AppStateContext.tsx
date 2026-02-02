@@ -31,6 +31,12 @@ interface AppStateContextType {
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
   importAllData: (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => void;
+  /** Import selected data, merging with existing (replaces matching items, adds new ones) */
+  importSelectedData: (
+    projectData: ProjectFormData | null,
+    experiments: ExperimentFormData[],
+    datasets: DatasetFormData[]
+  ) => void;
   setTriggerValidation: (trigger: boolean) => void;
   setShowJsonPreview: (show: boolean) => void;
   toggleJsonPreview: () => void;
@@ -281,6 +287,107 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [state.nextExperimentId, state.nextDatasetId]
   );
 
+  // Import selected data, merging with existing session
+  // - Project: replaces existing project data if provided
+  // - Experiments: replaces matching experiment_id, or adds new if no match/empty id
+  // - Datasets: replaces matching name, or adds new if no match/empty name
+  const importSelectedData = useCallback(
+    (
+      projectData: ProjectFormData | null,
+      experiments: ExperimentFormData[],
+      datasets: DatasetFormData[]
+    ) => {
+      setState((prev) => {
+        // Handle project - simply replace if provided
+        const newProjectData = projectData
+          ? { ...prev.projectData, ...projectData }
+          : prev.projectData;
+
+        // Handle experiments - replace matching or add new
+        const newExperiments = [...prev.experiments];
+        let nextExpId = prev.nextExperimentId;
+
+        for (const expData of experiments) {
+          const expId = expData.experiment_id as string | undefined;
+          const expName = (expData.name as string) || expId;
+
+          // Find existing experiment by experiment_id or name
+          const existingIndex = expId
+            ? newExperiments.findIndex(
+                (e) => e.formData.experiment_id === expId || e.name === expId
+              )
+            : -1;
+
+          if (existingIndex >= 0) {
+            // Replace existing experiment
+            newExperiments[existingIndex] = {
+              ...newExperiments[existingIndex],
+              formData: expData,
+              name: expName || newExperiments[existingIndex].name,
+              experiment_type: expData.experiment_type,
+              updatedAt: Date.now()
+            };
+          } else {
+            // Add as new experiment
+            newExperiments.push({
+              id: nextExpId,
+              name: expName || `Experiment ${nextExpId}`,
+              formData: expData,
+              experiment_type: expData.experiment_type,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            });
+            nextExpId++;
+          }
+        }
+
+        // Handle datasets - replace matching or add new
+        const newDatasets = [...prev.datasets];
+        let nextDsId = prev.nextDatasetId;
+
+        for (const dsData of datasets) {
+          const dsName = dsData.name as string | undefined;
+
+          // Find existing dataset by name
+          const existingIndex = dsName
+            ? newDatasets.findIndex((d) => d.name === dsName)
+            : -1;
+
+          if (existingIndex >= 0) {
+            // Replace existing dataset
+            newDatasets[existingIndex] = {
+              ...newDatasets[existingIndex],
+              formData: dsData,
+              name: dsName || newDatasets[existingIndex].name,
+              updatedAt: Date.now()
+            };
+          } else {
+            // Add as new dataset
+            newDatasets.push({
+              id: nextDsId,
+              name: dsName || `Dataset ${nextDsId}`,
+              formData: dsData,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            });
+            nextDsId++;
+          }
+        }
+
+        return {
+          ...prev,
+          projectData: newProjectData,
+          experiments: newExperiments,
+          datasets: newDatasets,
+          nextExperimentId: nextExpId,
+          nextDatasetId: nextDsId,
+          activeTab: "overview" as const
+        };
+      });
+    },
+    []
+  );
+
   const setTriggerValidation = useCallback((trigger: boolean) => {
     setState((prev) => ({
       ...prev,
@@ -314,6 +421,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
     importAllData,
+    importSelectedData,
     setTriggerValidation,
     setShowJsonPreview,
     toggleJsonPreview,
