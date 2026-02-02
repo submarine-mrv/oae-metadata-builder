@@ -1,15 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Button,
-  Box,
-  Group
-} from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { Container, Title, Text, Stack, Group } from "@mantine/core";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -31,6 +22,7 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
+import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
@@ -49,16 +41,9 @@ const ProjectSubmitButton = (props: SubmitButtonProps) => (
 );
 
 export default function ProjectPage() {
-  const {
-    state,
-    updateProjectData,
-    setActiveTab,
-    setTriggerValidation,
-    setShowJsonPreview
-  } = useAppState();
+  const { state, updateProjectData, setActiveTab, setTriggerValidation } =
+    useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
-  const [sidebarWidth, setSidebarWidth] = useState(500);
-  const [isResizing, setIsResizing] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
   const [skipDownload, setSkipDownload] = useState(false);
 
@@ -105,29 +90,6 @@ export default function ProjectPage() {
       setForceValidation(false);
     }
   }, [forceValidation]);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX;
-        setSidebarWidth(Math.max(300, Math.min(800, newWidth)));
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
 
   const customValidate = (data: any, errors: any) => {
     const t = data?.temporal_coverage as string | undefined;
@@ -233,65 +195,7 @@ export default function ProjectPage() {
         </Container>
       </div>
 
-      {state.showJsonPreview && (
-        <Box
-          style={{
-            width: sidebarWidth,
-            minWidth: sidebarWidth,
-            backgroundColor: "#f8f9fa",
-            borderLeft: "1px solid #dee2e6",
-            display: "flex",
-            flexDirection: "column",
-            position: "relative"
-          }}
-        >
-          {/* Resize handle */}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: "4px",
-              height: "100%",
-              backgroundColor: "transparent",
-              cursor: "col-resize"
-            }}
-            onMouseDown={() => setIsResizing(true)}
-          />
-
-          {/* Header */}
-          <Group
-            justify="space-between"
-            align="center"
-            p="md"
-            style={{ borderBottom: "1px solid #dee2e6" }}
-          >
-            <Text fw={600}>JSON Preview</Text>
-            <Button
-              variant="subtle"
-              size="xs"
-              onClick={() => setShowJsonPreview(false)}
-            >
-              <IconX size={16} />
-            </Button>
-          </Group>
-
-          {/* Content */}
-          <Box style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
-            <pre
-              style={{
-                fontSize: "0.8rem",
-                margin: 0,
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word"
-              }}
-            >
-              {JSON.stringify(state.projectData, null, 2)}
-            </pre>
-          </Box>
-        </Box>
-      )}
+      <JsonPreviewSidebar data={state.projectData} />
 
       <DownloadConfirmationModal
         opened={showDownloadModal}
