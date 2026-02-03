@@ -24,6 +24,7 @@ import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
+import LinkedIdWidget from "@/components/rjsf/LinkedIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -180,7 +181,8 @@ export default function DatasetPage() {
               IsoIntervalWidget,
               CustomSelectWidget: CustomSelectWidget,
               TextWidget: BaseInputWidget,
-              textarea: CustomTextareaWidget
+              textarea: CustomTextareaWidget,
+              LinkedIdWidget: LinkedIdWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,

@@ -17,6 +17,8 @@ const datasetUiSchema = {
     expandable: false
   },
   "ui:order": [
+    "project_id",
+    "experiment_id",
     "name",
     "description",
     "temporal_coverage",
@@ -39,12 +41,26 @@ const datasetUiSchema = {
     "ui:descriptionModal": true
   },
   description: textAreaWidget,
-  // Hide project_id and experiment_id - will be auto-connected later
+  // Project and Experiment ID fields - linked to parent entities
   project_id: {
-    "ui:widget": "hidden"
+    ...halfWidthStyle,
+    "ui:widget": "LinkedIdWidget",
+    "ui:placeholder": "Select or enter project ID",
+    "ui:options": {
+      mode: "project",
+      lockOnBlur: true,
+      defaultLocked: false
+    }
   },
   experiment_id: {
-    "ui:widget": "hidden"
+    ...halfWidthStyle,
+    "ui:widget": "LinkedIdWidget",
+    "ui:placeholder": "Select or enter experiment ID",
+    "ui:options": {
+      mode: "experiment",
+      lockOnBlur: true,
+      defaultLocked: false
+    }
   },
   temporal_coverage: {
     "ui:widget": "IsoIntervalWidget",

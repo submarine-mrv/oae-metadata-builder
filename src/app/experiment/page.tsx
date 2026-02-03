@@ -31,6 +31,7 @@ import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
+import LinkedIdWidget from "@/components/rjsf/LinkedIdWidget";
 import AppLayout from "@/components/AppLayout";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
@@ -260,7 +261,8 @@ export default function ExperimentPage() {
               textarea: CustomTextareaWidget,
               DateTimeWidget: DateTimeWidget,
               PlaceholderWidget: PlaceholderWidget,
-              DosingDepthWidget: DosingDepthWidget
+              DosingDepthWidget: DosingDepthWidget,
+              LinkedIdWidget: LinkedIdWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,

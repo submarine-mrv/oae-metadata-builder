@@ -19,6 +19,7 @@ const experimentUiSchema = {
     expandable: false
   },
   "ui:order": [
+    "project_id",
     "name",
     "experiment_id",
     "experiment_type",
@@ -36,8 +37,13 @@ const experimentUiSchema = {
   ],
   experiment_id: {
     ...halfWidthStyle,
+    "ui:widget": "LinkedIdWidget",
     "ui:placeholder": "e.g., PROJECT-01-BASELINE-01",
-    "ui:descriptionModal": true
+    "ui:descriptionModal": true,
+    "ui:options": {
+      mode: "simple",
+      lockOnBlur: true
+    }
   },
   name: {
     ...halfWidthStyle,
@@ -176,7 +182,14 @@ const experimentUiSchema = {
   data_conflicts_and_unreported_data: textAreaWidget,
   additional_details: textAreaWidget,
   project_id: {
-    "ui:widget": "hidden"
+    ...halfWidthStyle,
+    "ui:widget": "LinkedIdWidget",
+    "ui:placeholder": "Select or enter project ID",
+    "ui:options": {
+      mode: "project",
+      lockOnBlur: true,
+      defaultLocked: false
+    }
   }
 };
 
