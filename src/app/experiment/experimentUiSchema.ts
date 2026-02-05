@@ -19,8 +19,8 @@ const experimentUiSchema = {
     expandable: false
   },
   "ui:order": [
-    "project_id",
     "name",
+    "project_id",
     "experiment_id",
     "experiment_type",
     "description",
@@ -187,6 +187,7 @@ const experimentUiSchema = {
     "ui:placeholder": "Select or enter project ID",
     "ui:options": {
       mode: "project",
+      entityType: "experiment",
       lockOnBlur: true,
       defaultLocked: false
     }

@@ -10,7 +10,9 @@ import type {
   ExperimentState,
   DatasetFormData,
   DatasetState,
-  AppFormState
+  AppFormState,
+  ExperimentLinkingMetadata,
+  DatasetLinkingMetadata
 } from "@/types/forms";
 
 // Re-export types for backward compatibility
@@ -18,6 +20,86 @@ export type ExperimentData = ExperimentState;
 export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
+
+// =============================================================================
+// ID Propagation Helpers
+// =============================================================================
+
+/**
+ * Propagate project_id to all experiments that are linked to the project.
+ * Only updates experiments where linking.usesLinkedProjectId is true.
+ */
+function propagateProjectIdToExperiments(
+  experiments: ExperimentState[],
+  projectId: string | undefined
+): ExperimentState[] {
+  return experiments.map((exp) => {
+    // If linking is undefined, treat as legacy (no linking) - don't auto-sync
+    if (!exp.linking?.usesLinkedProjectId) {
+      return exp;
+    }
+    // Update project_id in formData
+    return {
+      ...exp,
+      formData: {
+        ...exp.formData,
+        project_id: projectId || ""
+      },
+      updatedAt: Date.now()
+    };
+  });
+}
+
+/**
+ * Propagate project_id to all datasets that are linked to the project.
+ * Only updates datasets where linking.usesLinkedProjectId is true.
+ */
+function propagateProjectIdToDatasets(
+  datasets: DatasetState[],
+  projectId: string | undefined
+): DatasetState[] {
+  return datasets.map((ds) => {
+    // If linking is undefined, treat as legacy (no linking) - don't auto-sync
+    if (!ds.linking?.usesLinkedProjectId) {
+      return ds;
+    }
+    // Update project_id in formData
+    return {
+      ...ds,
+      formData: {
+        ...ds.formData,
+        project_id: projectId || ""
+      },
+      updatedAt: Date.now()
+    };
+  });
+}
+
+/**
+ * Propagate experiment_id to all datasets linked to the given experiment.
+ * Only updates datasets where linking.linkedExperimentInternalId matches.
+ */
+function propagateExperimentIdToDatasets(
+  datasets: DatasetState[],
+  experimentInternalId: number,
+  experimentId: string | undefined
+): DatasetState[] {
+  return datasets.map((ds) => {
+    // Only update if this dataset is linked to this specific experiment
+    if (ds.linking?.linkedExperimentInternalId !== experimentInternalId) {
+      return ds;
+    }
+    // Update experiment_id in formData
+    return {
+      ...ds,
+      formData: {
+        ...ds.formData,
+        experiment_id: experimentId || ""
+      },
+      updatedAt: Date.now()
+    };
+  });
+}
 
 interface AppStateContextType {
   state: AppState;
@@ -46,6 +128,9 @@ interface AppStateContextType {
   deleteDataset: (id: number) => void;
   setActiveDataset: (id: number | null) => void;
   getDataset: (id: number) => DatasetData | undefined;
+  // ID Linking methods
+  updateExperimentLinking: (id: number, linking: Partial<ExperimentLinkingMetadata>) => void;
+  updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -67,10 +152,26 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   });
 
   const updateProjectData = useCallback((data: ProjectFormData) => {
-    setState((prev) => ({
-      ...prev,
-      projectData: data
-    }));
+    setState((prev) => {
+      const newProjectId = data.project_id;
+      const oldProjectId = prev.projectData.project_id;
+
+      // If project_id changed, propagate to linked experiments and datasets
+      const experimentsNeedUpdate = newProjectId !== oldProjectId;
+      const newExperiments = experimentsNeedUpdate
+        ? propagateProjectIdToExperiments(prev.experiments, newProjectId)
+        : prev.experiments;
+      const newDatasets = experimentsNeedUpdate
+        ? propagateProjectIdToDatasets(prev.datasets, newProjectId)
+        : prev.datasets;
+
+      return {
+        ...prev,
+        projectData: data,
+        experiments: newExperiments,
+        datasets: newDatasets
+      };
+    });
   }, []);
 
   const addExperiment = useCallback(
@@ -88,6 +189,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           name: defaultName,
           formData: {
             project_id: prev.projectData?.project_id || ""
+          },
+          // Initialize with linked mode - new experiments auto-sync project_id
+          linking: {
+            usesLinkedProjectId: true
           },
           createdAt: Date.now(),
           updatedAt: Date.now()
@@ -108,9 +213,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateExperiment = useCallback(
     (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string }) => {
-      setState((prev) => ({
-        ...prev,
-        experiments: prev.experiments.map((exp) =>
+      setState((prev) => {
+        // Find the existing experiment to check for experiment_id changes
+        const existingExp = prev.experiments.find((exp) => exp.id === id);
+        const oldExpId = existingExp?.formData?.experiment_id;
+        const newExpId = data.experiment_id;
+
+        // Update experiments
+        const newExperiments = prev.experiments.map((exp) =>
           exp.id === id
             ? {
                 ...exp,
@@ -120,8 +230,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
                 updatedAt: Date.now()
               }
             : exp
-        )
-      }));
+        );
+
+        // If experiment_id changed, propagate to linked datasets
+        const expIdChanged = newExpId !== undefined && newExpId !== oldExpId;
+        const newDatasets = expIdChanged
+          ? propagateExperimentIdToDatasets(prev.datasets, id, newExpId as string)
+          : prev.datasets;
+
+        return {
+          ...prev,
+          experiments: newExperiments,
+          datasets: newDatasets
+        };
+      });
     },
     []
   );
@@ -195,6 +317,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           formData: {
             project_id: prev.projectData?.project_id || ""
           },
+          // Initialize with linked mode for project, no experiment link
+          linking: {
+            usesLinkedProjectId: true,
+            linkedExperimentInternalId: null
+          },
           createdAt: Date.now(),
           updatedAt: Date.now()
         };
@@ -252,6 +379,103 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       return state.datasets.find((ds) => ds.id === id);
     },
     [state.datasets]
+  );
+
+  // =============================================================================
+  // ID Linking Methods
+  // =============================================================================
+
+  /**
+   * Update experiment linking metadata and sync formData if needed.
+   * When switching to linked mode, immediately sync the project_id.
+   */
+  const updateExperimentLinking = useCallback(
+    (id: number, linking: Partial<ExperimentLinkingMetadata>) => {
+      setState((prev) => ({
+        ...prev,
+        experiments: prev.experiments.map((exp) => {
+          if (exp.id !== id) return exp;
+
+          const newLinking = {
+            ...exp.linking,
+            ...linking
+          } as ExperimentLinkingMetadata;
+
+          // If switching to linked mode, sync project_id from project
+          let newFormData = exp.formData;
+          if (linking.usesLinkedProjectId && !exp.linking?.usesLinkedProjectId) {
+            newFormData = {
+              ...exp.formData,
+              project_id: prev.projectData.project_id || ""
+            };
+          }
+
+          return {
+            ...exp,
+            linking: newLinking,
+            formData: newFormData,
+            updatedAt: Date.now()
+          };
+        })
+      }));
+    },
+    []
+  );
+
+  /**
+   * Update dataset linking metadata and sync formData if needed.
+   * When switching to linked mode, immediately sync the relevant IDs.
+   */
+  const updateDatasetLinking = useCallback(
+    (id: number, linking: Partial<DatasetLinkingMetadata>) => {
+      setState((prev) => ({
+        ...prev,
+        datasets: prev.datasets.map((ds) => {
+          if (ds.id !== id) return ds;
+
+          const newLinking = {
+            ...ds.linking,
+            ...linking
+          } as DatasetLinkingMetadata;
+
+          let newFormData = ds.formData;
+
+          // If switching to linked project mode, sync project_id from project
+          if (linking.usesLinkedProjectId && !ds.linking?.usesLinkedProjectId) {
+            newFormData = {
+              ...newFormData,
+              project_id: prev.projectData.project_id || ""
+            };
+          }
+
+          // If linking to an experiment, sync experiment_id from that experiment
+          if (
+            linking.linkedExperimentInternalId !== undefined &&
+            linking.linkedExperimentInternalId !== ds.linking?.linkedExperimentInternalId
+          ) {
+            if (linking.linkedExperimentInternalId !== null) {
+              // Find the experiment and get its experiment_id
+              const linkedExp = prev.experiments.find(
+                (exp) => exp.id === linking.linkedExperimentInternalId
+              );
+              newFormData = {
+                ...newFormData,
+                experiment_id: (linkedExp?.formData?.experiment_id as string) || ""
+              };
+            }
+            // If setting to null, we leave the current value (user can manually edit)
+          }
+
+          return {
+            ...ds,
+            linking: newLinking,
+            formData: newFormData,
+            updatedAt: Date.now()
+          };
+        })
+      }));
+    },
+    []
   );
 
   // Import all data (project + experiments + datasets) from imported file
@@ -430,7 +654,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     updateDataset,
     deleteDataset,
     setActiveDataset,
-    getDataset
+    getDataset,
+    // ID Linking methods
+    updateExperimentLinking,
+    updateDatasetLinking
   };
 
   return (

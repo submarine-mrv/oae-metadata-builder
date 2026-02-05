@@ -111,14 +111,12 @@ export default function ExperimentPage() {
     setIsInitialLoad(true);
 
     if (experiment) {
-      setFormData({
-        ...experiment.formData,
-        project_id: state.projectData.project_id || ""
-      });
+      // Use experiment's formData directly - project_id is managed by linking system
+      setFormData(experiment.formData);
       // Mark that initial data has been loaded (after a tick to let form mount)
       setTimeout(() => setIsInitialLoad(false), 0);
     }
-  }, [activeExperimentId, state.projectData.project_id]); // Use ID instead of object to avoid infinite loop
+  }, [activeExperimentId, experiment?.formData]); // Track formData changes for linked updates
 
   // Dynamic schema and uiSchema switching based on experiment_type
   useEffect(() => {

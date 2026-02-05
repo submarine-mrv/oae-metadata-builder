@@ -271,6 +271,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         const projectData = cleanProjectData(rawProjectData);
 
         // Convert experiment data to ExperimentState format
+        // Default to custom mode (not linked) for imported data
         const experiments: ExperimentState[] = experimentsData.map(
           (expData: ExperimentFormData, index: number) => ({
             id: index + 1, // Will be reassigned based on nextExperimentId
@@ -280,12 +281,17 @@ export async function importMetadata(file: File): Promise<ImportResult> {
               `Experiment ${index + 1}`,
             formData: expData,
             experiment_type: expData.experiment_type,
+            // Default to custom mode - imported data is not linked
+            linking: {
+              usesLinkedProjectId: false
+            },
             createdAt: Date.now(),
             updatedAt: Date.now()
           })
         );
 
         // Convert dataset data to DatasetState format
+        // Default to custom mode (not linked) for imported data
         const datasets: DatasetState[] = datasetsData.map(
           (dsData: DatasetFormData, index: number) => ({
             id: index + 1, // Will be reassigned based on nextDatasetId
@@ -293,6 +299,11 @@ export async function importMetadata(file: File): Promise<ImportResult> {
               (dsData.name as string) ||
               `Dataset ${index + 1}`,
             formData: dsData,
+            // Default to custom mode - imported data is not linked
+            linking: {
+              usesLinkedProjectId: false,
+              linkedExperimentInternalId: null
+            },
             createdAt: Date.now(),
             updatedAt: Date.now()
           })

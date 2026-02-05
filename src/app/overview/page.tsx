@@ -91,6 +91,24 @@ export default function OverviewPage() {
     }
   };
 
+  // Helper to find linked experiment for a dataset
+  const getLinkedExperiment = (dataset: typeof state.datasets[0]) => {
+    // First check linking metadata
+    if (dataset.linking?.linkedExperimentInternalId) {
+      return state.experiments.find(
+        (e) => e.id === dataset.linking?.linkedExperimentInternalId
+      );
+    }
+    // Fallback: match by experiment_id string
+    const expId = dataset.formData.experiment_id;
+    if (expId) {
+      return state.experiments.find(
+        (e) => e.formData.experiment_id === expId
+      );
+    }
+    return null;
+  };
+
   const getCompletionColor = (percentage: number) => {
     if (percentage === 0) return "gray";
     if (percentage < 33) return "progressOrange.4";
@@ -306,6 +324,7 @@ export default function OverviewPage() {
                 {state.datasets.map((dataset) => {
                   const variableCount =
                     (dataset.formData.variables?.length as number) || 0;
+                  const linkedExperiment = getLinkedExperiment(dataset);
                   return (
                     <Card
                       key={dataset.id}
@@ -338,6 +357,15 @@ export default function OverviewPage() {
                           <Badge variant="light" size="sm">
                             {dataset.formData.dataset_type}
                           </Badge>
+                        )}
+
+                        {linkedExperiment && (
+                          <Group gap="xs">
+                            <IconFlask size={14} color="gray" />
+                            <Text size="xs" c="dimmed">
+                              {linkedExperiment.name}
+                            </Text>
+                          </Group>
                         )}
 
                         <Text size="sm" c="dimmed">

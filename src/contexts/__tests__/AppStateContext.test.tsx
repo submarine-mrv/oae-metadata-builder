@@ -55,25 +55,25 @@ describe('AppStateContext', () => {
       expect(result.current.state.projectData).toEqual(newProjectData);
     });
 
-    it('should preserve other state when updating project data', () => {
+    it('should propagate project_id to linked experiments when updating project data', () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider
       });
 
-      // Add an experiment first
+      // Add an experiment first (defaults to linked mode)
       act(() => {
         result.current.addExperiment('Test Experiment');
       });
-
-      const experimentsBeforeUpdate = result.current.state.experiments;
 
       // Update project data
       act(() => {
         result.current.updateProjectData({ project_id: 'new-project' });
       });
 
-      // Experiments should remain unchanged
-      expect(result.current.state.experiments).toEqual(experimentsBeforeUpdate);
+      // Linked experiments should have their project_id updated
+      expect(result.current.state.experiments[0].formData.project_id).toBe('new-project');
+      // Experiment name and other properties should remain unchanged
+      expect(result.current.state.experiments[0].name).toBe('Test Experiment');
     });
   });
 

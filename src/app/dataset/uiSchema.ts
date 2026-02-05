@@ -17,9 +17,9 @@ const datasetUiSchema = {
     expandable: false
   },
   "ui:order": [
+    "name",
     "project_id",
     "experiment_id",
-    "name",
     "description",
     "temporal_coverage",
     "dataset_type",
@@ -48,6 +48,7 @@ const datasetUiSchema = {
     "ui:placeholder": "Select or enter project ID",
     "ui:options": {
       mode: "project",
+      entityType: "dataset",
       lockOnBlur: true,
       defaultLocked: false
     }
@@ -58,6 +59,7 @@ const datasetUiSchema = {
     "ui:placeholder": "Select or enter experiment ID",
     "ui:options": {
       mode: "experiment",
+      entityType: "dataset",
       lockOnBlur: true,
       defaultLocked: false
     }
