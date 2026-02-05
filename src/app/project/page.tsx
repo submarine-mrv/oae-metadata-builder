@@ -27,7 +27,7 @@ import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
-import LinkedIdWidget from "@/components/rjsf/LinkedIdWidget";
+import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -146,7 +146,7 @@ export default function ProjectPage() {
               CustomSelectWidget: CustomSelectWidget,
               TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget,
-              LinkedIdWidget: LinkedIdWidget
+              LockableIdWidget: LockableIdWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,

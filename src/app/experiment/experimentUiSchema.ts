@@ -37,11 +37,10 @@ const experimentUiSchema = {
   ],
   experiment_id: {
     ...halfWidthStyle,
-    "ui:widget": "LinkedIdWidget",
+    "ui:widget": "LockableIdWidget",
     "ui:placeholder": "e.g., PROJECT-01-BASELINE-01",
     "ui:descriptionModal": true,
     "ui:options": {
-      mode: "simple",
       lockOnBlur: true
     }
   },
@@ -183,13 +182,9 @@ const experimentUiSchema = {
   additional_details: textAreaWidget,
   project_id: {
     ...halfWidthStyle,
-    "ui:widget": "LinkedIdWidget",
-    "ui:placeholder": "Select or enter project ID",
+    "ui:widget": "LinkedProjectIdWidget",
     "ui:options": {
-      mode: "project",
-      entityType: "experiment",
-      lockOnBlur: true,
-      defaultLocked: false
+      entityType: "experiment"
     }
   }
 };

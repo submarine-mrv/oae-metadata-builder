@@ -44,25 +44,14 @@ const datasetUiSchema = {
   // Project and Experiment ID fields - linked to parent entities
   project_id: {
     ...halfWidthStyle,
-    "ui:widget": "LinkedIdWidget",
-    "ui:placeholder": "Select or enter project ID",
+    "ui:widget": "LinkedProjectIdWidget",
     "ui:options": {
-      mode: "project",
-      entityType: "dataset",
-      lockOnBlur: true,
-      defaultLocked: false
+      entityType: "dataset"
     }
   },
   experiment_id: {
     ...halfWidthStyle,
-    "ui:widget": "LinkedIdWidget",
-    "ui:placeholder": "Select or enter experiment ID",
-    "ui:options": {
-      mode: "experiment",
-      entityType: "dataset",
-      lockOnBlur: true,
-      defaultLocked: false
-    }
+    "ui:widget": "LinkedExperimentIdWidget"
   },
   temporal_coverage: {
     "ui:widget": "IsoIntervalWidget",

@@ -34,11 +34,10 @@ const projectUiSchema = {
   ],
   project_id: {
     "ui:style": { width: "50%" },
-    "ui:widget": "LinkedIdWidget",
+    "ui:widget": "LockableIdWidget",
     "ui:placeholder": "Enter project ID",
     "ui:descriptionModal": true,
     "ui:options": {
-      mode: "simple",
       lockOnBlur: true,
       defaultLocked: false
     }
