@@ -54,7 +54,11 @@ export default function OverviewPage() {
 
   const handleDeleteProject = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets.")) {
+    if (
+      confirm(
+        "Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets."
+      )
+    ) {
       deleteProject();
     }
   };
@@ -128,6 +132,35 @@ export default function OverviewPage() {
     return "progressGreen.4";
   };
 
+  // Build list of uncreated entity types for compact card row
+  const uncreatedEntities: Array<{
+    key: string;
+    icon: React.FC<{ size: number; style?: React.CSSProperties }>;
+    label: string;
+    onClick: () => void;
+  }> = [];
+  if (!state.hasProject)
+    uncreatedEntities.push({
+      key: "project",
+      icon: IconFolder,
+      label: "Project",
+      onClick: handleCreateProject
+    });
+  if (state.experiments.length === 0)
+    uncreatedEntities.push({
+      key: "experiment",
+      icon: IconFlask,
+      label: "Experiment",
+      onClick: handleCreateExperiment
+    });
+  if (state.datasets.length === 0)
+    uncreatedEntities.push({
+      key: "dataset",
+      icon: IconDatabase,
+      label: "Dataset",
+      onClick: handleCreateDataset
+    });
+
   return (
     <AppLayout>
       <Container size="lg" py="xl">
@@ -140,28 +173,13 @@ export default function OverviewPage() {
             </Text>
           </div>
 
-          {/* Project Section */}
-          <div>
-            <Group justify="space-between" mb="md">
-              <Title order={2}>Project</Title>
-            </Group>
+          {/* Project Section — only when created */}
+          {state.hasProject && (
+            <div>
+              <Group justify="space-between" mb="md">
+                <Title order={2}>Project</Title>
+              </Group>
 
-            {!state.hasProject ? (
-              <Card shadow="sm" padding="xl" radius="md" withBorder>
-                <Stack align="center" gap="md">
-                  <IconFolder size={48} style={{ opacity: 0.3 }} />
-                  <Text c="dimmed" ta="center">
-                    No project yet. Create your project to get started.
-                  </Text>
-                  <Button
-                    leftSection={<IconPlus size={16} />}
-                    onClick={handleCreateProject}
-                  >
-                    Create Project
-                  </Button>
-                </Stack>
-              </Card>
-            ) : (
               <Card
                 shadow="sm"
                 padding="lg"
@@ -231,46 +249,28 @@ export default function OverviewPage() {
                   </Stack>
                 </Stack>
               </Card>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Experiments Section */}
-          <div>
-            <Group justify="space-between" mb="md">
-              <div>
-                <Title order={2}>Experiments</Title>
-                <Text size="sm" c="dimmed">
-                  {state.experiments.length} experiment
-                  {state.experiments.length !== 1 ? "s" : ""} created
-                </Text>
-              </div>
-              {state.experiments.length > 0 && (
+          {/* Experiments Section — only when experiments exist */}
+          {state.experiments.length > 0 && (
+            <div>
+              <Group justify="space-between" mb="md">
+                <div>
+                  <Title order={2}>Experiments</Title>
+                  <Text size="sm" c="dimmed">
+                    {state.experiments.length} experiment
+                    {state.experiments.length !== 1 ? "s" : ""} created
+                  </Text>
+                </div>
                 <Button
                   leftSection={<IconPlus size={16} />}
                   onClick={handleCreateExperiment}
                 >
                   New Experiment
                 </Button>
-              )}
-            </Group>
+              </Group>
 
-            {state.experiments.length === 0 ? (
-              <Card shadow="sm" padding="xl" radius="md" withBorder>
-                <Stack align="center" gap="md">
-                  <IconFlask size={48} style={{ opacity: 0.3 }} />
-                  <Text c="dimmed" ta="center">
-                    No experiments yet. Create your first experiment to get
-                    started.
-                  </Text>
-                  <Button
-                    leftSection={<IconPlus size={16} />}
-                    onClick={handleCreateExperiment}
-                  >
-                    Create First Experiment
-                  </Button>
-                </Stack>
-              </Card>
-            ) : (
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                 {state.experiments.map((experiment) => {
                   const completion = getExperimentCompletionPercentage(
@@ -363,46 +363,28 @@ export default function OverviewPage() {
                   );
                 })}
               </SimpleGrid>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Datasets Section */}
-          <div>
-            <Group justify="space-between" mb="md">
-              <div>
-                <Title order={2}>Datasets</Title>
-                <Text size="sm" c="dimmed">
-                  {state.datasets.length} dataset
-                  {state.datasets.length !== 1 ? "s" : ""} created
-                </Text>
-              </div>
-              {state.datasets.length > 0 && (
+          {/* Datasets Section — only when datasets exist */}
+          {state.datasets.length > 0 && (
+            <div>
+              <Group justify="space-between" mb="md">
+                <div>
+                  <Title order={2}>Datasets</Title>
+                  <Text size="sm" c="dimmed">
+                    {state.datasets.length} dataset
+                    {state.datasets.length !== 1 ? "s" : ""} created
+                  </Text>
+                </div>
                 <Button
                   leftSection={<IconPlus size={16} />}
                   onClick={handleCreateDataset}
                 >
                   New Dataset
                 </Button>
-              )}
-            </Group>
+              </Group>
 
-            {state.datasets.length === 0 ? (
-              <Card shadow="sm" padding="xl" radius="md" withBorder>
-                <Stack align="center" gap="md">
-                  <IconDatabase size={48} style={{ opacity: 0.3 }} />
-                  <Text c="dimmed" ta="center">
-                    No datasets yet. Create your first dataset to define
-                    variable metadata.
-                  </Text>
-                  <Button
-                    leftSection={<IconPlus size={16} />}
-                    onClick={handleCreateDataset}
-                  >
-                    Create First Dataset
-                  </Button>
-                </Stack>
-              </Card>
-            ) : (
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                 {state.datasets.map((dataset) => {
                   const variableCount =
@@ -498,8 +480,62 @@ export default function OverviewPage() {
                   );
                 })}
               </SimpleGrid>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Compact create cards for uncreated entities */}
+          {uncreatedEntities.length > 0 && (
+            <SimpleGrid
+              cols={
+                uncreatedEntities.length === 1
+                  ? { base: 1 }
+                  : uncreatedEntities.length === 2
+                    ? { base: 1, xs: 2 }
+                    : { base: 1, xs: 2, sm: 3 }
+              }
+              spacing="md"
+              {...(uncreatedEntities.length === 1 ? { maw: 300 } : {})}
+            >
+              {uncreatedEntities.map((entity) => (
+                <Card
+                  key={entity.key}
+                  shadow="none"
+                  padding="lg"
+                  radius="md"
+                  withBorder
+                  style={{
+                    cursor: "pointer",
+                    borderStyle: "dashed",
+                    borderWidth: 2,
+                    borderColor: "var(--mantine-color-gray-4)",
+                    backgroundColor: "transparent",
+                    transition: "border-color 150ms, box-shadow 150ms"
+                  }}
+                  onClick={entity.onClick}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor =
+                      "var(--mantine-color-gray-6)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderStyle = "dashed";
+                    e.currentTarget.style.borderColor =
+                      "var(--mantine-color-gray-4)";
+                  }}
+                >
+                  <Stack align="center" gap="xs">
+                    <entity.icon size={28} style={{ opacity: 0.4 }} />
+                    <Text size="sm" fw={500}>
+                      {entity.label}
+                    </Text>
+                    <Group gap={4}>
+                      <IconPlus size={14} />
+                      <Text size="xs">Create</Text>
+                    </Group>
+                  </Stack>
+                </Card>
+              ))}
+            </SimpleGrid>
+          )}
         </Stack>
       </Container>
     </AppLayout>
