@@ -7,10 +7,20 @@ import {
   Group,
   Stack,
   Text,
-  Alert
+  Alert,
+  Select,
+  Tooltip
 } from "@mantine/core";
-import { IconAlertTriangle, IconFileImport } from "@tabler/icons-react";
-import type { ImportItem } from "@/hooks/useImportPreview";
+import {
+  IconAlertTriangle,
+  IconFileImport,
+  IconCheck
+} from "@tabler/icons-react";
+import type {
+  ImportItem,
+  ExperimentLinkOption,
+  DatasetExperimentLinking
+} from "@/hooks/useImportPreview";
 
 interface ImportPreviewModalProps {
   opened: boolean;
@@ -18,12 +28,31 @@ interface ImportPreviewModalProps {
   filename: string;
   items: ImportItem[];
   onToggleItem: (key: string) => void;
+  onSetDatasetLinking: (
+    datasetKey: string,
+    mode: "use-file" | "explicit",
+    explicitExperimentInternalId?: number,
+    explicitImportKey?: string
+  ) => void;
+  getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
+  duplicateExperimentIdError: string | null;
   onImport: () => void;
 }
 
 /**
+ * Section header component for consistent styling
+ */
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Text size="sm" fw={600} c="dimmed" mb="xs">
+      {title}
+    </Text>
+  );
+}
+
+/**
  * Modal for previewing and selecting items to import.
- * Shows a table with checkboxes, item details, and conflict indicators.
+ * Shows separate sections for projects, experiments, and datasets.
  */
 export default function ImportPreviewModal({
   opened,
@@ -31,77 +60,155 @@ export default function ImportPreviewModal({
   filename,
   items,
   onToggleItem,
+  onSetDatasetLinking,
+  getExperimentLinkOptions,
+  duplicateExperimentIdError,
   onImport
 }: ImportPreviewModalProps) {
   const selectedCount = items.filter((item) => item.selected).length;
-  const hasOverrides = items.some(
-    (item) => item.selected && item.conflict === "override"
-  );
   const noneSelected = selectedCount === 0;
+  const hasBlockingError = duplicateExperimentIdError !== null;
 
-  // Group items by type for display
+  // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
   const experimentItems = items.filter((item) => item.type === "experiment");
   const datasetItems = items.filter((item) => item.type === "dataset");
 
-  const renderOverrideText = (item: ImportItem) => {
-    if (item.conflict === "override") {
-      return <Text size="sm">{item.conflictReason}</Text>;
+  // Build summary text
+  const summaryParts: string[] = [];
+  if (projectItems.length > 0) {
+    summaryParts.push("project metadata");
+  }
+  if (experimentItems.length > 0) {
+    summaryParts.push(
+      `${experimentItems.length} experiment${experimentItems.length !== 1 ? "s" : ""}`
+    );
+  }
+  if (datasetItems.length > 0) {
+    summaryParts.push(
+      `${datasetItems.length} dataset${datasetItems.length !== 1 ? "s" : ""}`
+    );
+  }
+
+  /**
+   * Parse the select value and call the linking handler
+   */
+  const handleLinkingChange = (datasetKey: string, value: string | null) => {
+    if (!value) return;
+
+    if (value === "use-file") {
+      onSetDatasetLinking(datasetKey, "use-file");
+    } else if (value.startsWith("existing-")) {
+      const internalId = parseInt(value.replace("existing-", ""), 10);
+      onSetDatasetLinking(datasetKey, "explicit", internalId, undefined);
+    } else if (value.startsWith("importing-")) {
+      const importKey = value.replace("importing-", "");
+      onSetDatasetLinking(datasetKey, "explicit", undefined, importKey);
+    }
+  };
+
+  /**
+   * Get the current select value for a dataset's linking
+   */
+  const getLinkingSelectValue = (
+    linking: DatasetExperimentLinking | undefined
+  ): string => {
+    if (!linking || linking.mode === "use-file") {
+      return "use-file";
+    }
+    if (linking.explicitExperimentInternalId !== undefined) {
+      return `existing-${linking.explicitExperimentInternalId}`;
+    }
+    if (linking.explicitImportKey) {
+      return `importing-${linking.explicitImportKey}`;
+    }
+    return "use-file";
+  };
+
+  /**
+   * Render a warning icon with tooltip for override conflicts
+   */
+  const renderWarningIcon = (
+    item: ImportItem,
+    tooltipText: string
+  ): React.ReactNode => {
+    if (item.conflict !== "override") {
+      return null;
     }
     return (
-      <Text size="sm" c="dimmed">
-        Create new metadata record
-      </Text>
+      <Tooltip label={tooltipText} withArrow>
+        <IconAlertTriangle size={16} color="var(--mantine-color-orange-6)" />
+      </Tooltip>
     );
   };
 
-  const renderRow = (item: ImportItem) => (
-    <Table.Tr
-      key={item.key}
-      style={{
-        opacity: item.selected ? 1 : 0.5
-      }}
-    >
-      <Table.Td>
-        <Checkbox
-          checked={item.selected}
-          onChange={() => onToggleItem(item.key)}
-          aria-label={`Select ${item.name}`}
-        />
-      </Table.Td>
-      <Table.Td>
-        <Text size="sm" fw={500}>
-          {item.name}
-        </Text>
-        {item.id && item.id !== item.name && (
-          <Text size="xs" c="dimmed">
-            ID: {item.id}
+  const renderExperimentRow = (item: ImportItem) => {
+    return (
+      <Table.Tr key={item.key} style={{ opacity: item.selected ? 1 : 0.5 }}>
+        <Table.Td>
+          <Checkbox
+            checked={item.selected}
+            onChange={() => onToggleItem(item.key)}
+            aria-label={`Select ${item.name}`}
+          />
+        </Table.Td>
+        <Table.Td>
+          <Text size="sm" fw={500}>
+            {item.name}
           </Text>
-        )}
-      </Table.Td>
-      <Table.Td>{renderOverrideText(item)}</Table.Td>
-    </Table.Tr>
-  );
+        </Table.Td>
+        <Table.Td>
+          <Text size="sm" c={item.id ? undefined : "dimmed"}>
+            {item.id || "—"}
+          </Text>
+        </Table.Td>
+        <Table.Td style={{ width: 40 }}>
+          {renderWarningIcon(
+            item,
+            "Experiments with the same experiment_id will be overwritten"
+          )}
+        </Table.Td>
+      </Table.Tr>
+    );
+  };
 
-  const renderSection = (title: string, sectionItems: ImportItem[]) => {
-    if (sectionItems.length === 0) {
-      return null;
-    }
+  const renderDatasetRow = (item: ImportItem) => {
+    // Get per-dataset options
+    const selectData = getExperimentLinkOptions(item.key);
 
     return (
-      <>
-        <Table.Tr>
-          <Table.Td
-            colSpan={3}
-            style={{ backgroundColor: "var(--mantine-color-gray-1)" }}
-          >
-            <Text size="sm" fw={600} c="dimmed">
-              {title} Metadata
-            </Text>
-          </Table.Td>
-        </Table.Tr>
-        {sectionItems.map(renderRow)}
-      </>
+      <Table.Tr key={item.key} style={{ opacity: item.selected ? 1 : 0.5 }}>
+        <Table.Td>
+          <Checkbox
+            checked={item.selected}
+            onChange={() => onToggleItem(item.key)}
+            aria-label={`Select ${item.name}`}
+          />
+        </Table.Td>
+        <Table.Td>
+          <Text size="sm" fw={500}>
+            {item.name}
+          </Text>
+        </Table.Td>
+        <Table.Td>
+          <Select
+            size="xs"
+            data={selectData}
+            value={getLinkingSelectValue(item.experimentLinking)}
+            onChange={(value) => handleLinkingChange(item.key, value)}
+            disabled={!item.selected}
+            styles={{
+              input: { minWidth: 200 }
+            }}
+          />
+        </Table.Td>
+        <Table.Td style={{ width: 40 }}>
+          {renderWarningIcon(
+            item,
+            "Datasets with the same title will be overwritten"
+          )}
+        </Table.Td>
+      </Table.Tr>
     );
   };
 
@@ -119,47 +226,88 @@ export default function ImportPreviewModal({
       size="xl"
     >
       <Stack gap="md">
-        <Text size="sm" c="dimmed">
-          Importing from: <strong>{filename}</strong>
-        </Text>
+        {/* Success message with summary */}
+        {!duplicateExperimentIdError && summaryParts.length > 0 && (
+          <Alert icon={<IconCheck size={18} />} color="teal" variant="light">
+            <Text size="sm">OAE metadata file was loaded successfully.</Text>
+          </Alert>
+        )}
 
-        {/* Items table */}
-        <Table highlightOnHover withTableBorder>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th style={{ width: 40 }}></Table.Th>
-              <Table.Th>Name</Table.Th>
-              <Table.Th>Import Strategy</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {renderSection("Project", projectItems)}
-            {renderSection("Experiment", experimentItems)}
-            {renderSection("Dataset", datasetItems)}
-            {items.length === 0 && (
-              <Table.Tr>
-                <Table.Td colSpan={3}>
-                  <Text ta="center" c="dimmed" py="md">
-                    No items found in the imported file
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-
-        {/* Warning for overrides */}
-        {hasOverrides && (
+        {/* Duplicate experiment_id error */}
+        {duplicateExperimentIdError && (
           <Alert
             icon={<IconAlertTriangle size={18} />}
-            color="orange"
+            color="red"
             variant="light"
           >
-            <Text size="sm">
-              Some selected items will override existing data. This cannot be
-              undone.
-            </Text>
+            <Text size="sm">{duplicateExperimentIdError}</Text>
           </Alert>
+        )}
+
+        {/* Project Section */}
+        {projectItems.length > 0 && (
+          <Stack gap={4}>
+            <SectionHeader title="Project Metadata" />
+            <Group gap="xs">
+              <Checkbox
+                checked={projectItems[0].selected}
+                onChange={() => onToggleItem(projectItems[0].key)}
+                label={
+                  <Text size="sm" fw={500}>
+                    Import project metadata from file
+                  </Text>
+                }
+              />
+              {renderWarningIcon(
+                projectItems[0],
+                "Existing project metadata will be overwritten"
+              )}
+            </Group>
+          </Stack>
+        )}
+
+        {/* Experiments Section */}
+        {experimentItems.length > 0 && (
+          <Stack gap={4}>
+            <SectionHeader title="Experiments" />
+            <Table highlightOnHover withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th style={{ width: 40 }}></Table.Th>
+                  <Table.Th>Name</Table.Th>
+                  <Table.Th>Experiment ID</Table.Th>
+                  <Table.Th style={{ width: 40 }}></Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {experimentItems.map(renderExperimentRow)}
+              </Table.Tbody>
+            </Table>
+          </Stack>
+        )}
+
+        {/* Datasets Section */}
+        {datasetItems.length > 0 && (
+          <Stack gap={4}>
+            <SectionHeader title="Datasets" />
+            <Table highlightOnHover withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th style={{ width: 40 }}></Table.Th>
+                  <Table.Th>Name</Table.Th>
+                  <Table.Th>Linked Experiment</Table.Th>
+                  <Table.Th style={{ width: 40 }}></Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>{datasetItems.map(renderDatasetRow)}</Table.Tbody>
+            </Table>
+          </Stack>
+        )}
+
+        {items.length === 0 && (
+          <Text ta="center" c="dimmed" py="md">
+            No items found in the imported file
+          </Text>
         )}
 
         {/* Action buttons */}
@@ -169,8 +317,7 @@ export default function ImportPreviewModal({
           </Button>
           <Button
             onClick={onImport}
-            disabled={noneSelected}
-            color={hasOverrides ? "orange" : undefined}
+            disabled={noneSelected || hasBlockingError}
           >
             Import {selectedCount} item{selectedCount !== 1 ? "s" : ""}
           </Button>

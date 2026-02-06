@@ -95,7 +95,10 @@ export default function Navigation() {
 
   const handleImport = () => {
     const selected = importPreview.getSelectedItems();
-    importSelectedData(selected.project, selected.experiments, selected.datasets);
+    // Extract just the formData for experiments (they don't have linking config in import)
+    const experimentFormData = selected.experiments;
+    // Pass datasets with their linking configuration
+    importSelectedData(selected.project, experimentFormData, selected.datasets);
     importPreview.closePreview();
     router.push("/overview");
   };
@@ -221,6 +224,9 @@ export default function Navigation() {
         filename={importPreview.state.filename}
         items={importPreview.state.items}
         onToggleItem={importPreview.toggleItem}
+        onSetDatasetLinking={importPreview.setDatasetExperimentLinking}
+        getExperimentLinkOptions={importPreview.getExperimentLinkOptions}
+        duplicateExperimentIdError={importPreview.state.duplicateExperimentIdError}
         onImport={handleImport}
       />
     </>

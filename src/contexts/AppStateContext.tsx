@@ -14,6 +14,7 @@ import type {
   ExperimentLinkingMetadata,
   DatasetLinkingMetadata
 } from "@/types/forms";
+import type { DatasetExperimentLinking } from "@/hooks/useImportPreview";
 
 // Re-export types for backward compatibility
 export type ExperimentData = ExperimentState;
@@ -117,7 +118,10 @@ interface AppStateContextType {
   importSelectedData: (
     projectData: ProjectFormData | null,
     experiments: ExperimentFormData[],
-    datasets: DatasetFormData[]
+    datasets: Array<{
+      formData: DatasetFormData;
+      experimentLinking?: DatasetExperimentLinking;
+    }>
   ) => void;
   setTriggerValidation: (trigger: boolean) => void;
   setShowJsonPreview: (show: boolean) => void;
@@ -515,11 +519,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // - Project: replaces existing project data if provided
   // - Experiments: replaces matching experiment_id, or adds new if no match/empty id
   // - Datasets: replaces matching name, or adds new if no match/empty name
+  //   - Also applies experiment linking configuration
   const importSelectedData = useCallback(
     (
       projectData: ProjectFormData | null,
       experiments: ExperimentFormData[],
-      datasets: DatasetFormData[]
+      datasets: Array<{
+        formData: DatasetFormData;
+        experimentLinking?: DatasetExperimentLinking;
+      }>
     ) => {
       setState((prev) => {
         // Handle project - simply replace if provided
@@ -528,12 +536,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           : prev.projectData;
 
         // Handle experiments - replace matching or add new
+        // Track mapping from import key (e.g., "experiment-0") to internal ID for cross-import linking
+        const importKeyToInternalId: Record<string, number> = {};
         const newExperiments = [...prev.experiments];
         let nextExpId = prev.nextExperimentId;
 
-        for (const expData of experiments) {
+        experiments.forEach((expData, index) => {
           const expId = expData.experiment_id as string | undefined;
           const expName = (expData.name as string) || expId;
+          const importKey = `experiment-${index}`;
 
           // Find existing experiment by experiment_id or name
           const existingIndex = expId
@@ -551,38 +562,88 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               experiment_type: expData.experiment_type,
               updatedAt: Date.now()
             };
+            // Map import key to existing internal ID
+            importKeyToInternalId[importKey] = newExperiments[existingIndex].id;
           } else {
             // Add as new experiment
+            const newInternalId = nextExpId;
             newExperiments.push({
-              id: nextExpId,
-              name: expName || `Experiment ${nextExpId}`,
+              id: newInternalId,
+              name: expName || `Experiment ${newInternalId}`,
               formData: expData,
               experiment_type: expData.experiment_type,
               createdAt: Date.now(),
               updatedAt: Date.now()
             });
+            // Map import key to new internal ID
+            importKeyToInternalId[importKey] = newInternalId;
             nextExpId++;
           }
-        }
+        });
 
         // Handle datasets - replace matching or add new
         const newDatasets = [...prev.datasets];
         let nextDsId = prev.nextDatasetId;
 
-        for (const dsData of datasets) {
+        for (const { formData: dsData, experimentLinking } of datasets) {
           const dsName = dsData.name as string | undefined;
+
+          // Resolve experiment linking to internal ID
+          let linkedExperimentInternalId: number | null = null;
+
+          if (experimentLinking) {
+            if (experimentLinking.mode === "use-file") {
+              // Use the resolved match from the preview
+              const resolved = experimentLinking.resolvedMatch;
+              if (resolved?.type === "existing" && resolved.internalId !== undefined) {
+                linkedExperimentInternalId = resolved.internalId;
+              } else if (resolved?.type === "importing" && resolved.importKey) {
+                // Cross-import linking: map import key to the newly-assigned internal ID
+                linkedExperimentInternalId = importKeyToInternalId[resolved.importKey] ?? null;
+              }
+            } else if (experimentLinking.mode === "explicit") {
+              if (experimentLinking.explicitExperimentInternalId !== undefined) {
+                // Explicitly linking to existing experiment
+                linkedExperimentInternalId = experimentLinking.explicitExperimentInternalId;
+              } else if (experimentLinking.explicitImportKey) {
+                // Explicitly linking to importing experiment
+                linkedExperimentInternalId =
+                  importKeyToInternalId[experimentLinking.explicitImportKey] ?? null;
+              }
+            }
+          }
+
+          // Find the linked experiment to get its experiment_id for the formData
+          let experimentIdToSet: string | undefined;
+          if (linkedExperimentInternalId !== null) {
+            const linkedExp = newExperiments.find((e) => e.id === linkedExperimentInternalId);
+            experimentIdToSet = linkedExp?.formData.experiment_id as string | undefined;
+          }
+
+          // Update formData with resolved experiment_id if linking is set
+          const finalFormData: DatasetFormData =
+            linkedExperimentInternalId !== null && experimentIdToSet
+              ? { ...dsData, experiment_id: experimentIdToSet }
+              : dsData;
 
           // Find existing dataset by name
           const existingIndex = dsName
             ? newDatasets.findIndex((d) => d.name === dsName)
             : -1;
 
+          // Build linking metadata for the dataset
+          const datasetLinking: DatasetLinkingMetadata = {
+            usesLinkedProjectId: true, // Default to linked for imports
+            linkedExperimentInternalId
+          };
+
           if (existingIndex >= 0) {
             // Replace existing dataset
             newDatasets[existingIndex] = {
               ...newDatasets[existingIndex],
-              formData: dsData,
+              formData: finalFormData,
               name: dsName || newDatasets[existingIndex].name,
+              linking: datasetLinking,
               updatedAt: Date.now()
             };
           } else {
@@ -590,7 +651,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             newDatasets.push({
               id: nextDsId,
               name: dsName || `Dataset ${nextDsId}`,
-              formData: dsData,
+              formData: finalFormData,
+              linking: datasetLinking,
               createdAt: Date.now(),
               updatedAt: Date.now()
             });
