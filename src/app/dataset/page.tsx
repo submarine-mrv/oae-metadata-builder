@@ -27,6 +27,7 @@ import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
+import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import FilenamesField from "@/components/FilenamesField";
@@ -126,16 +127,10 @@ export default function DatasetPage() {
   // Show message if no dataset is selected
   if (!currentDataset) {
     return (
-      <AppLayout>
-        <Container size="md" py="xl">
-          <Stack align="center" gap="md">
-            <Title order={2}>No Dataset Selected</Title>
-            <Text c="dimmed">
-              Please create or select a dataset from the Overview page.
-            </Text>
-          </Stack>
-        </Container>
-      </AppLayout>
+      <EmptyEntityPage
+        title="No Dataset Selected"
+        description="Please create or select a dataset from the Overview page."
+      />
     );
   }
 

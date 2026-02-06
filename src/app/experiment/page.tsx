@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   Container,
   Title,
@@ -9,7 +8,7 @@ import {
   Button,
   Group
 } from "@mantine/core";
-import { IconArrowLeft, IconDownload } from "@tabler/icons-react";
+import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -33,6 +32,7 @@ import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
 import AppLayout from "@/components/AppLayout";
+import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -79,7 +79,6 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
 ];
 
 export default function ExperimentPage() {
-  const router = useRouter();
   const { state, updateExperiment, setActiveTab } =
     useAppState();
 
@@ -198,23 +197,10 @@ export default function ExperimentPage() {
 
   if (!experiment) {
     return (
-      <AppLayout>
-        <Container size="md" py="lg">
-          <Stack gap="md">
-            <Title order={2}>No Experiment Selected</Title>
-            <Text c="dimmed">
-              Please go back to the overview and select an experiment to edit,
-              or create a new one.
-            </Text>
-            <Button
-              onClick={() => router.push("/overview")}
-              leftSection={<IconArrowLeft size={16} />}
-            >
-              Back to Overview
-            </Button>
-          </Stack>
-        </Container>
-      </AppLayout>
+      <EmptyEntityPage
+        title="No Experiment Selected"
+        description="Please create or select an experiment from the Overview page."
+      />
     );
   }
 
