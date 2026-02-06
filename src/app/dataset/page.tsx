@@ -108,8 +108,9 @@ export default function DatasetPage() {
   );
 
   // Use the download hook
+  const hasExperiments = state.experiments.length > 0;
   const download = useSingleItemDownload({
-    validate: () => validateDataset(formData),
+    validate: () => validateDataset(formData, { hasExperiments }),
     export: () => exportSingleDataset(state.projectData, formData)
   });
 

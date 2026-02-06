@@ -106,8 +106,6 @@ export interface DatasetLinkingMetadata {
   usesLinkedProjectId: boolean;
   /** If set, experiment_id auto-syncs from this experiment's internal ID */
   linkedExperimentInternalId: number | null;
-  /** If true, user has chosen custom/manual experiment_id entry (shows text input) */
-  usesCustomExperimentId?: boolean;
 }
 
 // =============================================================================

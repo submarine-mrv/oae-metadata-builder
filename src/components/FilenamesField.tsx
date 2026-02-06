@@ -17,6 +17,7 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
     disabled,
     readonly,
     schema,
+    uiSchema,
     name,
     fieldPathId,
     rawErrors
@@ -31,13 +32,25 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
     onChange(newValues, fieldPathId.path, undefined, fieldPathId.$id);
   };
 
+  const addPillFromSearch = () => {
+    const filename = search.trim();
+    if (filename && !values.includes(filename)) {
+      handleChange([...values, filename]);
+      setSearch("");
+      return true;
+    }
+    return false;
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      const filename = search.trim();
-      if (filename && !values.includes(filename)) {
-        handleChange([...values, filename]);
-        setSearch("");
+      addPillFromSearch();
+    } else if (e.key === "Tab") {
+      // Only prevent default Tab if there's text to convert to a pill
+      if (search.trim()) {
+        e.preventDefault();
+        addPillFromSearch();
       }
     } else if (
       e.key === "Backspace" &&
@@ -52,8 +65,9 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
     handleChange(values.filter((f) => f !== filenameToRemove));
   };
 
-  // Get label from schema title or use the field name
+  // Get label from uiSchema title, schema title, or derive from field name
   const label =
+    (uiSchema?.["ui:title"] as string) ||
     schema.title ||
     name
       .split("_")
@@ -90,6 +104,7 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
             value={search}
             onChange={(e) => setSearch(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
+            onBlur={addPillFromSearch}
             disabled={disabled || readonly}
           />
         </Pill.Group>

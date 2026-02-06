@@ -1,5 +1,5 @@
 /**
- * LockableIdWidget - Text input with lock/unlock for source ID fields
+ * LockableIdWidget - Text input with inline pencil icon for source ID fields
  *
  * Used for:
  * - Project page: project_id (the source/master project ID)
@@ -7,20 +7,21 @@
  *
  * Behavior:
  * - Auto-locks when a value is present (prevents accidental edits)
- * - Click unlock icon to edit, auto-locks on blur
- * - Visual feedback: grey background when locked
+ * - When locked: dimmed input with pencil icon inside (right section)
+ * - Click pencil to unlock and edit; pencil disappears while editing
+ * - Auto-locks on blur, pencil reappears, input dims again
  */
 
-import React, { useState, useCallback, useEffect } from "react";
-import { TextInput } from "@mantine/core";
-import { IconLock, IconLockOpen } from "@tabler/icons-react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { TextInput, ActionIcon, Box, Text, Tooltip } from "@mantine/core";
+import { IconPencil, IconInfoCircle } from "@tabler/icons-react";
 import {
   FormContextType,
   RJSFSchema,
   StrictRJSFSchema,
   WidgetProps
 } from "@rjsf/utils";
-import { IdFieldLayout } from "./IdFieldLayout";
+import DescriptionModal from "./DescriptionModal";
 
 interface LockableIdOptions {
   lockOnBlur?: boolean;
@@ -44,12 +45,19 @@ export default function LockableIdWidget<
     rawErrors,
     onChange,
     onBlur,
+    schema,
     uiSchema
   } = props;
+
+  const description = schema?.description;
+  const useModal = uiSchema?.["ui:descriptionModal"] === true;
+  const [modalOpened, setModalOpened] = useState(false);
 
   const options = (uiSchema?.["ui:options"] || {}) as LockableIdOptions;
   const lockOnBlur = options.lockOnBlur !== false; // default: true
   const defaultLocked = options.defaultLocked || false;
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Lock state - start locked if there's a value
   const [isLocked, setIsLocked] = useState(() => (value ? true : defaultLocked));
@@ -63,12 +71,12 @@ export default function LockableIdWidget<
     }
   }, [value, hasBeenUnlockedManually, isFocused]);
 
-  const handleToggleLock = useCallback(() => {
-    setIsLocked((prev) => {
-      if (prev) {
-        setHasBeenUnlockedManually(true);
-      }
-      return !prev;
+  const handlePencilClick = useCallback(() => {
+    setIsLocked(false);
+    setHasBeenUnlockedManually(true);
+    // Focus the input after unlocking
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
     });
   }, []);
 
@@ -106,29 +114,93 @@ export default function LockableIdWidget<
   };
 
   return (
-    <IdFieldLayout
-      buttonIcon={isLocked ? <IconLock size={18} /> : <IconLockOpen size={18} />}
-      buttonTooltip={isLocked ? "Unlock to edit" : "Lock field"}
-      buttonVariant={isLocked ? "light" : "default"}
-      buttonAriaLabel={isLocked ? "Unlock field to edit" : "Lock field"}
-      onButtonClick={handleToggleLock}
-      buttonDisabled={disabled || readonly}
-      hasError={hasError}
-    >
-      <TextInput
-        id={id}
-        label={hideLabel ? undefined : label}
-        placeholder={placeholder}
-        value={value || ""}
-        required={required}
-        disabled={disabled}
-        readOnly={readonly || isLocked}
-        error={errorMessage}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        styles={isLocked ? lockedStyles : undefined}
-      />
-    </IdFieldLayout>
+    <>
+      <Box style={{ position: "relative" }}>
+        <TextInput
+          ref={inputRef}
+          id={id}
+          label={hideLabel ? undefined : label}
+          placeholder={placeholder}
+          value={value || ""}
+          required={required}
+          disabled={disabled}
+          readOnly={readonly || isLocked}
+          error={errorMessage}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          styles={isLocked ? lockedStyles : undefined}
+          rightSection={
+            isLocked && !disabled && !readonly ? (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={handlePencilClick}
+                aria-label="Click to edit"
+              >
+                <IconPencil size={16} />
+              </ActionIcon>
+            ) : undefined
+          }
+        />
+        {description && !hideLabel && (
+          <Box style={{
+            position: "absolute",
+            top: "2px",
+            left: "0",
+            display: "flex",
+            alignItems: "center",
+            pointerEvents: "none"
+          }}>
+            <Text
+              size="sm"
+              fw={500}
+              style={{
+                visibility: "hidden",
+                marginRight: "4px"
+              }}
+            >
+              {label}{required && " *"}
+            </Text>
+            <Box style={{ pointerEvents: "auto" }}>
+              {useModal ? (
+                <ActionIcon
+                  variant="transparent"
+                  size="xs"
+                  color="gray"
+                  onClick={() => setModalOpened(true)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <IconInfoCircle size={14} />
+                </ActionIcon>
+              ) : (
+                <Tooltip
+                  label={description}
+                  position="top"
+                  withArrow
+                  multiline
+                  maw={400}
+                  style={{ wordWrap: "break-word" }}
+                >
+                  <ActionIcon variant="transparent" size="xs" color="gray">
+                    <IconInfoCircle size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+        )}
+      </Box>
+
+      {useModal && description && (
+        <DescriptionModal
+          opened={modalOpened}
+          onClose={() => setModalOpened(false)}
+          title={label}
+          description={description}
+        />
+      )}
+    </>
   );
 }

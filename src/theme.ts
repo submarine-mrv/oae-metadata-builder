@@ -281,6 +281,15 @@ export const theme = createTheme({
       },
     },
 
+    Pill: {
+      styles: {
+        root: {
+          backgroundColor: brandColors.twilight,
+          color: brandColors.hadal,
+        },
+      },
+    },
+
     // Title component styling
     Title: {
       styles: {

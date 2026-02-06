@@ -92,7 +92,7 @@ export default function OverviewPage() {
   };
 
   // Helper to find linked experiment for a dataset
-  const getLinkedExperiment = (dataset: typeof state.datasets[0]) => {
+  const getLinkedExperiment = (dataset: (typeof state.datasets)[0]) => {
     // First check linking metadata
     if (dataset.linking?.linkedExperimentInternalId) {
       return state.experiments.find(
@@ -102,9 +102,7 @@ export default function OverviewPage() {
     // Fallback: match by experiment_id string
     const expId = dataset.formData.experiment_id;
     if (expId) {
-      return state.experiments.find(
-        (e) => e.formData.experiment_id === expId
-      );
+      return state.experiments.find((e) => e.formData.experiment_id === expId);
     }
     return null;
   };
@@ -228,15 +226,39 @@ export default function OverviewPage() {
                       onClick={() => handleEditExperiment(experiment.id)}
                     >
                       <Stack gap="sm">
-                        <Group justify="space-between">
-                          <Group gap="xs">
-                            <IconFlask size={20} />
-                            <Text fw={600}>{experiment.name}</Text>
+                        <Group
+                          justify="space-between"
+                          wrap="nowrap"
+                          align="flex-start"
+                        >
+                          <Group
+                            gap="xs"
+                            wrap="nowrap"
+                            align="flex-start"
+                            style={{ minWidth: 0 }}
+                          >
+                            <IconFlask
+                              size={20}
+                              style={{ flexShrink: 0, marginTop: 2 }}
+                            />
+                            <Text
+                              fw={600}
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                wordBreak: "break-word"
+                              }}
+                            >
+                              {experiment.name}
+                            </Text>
                           </Group>
                           <Button
                             variant="subtle"
                             color="red"
                             size="xs"
+                            style={{ flexShrink: 0 }}
                             onClick={(e) =>
                               handleDeleteExperiment(experiment.id, e)
                             }
@@ -336,38 +358,71 @@ export default function OverviewPage() {
                       onClick={() => handleEditDataset(dataset.id)}
                     >
                       <Stack gap="sm">
-                        <Group justify="space-between">
-                          <Group gap="xs">
-                            <IconDatabase size={20} />
-                            <Text fw={600}>{dataset.name}</Text>
+                        <Group
+                          justify="space-between"
+                          wrap="nowrap"
+                          align="flex-start"
+                        >
+                          <Group
+                            gap="xs"
+                            wrap="nowrap"
+                            align="flex-start"
+                            style={{ minWidth: 0 }}
+                          >
+                            <IconDatabase
+                              size={20}
+                              style={{ flexShrink: 0, marginTop: 2 }}
+                            />
+                            <Text
+                              fw={600}
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                wordBreak: "break-word"
+                              }}
+                            >
+                              {dataset.name}
+                            </Text>
                           </Group>
                           <Button
                             variant="subtle"
                             color="red"
                             size="xs"
-                            onClick={(e) =>
-                              handleDeleteDataset(dataset.id, e)
-                            }
+                            style={{ flexShrink: 0 }}
+                            onClick={(e) => handleDeleteDataset(dataset.id, e)}
                           >
                             <IconTrash size={16} />
                           </Button>
                         </Group>
-
+                        {linkedExperiment && (
+                          <Group gap="xs" wrap="nowrap" align="flex-start">
+                            <IconFlask
+                              size={14}
+                              color="gray"
+                              style={{ flexShrink: 0, marginTop: 1 }}
+                            />
+                            <Text
+                              size="xs"
+                              c="dimmed"
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                wordBreak: "break-word"
+                              }}
+                            >
+                              {linkedExperiment.name}
+                            </Text>
+                          </Group>
+                        )}
                         {dataset.formData.dataset_type && (
                           <Badge variant="light" size="sm">
                             {dataset.formData.dataset_type}
                           </Badge>
                         )}
-
-                        {linkedExperiment && (
-                          <Group gap="xs">
-                            <IconFlask size={14} color="gray" />
-                            <Text size="xs" c="dimmed">
-                              {linkedExperiment.name}
-                            </Text>
-                          </Group>
-                        )}
-
                         <Text size="sm" c="dimmed">
                           {variableCount} variable
                           {variableCount !== 1 ? "s" : ""} defined

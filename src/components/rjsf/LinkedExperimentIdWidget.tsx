@@ -1,27 +1,19 @@
 /**
- * LinkedExperimentIdWidget - Select experiment from dropdown or enter custom ID
+ * LinkedExperimentIdWidget - Select experiment from dropdown
  *
  * Used for:
  * - Dataset page: experiment_id
  *
- * Mode Determination:
- * 1. Default: dropdown mode (even if no experiments exist yet)
- * 2. User has chosen custom mode (usesCustomExperimentId=true) → "freetext" mode
- *
- * When no experiments with IDs exist, dropdown is shown but disabled with a
- * placeholder message indicating options will be autopopulated when available.
- *
- * State Persistence:
- * - During a session: usesCustomExperimentId persists even if value is cleared
- * - On navigation back (remount): if value is empty, resets to dropdown mode
- *
- * The link icon represents the MODE (dropdown vs freetext), not whether an
- * experiment is actually selected. Dropdown mode = linked icon, freetext = unlinked icon.
+ * Behavior:
+ * - Hidden when no experiments exist in the app
+ * - Shows all experiments in the dropdown (by name), plus a "None" option
+ * - When linked experiment has an experiment_id, uses that value
+ * - When linked experiment has no experiment_id, shows a warning error
  */
 
-import React, { useCallback, useEffect, useMemo } from "react";
-import { TextInput, Select, ComboboxItem } from "@mantine/core";
-import { IconLink, IconLinkOff } from "@tabler/icons-react";
+import React, { useMemo, useState } from "react";
+import { Select, ComboboxItem, Box, Text, Tooltip, ActionIcon } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import {
   FormContextType,
   RJSFSchema,
@@ -29,9 +21,9 @@ import {
   WidgetProps
 } from "@rjsf/utils";
 import { useAppState } from "@/contexts/AppStateContext";
-import { IdFieldLayout } from "./IdFieldLayout";
+import DescriptionModal from "./DescriptionModal";
 
-const CUSTOM_OPTION_VALUE = "__custom__";
+const NONE_OPTION_VALUE = "__none__";
 
 export default function LinkedExperimentIdWidget<
   T = any,
@@ -41,7 +33,6 @@ export default function LinkedExperimentIdWidget<
   const {
     id,
     value,
-    placeholder,
     required,
     disabled,
     readonly,
@@ -49,8 +40,14 @@ export default function LinkedExperimentIdWidget<
     hideLabel,
     rawErrors,
     onChange,
-    onBlur
+    onBlur,
+    schema,
+    uiSchema
   } = props;
+
+  const description = schema?.description;
+  const useModal = uiSchema?.["ui:descriptionModal"] === true;
+  const [modalOpened, setModalOpened] = useState(false);
 
   const { state, updateDatasetLinking } = useAppState();
 
@@ -64,178 +61,90 @@ export default function LinkedExperimentIdWidget<
     return ds?.linking || null;
   }, [datasetInternalId, state.datasets]);
 
-  // Experiments that have an experiment_id set
-  const experimentsWithIds = useMemo(
-    () => state.experiments.filter((exp) => exp.formData?.experiment_id),
-    [state.experiments]
-  );
-
   // Which experiment is currently linked (if any)
   const linkedExperimentInternalId =
     linkingMetadata?.linkedExperimentInternalId ?? null;
 
-  // Lazy reset: if value is empty on mount, reset to dropdown mode
-  // This handles the "navigate away and back" case
-  useEffect(() => {
-    if (datasetInternalId === undefined) return;
-    if (!value && linkingMetadata?.usesCustomExperimentId) {
-      updateDatasetLinking(datasetInternalId, {
-        usesCustomExperimentId: false
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount - intentionally empty deps
+  // Get the linked experiment object
+  const linkedExperiment = useMemo(() => {
+    if (linkedExperimentInternalId === null) return null;
+    return state.experiments.find((e) => e.id === linkedExperimentInternalId) || null;
+  }, [linkedExperimentInternalId, state.experiments]);
 
-  // Lock in freetext mode if we have a non-empty value but usesCustomExperimentId was never set
-  // This handles the case where user entered a value when no experiments existed,
-  // then later experiments with IDs are created - we should stay in freetext mode
-  // Note: we check for `=== undefined` (not just falsy) to respect explicit `false` values
-  // set by user actions like clicking the link button to switch to dropdown mode
-  useEffect(() => {
-    if (datasetInternalId === undefined) return;
-    if (
-      value &&
-      linkingMetadata?.usesCustomExperimentId === undefined &&
-      linkedExperimentInternalId === null
-    ) {
-      updateDatasetLinking(datasetInternalId, { usesCustomExperimentId: true });
-    }
-  }, [
-    value,
-    linkedExperimentInternalId,
-    linkingMetadata?.usesCustomExperimentId,
-    datasetInternalId,
-    updateDatasetLinking
-  ]);
+  // Check if linked experiment is missing an experiment_id
+  const linkedExperimentMissingId =
+    linkedExperiment !== null && !linkedExperiment.formData?.experiment_id;
 
-  // Determine the current mode:
-  // - "dropdown" by default (even if no experiments exist)
-  // - "freetext" only if user has explicitly chosen custom mode
-  // Note: usesCustomExperimentId persists during session even if value is cleared,
-  // but gets reset on mount if value is empty (see useEffect above)
-  const isDropdownMode = !linkingMetadata?.usesCustomExperimentId;
+  // Don't render at all if no experiments exist
+  if (state.experiments.length === 0) {
+    return null;
+  }
 
-  // Check if experiments with IDs exist (for enabling/disabling dropdown)
-  const hasExperimentsWithIds = experimentsWithIds.length > 0;
-
-  // Build dropdown options
-  const dropdownOptions = useMemo((): ComboboxItem[] => {
-    const items: ComboboxItem[] = experimentsWithIds.map((exp) => {
-      const expId = exp.formData?.experiment_id as string;
-      const expName = exp.name || (exp.formData?.name as string | undefined);
+  // Build dropdown options: all experiments (by name), then "None" at end
+  const dropdownOptions: ComboboxItem[] = [
+    ...state.experiments.map((exp) => {
+      const expName = exp.name || (exp.formData?.name as string | undefined) || "Experiment";
       return {
         value: String(exp.id),
-        label: `${expName || "Experiment"} (${expId})`
+        label: expName
       };
-    });
-
-    items.push({
-      value: CUSTOM_OPTION_VALUE,
-      label: "Custom (manual entry)"
-    });
-
-    return items;
-  }, [experimentsWithIds]);
+    }),
+    { value: NONE_OPTION_VALUE, label: "None" }
+  ];
 
   // Handle dropdown selection
-  const handleDropdownSelect = useCallback(
-    (selectedValue: string | null) => {
-      if (datasetInternalId === undefined) return;
-
-      if (selectedValue === CUSTOM_OPTION_VALUE) {
-        // Switch to custom mode
-        updateDatasetLinking(datasetInternalId, {
-          linkedExperimentInternalId: null,
-          usesCustomExperimentId: true
-        });
-        onChange(undefined);
-      } else if (selectedValue) {
-        // Link to selected experiment
-        const expInternalId = parseInt(selectedValue, 10);
-        const exp = state.experiments.find((e) => e.id === expInternalId);
-        const expId = (exp?.formData?.experiment_id as string) || "";
-
-        updateDatasetLinking(datasetInternalId, {
-          linkedExperimentInternalId: expInternalId,
-          usesCustomExperimentId: false
-        });
-        onChange(expId);
-      }
-    },
-    [datasetInternalId, state.experiments, updateDatasetLinking, onChange]
-  );
-
-  // Handle switching from custom mode back to dropdown
-  const handleSwitchToDropdown = useCallback(() => {
+  const handleDropdownSelect = (selectedValue: string | null) => {
     if (datasetInternalId === undefined) return;
 
-    updateDatasetLinking(datasetInternalId, {
-      usesCustomExperimentId: false
-    });
-    // Clear the value since they're switching to dropdown selection
-    onChange(undefined);
-  }, [datasetInternalId, updateDatasetLinking, onChange]);
+    if (selectedValue === NONE_OPTION_VALUE) {
+      // Clear experiment linking
+      updateDatasetLinking(datasetInternalId, {
+        linkedExperimentInternalId: null
+      });
+      onChange(undefined);
+    } else if (selectedValue) {
+      const expInternalId = parseInt(selectedValue, 10);
+      const exp = state.experiments.find((e) => e.id === expInternalId);
+      const expId = (exp?.formData?.experiment_id as string) || "";
 
-  // Handle switching from dropdown to custom mode (via button)
-  const handleSwitchToCustom = useCallback(() => {
-    if (datasetInternalId === undefined) return;
+      updateDatasetLinking(datasetInternalId, {
+        linkedExperimentInternalId: expInternalId
+      });
+      onChange(expId || undefined);
+    }
+  };
 
-    // Always clear value when switching to freetext - user requested empty field
-    updateDatasetLinking(datasetInternalId, {
-      linkedExperimentInternalId: null,
-      usesCustomExperimentId: true
-    });
-    onChange(undefined);
-  }, [datasetInternalId, updateDatasetLinking, onChange]);
-
-  // Handle text input change
-  const handleTextChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
-      onChange(newValue === "" ? undefined : newValue);
-    },
-    [onChange]
-  );
-
-  const handleBlur = useCallback(() => {
+  const handleBlur = () => {
     if (onBlur) {
       onBlur(id, value);
     }
-  }, [onBlur, id, value]);
+  };
 
   const hasError = rawErrors && rawErrors.length > 0;
-  const errorMessage = hasError ? rawErrors.join(", ") : undefined;
 
-  // Placeholder text depends on whether experiments with IDs exist
-  const dropdownPlaceholder = hasExperimentsWithIds
-    ? "Select experiment"
-    : "No experiments with valid Experiment ID are available";
+  // Build error message: custom warning takes priority if linked experiment has no ID
+  const errorMessage = linkedExperimentMissingId
+    ? `Linked experiment "${linkedExperiment!.name}" has no Experiment ID. Please set one on the Experiment page.`
+    : hasError
+      ? rawErrors.join(", ")
+      : undefined;
 
-  // =============================================================================
-  // RENDER: Dropdown mode → show dropdown with linked icon
-  // =============================================================================
-  if (isDropdownMode) {
-    return (
-      <IdFieldLayout
-        buttonIcon={<IconLink size={18} />}
-        buttonTooltip="Unlink to enter custom Experiment ID"
-        buttonVariant="light"
-        buttonAriaLabel="Unlink to enter custom Experiment ID"
-        onButtonClick={handleSwitchToCustom}
-        buttonDisabled={disabled || readonly}
-        hasError={hasError}
-      >
+  // Determine the Select value: linked experiment, or "None" if explicitly unset
+  const selectValue =
+    linkedExperimentInternalId !== null
+      ? String(linkedExperimentInternalId)
+      : null;
+
+  return (
+    <>
+      <Box style={{ position: "relative" }}>
         <Select
           id={id}
           label={hideLabel ? undefined : label}
-          placeholder={dropdownPlaceholder}
-          value={
-            linkedExperimentInternalId !== null
-              ? String(linkedExperimentInternalId)
-              : null
-          }
+          placeholder="Select experiment"
+          value={selectValue}
           required={required}
-          disabled={disabled || !hasExperimentsWithIds}
+          disabled={disabled}
           readOnly={readonly}
           error={errorMessage}
           data={dropdownOptions}
@@ -243,35 +152,63 @@ export default function LinkedExperimentIdWidget<
           onBlur={handleBlur}
           allowDeselect={false}
         />
-      </IdFieldLayout>
-    );
-  }
+        {description && !hideLabel && (
+          <Box style={{
+            position: "absolute",
+            top: "2px",
+            left: "0",
+            display: "flex",
+            alignItems: "center",
+            pointerEvents: "none"
+          }}>
+            <Text
+              size="sm"
+              fw={500}
+              style={{
+                visibility: "hidden",
+                marginRight: "4px"
+              }}
+            >
+              {label}{required && " *"}
+            </Text>
+            <Box style={{ pointerEvents: "auto" }}>
+              {useModal ? (
+                <ActionIcon
+                  variant="transparent"
+                  size="xs"
+                  color="gray"
+                  onClick={() => setModalOpened(true)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <IconInfoCircle size={14} />
+                </ActionIcon>
+              ) : (
+                <Tooltip
+                  label={description}
+                  position="top"
+                  withArrow
+                  multiline
+                  maw={400}
+                  style={{ wordWrap: "break-word" }}
+                >
+                  <ActionIcon variant="transparent" size="xs" color="gray">
+                    <IconInfoCircle size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+        )}
+      </Box>
 
-  // =============================================================================
-  // RENDER: Freetext mode → show text input with unlinked icon
-  // =============================================================================
-  return (
-    <IdFieldLayout
-      buttonIcon={<IconLinkOff size={18} />}
-      buttonTooltip="Switch to experiment selection"
-      buttonVariant="default"
-      buttonAriaLabel="Switch to experiment selection"
-      onButtonClick={handleSwitchToDropdown}
-      buttonDisabled={disabled || readonly}
-      hasError={hasError}
-    >
-      <TextInput
-        id={id}
-        label={hideLabel ? undefined : label}
-        placeholder={placeholder || "Enter experiment ID"}
-        value={value || ""}
-        required={required}
-        disabled={disabled}
-        readOnly={readonly}
-        error={errorMessage}
-        onChange={handleTextChange}
-        onBlur={handleBlur}
-      />
-    </IdFieldLayout>
+      {useModal && description && (
+        <DescriptionModal
+          opened={modalOpened}
+          onClose={() => setModalOpened(false)}
+          title={label}
+          description={description}
+        />
+      )}
+    </>
   );
 }

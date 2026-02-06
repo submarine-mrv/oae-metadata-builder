@@ -11,10 +11,11 @@ interface IdFieldLayoutProps {
   children: React.ReactNode;
   buttonIcon: React.ReactNode;
   buttonTooltip: string;
-  buttonVariant: "light" | "default";
+  buttonVariant: "light" | "default" | "subtle" | "transparent";
   buttonAriaLabel: string;
   onButtonClick: () => void;
   buttonDisabled?: boolean;
+  buttonColor?: string;
   hasError?: boolean;
 }
 
@@ -26,6 +27,7 @@ export function IdFieldLayout({
   buttonAriaLabel,
   onButtonClick,
   buttonDisabled = false,
+  buttonColor,
   hasError = false
 }: IdFieldLayoutProps) {
   return (
@@ -35,6 +37,7 @@ export function IdFieldLayout({
         <Tooltip label={buttonTooltip} withArrow>
           <ActionIcon
             variant={buttonVariant}
+            color={buttonColor}
             size="lg"
             onClick={onButtonClick}
             disabled={buttonDisabled}

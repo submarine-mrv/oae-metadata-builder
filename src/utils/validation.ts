@@ -86,18 +86,41 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
   }
 }
 
+interface ValidateDatasetOptions {
+  /** When false, experiment_id required errors are suppressed */
+  hasExperiments?: boolean;
+}
+
+function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
+  return (
+    e.name === "required" &&
+    (e.params?.missingProperty === "experiment_id" ||
+      e.property === ".experiment_id")
+  );
+}
+
 /**
  * Validates dataset data against the dataset schema
  */
-export function validateDataset(datasetData: DatasetFormData): ValidationResult {
+export function validateDataset(
+  datasetData: DatasetFormData,
+  options?: ValidateDatasetOptions
+): ValidationResult {
   try {
     const schema = getDatasetSchema();
     const result = validator.validateFormData(datasetData, schema);
 
+    let errors = result.errors;
+
+    // Suppress experiment_id required error when no experiments exist
+    if (options?.hasExperiments === false) {
+      errors = errors.filter((e) => !isExperimentIdRequiredError(e));
+    }
+
     return {
-      isValid: result.errors.length === 0,
-      errors: result.errors,
-      errorCount: result.errors.length
+      isValid: errors.length === 0,
+      errors,
+      errorCount: errors.length
     };
   } catch (error) {
     console.error("Error validating dataset:", error);

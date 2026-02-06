@@ -45,6 +45,19 @@ export function transformFormErrors(
       };
     }
 
+    // Improve experiment_id required error message
+    if (
+      e.name === "required" &&
+      (e.params?.missingProperty === "experiment_id" ||
+        e.property === ".experiment_id")
+    ) {
+      return {
+        ...e,
+        message:
+          "Please select an experiment for your dataset. Linked experiments must have valid Experiment ID"
+      };
+    }
+
     // Improve email pattern error message
     if (e.name === "pattern" && e.message?.includes("@[a-zA-Z0-9.-]+")) {
       return {

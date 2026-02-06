@@ -20,7 +20,6 @@ const experimentUiSchema = {
   },
   "ui:order": [
     "name",
-    "project_id",
     "experiment_id",
     "experiment_type",
     "description",
@@ -181,11 +180,7 @@ const experimentUiSchema = {
   data_conflicts_and_unreported_data: textAreaWidget,
   additional_details: textAreaWidget,
   project_id: {
-    ...halfWidthStyle,
-    "ui:widget": "LinkedProjectIdWidget",
-    "ui:options": {
-      entityType: "experiment"
-    }
+    "ui:widget": "hidden"
   }
 };
 

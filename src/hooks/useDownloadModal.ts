@@ -86,9 +86,10 @@ export function useDownloadModal({
     });
 
     // Validate datasets (sum all errors)
+    // Suppress experiment_id required errors when no experiments exist
     let datasetErrors = 0;
     datasets.forEach((ds) => {
-      datasetErrors += validateDataset(ds.formData).errorCount;
+      datasetErrors += validateDataset(ds.formData, { hasExperiments }).errorCount;
     });
 
     // Determine which sections should be enabled by default
