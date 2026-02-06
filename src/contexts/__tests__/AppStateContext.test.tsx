@@ -22,6 +22,7 @@ describe('AppStateContext', () => {
       });
 
       expect(result.current.state).toEqual({
+        hasProject: false,
         projectData: { project_id: '' },
         experiments: [],
         datasets: [],
@@ -55,12 +56,12 @@ describe('AppStateContext', () => {
       expect(result.current.state.projectData).toEqual(newProjectData);
     });
 
-    it('should propagate project_id to linked experiments when updating project data', () => {
+    it('should propagate project_id to all experiments when updating project data', () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider
       });
 
-      // Add an experiment first (defaults to linked mode)
+      // Add an experiment first
       act(() => {
         result.current.addExperiment('Test Experiment');
       });
@@ -70,10 +71,80 @@ describe('AppStateContext', () => {
         result.current.updateProjectData({ project_id: 'new-project' });
       });
 
-      // Linked experiments should have their project_id updated
+      // All experiments should have their project_id updated
       expect(result.current.state.experiments[0].formData.project_id).toBe('new-project');
       // Experiment name and other properties should remain unchanged
       expect(result.current.state.experiments[0].name).toBe('Test Experiment');
+    });
+  });
+
+  describe('createProject', () => {
+    it('should set hasProject to true', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+
+      act(() => {
+        result.current.createProject();
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+    });
+  });
+
+  describe('deleteProject', () => {
+    it('should set hasProject to false and reset projectData', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create a project and add data
+      act(() => {
+        result.current.createProject();
+        result.current.updateProjectData({ project_id: 'test-project', description: 'Test' });
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+
+      act(() => {
+        result.current.deleteProject();
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+      expect(result.current.state.projectData).toEqual({});
+    });
+
+    it('should clear project_id from all experiments and datasets', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create project with ID
+      act(() => {
+        result.current.createProject();
+        result.current.updateProjectData({ project_id: 'my-project' });
+      });
+
+      // Add experiment and dataset
+      act(() => {
+        result.current.addExperiment('Exp 1');
+        result.current.addDataset('DS 1');
+      });
+
+      // Verify they have the project_id
+      expect(result.current.state.experiments[0].formData.project_id).toBe('my-project');
+      expect(result.current.state.datasets[0].formData.project_id).toBe('my-project');
+
+      // Delete the project
+      act(() => {
+        result.current.deleteProject();
+      });
+
+      // All experiments and datasets should have project_id cleared
+      expect(result.current.state.experiments[0].formData.project_id).toBe('');
+      expect(result.current.state.datasets[0].formData.project_id).toBe('');
     });
   });
 
@@ -821,6 +892,40 @@ describe('AppStateContext', () => {
       });
 
       expect(result.current.state.activeTab).toBe('overview');
+    });
+
+    it('should set hasProject to true when importing project with content', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+
+      act(() => {
+        result.current.importAllData({ project_id: 'imported-project' }, []);
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+    });
+
+    it('should set hasProject to false when importing empty project', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // First create a project
+      act(() => {
+        result.current.createProject();
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+
+      // Import with empty project data
+      act(() => {
+        result.current.importAllData({}, []);
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
     });
 
     it('should reset triggerValidation to false', () => {

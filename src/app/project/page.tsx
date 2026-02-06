@@ -8,12 +8,13 @@ import {
   Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
+import { IconDownload, IconArrowLeft } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import type { DescriptionFieldProps } from "@rjsf/utils";
 
+import { useRouter } from "next/navigation";
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
 import uiSchema from "./uiSchema";
@@ -53,6 +54,7 @@ export default function ProjectPage() {
     updateProjectData,
     setActiveTab
   } = useAppState();
+  const router = useRouter();
   const [schema] = useState<any>(() => getProjectSchema());
 
   const download = useSingleItemDownload({
@@ -63,6 +65,30 @@ export default function ProjectPage() {
   useEffect(() => {
     setActiveTab("project");
   }, [setActiveTab]);
+
+  if (!state.hasProject) {
+    return (
+      <AppLayout>
+        <Container size="md" py="xl">
+          <Stack align="center" gap="md" py="xl">
+            <Title order={2}>No Project Created</Title>
+            <Text c="dimmed" ta="center">
+              Please create a project from the Overview page.
+            </Text>
+            <Button
+              leftSection={<IconArrowLeft size={16} />}
+              onClick={() => {
+                setActiveTab("overview");
+                router.push("/overview");
+              }}
+            >
+              Back to Overview
+            </Button>
+          </Stack>
+        </Container>
+      </AppLayout>
+    );
+  }
 
   const customValidate = (data: any, errors: any) => {
     const t = data?.temporal_coverage as string | undefined;

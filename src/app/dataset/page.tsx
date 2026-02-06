@@ -24,7 +24,6 @@ import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
-import LinkedProjectIdWidget from "@/components/rjsf/LinkedProjectIdWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
@@ -184,7 +183,6 @@ export default function DatasetPage() {
               CustomSelectWidget: CustomSelectWidget,
               TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget,
-              LinkedProjectIdWidget: LinkedProjectIdWidget,
               LinkedExperimentIdWidget: LinkedExperimentIdWidget
             }}
             templates={{

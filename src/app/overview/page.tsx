@@ -17,7 +17,6 @@ import {
   IconFolder,
   IconFlask,
   IconDatabase,
-  IconEdit,
   IconTrash
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -28,6 +27,8 @@ export default function OverviewPage() {
   const {
     state,
     setActiveTab,
+    createProject,
+    deleteProject,
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
@@ -44,6 +45,19 @@ export default function OverviewPage() {
   }, [setActiveTab]);
 
   const projectCompletion = getProjectCompletionPercentage();
+
+  const handleCreateProject = () => {
+    createProject();
+    setActiveTab("project");
+    router.push("/project");
+  };
+
+  const handleDeleteProject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets.")) {
+      deleteProject();
+    }
+  };
 
   const handleCreateExperiment = () => {
     // addExperiment will auto-generate "Experiment N" if no name provided
@@ -114,12 +128,6 @@ export default function OverviewPage() {
     return "progressGreen.4";
   };
 
-  const getCompletionLabel = (percentage: number) => {
-    if (percentage === 0) return "Not Started";
-    if (percentage < 100) return "In Progress";
-    return "Complete";
-  };
-
   return (
     <AppLayout>
       <Container size="lg" py="xl">
@@ -132,46 +140,99 @@ export default function OverviewPage() {
             </Text>
           </div>
 
-          {/* Project Card */}
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
+          {/* Project Section */}
+          <div>
             <Group justify="space-between" mb="md">
-              <Group>
-                <IconFolder size={24} />
-                <div>
-                  <Text fw={600} size="lg">
-                    Project Metadata
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    {state.projectData?.project_id || "No project ID set"}
-                  </Text>
-                </div>
-              </Group>
-              <Button
-                leftSection={<IconEdit size={16} />}
-                onClick={handleEditProject}
-              >
-                Edit Project
-              </Button>
+              <Title order={2}>Project</Title>
             </Group>
 
-            <Stack gap="xs">
-              <Group justify="space-between">
-                <Text size="sm">Completion</Text>
-                <Badge color={getCompletionColor(projectCompletion)}>
-                  {getCompletionLabel(projectCompletion)}
-                </Badge>
-              </Group>
-              <Progress
-                value={projectCompletion}
-                size="xl"
+            {!state.hasProject ? (
+              <Card shadow="sm" padding="xl" radius="md" withBorder>
+                <Stack align="center" gap="md">
+                  <IconFolder size={48} style={{ opacity: 0.3 }} />
+                  <Text c="dimmed" ta="center">
+                    No project yet. Create your project to get started.
+                  </Text>
+                  <Button
+                    leftSection={<IconPlus size={16} />}
+                    onClick={handleCreateProject}
+                  >
+                    Create Project
+                  </Button>
+                </Stack>
+              </Card>
+            ) : (
+              <Card
+                shadow="sm"
+                padding="lg"
                 radius="md"
-                color={getCompletionColor(projectCompletion)}
-              />
-              <Text size="xs" c="dimmed" ta="right">
-                {projectCompletion}% complete
-              </Text>
-            </Stack>
-          </Card>
+                withBorder
+                style={{ cursor: "pointer" }}
+                onClick={handleEditProject}
+              >
+                <Stack gap="sm">
+                  <Group
+                    justify="space-between"
+                    wrap="nowrap"
+                    align="flex-start"
+                  >
+                    <Group
+                      gap="xs"
+                      wrap="nowrap"
+                      align="flex-start"
+                      style={{ minWidth: 0 }}
+                    >
+                      <IconFolder
+                        size={20}
+                        style={{ flexShrink: 0, marginTop: 2 }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <Text fw={600}>Project Metadata</Text>
+                        <Text
+                          size="sm"
+                          c="dimmed"
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {state.projectData?.project_id || "No project ID set"}
+                        </Text>
+                      </div>
+                    </Group>
+                    <Button
+                      variant="subtle"
+                      color="red"
+                      size="xs"
+                      style={{ flexShrink: 0 }}
+                      onClick={handleDeleteProject}
+                    >
+                      <IconTrash size={16} />
+                    </Button>
+                  </Group>
+
+                  <Stack gap="xs">
+                    <Group justify="space-between">
+                      <Text size="xs">Progress</Text>
+                      <Badge
+                        size="xs"
+                        color={getCompletionColor(projectCompletion)}
+                      >
+                        {projectCompletion}%
+                      </Badge>
+                    </Group>
+                    <Progress
+                      value={projectCompletion}
+                      size="md"
+                      radius="md"
+                      color={getCompletionColor(projectCompletion)}
+                    />
+                  </Stack>
+                </Stack>
+              </Card>
+            )}
+          </div>
 
           {/* Experiments Section */}
           <div>

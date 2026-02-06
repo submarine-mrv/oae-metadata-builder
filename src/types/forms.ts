@@ -89,21 +89,11 @@ export interface DatasetFormData extends FormDataRecord {
 // =============================================================================
 
 /**
- * ID linking metadata for experiments.
- * Controls how project_id is synchronized from the root project.
- */
-export interface ExperimentLinkingMetadata {
-  /** If true, project_id auto-syncs from root project */
-  usesLinkedProjectId: boolean;
-}
-
-/**
  * ID linking metadata for datasets.
- * Controls how project_id and experiment_id are synchronized from parent entities.
+ * Controls how experiment_id is synchronized from a parent experiment.
+ * Note: project_id is always auto-synced from the project — no opt-out.
  */
 export interface DatasetLinkingMetadata {
-  /** If true, project_id auto-syncs from root project */
-  usesLinkedProjectId: boolean;
   /** If set, experiment_id auto-syncs from this experiment's internal ID */
   linkedExperimentInternalId: number | null;
 }
@@ -124,8 +114,6 @@ export interface ExperimentState {
   formData: ExperimentFormData;
   /** Experiment type for conditional schema selection */
   experiment_type?: string;
-  /** ID linking metadata - controls how IDs sync from parent entities */
-  linking?: ExperimentLinkingMetadata;
   /** Creation timestamp */
   createdAt: number;
   /** Last update timestamp */
@@ -142,7 +130,7 @@ export interface DatasetState {
   name: string;
   /** Form data (schema-driven) */
   formData: DatasetFormData;
-  /** ID linking metadata - controls how IDs sync from parent entities */
+  /** ID linking metadata - controls how experiment_id syncs from a parent experiment */
   linking?: DatasetLinkingMetadata;
   /** Creation timestamp */
   createdAt: number;
@@ -154,6 +142,7 @@ export interface DatasetState {
  * Main application state
  */
 export interface AppFormState {
+  hasProject: boolean;
   projectData: ProjectFormData;
   experiments: ExperimentState[];
   datasets: DatasetState[];
