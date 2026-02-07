@@ -50,7 +50,27 @@ export const VARIABLE_SCHEMA_MAP = {
       CONTINUOUS: "ContinuousMeasuredVariable"
     },
     CALCULATED: "CalculatedVariable"
-    // No placeholderOverrides - uses config defaults
+  },
+  ta: {
+    MEASURED: {
+      DISCRETE: "DiscreteTAVariable",
+      CONTINUOUS: "ContinuousTAVariable"
+    },
+    CALCULATED: "CalculatedVariable"
+  },
+  dic: {
+    MEASURED: {
+      DISCRETE: "DiscreteDICVariable",
+      CONTINUOUS: "ContinuousDICVariable"
+    },
+    CALCULATED: "CalculatedVariable"
+  },
+  sediment: {
+    MEASURED: {
+      DISCRETE: "DiscreteMeasuredVariable",
+      CONTINUOUS: "ContinuousMeasuredVariable"
+    },
+    CALCULATED: "CalculatedVariable"
   }
 } as const;
 
@@ -112,7 +132,12 @@ export interface FieldConfig {
    * - "boolean_select" - renders boolean as Yes/No dropdown instead of checkbox
    * - "optional_with_gate" - Yes/No gate question that shows text input when "Yes" selected
    */
-  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select" | "optional_with_gate";
+  inputType?:
+    | "text"
+    | "textarea"
+    | "enum_with_other"
+    | "boolean_select"
+    | "optional_with_gate";
   /** Show description in a modal popup instead of tooltip. Default is false (tooltip) */
   descriptionModal?: boolean;
   /** Placeholder text for the input field */
@@ -431,8 +456,11 @@ export function getPlaceholderOverride(
   fieldPath: string
 ): string | undefined {
   if (!variableType) return undefined;
-  const typeConfig = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+  const typeConfig =
+    VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeConfig || !("placeholderOverrides" in typeConfig)) return undefined;
-  const overrides = typeConfig.placeholderOverrides as Record<string, string> | undefined;
+  const overrides = typeConfig.placeholderOverrides as
+    | Record<string, string>
+    | undefined;
   return overrides?.[fieldPath];
 }
