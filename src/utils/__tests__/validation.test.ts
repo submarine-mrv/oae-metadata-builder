@@ -403,6 +403,98 @@ describe('Validation', () => {
       expect(result.errorCount).toBeGreaterThan(0);
     });
 
+    it('should fail validation when experiment_id is empty string', () => {
+      // Edge case: when a linked experiment's experiment_id is cleared,
+      // propagateExperimentIdToDatasets syncs "" to the dataset.
+      // An empty string passes JSON schema "required" check (property exists),
+      // so we need explicit validation to catch this.
+      const data = {
+        project_id: 'test-project-001',
+        experiment_id: '', // Empty string — should fail
+        name: 'Test Dataset',
+        description: 'A test dataset',
+        temporal_coverage: '2024-01-01/2024-12-31',
+        dataset_type: 'cast',
+        data_product_type: 'raw_sensor_data',
+        platform_info: {
+          platform_type: 'http://vocab.nerc.ac.uk/collection/L06/current/62/'
+        },
+        data_submitter: {
+          name: 'Test User',
+          email: 'test@example.com',
+          affiliation: { name: 'Test Org' }
+        },
+        filenames: ['data.csv']
+      };
+
+      const result = validateDataset(data, { hasExperiments: true });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(
+        (e) => e.property === '.experiment_id' || e.params?.missingProperty === 'experiment_id'
+      )).toBe(true);
+    });
+
+    it('should suppress empty experiment_id error when hasExperiments is false', () => {
+      // When no experiments exist, experiment_id errors should be suppressed
+      const data = {
+        project_id: 'test-project-001',
+        experiment_id: '',
+        name: 'Test Dataset',
+        description: 'A test dataset',
+        temporal_coverage: '2024-01-01/2024-12-31',
+        dataset_type: 'cast',
+        data_product_type: 'raw_sensor_data',
+        platform_info: {
+          platform_type: 'http://vocab.nerc.ac.uk/collection/L06/current/62/'
+        },
+        data_submitter: {
+          name: 'Test User',
+          email: 'test@example.com',
+          affiliation: { name: 'Test Org' }
+        },
+        filenames: ['data.csv']
+      };
+
+      const result = validateDataset(data, { hasExperiments: false });
+
+      // experiment_id errors should be suppressed
+      const experimentIdErrors = result.errors.filter(
+        (e) => e.property === '.experiment_id' || e.params?.missingProperty === 'experiment_id'
+      );
+      expect(experimentIdErrors).toHaveLength(0);
+    });
+
+    it('should fail validation when experiment_id is undefined (key present)', () => {
+      // When propagation clears experiment_id, the key exists with value undefined.
+      // AJV treats undefined as missing, so "required" catches it.
+      const data = {
+        project_id: 'test-project-001',
+        experiment_id: undefined, // Key present, value undefined — same as propagation result
+        name: 'Test Dataset',
+        description: 'A test dataset',
+        temporal_coverage: '2024-01-01/2024-12-31',
+        dataset_type: 'cast',
+        data_product_type: 'raw_sensor_data',
+        platform_info: {
+          platform_type: 'http://vocab.nerc.ac.uk/collection/L06/current/62/'
+        },
+        data_submitter: {
+          name: 'Test User',
+          email: 'test@example.com',
+          affiliation: { name: 'Test Org' }
+        },
+        filenames: ['data.csv']
+      };
+
+      const result = validateDataset(data, { hasExperiments: true });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(
+        (e) => e.property === '.experiment_id' || e.params?.missingProperty === 'experiment_id'
+      )).toBe(true);
+    });
+
     it('should count multiple validation errors', () => {
       // Test case matching user's reported issue
       const invalidData = {

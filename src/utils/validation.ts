@@ -112,6 +112,25 @@ export function validateDataset(
 
     let errors = result.errors;
 
+    // Catch empty/missing experiment_id that JSON schema "required" may not flag.
+    // Scenarios: propagation sets "" or undefined while property key still exists in object.
+    // Only add the error if AJV didn't already generate one for experiment_id.
+    const experimentId = datasetData.experiment_id as string | undefined;
+    const hasExperimentIdError = errors.some((e) => isExperimentIdRequiredError(e));
+    if (!hasExperimentIdError && (!experimentId || experimentId.trim() === "")) {
+      errors = [
+        ...errors,
+        {
+          name: "required",
+          property: ".experiment_id",
+          message: "is a required property",
+          params: { missingProperty: "experiment_id" },
+          stack: ".experiment_id is a required property",
+          schemaPath: "#/required"
+        }
+      ];
+    }
+
     // Suppress experiment_id required error when no experiments exist
     if (options?.hasExperiments === false) {
       errors = errors.filter((e) => !isExperimentIdRequiredError(e));

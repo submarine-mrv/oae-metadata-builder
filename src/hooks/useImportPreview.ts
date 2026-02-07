@@ -269,15 +269,11 @@ export function useImportPreview({
       }));
 
       // Add dataset items with experiment linking
+      // Datasets are always added as new (no name-based override — unlike experiments
+      // which have unique experiment_id, datasets can share names)
       datasets.forEach((ds, index) => {
         const dsName = (ds.name as string) || `Dataset ${index + 1}`;
         const dsExperimentId = ds.experiment_id as string | undefined;
-
-        // Check for conflict with existing datasets by name
-        const existingDs = currentDatasets.find((d) => d.name === dsName);
-
-        const hasConflict = Boolean(existingDs);
-        const isEmptyName = !ds.name;
 
         // Resolve experiment link for this dataset
         const resolvedMatch = resolveExperimentLink(
@@ -293,16 +289,8 @@ export function useImportPreview({
           name: dsName,
           data: ds,
           selected: true,
-          conflict: isEmptyName
-            ? "add-new"
-            : hasConflict
-              ? "override"
-              : "add-new",
-          conflictReason: isEmptyName
-            ? "Add as new dataset"
-            : hasConflict
-              ? `Replace existing dataset: "${existingDs?.name}"`
-              : "Add as new dataset",
+          conflict: "add-new",
+          conflictReason: "Add as new dataset",
           experimentLinking: {
             mode: "use-file",
             resolvedMatch

@@ -80,7 +80,7 @@ function propagateExperimentIdToDatasets(
       ...ds,
       formData: {
         ...ds.formData,
-        experiment_id: experimentId || ""
+        experiment_id: experimentId || undefined
       },
       updatedAt: Date.now()
     };
@@ -242,10 +242,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             : exp
         );
 
-        // If experiment_id changed, propagate to linked datasets
-        const expIdChanged = newExpId !== undefined && newExpId !== oldExpId;
+        // If experiment_id changed, propagate to linked datasets.
+        // Check both directions: set (newExpId defined) or cleared (oldExpId existed, newExpId absent).
+        // When RJSF clears a field, experiment_id may be undefined in `data` — detect via key presence.
+        const hasExpIdKey = "experiment_id" in data;
+        const expIdChanged = hasExpIdKey && newExpId !== oldExpId;
         const newDatasets = expIdChanged
-          ? propagateExperimentIdToDatasets(prev.datasets, id, newExpId as string)
+          ? propagateExperimentIdToDatasets(prev.datasets, id, (newExpId as string) || undefined)
           : prev.datasets;
 
         return {
@@ -592,37 +595,22 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               ? { ...dsData, experiment_id: experimentIdToSet }
               : dsData;
 
-          // Find existing dataset by name
-          const existingIndex = dsName
-            ? newDatasets.findIndex((d) => d.name === dsName)
-            : -1;
-
           // Build linking metadata for the dataset
           const datasetLinking: DatasetLinkingMetadata = {
             linkedExperimentInternalId
           };
 
-          if (existingIndex >= 0) {
-            // Replace existing dataset
-            newDatasets[existingIndex] = {
-              ...newDatasets[existingIndex],
-              formData: finalFormData,
-              name: dsName || newDatasets[existingIndex].name,
-              linking: datasetLinking,
-              updatedAt: Date.now()
-            };
-          } else {
-            // Add as new dataset
-            newDatasets.push({
-              id: nextDsId,
-              name: dsName || `Dataset ${nextDsId}`,
-              formData: finalFormData,
-              linking: datasetLinking,
-              createdAt: Date.now(),
-              updatedAt: Date.now()
-            });
-            nextDsId++;
-          }
+          // Always add datasets as new (no name-based override — unlike experiments
+          // which have unique experiment_id, datasets can share names)
+          newDatasets.push({
+            id: nextDsId,
+            name: dsName || `Dataset ${nextDsId}`,
+            formData: finalFormData,
+            linking: datasetLinking,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          });
+          nextDsId++;
         }
 
         // Set hasProject if importing project data with content

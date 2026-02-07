@@ -53,8 +53,7 @@ export function transformFormErrors(
     ) {
       return {
         ...e,
-        message:
-          "Please select an experiment for your dataset. Linked experiments must have valid Experiment ID"
+        message: MESSAGES.validation.experimentIdRequired
       };
     }
 

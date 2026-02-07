@@ -202,12 +202,7 @@ export default function ImportPreviewModal({
             }}
           />
         </Table.Td>
-        <Table.Td style={{ width: 40 }}>
-          {renderWarningIcon(
-            item,
-            "Datasets with the same title will be overwritten"
-          )}
-        </Table.Td>
+        <Table.Td style={{ width: 40 }}></Table.Td>
       </Table.Tr>
     );
   };

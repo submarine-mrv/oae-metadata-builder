@@ -12,7 +12,7 @@ import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DescriptionFieldProps } from "@rjsf/utils";
+import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
 
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import uiSchema from "./uiSchema";
@@ -114,6 +114,24 @@ export default function DatasetPage() {
     export: () => exportSingleDataset(state.projectData, formData)
   });
 
+  // Wrap error transformer to suppress experiment_id errors when no experiments exist
+  const customTransformErrors = useMemo(() => {
+    return (errors: RJSFValidationError[]) => {
+      let transformed = transformFormErrors(errors);
+      if (!hasExperiments) {
+        transformed = transformed.filter(
+          (e) =>
+            !(
+              e.name === "required" &&
+              (e.params?.missingProperty === "experiment_id" ||
+                e.property === ".experiment_id")
+            )
+        );
+      }
+      return transformed;
+    };
+  }, [hasExperiments]);
+
   useEffect(() => {
     setActiveTab("dataset");
   }, [setActiveTab]);
@@ -161,7 +179,7 @@ export default function DatasetPage() {
             formData={formData}
             onChange={handleFormChange}
             validator={validator}
-            transformErrors={transformFormErrors}
+            transformErrors={customTransformErrors}
             omitExtraData={false}
             liveOmit={false}
             noHtml5Validate={false}
