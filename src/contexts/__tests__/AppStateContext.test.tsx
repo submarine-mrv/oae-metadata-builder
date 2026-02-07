@@ -1533,5 +1533,106 @@ describe('AppStateContext', () => {
         expect(unlinked?.linking?.linkedExperimentInternalId).toBeNull();
       });
     });
+
+    describe('combined edge cases', () => {
+      it('should replace existing experiment by id match and still apply new project_id', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Setup: project A with an experiment that has experiment_id
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'PROJECT-A' });
+          result.current.addExperiment('Ocean Exp');
+          result.current.updateExperiment(1, { experiment_id: 'EXP-1', project_id: 'PROJECT-A' });
+        });
+
+        expect(result.current.state.experiments).toHaveLength(1);
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-A');
+
+        // Import project B + experiment with same experiment_id (should replace, not add)
+        act(() => {
+          result.current.importSelectedData(
+            { project_id: 'PROJECT-B', description: 'Replaced project' },
+            [{ experiment_id: 'EXP-1', project_id: 'PROJECT-A', name: 'Updated Ocean Exp' }],
+            []
+          );
+        });
+
+        // Should still be 1 experiment (replaced, not duplicated)
+        expect(result.current.state.experiments).toHaveLength(1);
+        // Should have updated name
+        expect(result.current.state.experiments[0].name).toBe('Updated Ocean Exp');
+        // Should have PROJECT-B, not the stale PROJECT-A from file
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-B');
+      });
+
+      it('should use current session project_id when importing experiments without a project', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Setup: project with id already exists
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'SESSION-PROJECT' });
+        });
+
+        // Import only an experiment (no project in import) carrying a stale project_id
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [{ experiment_id: 'EXP-NEW', project_id: 'STALE-PROJECT' }],
+            []
+          );
+        });
+
+        const imported = result.current.state.experiments.find(
+          (e) => e.formData.experiment_id === 'EXP-NEW'
+        );
+        // Should get current session project_id, not the stale one from file
+        expect(imported?.formData.project_id).toBe('SESSION-PROJECT');
+      });
+
+      it('should set both project_id and experiment_id on linked dataset in combined import', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'PROJECT-X' });
+        });
+
+        // Import experiment + dataset linked to that experiment via cross-import
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [{ experiment_id: 'EXP-CROSS', name: 'Cross Exp' }],
+            [
+              {
+                formData: { name: 'DS-cross', project_id: 'WRONG', experiment_id: 'WRONG' },
+                experimentLinking: {
+                  mode: 'use-file',
+                  resolvedMatch: {
+                    type: 'importing',
+                    importKey: 'experiment-0',
+                    experimentName: 'Cross Exp',
+                    experimentId: 'EXP-CROSS'
+                  }
+                }
+              }
+            ]
+          );
+        });
+
+        const ds = result.current.state.datasets.find((d) => d.name === 'DS-cross');
+        // project_id from current session, not from file
+        expect(ds?.formData.project_id).toBe('PROJECT-X');
+        // experiment_id from linked experiment, not from file
+        expect(ds?.formData.experiment_id).toBe('EXP-CROSS');
+      });
+    });
   });
 });
