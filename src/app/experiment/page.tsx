@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   Container,
   Title,
@@ -9,7 +8,7 @@ import {
   Button,
   Group
 } from "@mantine/core";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -23,7 +22,6 @@ import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemp
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
-import CustomSubmitButton from "@/components/rjsf/CustomSubmitButton";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
@@ -32,11 +30,15 @@ import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
+import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
 import AppLayout from "@/components/AppLayout";
+import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import DownloadConfirmationModal from "@/components/DownloadConfirmationModal";
+import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useMetadataDownload } from "@/hooks/useMetadataDownload";
+import { validateExperiment } from "@/utils/validation";
+import { exportSingleExperiment } from "@/utils/exportImport";
+import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
@@ -52,20 +54,14 @@ import {
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import type { SubmitButtonProps } from "@rjsf/utils";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
 
-// Create a wrapper for the submit button with experiment-specific configuration
-const ExperimentSubmitButton = (props: SubmitButtonProps) => (
-  <CustomSubmitButton
-    {...props}
-    buttonText="Download Experiment Metadata"
-  />
-);
+// Hidden submit button - we don't use RJSF's submit anymore
+const HiddenSubmitButton = () => null;
 
 // Conditional field pairs for experiment forms
 // These define which custom fields should be cleaned up when their trigger conditions are not met
@@ -83,29 +79,23 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
 ];
 
 export default function ExperimentPage() {
-  const router = useRouter();
-  const { state, updateExperiment, setActiveTab, setTriggerValidation } =
+  const { state, updateExperiment, setActiveTab } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [forceValidation, setForceValidation] = useState(false);
-  const [skipDownload, setSkipDownload] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const activeExperimentId = state.activeExperimentId;
 
-  const {
-    showDownloadModal,
-    handleFormSubmit,
-    handleDownloadConfirm,
-    handleDownloadCancel
-  } = useMetadataDownload({
-    filename: `experiment-${activeExperimentId || "metadata"}.json`,
-    skipDownload,
-    onSkipDownloadChange: setSkipDownload
+  // Use the download hook - note: formData is used in callbacks
+  // so we use arrow functions to capture current formData
+  const download = useSingleItemDownload({
+    validate: () => validateExperiment(formData),
+    export: () => exportSingleExperiment(state.projectData, formData)
   });
+
   const experiment = activeExperimentId
     ? state.experiments.find((exp) => exp.id === activeExperimentId)
     : null;
@@ -114,49 +104,18 @@ export default function ExperimentPage() {
     setActiveTab("experiment");
   }, [setActiveTab]);
 
-  // Trigger validation if requested (e.g., from export button in Navigation)
-  useEffect(() => {
-    if (state.triggerValidation) {
-      // Scroll to top of page
-      window.scrollTo({ top: 0, behavior: "smooth" });
-
-      // Trigger validation by forcing a form submit, but skip the download
-      setTimeout(() => {
-        setSkipDownload(true); // Prevent download when just showing validation errors
-        setForceValidation(true);
-        setTriggerValidation(false);
-      }, 100);
-    }
-  }, [state.triggerValidation, setTriggerValidation]);
-
-  // Trigger form submission when forceValidation is true
-  useEffect(() => {
-    if (forceValidation) {
-      // Find and click the submit button
-      const submitButton = document.querySelector(
-        'button[type="submit"]'
-      ) as HTMLButtonElement;
-      if (submitButton) {
-        submitButton.click();
-      }
-      setForceValidation(false);
-    }
-  }, [forceValidation]);
-
   // Load experiment data when experiment ID changes
   useEffect(() => {
     // Reset initial load flag when switching experiments
     setIsInitialLoad(true);
 
     if (experiment) {
-      setFormData({
-        ...experiment.formData,
-        project_id: state.projectData.project_id || ""
-      });
+      // Use experiment's formData directly - project_id is managed by linking system
+      setFormData(experiment.formData);
       // Mark that initial data has been loaded (after a tick to let form mount)
       setTimeout(() => setIsInitialLoad(false), 0);
     }
-  }, [activeExperimentId, state.projectData.project_id]); // Use ID instead of object to avoid infinite loop
+  }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dynamic schema and uiSchema switching based on experiment_type
   useEffect(() => {
@@ -238,29 +197,17 @@ export default function ExperimentPage() {
 
   if (!experiment) {
     return (
-      <AppLayout>
-        <Container size="md" py="lg">
-          <Stack gap="md">
-            <Title order={2}>No Experiment Selected</Title>
-            <Text c="dimmed">
-              Please go back to the overview and select an experiment to edit,
-              or create a new one.
-            </Text>
-            <Button
-              onClick={() => router.push("/overview")}
-              leftSection={<IconArrowLeft size={16} />}
-            >
-              Back to Overview
-            </Button>
-          </Stack>
-        </Container>
-      </AppLayout>
+      <EmptyEntityPage
+        title="No Experiment Selected"
+        description="Please create or select an experiment from the Overview page."
+      />
     );
   }
 
   return (
     <AppLayout noScroll>
       <div
+        ref={download.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -278,18 +225,18 @@ export default function ExperimentPage() {
           </Stack>
 
           <Form
+            ref={download.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}
             formData={formData}
             onChange={handleFormChange}
-            onSubmit={handleFormSubmit}
             validator={validator}
             customValidate={customValidate}
             transformErrors={transformFormErrors}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
-              arrayMinItems: { populate: "all" },
+              arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults"
             }}
             widgets={{
@@ -298,7 +245,8 @@ export default function ExperimentPage() {
               textarea: CustomTextareaWidget,
               DateTimeWidget: DateTimeWidget,
               PlaceholderWidget: PlaceholderWidget,
-              DosingDepthWidget: DosingDepthWidget
+              DosingDepthWidget: DosingDepthWidget,
+              LockableIdWidget: LockableIdWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
@@ -310,7 +258,7 @@ export default function ExperimentPage() {
               ErrorListTemplate: CustomErrorList,
               ButtonTemplates: {
                 AddButton: CustomAddButton,
-                SubmitButton: ExperimentSubmitButton
+                SubmitButton: HiddenSubmitButton
               }
             }}
             fields={{
@@ -319,19 +267,31 @@ export default function ExperimentPage() {
               DosingLocationField: DosingLocationField,
               DosingConcentrationField: DosingConcentrationField
             }}
-            showErrorList="top"
+            showErrorList={download.showErrorList ? "top" : false}
           />
+
+          {/* Download button - bypasses RJSF validation */}
+          <Group justify="flex-end" mt="xl">
+            <Button
+              leftSection={<IconDownload size={18} />}
+              onClick={download.handleDownloadClick}
+            >
+              Download Experiment Metadata
+            </Button>
+          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={formData} />
 
-      <DownloadConfirmationModal
-        opened={showDownloadModal}
-        onClose={handleDownloadCancel}
-        onConfirm={handleDownloadConfirm}
-        metadataType="experiment"
+      <SingleItemDownloadModal
+        opened={download.showModal}
+        onClose={download.closeModal}
+        onDownload={download.handleDownload}
         title="Download Experiment Metadata"
+        errorCount={download.errorCount}
+        onGoBack={download.handleGoBack}
+        onExitTransitionEnd={download.handleModalExitComplete}
       />
     </AppLayout>
   );

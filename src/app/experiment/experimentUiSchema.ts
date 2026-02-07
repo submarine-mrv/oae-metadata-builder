@@ -36,8 +36,12 @@ const experimentUiSchema = {
   ],
   experiment_id: {
     ...halfWidthStyle,
+    "ui:widget": "LockableIdWidget",
     "ui:placeholder": "e.g., PROJECT-01-BASELINE-01",
-    "ui:descriptionModal": true
+    "ui:descriptionModal": true,
+    "ui:options": {
+      lockOnBlur: true
+    }
   },
   name: {
     ...halfWidthStyle,

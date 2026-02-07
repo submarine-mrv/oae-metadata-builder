@@ -85,6 +85,20 @@ export interface DatasetFormData extends FormDataRecord {
 }
 
 // =============================================================================
+// ID Linking Metadata Types
+// =============================================================================
+
+/**
+ * ID linking metadata for datasets.
+ * Controls how experiment_id is synchronized from a parent experiment.
+ * Note: project_id is always auto-synced from the project — no opt-out.
+ */
+export interface DatasetLinkingMetadata {
+  /** If set, experiment_id auto-syncs from this experiment's internal ID */
+  linkedExperimentInternalId: number | null;
+}
+
+// =============================================================================
 // Application State Types
 // =============================================================================
 
@@ -116,6 +130,8 @@ export interface DatasetState {
   name: string;
   /** Form data (schema-driven) */
   formData: DatasetFormData;
+  /** ID linking metadata - controls how experiment_id syncs from a parent experiment */
+  linking?: DatasetLinkingMetadata;
   /** Creation timestamp */
   createdAt: number;
   /** Last update timestamp */
@@ -126,6 +142,7 @@ export interface DatasetState {
  * Main application state
  */
 export interface AppFormState {
+  hasProject: boolean;
   projectData: ProjectFormData;
   experiments: ExperimentState[];
   datasets: DatasetState[];
@@ -144,6 +161,7 @@ export interface AppFormState {
 
 /**
  * Container structure for exported data (matches JSON Schema Container)
+ * Note: experiments and datasets are top-level arrays, NOT nested in project
  */
 export interface ExportContainer {
   version?: string;
@@ -151,6 +169,7 @@ export interface ExportContainer {
   metadata_builder_git_hash?: string;
   project?: ProjectFormData;
   experiments?: ExperimentFormData[];
+  datasets?: DatasetFormData[];
 }
 
 /**
@@ -159,6 +178,7 @@ export interface ExportContainer {
 export interface ImportResult {
   projectData: ProjectFormData;
   experiments: ExperimentState[];
+  datasets: DatasetState[];
 }
 
 // =============================================================================

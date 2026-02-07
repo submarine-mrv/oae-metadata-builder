@@ -2,6 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { transformFormErrors } from "../errorTransformer";
+import { MESSAGES } from "@/constants/messages";
 
 describe("transformFormErrors", () => {
   it("should transform temporal coverage pattern error", () => {
@@ -15,9 +16,7 @@ describe("transformFormErrors", () => {
 
     const result = transformFormErrors(errors);
 
-    expect(result[0].message).toBe(
-      "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/.."
-    );
+    expect(result[0].message).toBe(MESSAGES.validation.temporalCoveragePattern);
   });
 
   it("should normalize spatial coverage errors", () => {
@@ -44,7 +43,7 @@ describe("transformFormErrors", () => {
     testCases.forEach((error) => {
       const result = transformFormErrors([error]);
       expect(result[0].property).toBe(".spatial_coverage");
-      expect(result[0].message).toBe("Spatial Coverage is required");
+      expect(result[0].message).toBe(MESSAGES.validation.spatialCoverage);
     });
   });
 
@@ -87,8 +86,8 @@ describe("transformFormErrors", () => {
     const result = transformFormErrors(errors);
 
     expect(result).toHaveLength(3);
-    expect(result[0].message).toContain("ISO interval");
-    expect(result[1].message).toBe("Spatial Coverage is required");
+    expect(result[0].message).toBe(MESSAGES.validation.temporalCoveragePattern);
+    expect(result[1].message).toBe(MESSAGES.validation.spatialCoverage);
     expect(result[2]).toEqual(errors[2]);
   });
 });

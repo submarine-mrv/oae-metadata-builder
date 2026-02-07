@@ -27,6 +27,7 @@ const interventionUiSchema = {
   // Override ui:order to include intervention-specific fields
   "ui:order": [
     "name",
+    "project_id",
     "experiment_id",
     "experiment_type",
     "description",

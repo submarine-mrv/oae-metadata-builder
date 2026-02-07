@@ -2,12 +2,12 @@
 
 export const MESSAGES = {
   validation: {
-    isoInterval:
-      "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/..",
+    temporalCoveragePattern:
+      "Start date and end date must be properly formatted",
     spatialCoverage: "Spatial Coverage is required",
+    experimentIdRequired: "Please select an experiment for your dataset.",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
-    depthOrder:
-      "Minimum depth must be greater than or equal to maximum depth.",
+    depthOrder: "Minimum depth must be greater than or equal to maximum depth.",
     temporalCoverageRequired: "Start date is required.",
     temporalCoverageOrder: "End date must be ≥ start date."
   },

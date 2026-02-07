@@ -18,6 +18,7 @@ const datasetUiSchema = {
   },
   "ui:order": [
     "name",
+    "experiment_id",
     "description",
     "temporal_coverage",
     "dataset_type",
@@ -39,12 +40,15 @@ const datasetUiSchema = {
     "ui:descriptionModal": true
   },
   description: textAreaWidget,
-  // Hide project_id and experiment_id - will be auto-connected later
+  // Project ID - hidden, auto-inferred from parent project
   project_id: {
     "ui:widget": "hidden"
   },
   experiment_id: {
-    "ui:widget": "hidden"
+    ...halfWidthStyle,
+    "ui:widget": "LinkedExperimentIdWidget",
+    "ui:title": "Experiment",
+    "ui:descriptionModal": true
   },
   temporal_coverage: {
     "ui:widget": "IsoIntervalWidget",
@@ -69,7 +73,8 @@ const datasetUiSchema = {
     "ui:enumNames": enumNames.DataProductType
   },
   filenames: {
-    "ui:field": "FilenamesField"
+    "ui:field": "FilenamesField",
+    "ui:title": "Dataset Filenames"
   },
   platform_info: {
     "ui:style": nestedItemStyle,

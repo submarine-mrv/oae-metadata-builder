@@ -6,13 +6,14 @@ import {
   getExperimentSchema,
   getInterventionSchema,
   getTracerSchema,
-  getInterventionWithTracerSchema
+  getInterventionWithTracerSchema,
+  getDatasetSchema
 } from "./schemaViews";
 import type {
   ProjectFormData,
   ExperimentFormData,
-  ExperimentState,
-  FormDataRecord
+  DatasetFormData,
+  ExperimentState
 } from "@/types/forms";
 
 // Create validator with Draft 2019-09 support
@@ -77,6 +78,71 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
     };
   } catch (error) {
     console.error("Error validating experiment:", error);
+    return {
+      isValid: false,
+      errors: [],
+      errorCount: 1
+    };
+  }
+}
+
+interface ValidateDatasetOptions {
+  /** When false, experiment_id required errors are suppressed */
+  hasExperiments?: boolean;
+}
+
+function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
+  return (
+    e.name === "required" &&
+    (e.params?.missingProperty === "experiment_id" ||
+      e.property === ".experiment_id")
+  );
+}
+
+/**
+ * Validates dataset data against the dataset schema
+ */
+export function validateDataset(
+  datasetData: DatasetFormData,
+  options?: ValidateDatasetOptions
+): ValidationResult {
+  try {
+    const schema = getDatasetSchema();
+    const result = validator.validateFormData(datasetData, schema);
+
+    let errors = result.errors;
+
+    // Catch empty/missing experiment_id that JSON schema "required" may not flag.
+    // Scenarios: propagation sets "" or undefined while property key still exists in object.
+    // Only add the error if AJV didn't already generate one for experiment_id.
+    const experimentId = datasetData.experiment_id as string | undefined;
+    const hasExperimentIdError = errors.some((e) => isExperimentIdRequiredError(e));
+    if (!hasExperimentIdError && (!experimentId || experimentId.trim() === "")) {
+      errors = [
+        ...errors,
+        {
+          name: "required",
+          property: ".experiment_id",
+          message: "is a required property",
+          params: { missingProperty: "experiment_id" },
+          stack: ".experiment_id is a required property",
+          schemaPath: "#/required"
+        }
+      ];
+    }
+
+    // Suppress experiment_id required error when no experiments exist
+    if (options?.hasExperiments === false) {
+      errors = errors.filter((e) => !isExperimentIdRequiredError(e));
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      errorCount: errors.length
+    };
+  } catch (error) {
+    console.error("Error validating dataset:", error);
     return {
       isValid: false,
       errors: [],

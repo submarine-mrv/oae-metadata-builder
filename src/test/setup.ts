@@ -28,6 +28,14 @@ global.URL.revokeObjectURL = vi.fn();
 // Mock window.scrollTo
 global.scrollTo = vi.fn();
 
+// Mock ResizeObserver (required for Mantine Select/Combobox components)
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+global.ResizeObserver = MockResizeObserver as any;
+
 // Mock window.matchMedia (required for Mantine components)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

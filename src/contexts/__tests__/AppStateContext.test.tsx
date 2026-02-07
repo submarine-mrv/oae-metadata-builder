@@ -22,6 +22,7 @@ describe('AppStateContext', () => {
       });
 
       expect(result.current.state).toEqual({
+        hasProject: false,
         projectData: { project_id: '' },
         experiments: [],
         datasets: [],
@@ -55,7 +56,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.projectData).toEqual(newProjectData);
     });
 
-    it('should preserve other state when updating project data', () => {
+    it('should propagate project_id to all experiments when updating project data', () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider
       });
@@ -65,15 +66,85 @@ describe('AppStateContext', () => {
         result.current.addExperiment('Test Experiment');
       });
 
-      const experimentsBeforeUpdate = result.current.state.experiments;
-
       // Update project data
       act(() => {
         result.current.updateProjectData({ project_id: 'new-project' });
       });
 
-      // Experiments should remain unchanged
-      expect(result.current.state.experiments).toEqual(experimentsBeforeUpdate);
+      // All experiments should have their project_id updated
+      expect(result.current.state.experiments[0].formData.project_id).toBe('new-project');
+      // Experiment name and other properties should remain unchanged
+      expect(result.current.state.experiments[0].name).toBe('Test Experiment');
+    });
+  });
+
+  describe('createProject', () => {
+    it('should set hasProject to true', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+
+      act(() => {
+        result.current.createProject();
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+    });
+  });
+
+  describe('deleteProject', () => {
+    it('should set hasProject to false and reset projectData', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create a project and add data
+      act(() => {
+        result.current.createProject();
+        result.current.updateProjectData({ project_id: 'test-project', description: 'Test' });
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+
+      act(() => {
+        result.current.deleteProject();
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+      expect(result.current.state.projectData).toEqual({});
+    });
+
+    it('should clear project_id from all experiments and datasets', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create project with ID
+      act(() => {
+        result.current.createProject();
+        result.current.updateProjectData({ project_id: 'my-project' });
+      });
+
+      // Add experiment and dataset
+      act(() => {
+        result.current.addExperiment('Exp 1');
+        result.current.addDataset('DS 1');
+      });
+
+      // Verify they have the project_id
+      expect(result.current.state.experiments[0].formData.project_id).toBe('my-project');
+      expect(result.current.state.datasets[0].formData.project_id).toBe('my-project');
+
+      // Delete the project
+      act(() => {
+        result.current.deleteProject();
+      });
+
+      // All experiments and datasets should have project_id cleared
+      expect(result.current.state.experiments[0].formData.project_id).toBe('');
+      expect(result.current.state.datasets[0].formData.project_id).toBe('');
     });
   });
 
@@ -823,6 +894,40 @@ describe('AppStateContext', () => {
       expect(result.current.state.activeTab).toBe('overview');
     });
 
+    it('should set hasProject to true when importing project with content', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+
+      act(() => {
+        result.current.importAllData({ project_id: 'imported-project' }, []);
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+    });
+
+    it('should set hasProject to false when importing empty project', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // First create a project
+      act(() => {
+        result.current.createProject();
+      });
+
+      expect(result.current.state.hasProject).toBe(true);
+
+      // Import with empty project data
+      act(() => {
+        result.current.importAllData({}, []);
+      });
+
+      expect(result.current.state.hasProject).toBe(false);
+    });
+
     it('should reset triggerValidation to false', () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider
@@ -873,6 +978,303 @@ describe('AppStateContext', () => {
       });
 
       expect(result.current.state.triggerValidation).toBe(false);
+    });
+  });
+
+  describe('importSelectedData with experiment linking', () => {
+    it('should link dataset to existing experiment when resolved match is existing', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create an existing experiment first
+      act(() => {
+        result.current.addExperiment('Existing Experiment');
+      });
+
+      act(() => {
+        result.current.updateExperiment(1, { experiment_id: 'EXP-001' });
+      });
+
+      // Import a dataset with linking to the existing experiment
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [],
+          [
+            {
+              formData: { name: 'Dataset 1' },
+              experimentLinking: {
+                mode: 'use-file',
+                resolvedMatch: {
+                  type: 'existing',
+                  experimentName: 'Existing Experiment',
+                  experimentId: 'EXP-001',
+                  internalId: 1
+                }
+              }
+            }
+          ]
+        );
+      });
+
+      const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset).toBeDefined();
+      expect(dataset?.linking?.linkedExperimentInternalId).toBe(1);
+      expect(dataset?.formData.experiment_id).toBe('EXP-001');
+    });
+
+    it('should link dataset to importing experiment via cross-import resolution', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Import both experiment and dataset at same time, with cross-import linking
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [
+            {
+              name: 'New Experiment',
+              experiment_id: 'EXP-NEW'
+            }
+          ],
+          [
+            {
+              formData: { name: 'Dataset 1' },
+              experimentLinking: {
+                mode: 'use-file',
+                resolvedMatch: {
+                  type: 'importing',
+                  experimentName: 'New Experiment',
+                  experimentId: 'EXP-NEW',
+                  importKey: 'experiment-0'
+                }
+              }
+            }
+          ]
+        );
+      });
+
+      const experiment = result.current.state.experiments.find(
+        (e) => e.formData.experiment_id === 'EXP-NEW'
+      );
+      const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+
+      expect(experiment).toBeDefined();
+      expect(dataset).toBeDefined();
+      // Dataset should be linked to the newly imported experiment's internal ID
+      expect(dataset?.linking?.linkedExperimentInternalId).toBe(experiment?.id);
+      expect(dataset?.formData.experiment_id).toBe('EXP-NEW');
+    });
+
+    it('should handle explicit linking to existing experiment', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create an existing experiment
+      act(() => {
+        result.current.addExperiment('Existing Experiment');
+      });
+
+      act(() => {
+        result.current.updateExperiment(1, { experiment_id: 'EXP-001' });
+      });
+
+      // Import dataset with explicit linking (user selected from dropdown)
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [],
+          [
+            {
+              formData: { name: 'Dataset 1', experiment_id: 'WRONG-ID' },
+              experimentLinking: {
+                mode: 'explicit',
+                explicitExperimentInternalId: 1
+              }
+            }
+          ]
+        );
+      });
+
+      const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset?.linking?.linkedExperimentInternalId).toBe(1);
+      // Should use the linked experiment's ID, not the file's ID
+      expect(dataset?.formData.experiment_id).toBe('EXP-001');
+    });
+
+    it('should handle explicit linking to importing experiment', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Import experiment and dataset with explicit cross-import link
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [
+            {
+              name: 'Importing Experiment',
+              experiment_id: 'EXP-IMP'
+            }
+          ],
+          [
+            {
+              formData: { name: 'Dataset 1' },
+              experimentLinking: {
+                mode: 'explicit',
+                explicitImportKey: 'experiment-0'
+              }
+            }
+          ]
+        );
+      });
+
+      const experiment = result.current.state.experiments[0];
+      const dataset = result.current.state.datasets[0];
+
+      expect(dataset?.linking?.linkedExperimentInternalId).toBe(experiment.id);
+      expect(dataset?.formData.experiment_id).toBe('EXP-IMP');
+    });
+
+    it('should not link dataset when no experiment linking is provided', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [],
+          [
+            {
+              formData: { name: 'Dataset 1', experiment_id: 'EXP-ORPHAN' }
+              // No experimentLinking provided
+            }
+          ]
+        );
+      });
+
+      const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
+      // Original experiment_id should be preserved
+      expect(dataset?.formData.experiment_id).toBe('EXP-ORPHAN');
+    });
+
+    it('should propagate experiment_id to linked datasets when experiment_id is set', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create experiment and link a dataset to it via import
+      act(() => {
+        result.current.addExperiment('Test Experiment');
+      });
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [],
+          [
+            {
+              formData: { name: 'Dataset 1' },
+              experimentLinking: {
+                mode: 'use-file',
+                resolvedMatch: {
+                  type: 'existing',
+                  experimentName: 'Test Experiment',
+                  experimentId: undefined,
+                  internalId: 1
+                }
+              }
+            }
+          ]
+        );
+      });
+
+      // Set experiment_id on the experiment — should propagate to dataset
+      act(() => {
+        result.current.updateExperiment(1, { experiment_id: 'EXP-SET' });
+      });
+
+      const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset?.formData.experiment_id).toBe('EXP-SET');
+    });
+
+    it('should propagate undefined to linked datasets when experiment_id is cleared', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create experiment with an ID and link a dataset to it
+      act(() => {
+        result.current.addExperiment('Test Experiment');
+      });
+      act(() => {
+        result.current.updateExperiment(1, { experiment_id: 'EXP-WILL-CLEAR' });
+      });
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [],
+          [
+            {
+              formData: { name: 'Dataset 1' },
+              experimentLinking: {
+                mode: 'use-file',
+                resolvedMatch: {
+                  type: 'existing',
+                  experimentName: 'Test Experiment',
+                  experimentId: 'EXP-WILL-CLEAR',
+                  internalId: 1
+                }
+              }
+            }
+          ]
+        );
+      });
+
+      // Verify dataset has the experiment_id
+      let dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset?.formData.experiment_id).toBe('EXP-WILL-CLEAR');
+
+      // Clear the experiment_id — should propagate undefined to linked dataset
+      act(() => {
+        result.current.updateExperiment(1, { experiment_id: '' });
+      });
+
+      dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset?.formData.experiment_id).toBeUndefined();
+    });
+
+    it('should not overwrite experiment_id when linking resolves to none', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      act(() => {
+        result.current.importSelectedData(
+          null,
+          [],
+          [
+            {
+              formData: { name: 'Dataset 1', experiment_id: 'EXP-UNMATCHED' },
+              experimentLinking: {
+                mode: 'use-file',
+                resolvedMatch: {
+                  type: 'none'
+                }
+              }
+            }
+          ]
+        );
+      });
+
+      const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
+      expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
+      // Original experiment_id from file should be preserved
+      expect(dataset?.formData.experiment_id).toBe('EXP-UNMATCHED');
     });
   });
 });

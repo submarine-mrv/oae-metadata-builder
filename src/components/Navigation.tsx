@@ -13,7 +13,7 @@ import {
   Box
 } from "@mantine/core";
 import {
-  IconMenu2,
+  IconDotsVertical,
   IconInfoCircle,
   IconHelp,
   IconDownload,
@@ -21,20 +21,37 @@ import {
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
-import { exportMetadata, importMetadata } from "@/utils/exportImport";
-import { validateAllData } from "@/utils/validation";
+import { importMetadata } from "@/utils/exportImport";
+import DownloadModal from "@/components/DownloadModal";
+import ImportPreviewModal from "@/components/ImportPreviewModal";
+import { useDownloadModal } from "@/hooks/useDownloadModal";
+import { useImportPreview } from "@/hooks/useImportPreview";
 
 export default function Navigation() {
-  const {
-    state,
-    setActiveTab,
-    setActiveExperiment,
-    importAllData,
-    setTriggerValidation,
-    toggleJsonPreview
-  } = useAppState();
+  const { state, setActiveTab, importSelectedData, toggleJsonPreview } =
+    useAppState();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    showModal,
+    sections,
+    openModal,
+    closeModal,
+    handleDownload,
+    handleSectionToggle
+  } = useDownloadModal({
+    projectData: state.projectData,
+    experiments: state.experiments,
+    datasets: state.datasets,
+    defaultSelection: "all"
+  });
+
+  const importPreview = useImportPreview({
+    currentProjectData: state.projectData,
+    currentExperiments: state.experiments,
+    currentDatasets: state.datasets
+  });
 
   const handleNavigation = (value: string) => {
     const tab = value as "overview" | "project" | "experiment" | "dataset";
@@ -48,67 +65,6 @@ export default function Navigation() {
     router.push(paths[value]);
   };
 
-  const handleExport = async () => {
-    // Validate all data before exporting
-    const validation = validateAllData(state.projectData, state.experiments);
-
-    if (!validation.isAllValid) {
-      // Count total errors
-      let totalErrors = validation.projectValidation.errorCount;
-      validation.experimentValidations.forEach((expVal) => {
-        totalErrors += expVal.errorCount;
-      });
-
-      // Show alert with error summary
-      const errorMessages: string[] = [];
-
-      if (!validation.projectValidation.isValid) {
-        errorMessages.push(
-          `Project has ${validation.projectValidation.errorCount} error(s)`
-        );
-      }
-
-      const invalidExperiments = Array.from(
-        validation.experimentValidations.entries()
-      ).filter(([_, val]) => !val.isValid);
-
-      if (invalidExperiments.length > 0) {
-        errorMessages.push(
-          `${invalidExperiments.length} experiment(s) have validation errors`
-        );
-      }
-
-      alert(
-        `Cannot export metadata. Please fix the following errors:\n\n${errorMessages.join("\n")}\n\nCheck the browser console for detailed error information.`
-      );
-
-      // Navigate to the first page with errors
-      if (!validation.projectValidation.isValid) {
-        router.push("/project");
-        // Set trigger after navigation starts
-        setTimeout(() => setTriggerValidation(true), 50);
-      } else if (invalidExperiments.length > 0) {
-        // Navigate to the first invalid experiment
-        const [experimentId] = invalidExperiments[0];
-        const experiment = state.experiments.find(
-          (exp) => exp.id === experimentId
-        );
-        if (experiment) {
-          setActiveExperiment(experimentId);
-          setActiveTab("experiment");
-          router.push("/experiment");
-          // Set trigger after navigation starts
-          setTimeout(() => setTriggerValidation(true), 50);
-        }
-      }
-
-      return;
-    }
-
-    // All data is valid, proceed with export
-    exportMetadata(state.projectData, state.experiments);
-  };
-
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -118,8 +74,15 @@ export default function Navigation() {
     if (!file) return;
 
     try {
-      const { projectData, experiments } = await importMetadata(file);
-      importAllData(projectData, experiments);
+      const { projectData, experiments, datasets } = await importMetadata(file);
+
+      // Extract form data from experiment/dataset states
+      const experimentFormData = experiments.map((exp) => exp.formData);
+      const datasetFormData = datasets.map((ds) => ds.formData);
+
+      // Open preview modal instead of auto-importing
+      importPreview.openPreview(file.name, projectData, experimentFormData, datasetFormData);
+
       // Reset file input
       e.target.value = "";
     } catch (error) {
@@ -130,109 +93,142 @@ export default function Navigation() {
     }
   };
 
+  const handleImport = () => {
+    const selected = importPreview.getSelectedItems();
+    // Extract just the formData for experiments (they don't have linking config in import)
+    const experimentFormData = selected.experiments;
+    // Pass datasets with their linking configuration
+    importSelectedData(selected.project, experimentFormData, selected.datasets);
+    importPreview.closePreview();
+    router.push("/overview");
+  };
+
   return (
-    <Box
-      px="lg"
-      py="sm"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr auto 1fr",
-        alignItems: "center",
-        gap: "1rem"
-      }}
-    >
-      {/* Logo and title - left aligned */}
-      <Group gap="sm">
-        <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
-        <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
-          OAE Metadata Builder
-        </Text>
-      </Group>
-
-      {/* Navigation tabs - centered */}
-      <SegmentedControl
+    <>
+      <Box
+        px="lg"
+        py="sm"
         style={{
-          backgroundColor: "var(--brand-sunlight)"
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: "1rem"
         }}
-        value={state.activeTab}
-        onChange={handleNavigation}
-        data={[
-          { value: "overview", label: "Overview" },
-          { value: "project", label: "Project" },
-          { value: "experiment", label: "Experiments" },
-          { value: "dataset", label: "Datasets" }
-        ]}
-        size="md"
-        radius="md"
-      />
+      >
+        {/* Logo and title - left aligned */}
+        <Group gap="sm">
+          <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
+          <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
+            OAE Metadata Builder
+          </Text>
+        </Group>
 
-      {/* Actions - right aligned */}
-      <Group gap="xs" justify="flex-end">
-        <Tooltip label="Import metadata file">
-          <ActionIcon
-            variant="subtle"
-            size="lg"
-            onClick={handleImportClick}
-            aria-label="Import File"
-          >
-            <IconFileImport size={20} />
-          </ActionIcon>
-        </Tooltip>
-
-        <Button
-          variant="filled"
-          leftSection={<IconDownload size={16} />}
-          onClick={handleExport}
-        >
-          Export
-        </Button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleFileChange}
-          style={{ display: "none" }}
+        {/* Navigation tabs - centered */}
+        <SegmentedControl
+          style={{
+            backgroundColor: "var(--brand-sunlight)"
+          }}
+          value={state.activeTab}
+          onChange={handleNavigation}
+          data={[
+            { value: "overview", label: "Overview" },
+            { value: "project", label: "Project" },
+            { value: "experiment", label: "Experiments" },
+            { value: "dataset", label: "Datasets" }
+          ]}
+          size="md"
+          radius="md"
         />
 
-        <Menu shadow="md" width={200}>
-          <Menu.Target>
-            <ActionIcon variant="subtle" size="lg" aria-label="Menu">
-              <IconMenu2 size={20} />
+        {/* Actions - right aligned */}
+        <Group gap="xs" justify="flex-end">
+          <Tooltip label="Import metadata file">
+            <ActionIcon
+              variant="subtle"
+              size="lg"
+              onClick={handleImportClick}
+              aria-label="Import File"
+            >
+              <IconFileImport size={20} />
             </ActionIcon>
-          </Menu.Target>
+          </Tooltip>
 
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<IconInfoCircle size={16} />}
-              onClick={() => router.push("/about")}
-            >
-              About
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<IconHelp size={16} />}
-              onClick={() => router.push("/how-to")}
-            >
-              How-to Guide
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Item
-              closeMenuOnClick={false}
-              onClick={(e) => {
-                e.preventDefault();
-                toggleJsonPreview();
-              }}
-            >
-              <Switch
-                label="JSON Preview"
-                checked={state.showJsonPreview}
-                onChange={toggleJsonPreview}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
-    </Box>
+          <Button
+            variant="filled"
+            leftSection={<IconDownload size={16} />}
+            onClick={openModal}
+          >
+            Export
+          </Button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+
+          <Menu shadow="md" width={200}>
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg" aria-label="Menu">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconInfoCircle size={16} />}
+                onClick={() => router.push("/about")}
+              >
+                About
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconHelp size={16} />}
+                onClick={() => router.push("/how-to")}
+              >
+                How-to Guide
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                closeMenuOnClick={false}
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleJsonPreview();
+                }}
+              >
+                <Switch
+                  label="JSON Preview"
+                  checked={state.showJsonPreview}
+                  onChange={toggleJsonPreview}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+      </Box>
+
+      <DownloadModal
+        opened={showModal}
+        onClose={closeModal}
+        onDownload={handleDownload}
+        title="Export All Metadata"
+        sections={sections}
+        onSectionToggle={handleSectionToggle}
+      />
+
+      <ImportPreviewModal
+        opened={importPreview.state.isOpen}
+        onClose={importPreview.closePreview}
+        filename={importPreview.state.filename}
+        items={importPreview.state.items}
+        onToggleItem={importPreview.toggleItem}
+        onSetDatasetLinking={importPreview.setDatasetExperimentLinking}
+        getExperimentLinkOptions={importPreview.getExperimentLinkOptions}
+        duplicateExperimentIdError={importPreview.state.duplicateExperimentIdError}
+        onImport={handleImport}
+      />
+    </>
   );
 }

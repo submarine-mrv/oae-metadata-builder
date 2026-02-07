@@ -1,6 +1,7 @@
 // errorTransformer.ts - Centralized form validation error transformation
 
 import type { RJSFValidationError } from "@rjsf/utils";
+import { MESSAGES } from "@/constants/messages";
 
 /**
  * Check if an error is related to spatial coverage field
@@ -31,8 +32,7 @@ export function transformFormErrors(
     if (e.property === ".temporal_coverage" && e.name === "pattern") {
       return {
         ...e,
-        message:
-          "Use ISO interval: YYYY-MM-DD/YYYY-MM-DD or open-ended YYYY-MM-DD/.."
+        message: MESSAGES.validation.temporalCoveragePattern
       };
     }
 
@@ -41,7 +41,27 @@ export function transformFormErrors(
       return {
         ...e,
         property: ".spatial_coverage", // Normalize to spatial_coverage level
-        message: "Spatial Coverage is required"
+        message: MESSAGES.validation.spatialCoverage
+      };
+    }
+
+    // Improve experiment_id required error message
+    if (
+      e.name === "required" &&
+      (e.params?.missingProperty === "experiment_id" ||
+        e.property === ".experiment_id")
+    ) {
+      return {
+        ...e,
+        message: MESSAGES.validation.experimentIdRequired
+      };
+    }
+
+    // Improve email pattern error message
+    if (e.name === "pattern" && e.message?.includes("@[a-zA-Z0-9.-]+")) {
+      return {
+        ...e,
+        message: "Please enter a valid email address"
       };
     }
 

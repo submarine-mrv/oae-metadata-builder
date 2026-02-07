@@ -2,6 +2,7 @@ import {
   ErrorListProps,
   FormContextType,
   RJSFSchema,
+  RJSFValidationError,
   StrictRJSFSchema
 } from "@rjsf/utils";
 import {
@@ -11,7 +12,8 @@ import {
   Stack,
   Button,
   Collapse,
-  Code
+  Code,
+  List
 } from "@mantine/core";
 import {
   IconAlertCircle,
@@ -19,6 +21,45 @@ import {
   IconChevronUp
 } from "@tabler/icons-react";
 import { useState } from "react";
+
+/**
+ * Convert a property path like ".data_submitter.email" to a readable format
+ * like "Data Submitter → Email"
+ */
+function formatPropertyPath(property: string | undefined): string {
+  if (!property || property === ".") return "";
+
+  return (
+    property
+      .replace(/^\./, "") // Remove leading dot
+      .split(".")
+      .map((part) =>
+        part
+          .split("_")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ")
+      )
+      .join(" → ") + ": "
+  );
+}
+
+/**
+ * Format an error into a user-friendly message with context
+ */
+function formatError(error: RJSFValidationError): string {
+  const path = formatPropertyPath(error.property);
+  let message = error.message || "Field is invalid";
+
+  // Clean up redundant "must have required property 'X'" messages
+  if (message.startsWith("must have required property")) {
+    message = "Field is required";
+  }
+
+  if (path) {
+    return `${path} ${message}`;
+  }
+  return message;
+}
 
 /** Custom ErrorList component that renders errors in a clean user-friendly format */
 export default function CustomErrorList<
@@ -54,7 +95,7 @@ export default function CustomErrorList<
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <IconAlertCircle size={20} color="var(--mantine-color-red-6)" />
             <Title order={4} c="red" fw={500}>
-              {errorCount} {errorText} when validating metadata
+              {errorCount} {errorText} found
             </Title>
           </div>
           <Button
@@ -74,9 +115,11 @@ export default function CustomErrorList<
           </Button>
         </div>
 
-        <Text size="sm" c="red">
-          Please fix the incorrect fields below
-        </Text>
+        <List size="sm" c="red" spacing="xs">
+          {errors.map((error, index) => (
+            <List.Item key={`error-${index}`}>{formatError(error)}</List.Item>
+          ))}
+        </List>
 
         <Collapse in={showDevView}>
           <Stack gap="xs">
@@ -84,7 +127,7 @@ export default function CustomErrorList<
               Raw validation errors:
             </Text>
             {errors.map((error, index) => (
-              <Code key={`error-${index}`} block c="red">
+              <Code key={`raw-error-${index}`} block c="red">
                 {error.stack}
               </Code>
             ))}

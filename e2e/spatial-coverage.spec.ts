@@ -9,7 +9,13 @@ test.describe("Spatial Coverage Field", () => {
   test.beforeEach(async ({ page }) => {
     projectPage = new ProjectPage(page);
     mapModal = new MapModal(page);
-    await projectPage.goto();
+
+    // Navigate to overview and create a project first
+    await page.goto("/overview");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Create.*Project/i }).click();
+    await page.waitForURL("**/project");
+    await page.waitForLoadState("networkidle");
   });
 
   test("displays empty state with prompt to click map", async ({ page }) => {
