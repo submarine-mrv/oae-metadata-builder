@@ -134,8 +134,8 @@ export function useSingleItemDownload({
     if (!pendingValidation) return;
     setPendingValidation(false);
 
-    // Query the form element directly from DOM
-    const formElement = document.querySelector("form") as HTMLFormElement | null;
+    // Query the form element within the scroll container (scoped to current page)
+    const formElement = scrollContainerRef.current?.querySelector("form") as HTMLFormElement | null;
 
     // reportValidity() shows browser validation bubbles and returns validity status
     const html5Valid = formElement?.reportValidity() ?? true;

@@ -330,9 +330,9 @@ export default function OverviewPage() {
 
                         {experiment.experiment_type && (
                           <Badge variant="light" size="sm">
-                            {experiment.experiment_type === "intervention"
-                              ? "Intervention"
-                              : experiment.experiment_type}
+                            {experiment.experiment_type
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (c) => c.toUpperCase())}
                           </Badge>
                         )}
 
