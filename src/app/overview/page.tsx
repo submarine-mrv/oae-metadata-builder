@@ -503,6 +503,9 @@ export default function OverviewPage() {
                   padding="lg"
                   radius="md"
                   withBorder
+                  role="button"
+                  aria-label={`Create ${entity.label}`}
+                  tabIndex={0}
                   style={{
                     cursor: "pointer",
                     borderStyle: "dashed",
@@ -512,6 +515,12 @@ export default function OverviewPage() {
                     transition: "border-color 150ms, box-shadow 150ms"
                   }}
                   onClick={entity.onClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      entity.onClick();
+                    }
+                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor =
                       "var(--mantine-color-gray-6)";
