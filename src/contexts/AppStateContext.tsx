@@ -522,13 +522,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               )
             : -1;
 
+          // Wipe project_id — will be re-propagated from final project state below
+          const { project_id: _pid, ...sanitizedExpData } = expData as ExperimentFormData & { project_id?: string };
+          const cleanExpData: ExperimentFormData = sanitizedExpData;
+
           if (existingIndex >= 0) {
             // Replace existing experiment
             newExperiments[existingIndex] = {
               ...newExperiments[existingIndex],
-              formData: expData,
+              formData: cleanExpData,
               name: expName || newExperiments[existingIndex].name,
-              experiment_type: expData.experiment_type,
+              experiment_type: cleanExpData.experiment_type,
               updatedAt: Date.now()
             };
             // Map import key to existing internal ID
@@ -539,8 +543,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             newExperiments.push({
               id: newInternalId,
               name: expName || `Experiment ${newInternalId}`,
-              formData: expData,
-              experiment_type: expData.experiment_type,
+              formData: cleanExpData,
+              experiment_type: cleanExpData.experiment_type,
               createdAt: Date.now(),
               updatedAt: Date.now()
             });
@@ -555,7 +559,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         let nextDsId = prev.nextDatasetId;
 
         for (const { formData: dsData, experimentLinking } of datasets) {
-          const dsName = dsData.name as string | undefined;
+          // Wipe project_id and experiment_id — project_id will be re-propagated below,
+          // experiment_id only set when linking resolves to a valid experiment
+          const { project_id: _dpid, experiment_id: _deid, ...sanitizedDsData } =
+            dsData as DatasetFormData & { project_id?: string; experiment_id?: string };
+          const cleanDsData: DatasetFormData = sanitizedDsData;
+          const dsName = cleanDsData.name as string | undefined;
 
           // Resolve experiment linking to internal ID
           let linkedExperimentInternalId: number | null = null;
@@ -592,8 +601,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           // Update formData with resolved experiment_id if linking is set
           const finalFormData: DatasetFormData =
             linkedExperimentInternalId !== null && experimentIdToSet
-              ? { ...dsData, experiment_id: experimentIdToSet }
-              : dsData;
+              ? { ...cleanDsData, experiment_id: experimentIdToSet }
+              : cleanDsData;
 
           // Build linking metadata for the dataset
           const datasetLinking: DatasetLinkingMetadata = {
@@ -620,12 +629,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             )
           : prev.hasProject;
 
+        // Propagate final project_id to ALL experiments and datasets atomically
+        const finalProjectId = newProjectData.project_id as string | undefined;
+        const finalExperiments = propagateProjectIdToExperiments(newExperiments, finalProjectId);
+        const finalDatasets = propagateProjectIdToDatasets(newDatasets, finalProjectId);
+
         return {
           ...prev,
           hasProject,
           projectData: newProjectData,
-          experiments: newExperiments,
-          datasets: newDatasets,
+          experiments: finalExperiments,
+          datasets: finalDatasets,
           nextExperimentId: nextExpId,
           nextDatasetId: nextDsId,
           activeTab: "overview" as const
