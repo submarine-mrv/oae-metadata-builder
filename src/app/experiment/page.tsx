@@ -115,7 +115,7 @@ export default function ExperimentPage() {
       // Mark that initial data has been loaded (after a tick to let form mount)
       setTimeout(() => setIsInitialLoad(false), 0);
     }
-  }, [activeExperimentId, experiment?.formData]); // Track formData changes for linked updates
+  }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dynamic schema and uiSchema switching based on experiment_type
   useEffect(() => {
