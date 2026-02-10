@@ -54,7 +54,10 @@ const SAMPLING_OPTIONS = [
 // Human-readable labels for pills
 const VARIABLE_TYPE_LABELS: Record<string, string> = {
   pH: "pH",
-  observed_property: "Observed Property"
+  ta: "Total Alkalinity",
+  dic: "DIC",
+  observed_property: "Observed Property",
+  sediment: "Sediment"
 };
 
 const GENESIS_LABELS: Record<string, string> = {

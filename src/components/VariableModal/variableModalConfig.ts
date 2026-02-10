@@ -67,8 +67,8 @@ export const VARIABLE_SCHEMA_MAP = {
   },
   sediment: {
     MEASURED: {
-      DISCRETE: "DiscreteMeasuredVariable",
-      CONTINUOUS: "ContinuousMeasuredVariable"
+      DISCRETE: "DiscreteSedimentVariable",
+      CONTINUOUS: "ContinuousSedimentVariable"
     },
     CALCULATED: "CalculatedVariable"
   }
@@ -113,7 +113,10 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
 
 export const VARIABLE_TYPE_OPTIONS = [
   { value: "pH", label: "pH" },
-  { value: "observed_property", label: "Observed Property" }
+  { value: "ta", label: "Total Alkalinity (TA)" },
+  { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
+  { value: "observed_property", label: "Observed Property" },
+  { value: "sediment", label: "Sediment" }
 ] as const;
 
 // =============================================================================
@@ -186,6 +189,11 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         placeholderText: "e.g., pH_total, DIC, TA",
         newRowAfter: true
       },
+      // TA/DIC-specific (only visible when schema includes it)
+      {
+        path: "concentration_basis",
+        span: 6
+      },
       {
         path: "dataset_variable_name_qc_flag",
         inputType: "optional_with_gate",
@@ -221,6 +229,42 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       {
         path: "field_replicate_information",
         placeholderText: "e.g., triplicate samples"
+      },
+      // Sediment-specific fields (Sediment variables only)
+      {
+        path: "sediment_type",
+        span: 6,
+        placeholderText: "e.g., mud, sand"
+      },
+      {
+        path: "sediment_sampling_method",
+        span: 6,
+        placeholderText: "e.g., sediment core, grab sampling, dredging"
+      },
+      {
+        path: "sediment_sampling_depth",
+        span: 6,
+        placeholderText: "Depth below sediment surface"
+      },
+      {
+        path: "sediment_sampling_water_depth",
+        span: 6,
+        placeholderText: "Water depth where sediment was collected"
+      },
+      // Sample preservation fields (TA/DIC discrete only)
+      {
+        path: "sample_preservation.preservative",
+        span: 6,
+        placeholderText: "e.g., Mercury Chloride"
+      },
+      {
+        path: "sample_preservation.volume",
+        span: 6,
+        placeholderText: "Volume of preservative used"
+      },
+      {
+        path: "sample_preservation.correction_description",
+        placeholderText: "How the preservative effect was corrected for"
       }
     ]
   },
@@ -247,6 +291,25 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       {
         path: "temperature_correction_method",
         placeholderText: "Method used to correct pH for temperature"
+      },
+      // TA/DIC-specific fields
+      {
+        path: "titration_type",
+        span: 6,
+        placeholderText: "Type of titration used"
+      },
+      {
+        path: "titration_cell_type",
+        span: 6
+      },
+      {
+        path: "curve_fitting_method",
+        span: 6,
+        placeholderText: "Curve fitting method for alkalinity"
+      },
+      {
+        path: "blank_correction",
+        placeholderText: "Whether and how results were corrected for blank"
       },
       // Continuous sensor fields
       "raw_data_calculation_method",
@@ -305,7 +368,18 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         path: "analyzing_instrument.calibration.calibration_location",
         span: 6
       },
-      // Generic calibration
+      // CRM calibration fields (TA/DIC only — CRMCalibration)
+      {
+        path: "analyzing_instrument.calibration.crm_manufacturer",
+        span: 6,
+        placeholderText: "e.g., Scripps, JAMSTEC"
+      },
+      {
+        path: "analyzing_instrument.calibration.crm_batch_number",
+        span: 6,
+        placeholderText: "CRM batch number"
+      },
+      // pH dye calibration fields (pH only — PHCalibration)
       {
         path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
         placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
