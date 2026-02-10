@@ -4,13 +4,13 @@
  * This file defines:
  * - VARIABLE_SCHEMA_MAP: Maps variable_type + genesis + sampling to $defs schema key
  * - VARIABLE_TYPE_OPTIONS: User-facing dropdown options
- * - ACCORDION_CONFIG: Defines accordion sections and their fields
+ * - getAccordionConfig(): Builds per-type accordion sections from layer stacks
+ * - VARIABLE_TYPE_LAYERS: Maps schema keys to their hierarchy layer stacks
  *
- * Field organization:
- * - Base/shared fields are defined inline in ACCORDION_CONFIG
- * - Type-specific fields are defined in named groups (phFields, taDicFields, etc.)
- * - collectFields() merges base + type-specific fields per section
- * - fieldExistsInSchema() handles runtime visibility — groups only organize authoring
+ * Field organization uses a hierarchy-aware layer system that mirrors LinkML classes:
+ * - Each HierarchyLayer corresponds to a level in the LinkML class tree
+ * - buildSectionFields() merges layers using explicit insertion positions
+ * - fieldExistsInSchema() handles runtime visibility — layers only organize authoring
  */
 
 import type { ComponentType } from "react";
@@ -206,7 +206,7 @@ export interface AccordionSection {
 }
 
 // =============================================================================
-// Trait-Based Field Groups
+// Hierarchy-Aware Layer System
 // =============================================================================
 
 /** Valid accordion section keys */
@@ -222,363 +222,145 @@ type SectionKey =
 
 type FieldEntry = string | FieldConfig;
 
-/** Maps section keys to field entries that should appear in that section */
-type SectionFields = Partial<Record<SectionKey, FieldEntry[]>>;
+/** Where to insert a layer's fields relative to existing fields */
+type InsertPosition = "append" | "prepend" | { after: string };
 
-/** pH-specific fields (DiscretePHVariable, ContinuousPHVariable) */
-const phFields: SectionFields = {
-  analysis: [
-    {
-      path: "measurement_temperature",
-      span: 6,
-      placeholderText: "Temperature at which pH was measured"
-    },
-    {
-      path: "ph_reported_temperature",
-      span: 6,
-      placeholderText: "Temperature at which pH is reported"
-    },
-    {
-      path: "temperature_correction_method",
-      placeholderText: "Method used to correct pH for temperature"
-    }
-  ],
-  calibration: [
-    {
-      path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
-      placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
-    },
-    {
-      path: "analyzing_instrument.calibration.dye_purified",
-      span: 6,
-      inputType: "boolean_select"
-    },
-    {
-      path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
-      span: 6,
-      placeholderText: "Correction method applied"
-    },
-    {
-      path: "analyzing_instrument.calibration.dye_correction_method",
-      placeholderText: "Method used to correct for dye effects"
-    },
-    {
-      path: "analyzing_instrument.calibration.ph_of_standards",
-      span: 6,
-      placeholderText: "pH values of calibration standards"
-    },
-    {
-      path: "analyzing_instrument.calibration.calibration_temperature",
-      span: 6,
-      placeholderText: "Temperature of calibration"
-    }
-  ]
-};
-
-/** TA/DIC shared fields */
-const taDicFields: SectionFields = {
-  sampling: [
-    {
-      path: "sample_preservation.preservative",
-      span: 6,
-      placeholderText: "e.g., Mercury Chloride"
-    },
-    {
-      path: "sample_preservation.volume",
-      span: 6,
-      placeholderText: "Volume of preservative used"
-    },
-    {
-      path: "sample_preservation.correction_description",
-      placeholderText: "How the preservative effect was corrected for"
-    }
-  ],
-  analysis: [
-    {
-      path: "titration_type",
-      span: 6,
-      placeholderText: "Type of titration used"
-    },
-    {
-      path: "titration_cell_type",
-      span: 6
-    },
-    {
-      path: "curve_fitting_method",
-      span: 6,
-      placeholderText: "Curve fitting method for alkalinity"
-    },
-    {
-      path: "blank_correction",
-      placeholderText: "Whether and how results were corrected for blank"
-    }
-  ],
-  calibration: [
-    {
-      path: "analyzing_instrument.calibration.crm_manufacturer",
-      span: 6,
-      placeholderText: "e.g., Scripps, JAMSTEC"
-    },
-    {
-      path: "analyzing_instrument.calibration.crm_batch_number",
-      span: 6,
-      placeholderText: "CRM batch number"
-    }
-  ]
-};
-
-/** Sediment-specific fields */
-const sedimentFields: SectionFields = {
-  sampling: [
-    {
-      path: "sediment_type",
-      span: 6,
-      placeholderText: "e.g., mud, sand"
-    },
-    {
-      path: "sediment_sampling_method",
-      span: 6,
-      placeholderText: "e.g., sediment core, grab sampling, dredging"
-    },
-    {
-      path: "sediment_sampling_depth",
-      span: 6,
-      placeholderText: "Depth below sediment surface"
-    },
-    {
-      path: "sediment_sampling_water_depth",
-      span: 6,
-      placeholderText: "Water depth where sediment was collected"
-    }
-  ]
-};
-
-/** CO2-specific fields (DiscreteCO2Variable) */
-const co2Fields: SectionFields = {
-  sampling: [
-    {
-      path: "storage_method",
-      placeholderText: "How samples were stored before measurement"
-    }
-  ],
-  analysis: [
-    {
-      path: "headspace_volume",
-      span: 6,
-      placeholderText: "Volume of headspace (mL)"
-    },
-    {
-      path: "seawater_volume",
-      span: 6,
-      placeholderText: "Volume of seawater in flask (mL)"
-    },
-    {
-      path: "water_vapor_correction_method",
-      placeholderText: "How water vapor pressure was determined"
-    }
-  ],
-  instrument: [
-    {
-      path: "analyzing_instrument.detector_type",
-      span: 6,
-      placeholderText: "Type of CO2 gas detector"
-    },
-    {
-      path: "analyzing_instrument.resolution",
-      span: 6,
-      placeholderText: "Sensor resolution"
-    },
-    {
-      path: "analyzing_instrument.uncertainty",
-      span: 6,
-      placeholderText: "Sensor uncertainty"
-    }
-  ],
-  // calibration_temperature is in phFields (shared with CO2 via schema)
-  calibration: [
-    {
-      path: "analyzing_instrument.calibration.standard_gas_info.manufacturer",
-      span: 6,
-      placeholderText: "Standard gas manufacturer"
-    },
-    {
-      path: "analyzing_instrument.calibration.standard_gas_info.concentration",
-      span: 6,
-      placeholderText: "e.g., 260, 350, 510 ppm"
-    },
-    {
-      path: "analyzing_instrument.calibration.standard_gas_info.uncertainty",
-      span: 6,
-      placeholderText: "e.g., 0.5%"
-    }
-  ]
-};
-
-/** HPLC-specific fields (HPLCVariable) */
-const hplcFields: SectionFields = {
-  analysis: [
-    { path: "hplc_lab", span: 6, placeholderText: "e.g., NASA_GSFC" },
-    { path: "hplc_lab_technician", span: 6, placeholderText: "Name and contact info" },
-  ],
-};
-
-/** Continuous sensor fields (shared across all continuous types) */
-const continuousFields: SectionFields = {
-  analysis: ["raw_data_calculation_method", "calculation_software_version"]
-};
-
-/** Shared calibration fields that appear after type-specific calibration fields */
-const calibrationBottomFields: SectionFields = {
-  calibration: [
-    {
-      path: "analyzing_instrument.calibration.frequency",
-      span: 6,
-      placeholderText: "How often calibrated"
-    },
-    {
-      path: "analyzing_instrument.calibration.last_calibration_date",
-      span: 6,
-      placeholderText: "YYYY-MM-DD"
-    },
-    {
-      path: "analyzing_instrument.calibration.method_reference",
-      placeholderText: "Citation for calibration method"
-    },
-    "analyzing_instrument.calibration.calibration_certificates"
-  ]
-};
-
-/** Calculated variable fields */
-const calculatedFields: SectionFields = {
-  calculation: [
-    {
-      path: "calculation_method_and_parameters",
-      placeholderText:
-        "e.g., Using CO2SYS with Lueker et al. (2000) constants"
-    }
-  ]
+/** A layer's contribution to a section: either a plain array (append) or positioned */
+type SectionContribution = FieldEntry[] | {
+  fields: FieldEntry[];
+  position: InsertPosition;
 };
 
 /**
- * Merges base fields with entries from any number of field groups for a given section.
- * Group entries are appended after base fields.
+ * A hierarchy layer corresponds to one level in the LinkML class tree.
+ * Each layer declares which fields it contributes to which accordion sections.
  */
-export function collectFields(
-  sectionKey: SectionKey,
-  baseFields: FieldEntry[],
-  ...groups: SectionFields[]
-): FieldEntry[] {
-  const result = [...baseFields];
-  for (const group of groups) {
-    const extra = group[sectionKey];
-    if (extra) result.push(...extra);
-  }
-  return result;
+export interface HierarchyLayer {
+  name: string;
+  sections?: Partial<Record<SectionKey, SectionContribution>>;
+}
+
+/** Get the path string from a FieldEntry */
+function getFieldPath(entry: FieldEntry): string {
+  return typeof entry === "string" ? entry : entry.path;
 }
 
 /**
- * Defines the accordion sections and which fields appear in each.
- * Fields are specified by their path relative to the variable root.
- * Nested fields use dot notation: "analyzing_instrument.calibration.dye_purified"
+ * Builds the merged field list for a section by applying layers in order.
  *
- * The component will:
- * 1. For each accordion section, filter fields to only those that exist in the current schema
- * 2. Hide the accordion entirely if no fields are visible
- * 3. Render a SchemaField for each visible field
- *
- * Type-specific fields are organized in named groups above and merged via collectFields().
- * All groups are included — fieldExistsInSchema() handles runtime visibility.
+ * Each layer's contribution is inserted at the specified position:
+ * - "append" (default): after all existing fields
+ * - "prepend": before all existing fields
+ * - { after: "field_path" }: immediately after a specific field
  */
-export const ACCORDION_CONFIG: AccordionSection[] = [
-  {
-    key: "basic",
-    label: "Basic Information",
-    icon: IconInfoCircle,
-    fields: collectFields(
-      "basic",
-      [
-        { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
-        {
-          path: "units",
-          span: 6,
-          placeholderText: "e.g., umol/kg, dimensionless"
-        },
-        {
-          path: "dataset_variable_name",
-          span: 6,
-          placeholderText: "e.g., pH_total, DIC, TA",
-          newRowAfter: true
-        },
-        {
-          path: "concentration_basis",
-          span: 6
-        },
-        {
-          path: "dataset_variable_name_qc_flag",
-          inputType: "optional_with_gate",
-          gateLabel: "Quality flag is included as a separate column",
-          placeholderText: "e.g., pH_flag"
-        },
-        {
-          path: "dataset_variable_name_raw",
-          inputType: "optional_with_gate",
-          gateLabel: "Raw data is included as a separate column",
-          placeholderText: "e.g., pH_raw"
-        }
-      ]
-    )
-  },
-  {
-    key: "sampling",
-    label: "Sampling",
-    icon: IconFlask,
-    fields: collectFields(
-      "sampling",
-      [
-        "observation_type",
-        {
-          path: "sampling_method",
-          placeholderText: "Describe how samples were collected"
-        },
-        {
-          path: "sampling_instrument_type",
-          span: 6,
-          inputType: "enum_with_other"
-        },
-        {
-          path: "field_replicate_information",
-          placeholderText: "e.g., triplicate samples"
-        }
-      ],
-      sedimentFields,
-      taDicFields,
-      co2Fields
-    )
-  },
-  {
-    key: "analysis",
-    label: "Analysis",
-    icon: IconMicroscope,
-    fields: collectFields(
-      "analysis",
-      [
-        {
-          path: "analyzing_method",
-          placeholderText: "Describe the analysis method used"
-        }
-      ],
-      phFields,
-      taDicFields,
-      co2Fields,
-      hplcFields,
-      continuousFields
-    )
-  },
-  {
-    key: "instrument",
-    label: "Analyzing Instrument",
-    icon: IconTool,
-    fields: collectFields("instrument", [
+export function buildSectionFields(
+  sectionKey: SectionKey,
+  layers: HierarchyLayer[]
+): FieldEntry[] {
+  let result: FieldEntry[] = [];
+
+  for (const layer of layers) {
+    const contribution = layer.sections?.[sectionKey];
+    if (!contribution) continue;
+
+    // Normalize to { fields, position }
+    let fields: FieldEntry[];
+    let position: InsertPosition;
+    if (Array.isArray(contribution)) {
+      fields = contribution;
+      position = "append";
+    } else {
+      fields = contribution.fields;
+      position = contribution.position;
+    }
+
+    if (fields.length === 0) continue;
+
+    if (position === "append") {
+      result = [...result, ...fields];
+    } else if (position === "prepend") {
+      result = [...fields, ...result];
+    } else {
+      // { after: "field_path" } — insert immediately after the named field
+      const targetPath = position.after;
+      const idx = result.findIndex((f) => getFieldPath(f) === targetPath);
+      if (idx === -1) {
+        // Target not found — append as fallback
+        result = [...result, ...fields];
+      } else {
+        result = [
+          ...result.slice(0, idx + 1),
+          ...fields,
+          ...result.slice(idx + 1)
+        ];
+      }
+    }
+  }
+
+  return result;
+}
+
+// =============================================================================
+// Layer Definitions (mirror LinkML class hierarchy)
+// =============================================================================
+
+/** BaseVariable + Variable + ObservedPropertyVariable + QCFields */
+const BASE: HierarchyLayer = {
+  name: "BaseVariable",
+  sections: {
+    basic: [
+      { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
+      {
+        path: "units",
+        span: 6,
+        placeholderText: "e.g., umol/kg, dimensionless"
+      },
+      {
+        path: "dataset_variable_name",
+        span: 6,
+        placeholderText: "e.g., pH_total, DIC, TA",
+        newRowAfter: true
+      },
+      {
+        path: "concentration_basis",
+        span: 6
+      },
+      {
+        path: "dataset_variable_name_qc_flag",
+        inputType: "optional_with_gate",
+        gateLabel: "Quality flag is included as a separate column",
+        placeholderText: "e.g., pH_flag"
+      },
+      {
+        path: "dataset_variable_name_raw",
+        inputType: "optional_with_gate",
+        gateLabel: "Raw data is included as a separate column",
+        placeholderText: "e.g., pH_raw"
+      }
+    ],
+    sampling: [
+      "observation_type",
+      {
+        path: "sampling_method",
+        placeholderText: "Describe how samples were collected"
+      },
+      {
+        path: "sampling_instrument_type",
+        span: 6,
+        inputType: "enum_with_other"
+      },
+      {
+        path: "field_replicate_information",
+        placeholderText: "e.g., triplicate samples"
+      }
+    ],
+    analysis: [
+      {
+        path: "analyzing_method",
+        placeholderText: "Describe the analysis method used"
+      }
+    ],
+    instrument: [
       {
         path: "analyzing_instrument.instrument_type",
         span: 6,
@@ -609,42 +391,8 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         span: 6,
         placeholderText: "Instrument accuracy"
       }
-    ], co2Fields)
-  },
-  {
-    key: "calibration",
-    label: "Calibration",
-    icon: IconAdjustments,
-    fields: collectFields(
-      "calibration",
-      [
-        {
-          path: "analyzing_instrument.calibration.technique_description",
-          span: 6,
-          placeholderText: "Details of the calibration technique"
-        },
-        {
-          path: "analyzing_instrument.calibration.calibration_location",
-          span: 6
-        }
-      ],
-      taDicFields,
-      phFields,
-      co2Fields,
-      calibrationBottomFields
-    )
-  },
-  {
-    key: "calculation",
-    label: "Calculation Details",
-    icon: IconCalculator,
-    fields: collectFields("calculation", [], calculatedFields)
-  },
-  {
-    key: "qc",
-    label: "Quality Control",
-    icon: IconShieldCheck,
-    fields: collectFields("qc", [
+    ],
+    qc: [
       {
         path: "qc_steps_taken",
         inputType: "textarea",
@@ -663,13 +411,8 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         span: 6,
         placeholderText: "Institution name"
       }
-    ])
-  },
-  {
-    key: "additional",
-    label: "Additional Information",
-    icon: IconFileDescription,
-    fields: collectFields("additional", [
+    ],
+    additional: [
       {
         path: "missing_value_indicators",
         span: 6,
@@ -686,9 +429,356 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         inputType: "textarea",
         placeholderText: "Any additional information about this variable"
       }
-    ])
+    ]
   }
+};
+
+/** DiscreteMeasuredVariable — shared calibration fields (top + bottom) */
+const DISCRETE: HierarchyLayer = {
+  name: "DiscreteMeasuredVariable",
+  sections: {
+    calibration: [
+      {
+        path: "analyzing_instrument.calibration.technique_description",
+        span: 6,
+        placeholderText: "Details of the calibration technique"
+      },
+      {
+        path: "analyzing_instrument.calibration.calibration_location",
+        span: 6
+      },
+      // Bottom fields (frequency, last_calibration_date, etc.) follow type-specific inserts
+      {
+        path: "analyzing_instrument.calibration.frequency",
+        span: 6,
+        placeholderText: "How often calibrated"
+      },
+      {
+        path: "analyzing_instrument.calibration.last_calibration_date",
+        span: 6,
+        placeholderText: "YYYY-MM-DD"
+      },
+      {
+        path: "analyzing_instrument.calibration.method_reference",
+        placeholderText: "Citation for calibration method"
+      },
+      "analyzing_instrument.calibration.calibration_certificates"
+    ]
+  }
+};
+
+/** ContinuousMeasuredVariable */
+const CONTINUOUS: HierarchyLayer = {
+  name: "ContinuousMeasuredVariable",
+  sections: {
+    analysis: ["raw_data_calculation_method", "calculation_software_version"]
+  }
+};
+
+/** CalculatedVariable */
+const CALCULATED: HierarchyLayer = {
+  name: "CalculatedVariable",
+  sections: {
+    calculation: [
+      {
+        path: "calculation_method_and_parameters",
+        placeholderText:
+          "e.g., Using CO2SYS with Lueker et al. (2000) constants"
+      }
+    ]
+  }
+};
+
+/** MeasuredSedimentFields ∪ DiscreteSedimentVariable */
+const SEDIMENT: HierarchyLayer = {
+  name: "SedimentVariable",
+  sections: {
+    sampling: [
+      {
+        path: "sediment_type",
+        span: 6,
+        placeholderText: "e.g., mud, sand"
+      },
+      {
+        path: "sediment_sampling_method",
+        span: 6,
+        placeholderText: "e.g., sediment core, grab sampling, dredging"
+      },
+      {
+        path: "sediment_sampling_depth",
+        span: 6,
+        placeholderText: "Depth below sediment surface"
+      },
+      {
+        path: "sediment_sampling_water_depth",
+        span: 6,
+        placeholderText: "Water depth where sediment was collected"
+      }
+    ]
+  }
+};
+
+/** MeasuredTA/DICFields ∪ DiscreteTA/DICVariable */
+const TA_DIC: HierarchyLayer = {
+  name: "TA_DICVariable",
+  sections: {
+    sampling: [
+      {
+        path: "sample_preservation.preservative",
+        span: 6,
+        placeholderText: "e.g., Mercury Chloride"
+      },
+      {
+        path: "sample_preservation.volume",
+        span: 6,
+        placeholderText: "Volume of preservative used"
+      },
+      {
+        path: "sample_preservation.correction_description",
+        placeholderText: "How the preservative effect was corrected for"
+      }
+    ],
+    analysis: [
+      {
+        path: "titration_type",
+        span: 6,
+        placeholderText: "Type of titration used"
+      },
+      {
+        path: "titration_cell_type",
+        span: 6
+      },
+      {
+        path: "curve_fitting_method",
+        span: 6,
+        placeholderText: "Curve fitting method for alkalinity"
+      },
+      {
+        path: "blank_correction",
+        placeholderText: "Whether and how results were corrected for blank"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.crm_manufacturer",
+          span: 6,
+          placeholderText: "e.g., Scripps, JAMSTEC"
+        },
+        {
+          path: "analyzing_instrument.calibration.crm_batch_number",
+          span: 6,
+          placeholderText: "CRM batch number"
+        }
+      ],
+      position: { after: "analyzing_instrument.calibration.calibration_location" }
+    }
+  }
+};
+
+/** MeasuredPHFields ∪ DiscretePHVariable ∪ ContinuousPHVariable */
+const PH: HierarchyLayer = {
+  name: "PHVariable",
+  sections: {
+    analysis: [
+      {
+        path: "measurement_temperature",
+        span: 6,
+        placeholderText: "Temperature at which pH was measured"
+      },
+      {
+        path: "ph_reported_temperature",
+        span: 6,
+        placeholderText: "Temperature at which pH is reported"
+      },
+      {
+        path: "temperature_correction_method",
+        placeholderText: "Method used to correct pH for temperature"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
+          placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
+        },
+        {
+          path: "analyzing_instrument.calibration.dye_purified",
+          span: 6,
+          inputType: "boolean_select"
+        },
+        {
+          path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
+          span: 6,
+          placeholderText: "Correction method applied"
+        },
+        {
+          path: "analyzing_instrument.calibration.dye_correction_method",
+          placeholderText: "Method used to correct for dye effects"
+        },
+        {
+          path: "analyzing_instrument.calibration.ph_of_standards",
+          span: 6,
+          placeholderText: "pH values of calibration standards"
+        },
+        {
+          path: "analyzing_instrument.calibration.calibration_temperature",
+          span: 6,
+          placeholderText: "Temperature of calibration"
+        }
+      ],
+      position: { after: "analyzing_instrument.calibration.calibration_location" }
+    }
+  }
+};
+
+/** MeasuredCO2Fields ∪ DiscreteCO2Variable */
+const CO2: HierarchyLayer = {
+  name: "CO2Variable",
+  sections: {
+    sampling: [
+      {
+        path: "storage_method",
+        placeholderText: "How samples were stored before measurement"
+      }
+    ],
+    analysis: [
+      {
+        path: "headspace_volume",
+        span: 6,
+        placeholderText: "Volume of headspace (mL)"
+      },
+      {
+        path: "seawater_volume",
+        span: 6,
+        placeholderText: "Volume of seawater in flask (mL)"
+      },
+      {
+        path: "water_vapor_correction_method",
+        placeholderText: "How water vapor pressure was determined"
+      }
+    ],
+    instrument: [
+      {
+        path: "analyzing_instrument.detector_type",
+        span: 6,
+        placeholderText: "Type of CO2 gas detector"
+      },
+      {
+        path: "analyzing_instrument.resolution",
+        span: 6,
+        placeholderText: "Sensor resolution"
+      },
+      {
+        path: "analyzing_instrument.uncertainty",
+        span: 6,
+        placeholderText: "Sensor uncertainty"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.manufacturer",
+          span: 6,
+          placeholderText: "Standard gas manufacturer"
+        },
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.concentration",
+          span: 6,
+          placeholderText: "e.g., 260, 350, 510 ppm"
+        },
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.uncertainty",
+          span: 6,
+          placeholderText: "e.g., 0.5%"
+        },
+        {
+          path: "analyzing_instrument.calibration.calibration_temperature",
+          span: 6,
+          placeholderText: "Temperature of calibration"
+        }
+      ],
+      position: { after: "analyzing_instrument.calibration.calibration_location" }
+    }
+  }
+};
+
+/** HPLCVariable */
+const HPLC: HierarchyLayer = {
+  name: "HPLCVariable",
+  sections: {
+    analysis: [
+      { path: "hplc_lab", span: 6, placeholderText: "e.g., NASA_GSFC" },
+      { path: "hplc_lab_technician", span: 6, placeholderText: "Name and contact info" },
+    ],
+  }
+};
+
+// =============================================================================
+// Variable Type Layer Stacks
+// =============================================================================
+
+/**
+ * Maps each schema key to its hierarchy layer stack.
+ * The layers are applied in order to build the field list for each section.
+ */
+export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
+  // Discrete
+  DiscretePHVariable:       [BASE, DISCRETE, PH],
+  DiscreteTAVariable:       [BASE, DISCRETE, TA_DIC],
+  DiscreteDICVariable:      [BASE, DISCRETE, TA_DIC],
+  DiscreteSedimentVariable: [BASE, DISCRETE, SEDIMENT],
+  DiscreteCO2Variable:      [BASE, DISCRETE, CO2],
+  HPLCVariable:             [BASE, DISCRETE, HPLC],
+  DiscreteMeasuredVariable: [BASE, DISCRETE],
+  // Continuous
+  ContinuousPHVariable:       [BASE, CONTINUOUS, PH],
+  ContinuousTAVariable:       [BASE, CONTINUOUS, TA_DIC],
+  ContinuousDICVariable:      [BASE, CONTINUOUS, TA_DIC],
+  ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
+  ContinuousMeasuredVariable: [BASE, CONTINUOUS],
+  // Other
+  CalculatedVariable:  [BASE, CALCULATED],
+  NonMeasuredVariable: [BASE],
+};
+
+// =============================================================================
+// Accordion Section Definitions + ACCORDION_CONFIG Builder
+// =============================================================================
+
+interface AccordionSectionDef {
+  key: SectionKey;
+  label: string;
+  icon: TablerIcon;
+}
+
+export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
+  { key: "basic", label: "Basic Information", icon: IconInfoCircle },
+  { key: "sampling", label: "Sampling", icon: IconFlask },
+  { key: "analysis", label: "Analysis", icon: IconMicroscope },
+  { key: "instrument", label: "Analyzing Instrument", icon: IconTool },
+  { key: "calibration", label: "Calibration", icon: IconAdjustments },
+  { key: "calculation", label: "Calculation Details", icon: IconCalculator },
+  { key: "qc", label: "Quality Control", icon: IconShieldCheck },
+  { key: "additional", label: "Additional Information", icon: IconFileDescription }
 ];
+
+/**
+ * Returns the accordion config for a specific variable type's schema key.
+ * Builds sections from the type's layer stack, returning only sections that have fields.
+ * Returns empty array for unknown schema keys.
+ */
+export function getAccordionConfig(schemaKey: string): AccordionSection[] {
+  const layers = VARIABLE_TYPE_LAYERS[schemaKey];
+  if (!layers) return [];
+
+  return ACCORDION_SECTIONS
+    .map((s) => ({
+      ...s,
+      fields: buildSectionFields(s.key, layers),
+    }))
+    .filter((s) => s.fields.length > 0);
+}
 
 // =============================================================================
 // Helper to get schema key from current form selections

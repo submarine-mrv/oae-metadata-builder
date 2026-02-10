@@ -24,7 +24,7 @@ import {
 } from "./schemaUtils";
 import {
   getSchemaKey,
-  ACCORDION_CONFIG,
+  getAccordionConfig,
   normalizeFieldConfig
 } from "./VariableModal/variableModalConfig";
 
@@ -71,7 +71,7 @@ function countMissingRequiredFields(
   // Count missing required fields across all accordion sections
   let missingCount = 0;
 
-  for (const section of ACCORDION_CONFIG) {
+  for (const section of getAccordionConfig(schemaKey)) {
     for (const fieldEntry of section.fields) {
       const field = normalizeFieldConfig(fieldEntry);
 

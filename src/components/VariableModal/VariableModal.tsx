@@ -26,7 +26,7 @@ import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
   VARIABLE_TYPE_BEHAVIOR,
-  ACCORDION_CONFIG,
+  getAccordionConfig,
   getSchemaKey,
   normalizeFieldConfig,
   getPlaceholderOverride
@@ -170,17 +170,19 @@ export default function VariableModal({
 
   // Filter accordions to only show sections with visible fields
   const visibleAccordions = useMemo(() => {
-    if (!variableSchema) return [];
+    if (!schemaKey || !variableSchema) return [];
 
-    return ACCORDION_CONFIG.map((section) => ({
-      ...section,
-      visibleFields: section.fields
-        .map(normalizeFieldConfig)
-        .filter((field) =>
-          fieldExistsInSchema(field.path, variableSchema, rootSchema)
-        )
-    })).filter((section) => section.visibleFields.length > 0);
-  }, [variableSchema, rootSchema]);
+    return getAccordionConfig(schemaKey)
+      .map((section) => ({
+        ...section,
+        visibleFields: section.fields
+          .map(normalizeFieldConfig)
+          .filter((field) =>
+            fieldExistsInSchema(field.path, variableSchema, rootSchema)
+          )
+      }))
+      .filter((section) => section.visibleFields.length > 0);
+  }, [schemaKey, variableSchema, rootSchema]);
 
   // Check if variable type selection is complete
   const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
