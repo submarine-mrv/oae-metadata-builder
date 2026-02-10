@@ -77,6 +77,15 @@ export const VARIABLE_SCHEMA_MAP = {
       CONTINUOUS: "ContinuousSedimentVariable"
     },
     CALCULATED: "CalculatedVariable"
+  },
+  co2: {
+    MEASURED: {
+      DISCRETE: "DiscreteCO2Variable"
+    },
+    CALCULATED: "CalculatedVariable",
+    placeholderOverrides: {
+      units: "uatm, ppm, etc."
+    }
   }
 } as const;
 
@@ -122,7 +131,8 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "ta", label: "Total Alkalinity (TA)" },
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
   { value: "observed_property", label: "Observed Property" },
-  { value: "sediment", label: "Sediment" }
+  { value: "sediment", label: "Sediment" },
+  { value: "co2", label: "CO₂ (pCO₂/fCO₂)" }
 ] as const;
 
 // =============================================================================
@@ -315,6 +325,57 @@ const sedimentFields: SectionFields = {
   ]
 };
 
+/** CO2-specific fields (DiscreteCO2Variable) */
+const co2Fields: SectionFields = {
+  sampling: [
+    {
+      path: "storage_method",
+      placeholderText: "How samples were stored before measurement"
+    }
+  ],
+  analysis: [
+    {
+      path: "headspace_volume",
+      span: 6,
+      placeholderText: "Volume of headspace (mL)"
+    },
+    {
+      path: "seawater_volume",
+      span: 6,
+      placeholderText: "Volume of seawater in flask (mL)"
+    },
+    {
+      path: "water_vapor_correction_method",
+      placeholderText: "How water vapor pressure was determined"
+    }
+  ],
+  instrument: [
+    {
+      path: "analyzing_instrument.detector_type",
+      span: 6,
+      placeholderText: "Type of CO2 gas detector"
+    },
+    {
+      path: "analyzing_instrument.resolution",
+      span: 6,
+      placeholderText: "Sensor resolution"
+    },
+    {
+      path: "analyzing_instrument.uncertainty",
+      span: 6,
+      placeholderText: "Sensor uncertainty"
+    }
+  ],
+  calibration: [
+    {
+      path: "analyzing_instrument.calibration.calibration_temperature",
+      span: 6,
+      placeholderText: "Temperature of calibration"
+    },
+    "analyzing_instrument.calibration.standard_gase_info"
+  ]
+};
+
 /** Continuous sensor fields (shared across all continuous types) */
 const continuousFields: SectionFields = {
   analysis: ["raw_data_calculation_method", "calculation_software_version"]
@@ -444,7 +505,8 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         }
       ],
       sedimentFields,
-      taDicFields
+      taDicFields,
+      co2Fields
     )
   },
   {
@@ -461,6 +523,7 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       ],
       phFields,
       taDicFields,
+      co2Fields,
       continuousFields
     )
   },
@@ -499,7 +562,7 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         span: 6,
         placeholderText: "Instrument accuracy"
       }
-    ])
+    ], co2Fields)
   },
   {
     key: "calibration",
@@ -520,6 +583,7 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       ],
       taDicFields,
       phFields,
+      co2Fields,
       calibrationBottomFields
     )
   },
