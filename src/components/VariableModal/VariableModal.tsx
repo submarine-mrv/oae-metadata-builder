@@ -57,7 +57,8 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
   ta: "Total Alkalinity",
   dic: "DIC",
   observed_property: "Observed Property",
-  sediment: "Sediment"
+  sediment: "Sediment",
+  co2: "CO₂"
 };
 
 const GENESIS_LABELS: Record<string, string> = {

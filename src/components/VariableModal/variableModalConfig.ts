@@ -132,7 +132,7 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
   { value: "observed_property", label: "Observed Property" },
   { value: "sediment", label: "Sediment" },
-  { value: "co2", label: "CO₂ (pCO₂/fCO₂)" }
+  { value: "co2", label: "CO₂ (xCO₂/pCO₂/fCO₂)" }
 ] as const;
 
 // =============================================================================
@@ -372,7 +372,7 @@ const co2Fields: SectionFields = {
       span: 6,
       placeholderText: "Temperature of calibration"
     },
-    "analyzing_instrument.calibration.standard_gase_info"
+    "analyzing_instrument.calibration.standard_gas_info"
   ]
 };
 
