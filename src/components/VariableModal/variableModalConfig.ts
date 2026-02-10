@@ -86,12 +86,38 @@ export const VARIABLE_SCHEMA_MAP = {
     placeholderOverrides: {
       units: "uatm, ppm, etc."
     }
+  },
+  hplc: {
+    MEASURED: {
+      DISCRETE: "HPLCVariable"
+    }
+  },
+  non_measured: {
+    DIRECT: "NonMeasuredVariable"
   }
 } as const;
 
 export type VariableTypeKey = keyof typeof VARIABLE_SCHEMA_MAP;
 export type GenesisKey = "MEASURED" | "CALCULATED";
 export type SamplingKey = "DISCRETE" | "CONTINUOUS";
+
+// =============================================================================
+// Variable Type Behavior Overrides
+// =============================================================================
+
+/**
+ * Defines non-standard selection behavior for specific variable types.
+ * - fixedGenesis/fixedSampling: auto-set and disable the dropdown
+ * - directSchema: skip genesis/sampling entirely (maps via DIRECT key)
+ */
+export const VARIABLE_TYPE_BEHAVIOR: Record<string, {
+  fixedGenesis?: string;
+  fixedSampling?: string;
+  directSchema?: boolean;
+}> = {
+  hplc: { fixedGenesis: "MEASURED", fixedSampling: "DISCRETE" },
+  non_measured: { directSchema: true },
+};
 
 /**
  * Normalizes a field entry to a FieldConfig object.
@@ -132,7 +158,9 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
   { value: "observed_property", label: "Observed Property" },
   { value: "sediment", label: "Sediment" },
-  { value: "co2", label: "CO₂ (xCO₂/pCO₂/fCO₂)" }
+  { value: "co2", label: "CO₂ (xCO₂/pCO₂/fCO₂)" },
+  { value: "hplc", label: "HPLC (Pigment Analysis)" },
+  { value: "non_measured", label: "Non-Measured Variable" }
 ] as const;
 
 // =============================================================================
@@ -367,7 +395,31 @@ const co2Fields: SectionFields = {
     }
   ],
   // calibration_temperature is in phFields (shared with CO2 via schema)
-  calibration: ["analyzing_instrument.calibration.standard_gas_info"]
+  calibration: [
+    {
+      path: "analyzing_instrument.calibration.standard_gas_info.manufacturer",
+      span: 6,
+      placeholderText: "Standard gas manufacturer"
+    },
+    {
+      path: "analyzing_instrument.calibration.standard_gas_info.concentration",
+      span: 6,
+      placeholderText: "e.g., 260, 350, 510 ppm"
+    },
+    {
+      path: "analyzing_instrument.calibration.standard_gas_info.uncertainty",
+      span: 6,
+      placeholderText: "e.g., 0.5%"
+    }
+  ]
+};
+
+/** HPLC-specific fields (HPLCVariable) */
+const hplcFields: SectionFields = {
+  analysis: [
+    { path: "hplc_lab", span: 6, placeholderText: "e.g., NASA_GSFC" },
+    { path: "hplc_lab_technician", span: 6, placeholderText: "Name and contact info" },
+  ],
 };
 
 /** Continuous sensor fields (shared across all continuous types) */
@@ -518,6 +570,7 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       phFields,
       taDicFields,
       co2Fields,
+      hplcFields,
       continuousFields
     )
   },
@@ -650,13 +703,20 @@ export function getSchemaKey(
   genesis: string | undefined,
   sampling: string | undefined
 ): string | null {
-  if (!variableType || !genesis) return null;
+  if (!variableType) return null;
 
   const typeMap =
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
-  const genesisMap = typeMap[genesis as keyof typeof typeMap];
+  // DIRECT types skip genesis/sampling entirely
+  if ("DIRECT" in typeMap) {
+    return (typeMap as Record<string, unknown>).DIRECT as string;
+  }
+
+  if (!genesis) return null;
+
+  const genesisMap = (typeMap as Record<string, unknown>)[genesis];
   if (!genesisMap) return null;
 
   // CALCULATED doesn't need sampling - it's a direct schema key

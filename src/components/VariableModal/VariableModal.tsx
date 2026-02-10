@@ -25,6 +25,7 @@ import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
+  VARIABLE_TYPE_BEHAVIOR,
   ACCORDION_CONFIG,
   getSchemaKey,
   normalizeFieldConfig,
@@ -59,7 +60,9 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
   dic: "DIC",
   observed_property: "Observed Property",
   sediment: "Sediment",
-  co2: "CO₂"
+  co2: "CO₂",
+  hplc: "HPLC",
+  non_measured: "Non-Measured"
 };
 
 const GENESIS_LABELS: Record<string, string> = {
@@ -150,10 +153,10 @@ export default function VariableModal({
     if (!variableType) return SAMPLING_OPTIONS;
     const typeMap = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
     if (!typeMap) return SAMPLING_OPTIONS;
-    const measured = typeMap.MEASURED;
+    const measured = (typeMap as Record<string, unknown>).MEASURED;
     if (!measured || typeof measured === "string") return [];
     return SAMPLING_OPTIONS.filter(
-      (opt) => opt.value in measured
+      (opt) => opt.value in (measured as Record<string, unknown>)
     );
   }, [variableType]);
 
@@ -180,8 +183,11 @@ export default function VariableModal({
   }, [variableSchema, rootSchema]);
 
   // Check if variable type selection is complete
+  const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
   const isTypeSelectionComplete =
-    genesis === "CALCULATED" || (genesis === "MEASURED" && !!sampling);
+    (typeBehavior?.directSchema && !!variableType) ||
+    genesis === "CALCULATED" ||
+    (genesis === "MEASURED" && !!sampling);
 
   // When type selection BECOMES complete (transitions from false to true),
   // auto-collapse variable-type and open basic
@@ -196,16 +202,39 @@ export default function VariableModal({
   // Handle selection changes
   const handleVariableTypeChange = (value: string | null) => {
     setVariableType(value);
-    // Reset genesis and sampling when type changes
-    setGenesis(null);
-    setSampling(null);
-    // Store in formData for persistence
-    setFormData((prev) => ({
-      ...prev,
-      _variableType: value,
-      genesis: undefined,
-      sampling: undefined
-    }));
+    const behavior = value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
+
+    if (behavior?.fixedGenesis) {
+      // Auto-set fixed genesis and sampling
+      setGenesis(behavior.fixedGenesis);
+      setSampling(behavior.fixedSampling || null);
+      setFormData((prev) => ({
+        ...prev,
+        _variableType: value,
+        genesis: behavior.fixedGenesis,
+        sampling: behavior.fixedSampling || undefined
+      }));
+    } else if (behavior?.directSchema) {
+      // Direct schema types skip genesis/sampling
+      setGenesis(null);
+      setSampling(null);
+      setFormData((prev) => ({
+        ...prev,
+        _variableType: value,
+        genesis: undefined,
+        sampling: undefined
+      }));
+    } else {
+      // Standard: reset genesis and sampling
+      setGenesis(null);
+      setSampling(null);
+      setFormData((prev) => ({
+        ...prev,
+        _variableType: value,
+        genesis: undefined,
+        sampling: undefined
+      }));
+    }
   };
 
   const handleGenesisChange = (value: string | null) => {
@@ -357,26 +386,28 @@ export default function VariableModal({
                   required
                 />
 
-                {/* Genesis Selector - appears after variable type selected */}
-                {variableType && (
+                {/* Genesis Selector - appears after variable type selected, hidden for direct types */}
+                {variableType && !typeBehavior?.directSchema && (
                   <Select
                     label="Was this variable measured directly or calculated?"
                     placeholder="Select measurement method"
                     data={GENESIS_OPTIONS}
                     value={genesis}
                     onChange={handleGenesisChange}
+                    disabled={!!typeBehavior?.fixedGenesis}
                     required
                   />
                 )}
 
-                {/* Sampling Selector - Only for MEASURED */}
-                {genesis === "MEASURED" && (
+                {/* Sampling Selector - Only for MEASURED, hidden for direct types */}
+                {genesis === "MEASURED" && !typeBehavior?.directSchema && (
                   <Select
                     label="Were the measurements taken from discrete bottles or continuous sensors?"
                     placeholder="Select measurement type"
                     data={availableSamplingOptions}
                     value={sampling}
                     onChange={handleSamplingChange}
+                    disabled={!!typeBehavior?.fixedSampling}
                     required
                   />
                 )}

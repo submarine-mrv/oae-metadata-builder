@@ -140,6 +140,15 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("pH", "MEASURED", "CONTINUOUS")).toBe("ContinuousPHVariable");
     expect(getSchemaKey("ta", "MEASURED", "CONTINUOUS")).toBe("ContinuousTAVariable");
   });
+
+  it("returns HPLCVariable for hplc + MEASURED + DISCRETE", () => {
+    expect(getSchemaKey("hplc", "MEASURED", "DISCRETE")).toBe("HPLCVariable");
+  });
+
+  it("returns NonMeasuredVariable for non_measured (DIRECT, no genesis needed)", () => {
+    expect(getSchemaKey("non_measured", undefined, undefined)).toBe("NonMeasuredVariable");
+    expect(getSchemaKey("non_measured", "MEASURED", "DISCRETE")).toBe("NonMeasuredVariable");
+  });
 });
 
 describe("normalizeFieldConfig", () => {
