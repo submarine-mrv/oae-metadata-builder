@@ -366,14 +366,8 @@ const co2Fields: SectionFields = {
       placeholderText: "Sensor uncertainty"
     }
   ],
-  calibration: [
-    {
-      path: "analyzing_instrument.calibration.calibration_temperature",
-      span: 6,
-      placeholderText: "Temperature of calibration"
-    },
-    "analyzing_instrument.calibration.standard_gas_info"
-  ]
+  // calibration_temperature is in phFields (shared with CO2 via schema)
+  calibration: ["analyzing_instrument.calibration.standard_gas_info"]
 };
 
 /** Continuous sensor fields (shared across all continuous types) */

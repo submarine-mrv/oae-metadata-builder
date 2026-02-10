@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   collectFields,
   ACCORDION_CONFIG,
-  normalizeFieldConfig
+  normalizeFieldConfig,
+  getSchemaKey
 } from "../variableModalConfig";
 import type { FieldConfig } from "../variableModalConfig";
 
@@ -106,6 +107,38 @@ describe("ACCORDION_CONFIG", () => {
     expect(crmIdx).toBeLessThan(dyeIdx);
     expect(dyeIdx).toBeLessThan(freqIdx);
     expect(freqIdx).toBeLessThan(certsIdx);
+  });
+});
+
+describe("getSchemaKey", () => {
+  it("returns null when variableType or genesis is missing", () => {
+    expect(getSchemaKey(undefined, undefined, undefined)).toBeNull();
+    expect(getSchemaKey("pH", undefined, undefined)).toBeNull();
+    expect(getSchemaKey(undefined, "MEASURED", "DISCRETE")).toBeNull();
+  });
+
+  it("returns schema key for each variable type (discrete measured)", () => {
+    expect(getSchemaKey("pH", "MEASURED", "DISCRETE")).toBe("DiscretePHVariable");
+    expect(getSchemaKey("ta", "MEASURED", "DISCRETE")).toBe("DiscreteTAVariable");
+    expect(getSchemaKey("dic", "MEASURED", "DISCRETE")).toBe("DiscreteDICVariable");
+    expect(getSchemaKey("sediment", "MEASURED", "DISCRETE")).toBe("DiscreteSedimentVariable");
+    expect(getSchemaKey("co2", "MEASURED", "DISCRETE")).toBe("DiscreteCO2Variable");
+    expect(getSchemaKey("observed_property", "MEASURED", "DISCRETE")).toBe("DiscreteMeasuredVariable");
+  });
+
+  it("returns CalculatedVariable for all calculated types", () => {
+    expect(getSchemaKey("pH", "CALCULATED", undefined)).toBe("CalculatedVariable");
+    expect(getSchemaKey("ta", "CALCULATED", undefined)).toBe("CalculatedVariable");
+    expect(getSchemaKey("co2", "CALCULATED", undefined)).toBe("CalculatedVariable");
+  });
+
+  it("returns null for co2 + MEASURED + CONTINUOUS (no continuous variant)", () => {
+    expect(getSchemaKey("co2", "MEASURED", "CONTINUOUS")).toBeNull();
+  });
+
+  it("returns schema key for continuous variants that exist", () => {
+    expect(getSchemaKey("pH", "MEASURED", "CONTINUOUS")).toBe("ContinuousPHVariable");
+    expect(getSchemaKey("ta", "MEASURED", "CONTINUOUS")).toBe("ContinuousTAVariable");
   });
 });
 

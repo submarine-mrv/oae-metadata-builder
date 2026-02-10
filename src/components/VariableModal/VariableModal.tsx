@@ -24,6 +24,7 @@ import {
 import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
+  VARIABLE_SCHEMA_MAP,
   ACCORDION_CONFIG,
   getSchemaKey,
   normalizeFieldConfig,
@@ -143,6 +144,18 @@ export default function VariableModal({
       sampling || undefined
     );
   }, [variableType, genesis, sampling]);
+
+  // Filter sampling options to only those available for the selected variable type
+  const availableSamplingOptions = useMemo(() => {
+    if (!variableType) return SAMPLING_OPTIONS;
+    const typeMap = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+    if (!typeMap) return SAMPLING_OPTIONS;
+    const measured = typeMap.MEASURED;
+    if (!measured || typeof measured === "string") return [];
+    return SAMPLING_OPTIONS.filter(
+      (opt) => opt.value in measured
+    );
+  }, [variableType]);
 
   // Get the resolved variable schema
   const variableSchema = useMemo(() => {
@@ -361,7 +374,7 @@ export default function VariableModal({
                   <Select
                     label="Were the measurements taken from discrete bottles or continuous sensors?"
                     placeholder="Select measurement type"
-                    data={SAMPLING_OPTIONS}
+                    data={availableSamplingOptions}
                     value={sampling}
                     onChange={handleSamplingChange}
                     required
