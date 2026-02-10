@@ -252,6 +252,13 @@ function getFieldPath(entry: FieldEntry): string {
  * - "append" (default): after all existing fields
  * - "prepend": before all existing fields
  * - { after: "field_path" }: immediately after a specific field
+ *
+ * Note on `{ after }` semantics: each insert searches for the original anchor,
+ * not previously inserted fields. When multiple layers target the same anchor,
+ * later layers end up closer to the anchor (reversed relative to layer order).
+ * For example, layers [L1, L2] both inserting after "anchor" produce:
+ *   anchor → L2_fields → L1_fields
+ * This is accounted for in VARIABLE_TYPE_LAYERS ordering.
  */
 export function buildSectionFields(
   sectionKey: SectionKey,
@@ -721,6 +728,13 @@ const HPLC: HierarchyLayer = {
 /**
  * Maps each schema key to its hierarchy layer stack.
  * The layers are applied in order to build the field list for each section.
+ *
+ * Uses Record<string, ...> rather than a strict union type for maintainability;
+ * the VARIABLE_TYPE_LAYERS test validates every VARIABLE_SCHEMA_MAP key is present.
+ *
+ * Continuous types omit the DISCRETE layer, so type-specific layers with
+ * `{ after }` calibration anchors will fall back to append. This is fine because
+ * fieldExistsInSchema() in VariableModal.tsx filters fields at runtime.
  */
 export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   // Discrete
@@ -767,17 +781,26 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
  * Returns the accordion config for a specific variable type's schema key.
  * Builds sections from the type's layer stack, returning only sections that have fields.
  * Returns empty array for unknown schema keys.
+ * Results are cached per schemaKey since layer definitions are static.
  */
+const accordionConfigCache = new Map<string, AccordionSection[]>();
+
 export function getAccordionConfig(schemaKey: string): AccordionSection[] {
+  const cached = accordionConfigCache.get(schemaKey);
+  if (cached) return cached;
+
   const layers = VARIABLE_TYPE_LAYERS[schemaKey];
   if (!layers) return [];
 
-  return ACCORDION_SECTIONS
+  const config = ACCORDION_SECTIONS
     .map((s) => ({
       ...s,
       fields: buildSectionFields(s.key, layers),
     }))
     .filter((s) => s.fields.length > 0);
+
+  accordionConfigCache.set(schemaKey, config);
+  return config;
 }
 
 // =============================================================================
