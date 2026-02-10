@@ -147,7 +147,20 @@ describe("getSchemaKey", () => {
 
   it("returns NonMeasuredVariable for non_measured (DIRECT, no genesis needed)", () => {
     expect(getSchemaKey("non_measured", undefined, undefined)).toBe("NonMeasuredVariable");
-    expect(getSchemaKey("non_measured", "MEASURED", "DISCRETE")).toBe("NonMeasuredVariable");
+  });
+
+  it("returns null for non_measured when genesis is provided (DIRECT ignores genesis paths)", () => {
+    expect(getSchemaKey("non_measured", "MEASURED", "DISCRETE")).toBeNull();
+    expect(getSchemaKey("non_measured", "CALCULATED", undefined)).toBeNull();
+  });
+
+  it("returns null for unknown variable type", () => {
+    expect(getSchemaKey("unknown", "MEASURED", "DISCRETE")).toBeNull();
+  });
+
+  it("returns null for hplc with unsupported genesis/sampling", () => {
+    expect(getSchemaKey("hplc", "MEASURED", "CONTINUOUS")).toBeNull();
+    expect(getSchemaKey("hplc", "CALCULATED", undefined)).toBeNull();
   });
 });
 

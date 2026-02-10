@@ -88,7 +88,7 @@ interface VariableModalProps {
  * Schema-driven Variable Modal
  *
  * The variable type is determined by the combination of:
- * - variable_type (pH, observed_property)
+ * - variable_type (pH, ta, dic, observed_property, sediment, co2, hplc, non_measured)
  * - genesis (MEASURED, CALCULATED)
  * - sampling (DISCRETE, CONTINUOUS) - only for MEASURED
  *
@@ -214,18 +214,8 @@ export default function VariableModal({
         genesis: behavior.fixedGenesis,
         sampling: behavior.fixedSampling || undefined
       }));
-    } else if (behavior?.directSchema) {
-      // Direct schema types skip genesis/sampling
-      setGenesis(null);
-      setSampling(null);
-      setFormData((prev) => ({
-        ...prev,
-        _variableType: value,
-        genesis: undefined,
-        sampling: undefined
-      }));
     } else {
-      // Standard: reset genesis and sampling
+      // Standard and directSchema: reset genesis and sampling
       setGenesis(null);
       setSampling(null);
       setFormData((prev) => ({
@@ -239,14 +229,12 @@ export default function VariableModal({
 
   const handleGenesisChange = (value: string | null) => {
     setGenesis(value);
-    // Reset sampling when genesis changes (only matters for MEASURED)
-    if (value === "CALCULATED") {
-      setSampling(null);
-    }
+    // Always reset sampling when genesis changes to avoid stale values
+    setSampling(null);
     setFormData((prev) => ({
       ...prev,
       genesis: value,
-      sampling: value === "CALCULATED" ? undefined : prev.sampling
+      sampling: undefined
     }));
   };
 
