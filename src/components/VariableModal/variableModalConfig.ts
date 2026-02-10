@@ -110,13 +110,16 @@ export type SamplingKey = "DISCRETE" | "CONTINUOUS";
  * - fixedGenesis/fixedSampling: auto-set and disable the dropdown
  * - directSchema: skip genesis/sampling entirely (maps via DIRECT key)
  */
-export const VARIABLE_TYPE_BEHAVIOR: Record<string, {
-  fixedGenesis?: string;
-  fixedSampling?: string;
-  directSchema?: boolean;
-}> = {
+export const VARIABLE_TYPE_BEHAVIOR: Record<
+  string,
+  {
+    fixedGenesis?: string;
+    fixedSampling?: string;
+    directSchema?: boolean;
+  }
+> = {
   hplc: { fixedGenesis: "MEASURED", fixedSampling: "DISCRETE" },
-  non_measured: { directSchema: true },
+  non_measured: { directSchema: true }
 };
 
 /**
@@ -158,8 +161,8 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
   { value: "observed_property", label: "Observed Property" },
   { value: "sediment", label: "Sediment" },
-  { value: "co2", label: "CO₂ (xCO₂/pCO₂/fCO₂)" },
-  { value: "hplc", label: "HPLC (Pigment Analysis)" },
+  { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
+  { value: "hplc", label: "HPLC" },
   { value: "non_measured", label: "Non-Measured Variable" }
 ] as const;
 
@@ -226,10 +229,12 @@ type FieldEntry = string | FieldConfig;
 type InsertPosition = "append" | "prepend" | { after: string };
 
 /** A layer's contribution to a section: either a plain array (append) or positioned */
-type SectionContribution = FieldEntry[] | {
-  fields: FieldEntry[];
-  position: InsertPosition;
-};
+type SectionContribution =
+  | FieldEntry[]
+  | {
+      fields: FieldEntry[];
+      position: InsertPosition;
+    };
 
 /**
  * A hierarchy layer corresponds to one level in the LinkML class tree.
@@ -578,7 +583,9 @@ const TA_DIC: HierarchyLayer = {
           placeholderText: "CRM batch number"
         }
       ],
-      position: { after: "analyzing_instrument.calibration.calibration_location" }
+      position: {
+        after: "analyzing_instrument.calibration.calibration_location"
+      }
     }
   }
 };
@@ -634,7 +641,9 @@ const PH: HierarchyLayer = {
           placeholderText: "Temperature of calibration"
         }
       ],
-      position: { after: "analyzing_instrument.calibration.calibration_location" }
+      position: {
+        after: "analyzing_instrument.calibration.calibration_location"
+      }
     }
   }
 };
@@ -705,7 +714,9 @@ const CO2: HierarchyLayer = {
           placeholderText: "Temperature of calibration"
         }
       ],
-      position: { after: "analyzing_instrument.calibration.calibration_location" }
+      position: {
+        after: "analyzing_instrument.calibration.calibration_location"
+      }
     }
   }
 };
@@ -716,8 +727,12 @@ const HPLC: HierarchyLayer = {
   sections: {
     analysis: [
       { path: "hplc_lab", span: 6, placeholderText: "e.g., NASA_GSFC" },
-      { path: "hplc_lab_technician", span: 6, placeholderText: "Name and contact info" },
-    ],
+      {
+        path: "hplc_lab_technician",
+        span: 6,
+        placeholderText: "Name and contact info"
+      }
+    ]
   }
 };
 
@@ -738,22 +753,22 @@ const HPLC: HierarchyLayer = {
  */
 export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   // Discrete
-  DiscretePHVariable:       [BASE, DISCRETE, PH],
-  DiscreteTAVariable:       [BASE, DISCRETE, TA_DIC],
-  DiscreteDICVariable:      [BASE, DISCRETE, TA_DIC],
+  DiscretePHVariable: [BASE, DISCRETE, PH],
+  DiscreteTAVariable: [BASE, DISCRETE, TA_DIC],
+  DiscreteDICVariable: [BASE, DISCRETE, TA_DIC],
   DiscreteSedimentVariable: [BASE, DISCRETE, SEDIMENT],
-  DiscreteCO2Variable:      [BASE, DISCRETE, CO2],
-  HPLCVariable:             [BASE, DISCRETE, HPLC],
+  DiscreteCO2Variable: [BASE, DISCRETE, CO2],
+  HPLCVariable: [BASE, DISCRETE, HPLC],
   DiscreteMeasuredVariable: [BASE, DISCRETE],
   // Continuous
-  ContinuousPHVariable:       [BASE, CONTINUOUS, PH],
-  ContinuousTAVariable:       [BASE, CONTINUOUS, TA_DIC],
-  ContinuousDICVariable:      [BASE, CONTINUOUS, TA_DIC],
+  ContinuousPHVariable: [BASE, CONTINUOUS, PH],
+  ContinuousTAVariable: [BASE, CONTINUOUS, TA_DIC],
+  ContinuousDICVariable: [BASE, CONTINUOUS, TA_DIC],
   ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
   ContinuousMeasuredVariable: [BASE, CONTINUOUS],
   // Other
-  CalculatedVariable:  [BASE, CALCULATED],
-  NonMeasuredVariable: [BASE],
+  CalculatedVariable: [BASE, CALCULATED],
+  NonMeasuredVariable: [BASE]
 };
 
 // =============================================================================
@@ -774,7 +789,11 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   { key: "calibration", label: "Calibration", icon: IconAdjustments },
   { key: "calculation", label: "Calculation Details", icon: IconCalculator },
   { key: "qc", label: "Quality Control", icon: IconShieldCheck },
-  { key: "additional", label: "Additional Information", icon: IconFileDescription }
+  {
+    key: "additional",
+    label: "Additional Information",
+    icon: IconFileDescription
+  }
 ];
 
 /**
@@ -792,12 +811,10 @@ export function getAccordionConfig(schemaKey: string): AccordionSection[] {
   const layers = VARIABLE_TYPE_LAYERS[schemaKey];
   if (!layers) return [];
 
-  const config = ACCORDION_SECTIONS
-    .map((s) => ({
-      ...s,
-      fields: buildSectionFields(s.key, layers),
-    }))
-    .filter((s) => s.fields.length > 0);
+  const config = ACCORDION_SECTIONS.map((s) => ({
+    ...s,
+    fields: buildSectionFields(s.key, layers)
+  })).filter((s) => s.fields.length > 0);
 
   accordionConfigCache.set(schemaKey, config);
   return config;

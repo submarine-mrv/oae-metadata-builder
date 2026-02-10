@@ -376,28 +376,26 @@ export default function VariableModal({
                   required
                 />
 
-                {/* Genesis Selector - appears after variable type selected, hidden for direct types */}
-                {variableType && !typeBehavior?.directSchema && (
+                {/* Genesis Selector - appears after variable type selected, hidden for direct/fixed types */}
+                {variableType && !typeBehavior?.directSchema && !typeBehavior?.fixedGenesis && (
                   <Select
                     label="Was this variable measured directly or calculated?"
                     placeholder="Select measurement method"
                     data={GENESIS_OPTIONS}
                     value={genesis}
                     onChange={handleGenesisChange}
-                    disabled={!!typeBehavior?.fixedGenesis}
                     required
                   />
                 )}
 
-                {/* Sampling Selector - Only for MEASURED, hidden for direct types */}
-                {genesis === "MEASURED" && !typeBehavior?.directSchema && (
+                {/* Sampling Selector - Only for MEASURED, hidden for direct/fixed types */}
+                {genesis === "MEASURED" && !typeBehavior?.directSchema && !typeBehavior?.fixedSampling && (
                   <Select
                     label="Were the measurements taken from discrete bottles or continuous sensors?"
                     placeholder="Select measurement type"
                     data={availableSamplingOptions}
                     value={sampling}
                     onChange={handleSamplingChange}
-                    disabled={!!typeBehavior?.fixedSampling}
                     required
                   />
                 )}
