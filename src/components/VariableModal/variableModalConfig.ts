@@ -320,6 +320,27 @@ const continuousFields: SectionFields = {
   analysis: ["raw_data_calculation_method", "calculation_software_version"]
 };
 
+/** Shared calibration fields that appear after type-specific calibration fields */
+const calibrationBottomFields: SectionFields = {
+  calibration: [
+    {
+      path: "analyzing_instrument.calibration.frequency",
+      span: 6,
+      placeholderText: "How often calibrated"
+    },
+    {
+      path: "analyzing_instrument.calibration.last_calibration_date",
+      span: 6,
+      placeholderText: "YYYY-MM-DD"
+    },
+    {
+      path: "analyzing_instrument.calibration.method_reference",
+      placeholderText: "Citation for calibration method"
+    },
+    "analyzing_instrument.calibration.calibration_certificates"
+  ]
+};
+
 /** Calculated variable fields */
 const calculatedFields: SectionFields = {
   calculation: [
@@ -335,7 +356,7 @@ const calculatedFields: SectionFields = {
  * Merges base fields with entries from any number of field groups for a given section.
  * Group entries are appended after base fields.
  */
-function collectFields(
+export function collectFields(
   sectionKey: SectionKey,
   baseFields: FieldEntry[],
   ...groups: SectionFields[]
@@ -495,25 +516,11 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         {
           path: "analyzing_instrument.calibration.calibration_location",
           span: 6
-        },
-        {
-          path: "analyzing_instrument.calibration.frequency",
-          span: 6,
-          placeholderText: "How often calibrated"
-        },
-        {
-          path: "analyzing_instrument.calibration.last_calibration_date",
-          span: 6,
-          placeholderText: "YYYY-MM-DD"
-        },
-        {
-          path: "analyzing_instrument.calibration.method_reference",
-          placeholderText: "Citation for calibration method"
-        },
-        "analyzing_instrument.calibration.calibration_certificates"
+        }
       ],
       taDicFields,
-      phFields
+      phFields,
+      calibrationBottomFields
     )
   },
   {
