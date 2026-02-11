@@ -8,6 +8,8 @@
  * - Handle nested paths like "analyzing_instrument.calibration.dye_purified"
  */
 
+import { formatEnumTitle } from "@/utils/enumDecorator";
+
 // Type definitions for JSON Schema
 export interface JSONSchema {
   $ref?: string;
@@ -100,6 +102,21 @@ export function getFieldSchema(
 
     // Resolve any $ref at current level
     currentSchema = resolveRef(currentSchema, rootSchema);
+
+    // Handle allOf - merge all branches' properties before checking for the field
+    if (currentSchema.allOf) {
+      let merged: JSONSchema = { ...currentSchema, properties: { ...currentSchema.properties } };
+      for (const branch of currentSchema.allOf) {
+        const resolved = resolveRef(branch, rootSchema);
+        if (resolved.properties) {
+          merged.properties = { ...merged.properties, ...resolved.properties };
+        }
+        if (resolved.required) {
+          merged.required = [...(merged.required || []), ...resolved.required];
+        }
+      }
+      currentSchema = merged;
+    }
 
     // Handle anyOf/oneOf - try to find a schema that has this property
     if (currentSchema.anyOf || currentSchema.oneOf) {
@@ -281,6 +298,7 @@ export function setNestedValue(
 /**
  * Gets enum options from a schema, resolving $refs if needed.
  * Returns array of { value, label } objects.
+ * Uses formatEnumTitle from enumDecorator for consistent formatting with override support.
  */
 export function getEnumOptions(
   fieldSchema: JSONSchema,
@@ -291,21 +309,9 @@ export function getEnumOptions(
   if (resolved.enum) {
     return resolved.enum.map((value) => ({
       value: String(value),
-      label: formatEnumLabel(String(value)),
+      label: formatEnumTitle(String(value)),
     }));
   }
 
   return [];
-}
-
-/**
- * Formats an enum value as a human-readable label.
- * "SURFACE_UNDERWAY" -> "Surface Underway"
- */
-export function formatEnumLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }

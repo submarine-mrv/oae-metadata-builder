@@ -4,21 +4,16 @@ import React, { useState } from "react";
 import {
   Checkbox,
   TextInput,
-  Group,
-  Text,
-  Tooltip,
-  ActionIcon,
   Grid,
   Collapse
 } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
 import {
   getFieldMetadata,
   getNestedValue,
   setNestedValue,
   type JSONSchema
 } from "../schemaUtils";
-import DescriptionModal from "../rjsf/DescriptionModal";
+import FieldLabel from "./FieldLabel";
 
 interface OptionalWithGateFieldProps {
   /** Dot-separated path to the field */
@@ -43,6 +38,9 @@ interface OptionalWithGateFieldProps {
  * Renders a checkbox gate with an associated text input field.
  * When checked, reveals a text input below.
  * Uses full-width layout to avoid checkbox/input alignment issues.
+ *
+ * Gate state is derived from whether the field has a value, not stored
+ * separately in form data — avoids polluting the data model with UI concerns.
  */
 export default function OptionalWithGateField({
   fieldPath,
@@ -54,10 +52,13 @@ export default function OptionalWithGateField({
   placeholderText,
   gateLabel
 }: OptionalWithGateFieldProps) {
-  const [modalOpen, setModalOpen] = useState(false);
-
   // Get metadata for the field
   const fieldMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
+
+  // Local UI state for the gate checkbox — not persisted in form data
+  // Initialize as checked if there's already a value for this field
+  const fieldValue = getNestedValue(formData, fieldPath) as string | undefined;
+  const [isChecked, setIsChecked] = useState(!!fieldValue);
 
   if (!fieldMetadata) {
     console.warn(
@@ -66,23 +67,13 @@ export default function OptionalWithGateField({
     return null;
   }
 
-  const fieldValue = getNestedValue(formData, fieldPath) as string | undefined;
-
-  // Gate state path - store in formData with _gate suffix
-  const gateStatePath = `${fieldPath}_gate`;
-  const gateValue = getNestedValue(formData, gateStatePath) as
-    | boolean
-    | undefined;
-
-  const isChecked = gateValue === true;
-
   const handleGateChange = (checked: boolean) => {
-    let newFormData = setNestedValue(formData, gateStatePath, checked);
+    setIsChecked(checked);
     // Clear field value when unchecking
     if (!checked) {
-      newFormData = setNestedValue(newFormData, fieldPath, undefined);
+      const newFormData = setNestedValue(formData, fieldPath, undefined);
+      onChange(newFormData);
     }
-    onChange(newFormData);
   };
 
   const handleFieldChange = (value: string) => {
@@ -90,68 +81,7 @@ export default function OptionalWithGateField({
     onChange(newFormData);
   };
 
-  // Render label with description (tooltip or modal)
-  const renderLabel = (
-    title: string,
-    description: string | undefined,
-    required: boolean,
-    useModal: boolean
-  ) => {
-    if (!description) {
-      return (
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-      );
-    }
-
-    if (useModal) {
-      return (
-        <>
-          <Group gap={4}>
-            <Text size="sm" fw={500}>
-              {title} {required && <span style={{ color: "red" }}>*</span>}
-            </Text>
-            <ActionIcon
-              variant="transparent"
-              size="xs"
-              color="gray"
-              onClick={() => setModalOpen(true)}
-              style={{ cursor: "pointer" }}
-            >
-              <IconInfoCircle size={14} />
-            </ActionIcon>
-          </Group>
-          <DescriptionModal
-            opened={modalOpen}
-            onClose={() => setModalOpen(false)}
-            title={title}
-            description={description}
-          />
-        </>
-      );
-    }
-
-    // Default: tooltip
-    return (
-      <Group gap={4}>
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-        <Tooltip
-          label={description}
-          position="top"
-          withArrow
-          multiline
-          maw={400}
-        >
-          <ActionIcon variant="transparent" size="xs" color="gray">
-            <IconInfoCircle size={14} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-    );
-  };
+  const descriptionMode = descriptionModal ? "modal" as const : "tooltip" as const;
 
   return (
     <>
@@ -174,12 +104,14 @@ export default function OptionalWithGateField({
       <Grid.Col span={6} pt={isChecked ? undefined : 0}>
         <Collapse in={isChecked}>
           <TextInput
-            label={renderLabel(
-              fieldMetadata.title,
-              fieldMetadata.description,
-              fieldMetadata.required,
-              descriptionModal
-            )}
+            label={
+              <FieldLabel
+                title={fieldMetadata.title}
+                description={fieldMetadata.description}
+                required={fieldMetadata.required}
+                descriptionMode={descriptionMode}
+              />
+            }
             placeholder={placeholderText || "Enter value"}
             value={fieldValue || ""}
             onChange={(e) => handleFieldChange(e.target.value)}

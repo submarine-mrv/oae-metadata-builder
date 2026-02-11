@@ -34,6 +34,7 @@ import {
 import {
   fieldExistsInSchema,
   isFieldRequired,
+  getNestedValue,
   resolveRef,
   type JSONSchema
 } from "../schemaUtils";
@@ -152,7 +153,7 @@ export default function VariableModal({
   const availableSamplingOptions = useMemo(() => {
     if (!variableType) return SAMPLING_OPTIONS;
     const typeMap = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
-    if (!typeMap) return SAMPLING_OPTIONS;
+    if (!typeMap) return [];
     const measured = (typeMap as Record<string, unknown>).MEASURED;
     if (!measured || typeof measured === "string") return [];
     return SAMPLING_OPTIONS.filter(
@@ -502,9 +503,7 @@ export default function VariableModal({
         </Button>
         <Button
           onClick={handleSave}
-          disabled={
-            !schemaKey || !formData.long_name || !formData.dataset_variable_name
-          }
+          disabled={!schemaKey || !variableSchema || !areRequiredFieldsFilled(formData, variableSchema, rootSchema)}
         >
           {isEditing ? "Update Variable" : "Add Variable"}
         </Button>
@@ -579,6 +578,25 @@ function AccordionControlContent({
   );
 }
 
+/**
+ * Checks whether all top-level required fields in the variable schema have values.
+ * Derives required fields from the schema's `required` array rather than hardcoding.
+ */
+function areRequiredFieldsFilled(
+  formData: Record<string, unknown>,
+  variableSchema: JSONSchema,
+  rootSchema: JSONSchema
+): boolean {
+  const resolved = resolveRef(variableSchema, rootSchema);
+  const requiredFields = resolved.required;
+  if (!requiredFields || requiredFields.length === 0) return true;
+
+  return requiredFields.every((field) => {
+    const value = getNestedValue(formData, field);
+    return value !== undefined && value !== null && value !== "";
+  });
+}
+
 interface ProgressBadgeProps {
   filled: number;
   total: number;
@@ -628,23 +646,3 @@ function ProgressBadge({
   );
 }
 
-// =============================================================================
-// Utility Functions
-// =============================================================================
-
-function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  const parts = path.split(".");
-  let current: unknown = obj;
-
-  for (const part of parts) {
-    if (current === null || current === undefined) {
-      return undefined;
-    }
-    if (typeof current !== "object") {
-      return undefined;
-    }
-    current = (current as Record<string, unknown>)[part];
-  }
-
-  return current;
-}

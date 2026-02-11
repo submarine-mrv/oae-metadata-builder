@@ -107,7 +107,7 @@ export type SamplingKey = "DISCRETE" | "CONTINUOUS";
 
 /**
  * Defines non-standard selection behavior for specific variable types.
- * - fixedGenesis/fixedSampling: auto-set and disable the dropdown
+ * - fixedGenesis/fixedSampling: auto-set in handleVariableTypeChange, hide the dropdown
  * - directSchema: skip genesis/sampling entirely (maps via DIRECT key)
  */
 export const VARIABLE_TYPE_BEHAVIOR: Record<
@@ -796,6 +796,16 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   }
 ];
 
+function deepFreeze<T>(obj: T): T {
+  Object.freeze(obj);
+  for (const val of Object.values(obj as Record<string, unknown>)) {
+    if (val && typeof val === "object" && !Object.isFrozen(val)) {
+      deepFreeze(val);
+    }
+  }
+  return obj;
+}
+
 /**
  * Returns the accordion config for a specific variable type's schema key.
  * Builds sections from the type's layer stack, returning only sections that have fields.
@@ -816,6 +826,7 @@ export function getAccordionConfig(schemaKey: string): AccordionSection[] {
     fields: buildSectionFields(s.key, layers)
   })).filter((s) => s.fields.length > 0);
 
+  deepFreeze(config);
   accordionConfigCache.set(schemaKey, config);
   return config;
 }
@@ -839,8 +850,9 @@ export function getSchemaKey(
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
-  // DIRECT types skip genesis/sampling entirely (DIRECT is mutually exclusive with MEASURED/CALCULATED)
-  if ("DIRECT" in typeMap && !genesis) {
+  // DIRECT types skip genesis/sampling entirely — reject if genesis is provided
+  if ("DIRECT" in typeMap) {
+    if (genesis) return null;
     return (typeMap as Record<string, unknown>).DIRECT as string;
   }
 
