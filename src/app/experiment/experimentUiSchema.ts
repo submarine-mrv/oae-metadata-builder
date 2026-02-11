@@ -27,7 +27,7 @@ const experimentUiSchema = {
     "end_datetime",
     "spatial_coverage",
     "vertical_coverage",
-    "investigators",
+    "principal_investigators",
     "permits",
     "meteorological_and_tidal_data",
     "data_conflicts_and_unreported_data",
@@ -77,7 +77,7 @@ const experimentUiSchema = {
     },
     "ui:order": ["min_depth_in_m", "max_depth_in_m"]
   },
-  investigators: {
+  principal_investigators: {
     "ui:options": {
       addable: true,
       orderable: false,

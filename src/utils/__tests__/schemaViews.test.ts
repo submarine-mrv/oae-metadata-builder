@@ -113,7 +113,7 @@ describe('Schema Views', () => {
       expect(schema.properties.experiment_id).toBeDefined();
       expect(schema.properties.experiment_type).toBeDefined();
       expect(schema.properties.description).toBeDefined();
-      expect(schema.properties.investigators).toBeDefined();
+      expect(schema.properties.principal_investigators).toBeDefined();
     });
 
     it('should preserve $defs and metadata', () => {
