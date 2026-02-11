@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { RJSFSchema } from '@rjsf/utils';
 import {
   getBaseSchema,
   getProtocolMetadata,
@@ -63,24 +64,23 @@ describe('Schema Views', () => {
     it('should have required project fields', () => {
       const schema = getProjectSchema();
 
-      expect(schema.properties.project_id).toBeDefined();
-      expect(schema.properties.description).toBeDefined();
-      expect(schema.properties.mcdr_pathway).toBeDefined();
-      expect(schema.properties.sea_names).toBeDefined();
-      expect(schema.properties.spatial_coverage).toBeDefined();
-      expect(schema.properties.temporal_coverage).toBeDefined();
+      expect(schema.properties!.project_id).toBeDefined();
+      expect(schema.properties!.description).toBeDefined();
+      expect(schema.properties!.mcdr_pathway).toBeDefined();
+      expect(schema.properties!.sea_names).toBeDefined();
+      expect(schema.properties!.spatial_coverage).toBeDefined();
+      expect(schema.properties!.temporal_coverage).toBeDefined();
     });
 
     it('should preserve all $defs from base schema', () => {
-      const baseSchema = getBaseSchema();
       const projectSchema = getProjectSchema();
 
       expect(projectSchema.$defs).toBeDefined();
-      expect(Object.keys(projectSchema.$defs).length).toBeGreaterThan(0);
+      expect(Object.keys(projectSchema.$defs!).length).toBeGreaterThan(0);
 
       // Should have same definitions as base
-      expect(projectSchema.$defs.SpatialCoverage).toBeDefined();
-      expect(projectSchema.$defs.MCDRPathway).toBeDefined();
+      expect(projectSchema.$defs!.SpatialCoverage).toBeDefined();
+      expect(projectSchema.$defs!.MCDRPathway).toBeDefined();
     });
 
     it('should preserve protocol metadata', () => {
@@ -93,9 +93,9 @@ describe('Schema Views', () => {
     it('should have experiments array in properties', () => {
       const schema = getProjectSchema();
 
-      expect(schema.properties.experiments).toBeDefined();
+      expect(schema.properties!.experiments).toBeDefined();
       // Schema now allows null values, so type is ['array', 'null']
-      expect(schema.properties.experiments.type).toEqual(['array', 'null']);
+      expect((schema.properties!.experiments as RJSFSchema).type).toEqual(['array', 'null']);
     });
   });
 
@@ -110,10 +110,10 @@ describe('Schema Views', () => {
     it('should have required experiment fields', () => {
       const schema = getExperimentSchema();
 
-      expect(schema.properties.experiment_id).toBeDefined();
-      expect(schema.properties.experiment_type).toBeDefined();
-      expect(schema.properties.description).toBeDefined();
-      expect(schema.properties.investigators).toBeDefined();
+      expect(schema.properties!.experiment_id).toBeDefined();
+      expect(schema.properties!.experiment_type).toBeDefined();
+      expect(schema.properties!.description).toBeDefined();
+      expect(schema.properties!.investigators).toBeDefined();
     });
 
     it('should preserve $defs and metadata', () => {
@@ -136,20 +136,20 @@ describe('Schema Views', () => {
       const schema = getInterventionSchema();
 
       // Intervention-specific fields
-      expect(schema.properties.alkalinity_feedstock).toBeDefined();
-      expect(schema.properties.alkalinity_feedstock_form).toBeDefined();
-      expect(schema.properties.alkalinity_feedstock_processing).toBeDefined();
-      expect(schema.properties.dosing_location).toBeDefined();
-      expect(schema.properties.dosing_delivery_type).toBeDefined();
+      expect(schema.properties!.alkalinity_feedstock).toBeDefined();
+      expect(schema.properties!.alkalinity_feedstock_form).toBeDefined();
+      expect(schema.properties!.alkalinity_feedstock_processing).toBeDefined();
+      expect(schema.properties!.dosing_location).toBeDefined();
+      expect(schema.properties!.dosing_delivery_type).toBeDefined();
     });
 
     it('should also include base experiment fields (extends Experiment)', () => {
       const schema = getInterventionSchema();
 
       // Base experiment fields should also be present
-      expect(schema.properties.experiment_id).toBeDefined();
-      expect(schema.properties.experiment_type).toBeDefined();
-      expect(schema.properties.description).toBeDefined();
+      expect(schema.properties!.experiment_id).toBeDefined();
+      expect(schema.properties!.experiment_type).toBeDefined();
+      expect(schema.properties!.description).toBeDefined();
     });
   });
 
@@ -165,8 +165,8 @@ describe('Schema Views', () => {
       const schema = getTracerSchema();
 
       // Tracer-specific fields
-      expect(schema.properties.tracer_form).toBeDefined();
-      expect(schema.properties.tracer_details).toBeDefined();
+      expect(schema.properties!.tracer_form).toBeDefined();
+      expect(schema.properties!.tracer_details).toBeDefined();
     });
   });
 
@@ -182,28 +182,30 @@ describe('Schema Views', () => {
       const schema = getInterventionWithTracerSchema();
 
       // Should have intervention fields
-      expect(schema.properties.alkalinity_feedstock).toBeDefined();
+      expect(schema.properties!.alkalinity_feedstock).toBeDefined();
 
       // Should have tracer fields
-      expect(schema.properties.tracer_form).toBeDefined();
+      expect(schema.properties!.tracer_form).toBeDefined();
     });
   });
 
   describe('Bug Regression: Schema decoration path (Bug #3)', () => {
     it('should find sea_names in Project definition (not at root)', () => {
       const projectSchema = getProjectSchema();
+      const seaNames = projectSchema.properties!.sea_names as RJSFSchema;
 
       // This test ensures we're looking in the right place after Container became root
-      expect(projectSchema.properties.sea_names).toBeDefined();
+      expect(seaNames).toBeDefined();
       // Schema now allows null values, so type is ['array', 'null']
-      expect(projectSchema.properties.sea_names.type).toEqual(['array', 'null']);
+      expect(seaNames.type).toEqual(['array', 'null']);
 
       // Should have decorated enum values from sea_names_labeled.json
-      expect(projectSchema.properties.sea_names.items).toBeDefined();
-      expect(projectSchema.properties.sea_names.items.oneOf).toBeDefined();
+      const items = seaNames.items as RJSFSchema;
+      expect(items).toBeDefined();
+      expect(items.oneOf).toBeDefined();
 
       // Should have multiple sea name options
-      const options = projectSchema.properties.sea_names.items.oneOf;
+      const options = items.oneOf!;
       expect(Array.isArray(options)).toBe(true);
       expect(options.length).toBeGreaterThan(0);
 
@@ -211,7 +213,7 @@ describe('Schema Views', () => {
       if (options.length > 0) {
         expect(options[0]).toHaveProperty('const');
         expect(options[0]).toHaveProperty('title');
-        expect(options[0].const).toContain('vocab.nerc.ac.uk');
+        expect((options[0] as RJSFSchema).const).toContain('vocab.nerc.ac.uk');
       }
     });
   });
