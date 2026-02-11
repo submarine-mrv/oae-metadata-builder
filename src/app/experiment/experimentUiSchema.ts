@@ -75,7 +75,12 @@ const experimentUiSchema = {
     "ui:options": {
       gridCols: 2
     },
-    "ui:order": ["min_depth_in_m", "max_depth_in_m"]
+    "ui:order": [
+      "min_depth_in_m",
+      "max_depth_in_m",
+      "min_height_in_m",
+      "max_height_in_m"
+    ]
   },
   principal_investigators: {
     "ui:options": {
