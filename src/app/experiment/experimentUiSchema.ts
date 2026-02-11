@@ -135,6 +135,7 @@ const experimentUiSchema = {
     }
   },
   permits: {
+    "ui:title": "Permits (if applicable)",
     "ui:options": {
       addable: true,
       orderable: false,
