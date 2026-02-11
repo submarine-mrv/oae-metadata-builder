@@ -49,12 +49,16 @@ export default function BaseInputWidget<
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Simple check: use NumberInput for number/integer schema types
   const isNumberType = schema.type === 'number' || schema.type === 'integer';
+  const schemaMin = typeof schema.minimum === 'number' ? schema.minimum : undefined;
+  const schemaMax = typeof schema.maximum === 'number' ? schema.maximum : undefined;
 
   const handleNumberChange = useCallback(
     (value: number | string) => {
+      setLocalError(null);
       if (onChange) {
         onChange(value);
       }
@@ -73,11 +77,25 @@ export default function BaseInputWidget<
 
   const handleBlur = useCallback(
     (event: FocusEvent<HTMLInputElement>) => {
+      if (isNumberType) {
+        const numVal = parseFloat(event.target.value);
+        if (!isNaN(numVal)) {
+          if (schemaMax !== undefined && numVal > schemaMax) {
+            setLocalError(`Must be ${schemaMax} or less`);
+          } else if (schemaMin !== undefined && numVal < schemaMin) {
+            setLocalError(`Must be ${schemaMin} or greater`);
+          } else {
+            setLocalError(null);
+          }
+        } else {
+          setLocalError(null);
+        }
+      }
       if (onBlur) {
         onBlur(id, event.target.value);
       }
     },
-    [onBlur, id]
+    [onBlur, id, isNumberType, schemaMin, schemaMax]
   );
 
   const handleFocus = useCallback(
@@ -94,6 +112,10 @@ export default function BaseInputWidget<
     return label;
   };
 
+  const errorMessage = rawErrors && rawErrors.length > 0
+    ? rawErrors.join(', ')
+    : localError ?? undefined;
+
   // Choose NumberInput vs TextInput based on schema type
   const input = isNumberType ? (
     <NumberInput
@@ -105,7 +127,7 @@ export default function BaseInputWidget<
       disabled={disabled}
       readOnly={readonly}
       autoFocus={autofocus}
-      error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
+      error={errorMessage}
       onChange={handleNumberChange}
       onBlur={handleBlur}
       onFocus={handleFocus}
@@ -120,7 +142,7 @@ export default function BaseInputWidget<
       disabled={disabled}
       readOnly={readonly}
       autoFocus={autofocus}
-      error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
+      error={errorMessage}
       onChange={handleTextChange}
       onBlur={handleBlur}
       onFocus={handleFocus}
