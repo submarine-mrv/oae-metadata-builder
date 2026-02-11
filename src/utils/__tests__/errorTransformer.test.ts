@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import { transformFormErrors } from "../errorTransformer";
 import { MESSAGES } from "@/constants/messages";
+import type { RJSFValidationError } from "@rjsf/utils";
 
 describe("transformFormErrors", () => {
   it("should transform temporal coverage pattern error", () => {
@@ -12,7 +13,7 @@ describe("transformFormErrors", () => {
         name: "pattern",
         message: "should match pattern"
       }
-    ];
+    ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
 
@@ -41,7 +42,7 @@ describe("transformFormErrors", () => {
     ];
 
     testCases.forEach((error) => {
-      const result = transformFormErrors([error]);
+      const result = transformFormErrors([error as RJSFValidationError]);
       expect(result[0].property).toBe(".spatial_coverage");
       expect(result[0].message).toBe(MESSAGES.validation.spatialCoverage);
     });
@@ -54,7 +55,7 @@ describe("transformFormErrors", () => {
         name: "required",
         message: "is a required property"
       }
-    ];
+    ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
 
@@ -81,7 +82,7 @@ describe("transformFormErrors", () => {
         property: ".project_id",
         name: "required"
       }
-    ];
+    ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
 
