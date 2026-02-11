@@ -105,7 +105,7 @@ export function getFieldSchema(
 
     // Handle allOf - merge all branches' properties before checking for the field
     if (currentSchema.allOf) {
-      let merged: JSONSchema = { ...currentSchema, properties: { ...currentSchema.properties } };
+      const merged: JSONSchema = { ...currentSchema, properties: { ...currentSchema.properties } };
       for (const branch of currentSchema.allOf) {
         const resolved = resolveRef(branch, rootSchema);
         if (resolved.properties) {
