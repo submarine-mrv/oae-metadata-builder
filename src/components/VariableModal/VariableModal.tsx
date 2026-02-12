@@ -503,7 +503,7 @@ export default function VariableModal({
         </Button>
         <Button
           onClick={handleSave}
-          disabled={!schemaKey || !variableSchema || !areRequiredFieldsFilled(formData, variableSchema, rootSchema)}
+          disabled={!schemaKey || !formData.long_name || !formData.dataset_variable_name}
         >
           {isEditing ? "Update Variable" : "Add Variable"}
         </Button>
@@ -578,24 +578,7 @@ function AccordionControlContent({
   );
 }
 
-/**
- * Checks whether all top-level required fields in the variable schema have values.
- * Derives required fields from the schema's `required` array rather than hardcoding.
- */
-function areRequiredFieldsFilled(
-  formData: Record<string, unknown>,
-  variableSchema: JSONSchema,
-  rootSchema: JSONSchema
-): boolean {
-  const resolved = resolveRef(variableSchema, rootSchema);
-  const requiredFields = resolved.required;
-  if (!requiredFields || requiredFields.length === 0) return true;
 
-  return requiredFields.every((field) => {
-    const value = getNestedValue(formData, field);
-    return value !== undefined && value !== null && value !== "";
-  });
-}
 
 interface ProgressBadgeProps {
   filled: number;
