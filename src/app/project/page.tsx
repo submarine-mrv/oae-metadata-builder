@@ -109,6 +109,18 @@ export default function ProjectPage() {
           "Minimum depth must be greater than or equal to maximum depth."
         );
       }
+
+      const minHeight = vc.min_height_in_m;
+      const maxHeight = vc.max_height_in_m;
+      if (
+        typeof minHeight === "number" &&
+        typeof maxHeight === "number" &&
+        minHeight > maxHeight
+      ) {
+        errors?.vertical_coverage?.min_height_in_m?.addError(
+          "Minimum height must be less than or equal to maximum height."
+        );
+      }
     }
 
     return errors;
