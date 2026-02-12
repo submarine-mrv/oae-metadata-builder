@@ -16,7 +16,7 @@ const COMMON_FIELDS = [
   "end_datetime",
   "spatial_coverage",
   "vertical_coverage",
-  "investigators",
+  "principal_investigators",
   "meteorological_and_tidal_data",
   "data_conflicts_and_unreported_data",
   "additional_details"

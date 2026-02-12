@@ -77,7 +77,7 @@ describe('Validation', () => {
           min_depth_in_m: 0,
           max_depth_in_m: -100
         },
-        investigators: [],
+        principal_investigators: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z'
       };
@@ -96,7 +96,7 @@ describe('Validation', () => {
         description: 'Alkalinity addition experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-        investigators: [],
+        principal_investigators: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z',
         // Intervention-specific required fields
@@ -130,7 +130,7 @@ describe('Validation', () => {
         description: 'SF6 tracer study',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-        investigators: [],
+        principal_investigators: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z',
         // Tracer-specific fields
@@ -164,7 +164,7 @@ describe('Validation', () => {
         description: 'Control experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-        investigators: [],
+        principal_investigators: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z'
       };
@@ -198,7 +198,7 @@ describe('Validation', () => {
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            investigators: [],
+            principal_investigators: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }
@@ -263,7 +263,7 @@ describe('Validation', () => {
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            investigators: [],
+            principal_investigators: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }
@@ -278,7 +278,7 @@ describe('Validation', () => {
             description: 'Control',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            investigators: [],
+            principal_investigators: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }
@@ -313,7 +313,7 @@ describe('Validation', () => {
             description: 'Valid',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            investigators: [],
+            principal_investigators: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }

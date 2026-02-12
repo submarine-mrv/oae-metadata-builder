@@ -77,7 +77,7 @@ describe("completionCalculator", () => {
         description: "Test experiment",
         spatial_coverage: { geo: { box: "0 0 10 10" } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        investigators: [{ name: "Dr. Test" }],
+        principal_investigators: [{ name: "Dr. Test" }],
         start_datetime: "2024-01-01 00:00:00",
         end_datetime: "2024-12-31 23:59:59"
       };
@@ -94,7 +94,7 @@ describe("completionCalculator", () => {
         description: "Test intervention",
         spatial_coverage: { geo: { box: "0 0 10 10" } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        investigators: [{ name: "Dr. Test" }],
+        principal_investigators: [{ name: "Dr. Test" }],
         start_datetime: "2024-01-01 00:00:00",
         end_datetime: "2024-12-31 23:59:59",
         // Intervention-specific fields
@@ -124,7 +124,7 @@ describe("completionCalculator", () => {
         description: "Test tracer",
         spatial_coverage: { geo: { box: "0 0 10 10" } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        investigators: [{ name: "Dr. Test" }],
+        principal_investigators: [{ name: "Dr. Test" }],
         start_datetime: "2024-01-01 00:00:00",
         end_datetime: "2024-12-31 23:59:59",
         tracer_concentration: 100,

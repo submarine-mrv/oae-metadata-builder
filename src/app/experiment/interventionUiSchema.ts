@@ -55,7 +55,7 @@ const interventionUiSchema = {
     "dosing_description",
     "dosing_regimen",
     // Common fields
-    "investigators",
+    "principal_investigators",
     "meteorological_and_tidal_data",
     "data_conflicts_and_unreported_data",
     "additional_details",

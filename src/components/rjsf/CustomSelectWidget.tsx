@@ -17,7 +17,9 @@ import { cleanupOptions } from "@rjsf/mantine/lib/utils.js";
 const VIEW_ALL_LINKS: Record<string, string> = {
   "Sea Names": "http://vocab.nerc.ac.uk/collection/C16/current/",
   "MCDR Pathway":
-    "https://www.carbontosea.org/oae-data-protocol/1-0-0/#mcdr-pathways"
+    "https://www.carbontosea.org/oae-data-protocol/1-0-0/#mcdr-pathways",
+  "Dosing Delivery Type":
+    "https://www.carbontosea.org/oae-data-protocol/1-0-0/#dosing-delivery-type"
 };
 
 export default function CustomSelectWidget<

@@ -7,7 +7,7 @@ describe('AppStateContext', () => {
   describe('Provider and Hook', () => {
     it('should throw error when useAppState is used outside provider', () => {
       // Suppress console.error for this test
-      const spy = vi.spyOn(console, 'error').mockImplementation();
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => useAppState());
@@ -780,7 +780,7 @@ describe('AppStateContext', () => {
       ];
 
       act(() => {
-        result.current.importAllData(importedProjectData, importedExperiments);
+        result.current.importAllData(importedProjectData, importedExperiments, []);
       });
 
       expect(result.current.state.projectData).toEqual(importedProjectData);
@@ -818,7 +818,7 @@ describe('AppStateContext', () => {
       ];
 
       act(() => {
-        result.current.importAllData({}, importedExperiments);
+        result.current.importAllData({}, importedExperiments, []);
       });
 
       // IDs should be reassigned starting from nextExperimentId
@@ -849,7 +849,7 @@ describe('AppStateContext', () => {
       ];
 
       act(() => {
-        result.current.importAllData({}, importedExperiments);
+        result.current.importAllData({}, importedExperiments, []);
       });
 
       // nextExperimentId should be 1 (initial) + 2 (imported) = 3
@@ -869,7 +869,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.activeExperimentId).not.toBeNull();
 
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({}, [], []);
       });
 
       // Should be reset to null
@@ -888,7 +888,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.activeTab).toBe('project');
 
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({}, [], []);
       });
 
       expect(result.current.state.activeTab).toBe('overview');
@@ -902,7 +902,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.hasProject).toBe(false);
 
       act(() => {
-        result.current.importAllData({ project_id: 'imported-project' }, []);
+        result.current.importAllData({ project_id: 'imported-project' }, [], []);
       });
 
       expect(result.current.state.hasProject).toBe(true);
@@ -922,7 +922,7 @@ describe('AppStateContext', () => {
 
       // Import with empty project data
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({}, [], []);
       });
 
       expect(result.current.state.hasProject).toBe(false);
@@ -940,7 +940,7 @@ describe('AppStateContext', () => {
       expect(result.current.state.triggerValidation).toBe(true);
 
       act(() => {
-        result.current.importAllData({}, []);
+        result.current.importAllData({}, [], []);
       });
 
       expect(result.current.state.triggerValidation).toBe(false);
