@@ -164,13 +164,6 @@ export function fieldExistsInSchema(
 }
 
 /**
- * Checks if a field is required at its nesting level.
- * For "analyzing_instrument.calibration.dye_purified":
- * - Checks if "dye_purified" is in PHCalibration.required
- *
- * Note: This doesn't check if parent objects are required.
- */
-/**
  * Resolves a schema and merges allOf required arrays.
  * Used by isFieldRequired to correctly detect conditionally-required fields.
  */
@@ -195,6 +188,13 @@ function resolveWithAllOf(
   return merged;
 }
 
+/**
+ * Checks if a field is required at its nesting level.
+ * For "analyzing_instrument.calibration.dye_purified":
+ * - Checks if "dye_purified" is in PHCalibration.required
+ *
+ * Note: This doesn't check if parent objects are required.
+ */
 export function isFieldRequired(
   fieldPath: string,
   variableSchema: JSONSchema,

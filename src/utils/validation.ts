@@ -117,20 +117,21 @@ export function validateDataset(
     let errors = result.datasetErrors;
 
     // Surface per-variable validation errors so the UI can display them
+    const variableErrorEntries: RJSFValidationError[] = [];
     for (const [, varError] of result.variableErrors) {
       for (const msg of varError.errors) {
-        errors = [
-          ...errors,
-          {
-            name: "variable",
-            property: `.variables[${varError.index}]`,
-            message: `Variable '${varError.variableName}': ${msg}`,
-            params: {},
-            stack: `variables[${varError.index}]: ${msg}`,
-            schemaPath: "#/properties/variables"
-          }
-        ];
+        variableErrorEntries.push({
+          name: "variable",
+          property: `.variables[${varError.index}]`,
+          message: `Variable '${varError.variableName}': ${msg}`,
+          params: {},
+          stack: `variables[${varError.index}]: ${msg}`,
+          schemaPath: "#/properties/variables"
+        });
       }
+    }
+    if (variableErrorEntries.length > 0) {
+      errors = [...errors, ...variableErrorEntries];
     }
 
     // Catch empty/missing experiment_id that JSON schema "required" may not flag.
