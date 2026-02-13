@@ -58,11 +58,14 @@ const SAMPLING_OPTIONS = [
 
 // Genesis options for the "Other (Generic Variable Type)" — includes contextual
 const OTHER_GENESIS_OPTIONS = [
-  { value: "measured", label: "Measured (directly observed or recorded by an instrument)" },
+  {
+    value: "measured",
+    label: "Measured (directly observed or recorded by an instrument)"
+  },
   { value: "calculated", label: "Calculated (derived from other variables)" },
   {
     value: "contextual",
-    label: "Not applicable — contextual variable (metadata about the sample — e.g., EXPOCODE, region, timestamps)"
+    label: "Not Applicable (e.g. EXPOCODE, region, timestamps, lat/long)"
   }
 ];
 
@@ -81,8 +84,7 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
 
 const GENESIS_LABELS: Record<string, string> = {
   measured: "Measured",
-  calculated: "Calculated",
-  contextual: "Contextual"
+  calculated: "Calculated"
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
@@ -419,7 +421,7 @@ export default function VariableModal({
                           {VARIABLE_TYPE_LABELS[variableType] || variableType}
                         </Pill>
                       )}
-                      {genesis && (
+                      {genesis != "contextual" && (
                         <Pill size="sm">
                           {GENESIS_LABELS[genesis] || genesis}
                         </Pill>
@@ -459,8 +461,7 @@ export default function VariableModal({
                       label={
                         variableType === "other" ? (
                           <FieldLabel
-                            title="How was this variable produced?"
-                            description="Contextual variables are supporting metadata columns in your dataset that aren't directly measured or calculated — such as latitude, longitude, date, time, station ID, or EXPOCODE."
+                            title="Was this variable directly measured or calculated from other variables?"
                             required={true}
                           />
                         ) : (
