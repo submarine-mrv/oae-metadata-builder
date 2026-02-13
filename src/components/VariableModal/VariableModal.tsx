@@ -121,9 +121,10 @@ export default function VariableModal({
       if (initialData) {
         setFormData(initialData);
         // Extract selection state from initial data
+        // Normalize to lowercase for backwards compat with pre-enum-migration data
         setVariableType((initialData._variableType as string) || null);
-        setGenesis((initialData.genesis as string) || null);
-        setSampling((initialData.sampling as string) || null);
+        setGenesis((initialData.genesis as string)?.toLowerCase() || null);
+        setSampling((initialData.sampling as string)?.toLowerCase() || null);
         // If editing, start with variable-type collapsed and basic open
         setOpenSections(["basic"]);
         // Mark as already complete so auto-collapse doesn't re-trigger

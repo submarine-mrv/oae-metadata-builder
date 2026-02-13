@@ -115,6 +115,9 @@ export function getFieldSchema(
           merged.required = [...(merged.required || []), ...resolved.required];
         }
       }
+      if (merged.required) {
+        merged.required = [...new Set(merged.required)];
+      }
       currentSchema = merged;
     }
 
@@ -167,6 +170,31 @@ export function fieldExistsInSchema(
  *
  * Note: This doesn't check if parent objects are required.
  */
+/**
+ * Resolves a schema and merges allOf required arrays.
+ * Used by isFieldRequired to correctly detect conditionally-required fields.
+ */
+function resolveWithAllOf(
+  schema: JSONSchema,
+  rootSchema: JSONSchema
+): JSONSchema {
+  const resolved = resolveRef(schema, rootSchema);
+  if (!resolved.allOf) return resolved;
+
+  const merged: JSONSchema = { ...resolved };
+  let required = [...(merged.required || [])];
+  for (const branch of resolved.allOf) {
+    const resolvedBranch = resolveRef(branch, rootSchema);
+    if (resolvedBranch.required) {
+      required = [...required, ...resolvedBranch.required];
+    }
+  }
+  if (required.length > 0) {
+    merged.required = [...new Set(required)];
+  }
+  return merged;
+}
+
 export function isFieldRequired(
   fieldPath: string,
   variableSchema: JSONSchema,
@@ -175,9 +203,9 @@ export function isFieldRequired(
   const parts = fieldPath.split(".");
   const fieldName = parts[parts.length - 1];
 
-  // If it's a top-level field, check variableSchema.required
+  // If it's a top-level field, check variableSchema.required (with allOf merge)
   if (parts.length === 1) {
-    const resolved = resolveRef(variableSchema, rootSchema);
+    const resolved = resolveWithAllOf(variableSchema, rootSchema);
     return resolved.required?.includes(fieldName) ?? false;
   }
 
@@ -189,7 +217,7 @@ export function isFieldRequired(
     return false;
   }
 
-  const resolvedParent = resolveRef(parentSchema, rootSchema);
+  const resolvedParent = resolveWithAllOf(parentSchema, rootSchema);
   return resolvedParent.required?.includes(fieldName) ?? false;
 }
 

@@ -116,6 +116,23 @@ export function validateDataset(
 
     let errors = result.datasetErrors;
 
+    // Surface per-variable validation errors so the UI can display them
+    for (const [, varError] of result.variableErrors) {
+      for (const msg of varError.errors) {
+        errors = [
+          ...errors,
+          {
+            name: "variable",
+            property: `.variables[${varError.index}]`,
+            message: `Variable '${varError.variableName}': ${msg}`,
+            params: {},
+            stack: `variables[${varError.index}]: ${msg}`,
+            schemaPath: "#/properties/variables"
+          }
+        ];
+      }
+    }
+
     // Catch empty/missing experiment_id that JSON schema "required" may not flag.
     // Scenarios: propagation sets "" or undefined while property key still exists in object.
     // Only add the error if AJV didn't already generate one for experiment_id.
@@ -140,8 +157,7 @@ export function validateDataset(
       errors = errors.filter((e) => !isExperimentIdRequiredError(e));
     }
 
-    // Total error count includes dataset-level errors + count of invalid variables
-    const errorCount = errors.length + result.invalidVariableCount;
+    const errorCount = errors.length;
 
     return {
       isValid: errorCount === 0,
