@@ -529,7 +529,7 @@ export default function VariableModal({
                           // Compute effective placeholder with override support
                           const effectivePlaceholder =
                             getPlaceholderOverride(
-                              variableType || undefined,
+                              resolveEffectiveType(variableType || undefined, genesis || undefined),
                               field.path
                             ) || field.placeholderText;
 
