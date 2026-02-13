@@ -334,35 +334,35 @@ describe("getSchemaKey", () => {
   it("returns null when variableType or genesis is missing", () => {
     expect(getSchemaKey(undefined, undefined, undefined)).toBeNull();
     expect(getSchemaKey("pH", undefined, undefined)).toBeNull();
-    expect(getSchemaKey(undefined, "MEASURED", "DISCRETE")).toBeNull();
+    expect(getSchemaKey(undefined, "measured", "discrete")).toBeNull();
   });
 
   it("returns schema key for each variable type (discrete measured)", () => {
-    expect(getSchemaKey("pH", "MEASURED", "DISCRETE")).toBe("DiscretePHVariable");
-    expect(getSchemaKey("ta", "MEASURED", "DISCRETE")).toBe("DiscreteTAVariable");
-    expect(getSchemaKey("dic", "MEASURED", "DISCRETE")).toBe("DiscreteDICVariable");
-    expect(getSchemaKey("sediment", "MEASURED", "DISCRETE")).toBe("DiscreteSedimentVariable");
-    expect(getSchemaKey("co2", "MEASURED", "DISCRETE")).toBe("DiscreteCO2Variable");
-    expect(getSchemaKey("observed_property", "MEASURED", "DISCRETE")).toBe("DiscreteMeasuredVariable");
+    expect(getSchemaKey("pH", "measured", "discrete")).toBe("DiscretePHVariable");
+    expect(getSchemaKey("ta", "measured", "discrete")).toBe("DiscreteTAVariable");
+    expect(getSchemaKey("dic", "measured", "discrete")).toBe("DiscreteDICVariable");
+    expect(getSchemaKey("sediment", "measured", "discrete")).toBe("DiscreteSedimentVariable");
+    expect(getSchemaKey("co2", "measured", "discrete")).toBe("DiscreteCO2Variable");
+    expect(getSchemaKey("observed_property", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
   });
 
   it("returns CalculatedVariable for all calculated types", () => {
-    expect(getSchemaKey("pH", "CALCULATED", undefined)).toBe("CalculatedVariable");
-    expect(getSchemaKey("ta", "CALCULATED", undefined)).toBe("CalculatedVariable");
-    expect(getSchemaKey("co2", "CALCULATED", undefined)).toBe("CalculatedVariable");
+    expect(getSchemaKey("pH", "calculated", undefined)).toBe("CalculatedVariable");
+    expect(getSchemaKey("ta", "calculated", undefined)).toBe("CalculatedVariable");
+    expect(getSchemaKey("co2", "calculated", undefined)).toBe("CalculatedVariable");
   });
 
-  it("returns null for co2 + MEASURED + CONTINUOUS (no continuous variant)", () => {
-    expect(getSchemaKey("co2", "MEASURED", "CONTINUOUS")).toBeNull();
+  it("returns null for co2 + measured + continuous (no continuous variant)", () => {
+    expect(getSchemaKey("co2", "measured", "continuous")).toBeNull();
   });
 
   it("returns schema key for continuous variants that exist", () => {
-    expect(getSchemaKey("pH", "MEASURED", "CONTINUOUS")).toBe("ContinuousPHVariable");
-    expect(getSchemaKey("ta", "MEASURED", "CONTINUOUS")).toBe("ContinuousTAVariable");
+    expect(getSchemaKey("pH", "measured", "continuous")).toBe("ContinuousPHVariable");
+    expect(getSchemaKey("ta", "measured", "continuous")).toBe("ContinuousTAVariable");
   });
 
-  it("returns HPLCVariable for hplc + MEASURED + DISCRETE", () => {
-    expect(getSchemaKey("hplc", "MEASURED", "DISCRETE")).toBe("HPLCVariable");
+  it("returns HPLCVariable for hplc + measured + discrete", () => {
+    expect(getSchemaKey("hplc", "measured", "discrete")).toBe("HPLCVariable");
   });
 
   it("returns NonMeasuredVariable for non_measured (DIRECT, no genesis needed)", () => {
@@ -370,17 +370,17 @@ describe("getSchemaKey", () => {
   });
 
   it("returns null for non_measured when genesis is provided (DIRECT rejects explicit genesis)", () => {
-    expect(getSchemaKey("non_measured", "MEASURED", "DISCRETE")).toBeNull();
-    expect(getSchemaKey("non_measured", "CALCULATED", undefined)).toBeNull();
+    expect(getSchemaKey("non_measured", "measured", "discrete")).toBeNull();
+    expect(getSchemaKey("non_measured", "calculated", undefined)).toBeNull();
   });
 
   it("returns null for unknown variable type", () => {
-    expect(getSchemaKey("unknown", "MEASURED", "DISCRETE")).toBeNull();
+    expect(getSchemaKey("unknown", "measured", "discrete")).toBeNull();
   });
 
   it("returns null for hplc with unsupported genesis/sampling", () => {
-    expect(getSchemaKey("hplc", "MEASURED", "CONTINUOUS")).toBeNull();
-    expect(getSchemaKey("hplc", "CALCULATED", undefined)).toBeNull();
+    expect(getSchemaKey("hplc", "measured", "continuous")).toBeNull();
+    expect(getSchemaKey("hplc", "calculated", undefined)).toBeNull();
   });
 });
 

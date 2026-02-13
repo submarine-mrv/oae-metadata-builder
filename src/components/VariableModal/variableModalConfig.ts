@@ -41,55 +41,55 @@ type TablerIcon = ComponentType<IconProps>;
  */
 export const VARIABLE_SCHEMA_MAP = {
   pH: {
-    MEASURED: {
-      DISCRETE: "DiscretePHVariable",
-      CONTINUOUS: "ContinuousPHVariable"
+    measured: {
+      discrete: "DiscretePHVariable",
+      continuous: "ContinuousPHVariable"
     },
-    CALCULATED: "CalculatedVariable",
+    calculated: "CalculatedVariable",
     placeholderOverrides: {
       units: "NBS scale, total scale, seawater scale, etc."
     }
   },
   observed_property: {
-    MEASURED: {
-      DISCRETE: "DiscreteMeasuredVariable",
-      CONTINUOUS: "ContinuousMeasuredVariable"
+    measured: {
+      discrete: "DiscreteMeasuredVariable",
+      continuous: "ContinuousMeasuredVariable"
     },
-    CALCULATED: "CalculatedVariable"
+    calculated: "CalculatedVariable"
   },
   ta: {
-    MEASURED: {
-      DISCRETE: "DiscreteTAVariable",
-      CONTINUOUS: "ContinuousTAVariable"
+    measured: {
+      discrete: "DiscreteTAVariable",
+      continuous: "ContinuousTAVariable"
     },
-    CALCULATED: "CalculatedVariable"
+    calculated: "CalculatedVariable"
   },
   dic: {
-    MEASURED: {
-      DISCRETE: "DiscreteDICVariable",
-      CONTINUOUS: "ContinuousDICVariable"
+    measured: {
+      discrete: "DiscreteDICVariable",
+      continuous: "ContinuousDICVariable"
     },
-    CALCULATED: "CalculatedVariable"
+    calculated: "CalculatedVariable"
   },
   sediment: {
-    MEASURED: {
-      DISCRETE: "DiscreteSedimentVariable",
-      CONTINUOUS: "ContinuousSedimentVariable"
+    measured: {
+      discrete: "DiscreteSedimentVariable",
+      continuous: "ContinuousSedimentVariable"
     },
-    CALCULATED: "CalculatedVariable"
+    calculated: "CalculatedVariable"
   },
   co2: {
-    MEASURED: {
-      DISCRETE: "DiscreteCO2Variable"
+    measured: {
+      discrete: "DiscreteCO2Variable"
     },
-    CALCULATED: "CalculatedVariable",
+    calculated: "CalculatedVariable",
     placeholderOverrides: {
       units: "uatm, ppm, etc."
     }
   },
   hplc: {
-    MEASURED: {
-      DISCRETE: "HPLCVariable"
+    measured: {
+      discrete: "HPLCVariable"
     }
   },
   non_measured: {
@@ -98,8 +98,8 @@ export const VARIABLE_SCHEMA_MAP = {
 } as const;
 
 export type VariableTypeKey = keyof typeof VARIABLE_SCHEMA_MAP;
-export type GenesisKey = "MEASURED" | "CALCULATED";
-export type SamplingKey = "DISCRETE" | "CONTINUOUS";
+export type GenesisKey = "measured" | "calculated";
+export type SamplingKey = "discrete" | "continuous";
 
 // =============================================================================
 // Variable Type Behavior Overrides
@@ -118,7 +118,7 @@ export const VARIABLE_TYPE_BEHAVIOR: Record<
     directSchema?: boolean;
   }
 > = {
-  hplc: { fixedGenesis: "MEASURED", fixedSampling: "DISCRETE" },
+  hplc: { fixedGenesis: "measured", fixedSampling: "discrete" },
   non_measured: { directSchema: true }
 };
 

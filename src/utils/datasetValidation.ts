@@ -189,14 +189,18 @@ function validateVariable(
     $defs: rootSchema.$defs
   } as RJSFSchema;
 
+  // Strip internal underscore-prefixed fields before validation.
+  // These are UI-only fields (e.g. _variableType, _schemaKey) that aren't
+  // in the schema and would cause additionalProperties errors.
+  const cleanedVariable = Object.fromEntries(
+    Object.entries(variable).filter(([key]) => !key.startsWith("_"))
+  );
+
   // Validate the variable against its specific schema
-  const result = validator.validateFormData(variable, completeSchema);
+  const result = validator.validateFormData(cleanedVariable, completeSchema);
 
   // Convert RJSF errors to simple messages
   result.errors.forEach((error) => {
-    // Skip internal fields that start with underscore
-    if (error.property?.startsWith("._")) return;
-
     const field = error.property?.replace(/^\./, "") || "unknown field";
     const message = error.message || "validation error";
     errors.push(`${field}: ${message}`);

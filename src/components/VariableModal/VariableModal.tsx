@@ -44,14 +44,14 @@ import OptionalWithGateField from "./OptionalWithGateField";
 
 // Genesis (measured/calculated) options
 const GENESIS_OPTIONS = [
-  { value: "MEASURED", label: "Measured directly" },
-  { value: "CALCULATED", label: "Calculated from other variables" }
+  { value: "measured", label: "Measured directly" },
+  { value: "calculated", label: "Calculated from other variables" }
 ];
 
 // Sampling (discrete/continuous) options
 const SAMPLING_OPTIONS = [
-  { value: "DISCRETE", label: "Discrete bottle samples" },
-  { value: "CONTINUOUS", label: "Continuous autonomous sensors" }
+  { value: "discrete", label: "Discrete bottle samples" },
+  { value: "continuous", label: "Continuous autonomous sensors" }
 ];
 
 // Human-readable labels for pills
@@ -67,13 +67,13 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
 };
 
 const GENESIS_LABELS: Record<string, string> = {
-  MEASURED: "Measured",
-  CALCULATED: "Calculated"
+  measured: "Measured",
+  calculated: "Calculated"
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
-  DISCRETE: "Discrete",
-  CONTINUOUS: "Continuous"
+  discrete: "Discrete",
+  continuous: "Continuous"
 };
 
 interface VariableModalProps {
@@ -90,8 +90,8 @@ interface VariableModalProps {
  *
  * The variable type is determined by the combination of:
  * - variable_type (pH, ta, dic, observed_property, sediment, co2, hplc, non_measured)
- * - genesis (MEASURED, CALCULATED)
- * - sampling (DISCRETE, CONTINUOUS) - only for MEASURED
+ * - genesis (measured, calculated)
+ * - sampling (discrete, continuous) - only for measured
  *
  * These selections map to a specific $defs schema, which then drives
  * which fields are shown in each accordion section.
@@ -154,7 +154,7 @@ export default function VariableModal({
     if (!variableType) return SAMPLING_OPTIONS;
     const typeMap = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
     if (!typeMap) return [];
-    const measured = (typeMap as Record<string, unknown>).MEASURED;
+    const measured = (typeMap as Record<string, unknown>).measured;
     if (!measured || typeof measured === "string") return [];
     return SAMPLING_OPTIONS.filter(
       (opt) => opt.value in (measured as Record<string, unknown>)
@@ -189,8 +189,8 @@ export default function VariableModal({
   const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
-    genesis === "CALCULATED" ||
-    (genesis === "MEASURED" && !!sampling);
+    genesis === "calculated" ||
+    (genesis === "measured" && !!sampling);
 
   // When type selection BECOMES complete (transitions from false to true),
   // auto-collapse variable-type and open basic
@@ -389,8 +389,8 @@ export default function VariableModal({
                   />
                 )}
 
-                {/* Sampling Selector - Only for MEASURED, hidden for direct/fixed types */}
-                {genesis === "MEASURED" && !typeBehavior?.directSchema && !typeBehavior?.fixedSampling && (
+                {/* Sampling Selector - Only for measured, hidden for direct/fixed types */}
+                {genesis === "measured" && !typeBehavior?.directSchema && !typeBehavior?.fixedSampling && (
                   <Select
                     label="Were the measurements taken from discrete bottles or continuous sensors?"
                     placeholder="Select measurement type"

@@ -9,6 +9,7 @@ import {
   getInterventionWithTracerSchema,
   getDatasetSchema
 } from "./schemaViews";
+import { validateDatasetWithVariables } from "./datasetValidation";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -100,7 +101,10 @@ function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
 }
 
 /**
- * Validates dataset data against the dataset schema
+ * Validates dataset data against the dataset schema.
+ *
+ * Delegates to validateDatasetWithVariables() to handle polymorphic variable
+ * types correctly. See datasetValidation.ts for details on the workaround.
  */
 export function validateDataset(
   datasetData: DatasetFormData,
@@ -108,9 +112,9 @@ export function validateDataset(
 ): ValidationResult {
   try {
     const schema = getDatasetSchema();
-    const result = validator.validateFormData(datasetData, schema);
+    const result = validateDatasetWithVariables(datasetData, schema);
 
-    let errors = result.errors;
+    let errors = result.datasetErrors;
 
     // Catch empty/missing experiment_id that JSON schema "required" may not flag.
     // Scenarios: propagation sets "" or undefined while property key still exists in object.
@@ -136,10 +140,13 @@ export function validateDataset(
       errors = errors.filter((e) => !isExperimentIdRequiredError(e));
     }
 
+    // Total error count includes dataset-level errors + count of invalid variables
+    const errorCount = errors.length + result.invalidVariableCount;
+
     return {
-      isValid: errors.length === 0,
+      isValid: errorCount === 0,
       errors,
-      errorCount: errors.length
+      errorCount
     };
   } catch (error) {
     console.error("Error validating dataset:", error);
