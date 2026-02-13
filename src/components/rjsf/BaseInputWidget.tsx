@@ -122,7 +122,7 @@ export default function BaseInputWidget<
       id={id}
       label={renderLabel()}
       placeholder={placeholder}
-      value={value || ''}
+      value={value ?? ''}
       required={required}
       disabled={disabled}
       readOnly={readonly}
@@ -137,7 +137,7 @@ export default function BaseInputWidget<
       id={id}
       label={renderLabel()}
       placeholder={placeholder}
-      value={value || ''}
+      value={value ?? ''}
       required={required}
       disabled={disabled}
       readOnly={readonly}

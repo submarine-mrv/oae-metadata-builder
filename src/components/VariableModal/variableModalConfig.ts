@@ -4,7 +4,13 @@
  * This file defines:
  * - VARIABLE_SCHEMA_MAP: Maps variable_type + genesis + sampling to $defs schema key
  * - VARIABLE_TYPE_OPTIONS: User-facing dropdown options
- * - ACCORDION_CONFIG: Defines accordion sections and their fields
+ * - getAccordionConfig(): Builds per-type accordion sections from layer stacks
+ * - VARIABLE_TYPE_LAYERS: Maps schema keys to their hierarchy layer stacks
+ *
+ * Field organization uses a hierarchy-aware layer system that mirrors LinkML classes:
+ * - Each HierarchyLayer corresponds to a level in the LinkML class tree
+ * - buildSectionFields() merges layers using explicit insertion positions
+ * - fieldExistsInSchema() handles runtime visibility — layers only organize authoring
  */
 
 import type { ComponentType } from "react";
@@ -35,28 +41,86 @@ type TablerIcon = ComponentType<IconProps>;
  */
 export const VARIABLE_SCHEMA_MAP = {
   pH: {
-    MEASURED: {
-      DISCRETE: "DiscretePHVariable",
-      CONTINUOUS: "ContinuousPHVariable"
+    measured: {
+      discrete: "DiscretePHVariable",
+      continuous: "ContinuousPHVariable"
     },
-    CALCULATED: "CalculatedVariable",
+    calculated: "CalculatedVariable",
     placeholderOverrides: {
       units: "NBS scale, total scale, seawater scale, etc."
     }
   },
   observed_property: {
-    MEASURED: {
-      DISCRETE: "DiscreteMeasuredVariable",
-      CONTINUOUS: "ContinuousMeasuredVariable"
+    measured: {
+      discrete: "DiscreteMeasuredVariable",
+      continuous: "ContinuousMeasuredVariable"
     },
-    CALCULATED: "CalculatedVariable"
-    // No placeholderOverrides - uses config defaults
+    calculated: "CalculatedVariable"
+  },
+  ta: {
+    measured: {
+      discrete: "DiscreteTAVariable",
+      continuous: "ContinuousTAVariable"
+    },
+    calculated: "CalculatedVariable"
+  },
+  dic: {
+    measured: {
+      discrete: "DiscreteDICVariable",
+      continuous: "ContinuousDICVariable"
+    },
+    calculated: "CalculatedVariable"
+  },
+  sediment: {
+    measured: {
+      discrete: "DiscreteSedimentVariable",
+      continuous: "ContinuousSedimentVariable"
+    },
+    calculated: "CalculatedVariable"
+  },
+  co2: {
+    measured: {
+      discrete: "DiscreteCO2Variable"
+    },
+    calculated: "CalculatedVariable",
+    placeholderOverrides: {
+      units: "uatm, ppm, etc."
+    }
+  },
+  hplc: {
+    measured: {
+      discrete: "HPLCVariable"
+    }
+  },
+  non_measured: {
+    DIRECT: "NonMeasuredVariable"
   }
 } as const;
 
 export type VariableTypeKey = keyof typeof VARIABLE_SCHEMA_MAP;
-export type GenesisKey = "MEASURED" | "CALCULATED";
-export type SamplingKey = "DISCRETE" | "CONTINUOUS";
+export type GenesisKey = "measured" | "calculated";
+export type SamplingKey = "discrete" | "continuous";
+
+// =============================================================================
+// Variable Type Behavior Overrides
+// =============================================================================
+
+/**
+ * Defines non-standard selection behavior for specific variable types.
+ * - fixedGenesis/fixedSampling: auto-set in handleVariableTypeChange, hide the dropdown
+ * - directSchema: skip genesis/sampling entirely (maps via DIRECT key)
+ */
+export const VARIABLE_TYPE_BEHAVIOR: Record<
+  string,
+  {
+    fixedGenesis?: string;
+    fixedSampling?: string;
+    directSchema?: boolean;
+  }
+> = {
+  hplc: { fixedGenesis: "measured", fixedSampling: "discrete" },
+  non_measured: { directSchema: true }
+};
 
 /**
  * Normalizes a field entry to a FieldConfig object.
@@ -93,7 +157,12 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
 
 export const VARIABLE_TYPE_OPTIONS = [
   { value: "pH", label: "pH" },
-  { value: "observed_property", label: "Observed Property" }
+  { value: "ta", label: "Total Alkalinity (TA)" },
+  { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
+  { value: "sediment", label: "Sediment" },
+  { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
+  { value: "hplc", label: "HPLC" },
+  { value: "other", label: "Other (Generic Variable Type)" }
 ] as const;
 
 // =============================================================================
@@ -112,7 +181,12 @@ export interface FieldConfig {
    * - "boolean_select" - renders boolean as Yes/No dropdown instead of checkbox
    * - "optional_with_gate" - Yes/No gate question that shows text input when "Yes" selected
    */
-  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select" | "optional_with_gate";
+  inputType?:
+    | "text"
+    | "textarea"
+    | "enum_with_other"
+    | "boolean_select"
+    | "optional_with_gate";
   /** Show description in a modal popup instead of tooltip. Default is false (tooltip) */
   descriptionModal?: boolean;
   /** Placeholder text for the input field */
@@ -133,22 +207,119 @@ export interface AccordionSection {
   fields: (string | FieldConfig)[];
 }
 
+// =============================================================================
+// Hierarchy-Aware Layer System
+// =============================================================================
+
+/** Valid accordion section keys */
+type SectionKey =
+  | "basic"
+  | "sampling"
+  | "analysis"
+  | "instrument"
+  | "calibration"
+  | "calculation"
+  | "qc"
+  | "additional";
+
+type FieldEntry = string | FieldConfig;
+
+/** Where to insert a layer's fields relative to existing fields */
+type InsertPosition = "append" | "prepend" | { after: string };
+
+/** A layer's contribution to a section: either a plain array (append) or positioned */
+type SectionContribution =
+  | FieldEntry[]
+  | {
+      fields: FieldEntry[];
+      position: InsertPosition;
+    };
+
 /**
- * Defines the accordion sections and which fields appear in each.
- * Fields are specified by their path relative to the variable root.
- * Nested fields use dot notation: "analyzing_instrument.calibration.dye_purified"
- *
- * The component will:
- * 1. For each accordion section, filter fields to only those that exist in the current schema
- * 2. Hide the accordion entirely if no fields are visible
- * 3. Render a SchemaField for each visible field
+ * A hierarchy layer corresponds to one level in the LinkML class tree.
+ * Each layer declares which fields it contributes to which accordion sections.
  */
-export const ACCORDION_CONFIG: AccordionSection[] = [
-  {
-    key: "basic",
-    label: "Basic Information",
-    icon: IconInfoCircle,
-    fields: [
+export interface HierarchyLayer {
+  name: string;
+  sections?: Partial<Record<SectionKey, SectionContribution>>;
+}
+
+/** Get the path string from a FieldEntry */
+function getFieldPath(entry: FieldEntry): string {
+  return typeof entry === "string" ? entry : entry.path;
+}
+
+/**
+ * Builds the merged field list for a section by applying layers in order.
+ *
+ * Each layer's contribution is inserted at the specified position:
+ * - "append" (default): after all existing fields
+ * - "prepend": before all existing fields
+ * - { after: "field_path" }: immediately after a specific field
+ *
+ * Note on `{ after }` semantics: each insert searches for the original anchor,
+ * not previously inserted fields. When multiple layers target the same anchor,
+ * later layers end up closer to the anchor (reversed relative to layer order).
+ * For example, layers [L1, L2] both inserting after "anchor" produce:
+ *   anchor → L2_fields → L1_fields
+ * This is accounted for in VARIABLE_TYPE_LAYERS ordering.
+ */
+export function buildSectionFields(
+  sectionKey: SectionKey,
+  layers: HierarchyLayer[]
+): FieldEntry[] {
+  let result: FieldEntry[] = [];
+
+  for (const layer of layers) {
+    const contribution = layer.sections?.[sectionKey];
+    if (!contribution) continue;
+
+    // Normalize to { fields, position }
+    let fields: FieldEntry[];
+    let position: InsertPosition;
+    if (Array.isArray(contribution)) {
+      fields = contribution;
+      position = "append";
+    } else {
+      fields = contribution.fields;
+      position = contribution.position;
+    }
+
+    if (fields.length === 0) continue;
+
+    if (position === "append") {
+      result = [...result, ...fields];
+    } else if (position === "prepend") {
+      result = [...fields, ...result];
+    } else {
+      // { after: "field_path" } — insert immediately after the named field
+      const targetPath = position.after;
+      const idx = result.findIndex((f) => getFieldPath(f) === targetPath);
+      if (idx === -1) {
+        // Target not found — append as fallback
+        result = [...result, ...fields];
+      } else {
+        result = [
+          ...result.slice(0, idx + 1),
+          ...fields,
+          ...result.slice(idx + 1)
+        ];
+      }
+    }
+  }
+
+  return result;
+}
+
+// =============================================================================
+// Layer Definitions (mirror LinkML class hierarchy)
+// =============================================================================
+
+/** BaseVariable + Variable + ObservedPropertyVariable + QCFields */
+const BASE: HierarchyLayer = {
+  name: "BaseVariable",
+  sections: {
+    basic: [
       { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
       {
         path: "units",
@@ -162,6 +333,10 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         newRowAfter: true
       },
       {
+        path: "concentration_basis",
+        span: 6
+      },
+      {
         path: "dataset_variable_name_qc_flag",
         inputType: "optional_with_gate",
         gateLabel: "Quality flag is included as a separate column",
@@ -173,16 +348,8 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         gateLabel: "Raw data is included as a separate column",
         placeholderText: "e.g., pH_raw"
       }
-      // "standard_identifier",
-      // Note: genesis, sampling, observation_type are handled specially
-      // since they drive the schema selection
-    ]
-  },
-  {
-    key: "sampling",
-    label: "Sampling",
-    icon: IconFlask,
-    fields: [
+    ],
+    sampling: [
       "observation_type",
       {
         path: "sampling_method",
@@ -197,42 +364,14 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         path: "field_replicate_information",
         placeholderText: "e.g., triplicate samples"
       }
-    ]
-  },
-  {
-    key: "analysis",
-    label: "Analysis",
-    icon: IconMicroscope,
-    fields: [
+    ],
+    analysis: [
       {
         path: "analyzing_method",
         placeholderText: "Describe the analysis method used"
-      },
-      // pH-specific fields (only exist in DiscretePHVariable)
-      {
-        path: "measurement_temperature",
-        span: 6,
-        placeholderText: "Temperature at which pH was measured"
-      },
-      {
-        path: "ph_reported_temperature",
-        span: 6,
-        placeholderText: "Temperature at which pH is reported"
-      },
-      {
-        path: "temperature_correction_method",
-        placeholderText: "Method used to correct pH for temperature"
-      },
-      // Continuous sensor fields
-      "raw_data_calculation_method",
-      "calculation_software_version"
-    ]
-  },
-  {
-    key: "instrument",
-    label: "Analyzing Instrument",
-    icon: IconTool,
-    fields: [
+      }
+    ],
+    instrument: [
       {
         path: "analyzing_instrument.instrument_type",
         span: 6,
@@ -263,88 +402,8 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         span: 6,
         placeholderText: "Instrument accuracy"
       }
-    ]
-  },
-  {
-    key: "calibration",
-    label: "Calibration",
-    icon: IconAdjustments,
-    fields: [
-      // Generic calibration (top fields)
-      {
-        path: "analyzing_instrument.calibration.technique_description",
-        span: 6,
-        placeholderText: "Details of the calibration technique"
-      },
-      {
-        path: "analyzing_instrument.calibration.calibration_location",
-        span: 6
-      },
-      // Generic calibration
-      {
-        path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
-        placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
-      },
-      {
-        path: "analyzing_instrument.calibration.dye_purified",
-        span: 6,
-        inputType: "boolean_select"
-      },
-      {
-        path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
-        span: 6,
-        placeholderText: "Correction method applied"
-      },
-      {
-        path: "analyzing_instrument.calibration.dye_correction_method",
-        placeholderText: "Method used to correct for dye effects"
-      },
-      {
-        path: "analyzing_instrument.calibration.ph_of_standards",
-        span: 6,
-        placeholderText: "pH values of calibration standards"
-      },
-      {
-        path: "analyzing_instrument.calibration.calibration_temperature",
-        span: 6,
-        placeholderText: "Temperature of calibration"
-      },
-      // Generic calibration fields (shared)
-      {
-        path: "analyzing_instrument.calibration.frequency",
-        span: 6,
-        placeholderText: "How often calibrated"
-      },
-      {
-        path: "analyzing_instrument.calibration.last_calibration_date",
-        span: 6,
-        placeholderText: "YYYY-MM-DD"
-      },
-      {
-        path: "analyzing_instrument.calibration.method_reference",
-        placeholderText: "Citation for calibration method"
-      },
-      "analyzing_instrument.calibration.calibration_certificates"
-    ]
-  },
-  {
-    key: "calculation",
-    label: "Calculation Details",
-    icon: IconCalculator,
-    fields: [
-      // CalculatedVariable specific
-      {
-        path: "calculation_method_and_parameters",
-        placeholderText:
-          "e.g., Using CO2SYS with Lueker et al. (2000) constants"
-      }
-    ]
-  },
-  {
-    key: "qc",
-    label: "Quality Control",
-    icon: IconShieldCheck,
-    fields: [
+    ],
+    qc: [
       {
         path: "qc_steps_taken",
         inputType: "textarea",
@@ -363,13 +422,8 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
         span: 6,
         placeholderText: "Institution name"
       }
-    ]
-  },
-  {
-    key: "additional",
-    label: "Additional Information",
-    icon: IconFileDescription,
-    fields: [
+    ],
+    additional: [
       {
         path: "missing_value_indicators",
         span: 6,
@@ -388,7 +442,393 @@ export const ACCORDION_CONFIG: AccordionSection[] = [
       }
     ]
   }
+};
+
+/** DiscreteMeasuredVariable — shared calibration fields (top + bottom) */
+const DISCRETE: HierarchyLayer = {
+  name: "DiscreteMeasuredVariable",
+  sections: {
+    calibration: [
+      {
+        path: "analyzing_instrument.calibration.technique_description",
+        span: 6,
+        placeholderText: "Details of the calibration technique"
+      },
+      {
+        path: "analyzing_instrument.calibration.calibration_location",
+        span: 6
+      },
+      // Bottom fields (frequency, last_calibration_date, etc.) follow type-specific inserts
+      {
+        path: "analyzing_instrument.calibration.frequency",
+        span: 6,
+        placeholderText: "How often calibrated"
+      },
+      {
+        path: "analyzing_instrument.calibration.last_calibration_date",
+        span: 6,
+        placeholderText: "YYYY-MM-DD"
+      },
+      {
+        path: "analyzing_instrument.calibration.method_reference",
+        placeholderText: "Citation for calibration method"
+      },
+      "analyzing_instrument.calibration.calibration_certificates"
+    ]
+  }
+};
+
+/** ContinuousMeasuredVariable */
+const CONTINUOUS: HierarchyLayer = {
+  name: "ContinuousMeasuredVariable",
+  sections: {
+    analysis: ["raw_data_calculation_method", "calculation_software_version"]
+  }
+};
+
+/** CalculatedVariable */
+const CALCULATED: HierarchyLayer = {
+  name: "CalculatedVariable",
+  sections: {
+    calculation: [
+      {
+        path: "calculation_method_and_parameters",
+        placeholderText:
+          "e.g., Using CO2SYS with Lueker et al. (2000) constants"
+      }
+    ]
+  }
+};
+
+/** MeasuredSedimentFields ∪ DiscreteSedimentVariable */
+const SEDIMENT: HierarchyLayer = {
+  name: "SedimentVariable",
+  sections: {
+    sampling: [
+      {
+        path: "sediment_type",
+        span: 6,
+        placeholderText: "e.g., mud, sand"
+      },
+      {
+        path: "sediment_sampling_method",
+        span: 6,
+        placeholderText: "e.g., sediment core, grab sampling, dredging"
+      },
+      {
+        path: "sediment_sampling_depth",
+        span: 6,
+        placeholderText: "Depth below sediment surface"
+      },
+      {
+        path: "sediment_sampling_water_depth",
+        span: 6,
+        placeholderText: "Water depth where sediment was collected"
+      }
+    ]
+  }
+};
+
+/** MeasuredTA/DICFields ∪ DiscreteTA/DICVariable */
+const TA_DIC: HierarchyLayer = {
+  name: "TA_DICVariable",
+  sections: {
+    sampling: [
+      {
+        path: "sample_preservation.preservative",
+        span: 6,
+        placeholderText: "e.g., Mercury Chloride"
+      },
+      {
+        path: "sample_preservation.volume",
+        span: 6,
+        placeholderText: "Volume of preservative used"
+      },
+      {
+        path: "sample_preservation.correction_description",
+        placeholderText: "How the preservative effect was corrected for"
+      }
+    ],
+    analysis: [
+      {
+        path: "titration_type",
+        span: 6,
+        placeholderText: "Type of titration used"
+      },
+      {
+        path: "titration_cell_type",
+        span: 6
+      },
+      {
+        path: "curve_fitting_method",
+        span: 6,
+        placeholderText: "Curve fitting method for alkalinity"
+      },
+      {
+        path: "blank_correction",
+        placeholderText: "Whether and how results were corrected for blank"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.crm_manufacturer",
+          span: 6,
+          placeholderText: "e.g., Scripps, JAMSTEC"
+        },
+        {
+          path: "analyzing_instrument.calibration.crm_batch_number",
+          span: 6,
+          placeholderText: "CRM batch number"
+        }
+      ],
+      position: {
+        after: "analyzing_instrument.calibration.calibration_location"
+      }
+    }
+  }
+};
+
+/** MeasuredPHFields ∪ DiscretePHVariable ∪ ContinuousPHVariable */
+const PH: HierarchyLayer = {
+  name: "PHVariable",
+  sections: {
+    analysis: [
+      {
+        path: "measurement_temperature",
+        span: 6,
+        placeholderText: "Temperature at which pH was measured"
+      },
+      {
+        path: "ph_reported_temperature",
+        span: 6,
+        placeholderText: "Temperature at which pH is reported"
+      },
+      {
+        path: "temperature_correction_method",
+        placeholderText: "Method used to correct pH for temperature"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
+          placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
+        },
+        {
+          path: "analyzing_instrument.calibration.dye_purified",
+          span: 6,
+          inputType: "boolean_select"
+        },
+        {
+          path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
+          span: 6,
+          placeholderText: "Correction method applied"
+        },
+        {
+          path: "analyzing_instrument.calibration.dye_correction_method",
+          placeholderText: "Method used to correct for dye effects"
+        },
+        {
+          path: "analyzing_instrument.calibration.ph_of_standards",
+          span: 6,
+          placeholderText: "pH values of calibration standards"
+        },
+        {
+          path: "analyzing_instrument.calibration.calibration_temperature",
+          span: 6,
+          placeholderText: "Temperature of calibration"
+        }
+      ],
+      position: {
+        after: "analyzing_instrument.calibration.calibration_location"
+      }
+    }
+  }
+};
+
+/** MeasuredCO2Fields ∪ DiscreteCO2Variable */
+const CO2: HierarchyLayer = {
+  name: "CO2Variable",
+  sections: {
+    sampling: [
+      {
+        path: "storage_method",
+        placeholderText: "How samples were stored before measurement"
+      }
+    ],
+    analysis: [
+      {
+        path: "headspace_volume",
+        span: 6,
+        placeholderText: "Volume of headspace (mL)"
+      },
+      {
+        path: "seawater_volume",
+        span: 6,
+        placeholderText: "Volume of seawater in flask (mL)"
+      },
+      {
+        path: "water_vapor_correction_method",
+        placeholderText: "How water vapor pressure was determined"
+      }
+    ],
+    instrument: [
+      {
+        path: "analyzing_instrument.detector_type",
+        span: 6,
+        placeholderText: "Type of CO2 gas detector"
+      },
+      {
+        path: "analyzing_instrument.resolution",
+        span: 6,
+        placeholderText: "Sensor resolution"
+      },
+      {
+        path: "analyzing_instrument.uncertainty",
+        span: 6,
+        placeholderText: "Sensor uncertainty"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.manufacturer",
+          span: 6,
+          placeholderText: "Standard gas manufacturer"
+        },
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.concentration",
+          span: 6,
+          placeholderText: "e.g., 260, 350, 510 ppm"
+        },
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.uncertainty",
+          span: 6,
+          placeholderText: "e.g., 0.5%"
+        },
+        {
+          path: "analyzing_instrument.calibration.calibration_temperature",
+          span: 6,
+          placeholderText: "Temperature of calibration"
+        }
+      ],
+      position: {
+        after: "analyzing_instrument.calibration.calibration_location"
+      }
+    }
+  }
+};
+
+/** HPLCVariable */
+const HPLC: HierarchyLayer = {
+  name: "HPLCVariable",
+  sections: {
+    analysis: [
+      { path: "hplc_lab", span: 6, placeholderText: "e.g., NASA_GSFC" },
+      {
+        path: "hplc_lab_technician",
+        span: 6,
+        placeholderText: "Name and contact info"
+      }
+    ]
+  }
+};
+
+// =============================================================================
+// Variable Type Layer Stacks
+// =============================================================================
+
+/**
+ * Maps each schema key to its hierarchy layer stack.
+ * The layers are applied in order to build the field list for each section.
+ *
+ * Uses Record<string, ...> rather than a strict union type for maintainability;
+ * the VARIABLE_TYPE_LAYERS test validates every VARIABLE_SCHEMA_MAP key is present.
+ *
+ * Continuous types omit the DISCRETE layer, so type-specific layers with
+ * `{ after }` calibration anchors will fall back to append. This is fine because
+ * fieldExistsInSchema() in VariableModal.tsx filters fields at runtime.
+ */
+export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
+  // Discrete
+  DiscretePHVariable: [BASE, DISCRETE, PH],
+  DiscreteTAVariable: [BASE, DISCRETE, TA_DIC],
+  DiscreteDICVariable: [BASE, DISCRETE, TA_DIC],
+  DiscreteSedimentVariable: [BASE, DISCRETE, SEDIMENT],
+  DiscreteCO2Variable: [BASE, DISCRETE, CO2],
+  HPLCVariable: [BASE, DISCRETE, HPLC],
+  DiscreteMeasuredVariable: [BASE, DISCRETE],
+  // Continuous
+  ContinuousPHVariable: [BASE, CONTINUOUS, PH],
+  ContinuousTAVariable: [BASE, CONTINUOUS, TA_DIC],
+  ContinuousDICVariable: [BASE, CONTINUOUS, TA_DIC],
+  ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
+  ContinuousMeasuredVariable: [BASE, CONTINUOUS],
+  // Other
+  CalculatedVariable: [BASE, CALCULATED],
+  NonMeasuredVariable: [BASE]
+};
+
+// =============================================================================
+// Accordion Section Definitions + ACCORDION_CONFIG Builder
+// =============================================================================
+
+interface AccordionSectionDef {
+  key: SectionKey;
+  label: string;
+  icon: TablerIcon;
+}
+
+export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
+  { key: "basic", label: "Basic Information", icon: IconInfoCircle },
+  { key: "sampling", label: "Sampling", icon: IconFlask },
+  { key: "analysis", label: "Analysis", icon: IconMicroscope },
+  { key: "instrument", label: "Analyzing Instrument", icon: IconTool },
+  { key: "calibration", label: "Calibration", icon: IconAdjustments },
+  { key: "calculation", label: "Calculation Details", icon: IconCalculator },
+  { key: "qc", label: "Quality Control", icon: IconShieldCheck },
+  {
+    key: "additional",
+    label: "Additional Information",
+    icon: IconFileDescription
+  }
 ];
+
+function deepFreeze<T>(obj: T): T {
+  Object.freeze(obj);
+  for (const val of Object.values(obj as Record<string, unknown>)) {
+    if (val && typeof val === "object" && !Object.isFrozen(val)) {
+      deepFreeze(val);
+    }
+  }
+  return obj;
+}
+
+/**
+ * Returns the accordion config for a specific variable type's schema key.
+ * Builds sections from the type's layer stack, returning only sections that have fields.
+ * Returns empty array for unknown schema keys.
+ * Results are cached per schemaKey since layer definitions are static.
+ */
+const accordionConfigCache = new Map<string, AccordionSection[]>();
+
+export function getAccordionConfig(schemaKey: string): AccordionSection[] {
+  const cached = accordionConfigCache.get(schemaKey);
+  if (cached) return cached;
+
+  const layers = VARIABLE_TYPE_LAYERS[schemaKey];
+  if (!layers) return [];
+
+  const config = ACCORDION_SECTIONS.map((s) => ({
+    ...s,
+    fields: buildSectionFields(s.key, layers)
+  })).filter((s) => s.fields.length > 0);
+
+  deepFreeze(config);
+  accordionConfigCache.set(schemaKey, config);
+  return config;
+}
 
 // =============================================================================
 // Helper to get schema key from current form selections
@@ -403,13 +843,21 @@ export function getSchemaKey(
   genesis: string | undefined,
   sampling: string | undefined
 ): string | null {
-  if (!variableType || !genesis) return null;
+  if (!variableType) return null;
 
   const typeMap =
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
-  const genesisMap = typeMap[genesis as keyof typeof typeMap];
+  // DIRECT types skip genesis/sampling entirely — reject if genesis is provided
+  if ("DIRECT" in typeMap) {
+    if (genesis) return null;
+    return (typeMap as Record<string, unknown>).DIRECT as string;
+  }
+
+  if (!genesis) return null;
+
+  const genesisMap = (typeMap as Record<string, unknown>)[genesis];
   if (!genesisMap) return null;
 
   // CALCULATED doesn't need sampling - it's a direct schema key
@@ -423,6 +871,36 @@ export function getSchemaKey(
 }
 
 /**
+ * Maps UI "other" + genesis to the internal _variableType.
+ * For non-"other" types, returns the type unchanged.
+ */
+export function resolveEffectiveType(
+  uiVariableType: string | undefined,
+  genesis: string | undefined
+): string | undefined {
+  if (uiVariableType !== "other") return uiVariableType;
+  if (!genesis) return undefined;
+  if (genesis === "contextual") return "non_measured";
+  return "observed_property";
+}
+
+/**
+ * Like getSchemaKey but handles "other" → effective type resolution first.
+ * Use this in the UI layer; validation/export paths should use getSchemaKey directly.
+ */
+export function getSchemaKeyForUI(
+  uiVariableType: string | undefined,
+  genesis: string | undefined,
+  sampling: string | undefined
+): string | null {
+  if (uiVariableType === "other") {
+    if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
+    return getSchemaKey("observed_property", genesis, sampling);
+  }
+  return getSchemaKey(uiVariableType, genesis, sampling);
+}
+
+/**
  * Gets a placeholder override for a specific field based on variable type.
  * Returns undefined if no override exists (use config default).
  */
@@ -431,8 +909,11 @@ export function getPlaceholderOverride(
   fieldPath: string
 ): string | undefined {
   if (!variableType) return undefined;
-  const typeConfig = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+  const typeConfig =
+    VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeConfig || !("placeholderOverrides" in typeConfig)) return undefined;
-  const overrides = typeConfig.placeholderOverrides as Record<string, string> | undefined;
+  const overrides = typeConfig.placeholderOverrides as
+    | Record<string, string>
+    | undefined;
   return overrides?.[fieldPath];
 }

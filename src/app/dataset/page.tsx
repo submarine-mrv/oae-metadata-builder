@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Container,
   Title,
@@ -114,7 +114,15 @@ export default function DatasetPage() {
     export: () => exportSingleDataset(state.projectData, formData)
   });
 
-  // Wrap error transformer to suppress experiment_id errors when no experiments exist
+  // Ref for formData so transformErrors can access latest data without
+  // being recreated on every keystroke
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
+  // Wrap error transformer to:
+  // 1. Suppress experiment_id errors when no experiments exist
+  // 2. Inject variable validation errors (RJSF skips variable items
+  //    validation due to polymorphism workaround — see oae-form-99i)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
       let transformed = transformFormErrors(errors);
@@ -128,6 +136,18 @@ export default function DatasetPage() {
             )
         );
       }
+
+      // Run variable validation and inject errors into RJSF's error list.
+      // This is needed because RJSF uses a simplified schema that skips
+      // variable item validation (polymorphism workaround - oae-form-99i).
+      const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
+      const variableErrors = datasetResult.errors.filter(
+        (e) => e.name === "variable"
+      );
+      if (variableErrors.length > 0) {
+        transformed = [...transformed, ...variableErrors];
+      }
+
       return transformed;
     };
   }, [hasExperiments]);

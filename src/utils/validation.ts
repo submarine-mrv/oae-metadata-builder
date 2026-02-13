@@ -9,6 +9,7 @@ import {
   getInterventionWithTracerSchema,
   getDatasetSchema
 } from "./schemaViews";
+import { validateDatasetWithVariables } from "./datasetValidation";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -100,7 +101,10 @@ function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
 }
 
 /**
- * Validates dataset data against the dataset schema
+ * Validates dataset data against the dataset schema.
+ *
+ * Delegates to validateDatasetWithVariables() to handle polymorphic variable
+ * types correctly. See datasetValidation.ts for details on the workaround.
  */
 export function validateDataset(
   datasetData: DatasetFormData,
@@ -108,9 +112,27 @@ export function validateDataset(
 ): ValidationResult {
   try {
     const schema = getDatasetSchema();
-    const result = validator.validateFormData(datasetData, schema);
+    const result = validateDatasetWithVariables(datasetData, schema);
 
-    let errors = result.errors;
+    let errors = result.datasetErrors;
+
+    // Surface per-variable validation errors so the UI can display them
+    const variableErrorEntries: RJSFValidationError[] = [];
+    for (const [, varError] of result.variableErrors) {
+      for (const msg of varError.errors) {
+        variableErrorEntries.push({
+          name: "variable",
+          property: `.variables[${varError.index}]`,
+          message: `Variable '${varError.variableName}': ${msg}`,
+          params: {},
+          stack: `variables[${varError.index}]: ${msg}`,
+          schemaPath: "#/properties/variables"
+        });
+      }
+    }
+    if (variableErrorEntries.length > 0) {
+      errors = [...errors, ...variableErrorEntries];
+    }
 
     // Catch empty/missing experiment_id that JSON schema "required" may not flag.
     // Scenarios: propagation sets "" or undefined while property key still exists in object.
@@ -136,10 +158,12 @@ export function validateDataset(
       errors = errors.filter((e) => !isExperimentIdRequiredError(e));
     }
 
+    const errorCount = errors.length;
+
     return {
-      isValid: errors.length === 0,
+      isValid: errorCount === 0,
       errors,
-      errorCount: errors.length
+      errorCount
     };
   } catch (error) {
     console.error("Error validating dataset:", error);

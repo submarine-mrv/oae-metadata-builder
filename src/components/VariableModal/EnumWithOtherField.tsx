@@ -1,23 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  Select,
-  TextInput,
-  Group,
-  Text,
-  Tooltip,
-  ActionIcon,
-  Grid
-} from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { Select, TextInput, Grid } from "@mantine/core";
 import {
   getFieldMetadata,
   getNestedValue,
   setNestedValue,
   type JSONSchema
 } from "../schemaUtils";
-import DescriptionModal from "../rjsf/DescriptionModal";
+import FieldLabel from "./FieldLabel";
 import { formatEnumTitle } from "@/utils/enumDecorator";
 
 interface EnumWithOtherFieldProps {
@@ -39,7 +29,8 @@ interface EnumWithOtherFieldProps {
 
 /**
  * Renders an enum field with an associated _custom text field.
- * The custom field is only shown when "other" (case-insensitive) is selected.
+ * The custom field is shown when the schema has a corresponding _custom field
+ * AND the selected enum value matches "other" (case-insensitive).
  * Both fields render at span 6 within the parent Grid.
  */
 export default function EnumWithOtherField({
@@ -51,8 +42,6 @@ export default function EnumWithOtherField({
   descriptionModal = false,
   placeholderText
 }: EnumWithOtherFieldProps) {
-  const [modalOpen, setModalOpen] = useState(false);
-
   // Get metadata for the enum field
   const enumMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
   const customFieldPath = `${fieldPath}_custom`;
@@ -93,68 +82,7 @@ export default function EnumWithOtherField({
     onChange(newFormData);
   };
 
-  // Render label with description (tooltip or modal)
-  const renderLabel = (
-    title: string,
-    description: string | undefined,
-    required: boolean,
-    useModal: boolean
-  ) => {
-    if (!description) {
-      return (
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-      );
-    }
-
-    if (useModal) {
-      return (
-        <>
-          <Group gap={4}>
-            <Text size="sm" fw={500}>
-              {title} {required && <span style={{ color: "red" }}>*</span>}
-            </Text>
-            <ActionIcon
-              variant="transparent"
-              size="xs"
-              color="gray"
-              onClick={() => setModalOpen(true)}
-              style={{ cursor: "pointer" }}
-            >
-              <IconInfoCircle size={14} />
-            </ActionIcon>
-          </Group>
-          <DescriptionModal
-            opened={modalOpen}
-            onClose={() => setModalOpen(false)}
-            title={title}
-            description={description}
-          />
-        </>
-      );
-    }
-
-    // Default: tooltip
-    return (
-      <Group gap={4}>
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-        <Tooltip
-          label={description}
-          position="top"
-          withArrow
-          multiline
-          maw={400}
-        >
-          <ActionIcon variant="transparent" size="xs" color="gray">
-            <IconInfoCircle size={14} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-    );
-  };
+  const descriptionMode = descriptionModal ? "modal" as const : "tooltip" as const;
 
   // Build enum options
   const enumOptions =
@@ -168,12 +96,14 @@ export default function EnumWithOtherField({
       {/* Enum Select - always visible */}
       <Grid.Col span={6}>
         <Select
-          label={renderLabel(
-            enumMetadata.title,
-            enumMetadata.description,
-            enumMetadata.required,
-            descriptionModal
-          )}
+          label={
+            <FieldLabel
+              title={enumMetadata.title}
+              description={enumMetadata.description}
+              required={enumMetadata.required}
+              descriptionMode={descriptionMode}
+            />
+          }
           placeholder={placeholderText || "Select an option"}
           data={enumOptions}
           value={enumValue || null}
@@ -186,12 +116,14 @@ export default function EnumWithOtherField({
       {customMetadata && (
         <Grid.Col span={6} style={{ visibility: isOtherSelected ? "visible" : "hidden" }}>
           <TextInput
-            label={renderLabel(
-              customMetadata.title,
-              customMetadata.description,
-              customMetadata.required,
-              descriptionModal
-            )}
+            label={
+              <FieldLabel
+                title={customMetadata.title}
+                description={customMetadata.description}
+                required={customMetadata.required}
+                descriptionMode={descriptionMode}
+              />
+            }
             placeholder="Please specify"
             value={customValue || ""}
             onChange={(e) => handleCustomChange(e.target.value)}
