@@ -1159,8 +1159,8 @@ describe('AppStateContext', () => {
 
       const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
       expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
-      // Original experiment_id should be preserved
-      expect(dataset?.formData.experiment_id).toBe('EXP-ORPHAN');
+      // Orphan experiment_id should be wiped (no valid link)
+      expect(dataset?.formData.experiment_id).toBeUndefined();
     });
 
     it('should propagate experiment_id to linked datasets when experiment_id is set', () => {
@@ -1248,7 +1248,7 @@ describe('AppStateContext', () => {
       expect(dataset?.formData.experiment_id).toBeUndefined();
     });
 
-    it('should not overwrite experiment_id when linking resolves to none', () => {
+    it('should wipe experiment_id when linking resolves to none', () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider
       });
@@ -1273,8 +1273,366 @@ describe('AppStateContext', () => {
 
       const dataset = result.current.state.datasets.find((d) => d.name === 'Dataset 1');
       expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
-      // Original experiment_id from file should be preserved
-      expect(dataset?.formData.experiment_id).toBe('EXP-UNMATCHED');
+      // experiment_id should be wiped since no valid link exists
+      expect(dataset?.formData.experiment_id).toBeUndefined();
+    });
+  });
+
+  describe('importSelectedData — ID sanitization', () => {
+    // project_id: always wiped on import, then propagated from current project
+    describe('project_id propagation on import', () => {
+      it('should set current project_id on imported experiments when project exists', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Create project with a project_id
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'CURRENT-PROJECT' });
+        });
+
+        // Import an experiment that has a stale project_id from the file
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [{ experiment_id: 'EXP-001', project_id: 'OLD-PROJECT' }],
+            []
+          );
+        });
+
+        const experiment = result.current.state.experiments[0];
+        expect(experiment.formData.project_id).toBe('CURRENT-PROJECT');
+      });
+
+      it('should set current project_id on imported datasets when project exists', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Create project with a project_id
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'CURRENT-PROJECT' });
+        });
+
+        // Import a dataset that has a stale project_id from the file
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [],
+            [{ formData: { name: 'DS 1', project_id: 'OLD-PROJECT' } }]
+          );
+        });
+
+        const dataset = result.current.state.datasets[0];
+        expect(dataset.formData.project_id).toBe('CURRENT-PROJECT');
+      });
+
+      it('should wipe project_id on imported experiments when no project exists', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // No project in app — import experiment with a project_id from file
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [{ experiment_id: 'EXP-001', project_id: 'FILE-PROJECT' }],
+            []
+          );
+        });
+
+        const experiment = result.current.state.experiments[0];
+        expect(experiment.formData.project_id).toBe('');
+      });
+
+      it('should wipe project_id on imported datasets when no project exists', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [],
+            [{ formData: { name: 'DS 1', project_id: 'FILE-PROJECT' } }]
+          );
+        });
+
+        const dataset = result.current.state.datasets[0];
+        expect(dataset.formData.project_id).toBe('');
+      });
+
+      it('should use NEW project_id when importing project + experiments + datasets together', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Existing project with project_id A
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'PROJECT-A' });
+        });
+
+        // Add an existing experiment — should have PROJECT-A
+        act(() => {
+          result.current.addExperiment('Existing Exp');
+        });
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-A');
+
+        // Import new project (PROJECT-B) + experiment + dataset
+        act(() => {
+          result.current.importSelectedData(
+            { project_id: 'PROJECT-B', description: 'New project' },
+            [{ experiment_id: 'EXP-IMPORTED', project_id: 'PROJECT-A' }],
+            [{ formData: { name: 'DS-IMPORTED', project_id: 'PROJECT-A' } }]
+          );
+        });
+
+        // ALL experiments (existing + imported) should now have PROJECT-B
+        result.current.state.experiments.forEach((exp) => {
+          expect(exp.formData.project_id).toBe('PROJECT-B');
+        });
+
+        // ALL datasets should have PROJECT-B
+        result.current.state.datasets.forEach((ds) => {
+          expect(ds.formData.project_id).toBe('PROJECT-B');
+        });
+      });
+
+      it('should propagate to existing experiments/datasets when importing only a project', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Create project A with experiment and dataset
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'PROJECT-A' });
+          result.current.addExperiment('Exp 1');
+          result.current.addDataset('DS 1');
+        });
+
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-A');
+        expect(result.current.state.datasets[0].formData.project_id).toBe('PROJECT-A');
+
+        // Import only a new project with different project_id
+        act(() => {
+          result.current.importSelectedData(
+            { project_id: 'PROJECT-B' },
+            [],
+            []
+          );
+        });
+
+        // Existing experiment and dataset should now have PROJECT-B
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-B');
+        expect(result.current.state.datasets[0].formData.project_id).toBe('PROJECT-B');
+      });
+    });
+
+    // experiment_id: always wiped on imported datasets unless resolved via linking
+    describe('experiment_id sanitization on import', () => {
+      it('should wipe orphan experiment_id from imported dataset with no linking', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [],
+            [
+              {
+                formData: { name: 'DS 1', experiment_id: 'ORPHAN-EXP-ID' }
+                // No experimentLinking — no link configured
+              }
+            ]
+          );
+        });
+
+        const dataset = result.current.state.datasets[0];
+        expect(dataset.linking?.linkedExperimentInternalId).toBeNull();
+        // Orphan experiment_id should be wiped, not preserved
+        expect(dataset.formData.experiment_id).toBeUndefined();
+      });
+
+      it('should wipe experiment_id when linking resolves to none', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [],
+            [
+              {
+                formData: { name: 'DS 1', experiment_id: 'UNMATCHED' },
+                experimentLinking: {
+                  mode: 'use-file',
+                  resolvedMatch: { type: 'none' }
+                }
+              }
+            ]
+          );
+        });
+
+        const dataset = result.current.state.datasets[0];
+        expect(dataset.linking?.linkedExperimentInternalId).toBeNull();
+        // experiment_id should be wiped since no valid link exists
+        expect(dataset.formData.experiment_id).toBeUndefined();
+      });
+
+      it('should preserve experiment_id only when linking resolves to a valid experiment', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Create an experiment to link to
+        act(() => {
+          result.current.addExperiment('Valid Experiment');
+          result.current.updateExperiment(1, { experiment_id: 'EXP-VALID' });
+        });
+
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [],
+            [
+              {
+                formData: { name: 'DS-linked', experiment_id: 'STALE-ID' },
+                experimentLinking: {
+                  mode: 'use-file',
+                  resolvedMatch: {
+                    type: 'existing',
+                    experimentName: 'Valid Experiment',
+                    experimentId: 'EXP-VALID',
+                    internalId: 1
+                  }
+                }
+              },
+              {
+                formData: { name: 'DS-unlinked', experiment_id: 'ORPHAN' }
+                // No linking
+              }
+            ]
+          );
+        });
+
+        const linked = result.current.state.datasets.find((d) => d.name === 'DS-linked');
+        const unlinked = result.current.state.datasets.find((d) => d.name === 'DS-unlinked');
+
+        // Linked dataset gets experiment_id from the linked experiment
+        expect(linked?.formData.experiment_id).toBe('EXP-VALID');
+        expect(linked?.linking?.linkedExperimentInternalId).toBe(1);
+
+        // Unlinked dataset gets experiment_id wiped
+        expect(unlinked?.formData.experiment_id).toBeUndefined();
+        expect(unlinked?.linking?.linkedExperimentInternalId).toBeNull();
+      });
+    });
+
+    describe('combined edge cases', () => {
+      it('should replace existing experiment by id match and still apply new project_id', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Setup: project A with an experiment that has experiment_id
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'PROJECT-A' });
+          result.current.addExperiment('Ocean Exp');
+          result.current.updateExperiment(1, { experiment_id: 'EXP-1', project_id: 'PROJECT-A' });
+        });
+
+        expect(result.current.state.experiments).toHaveLength(1);
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-A');
+
+        // Import project B + experiment with same experiment_id (should replace, not add)
+        act(() => {
+          result.current.importSelectedData(
+            { project_id: 'PROJECT-B', description: 'Replaced project' },
+            [{ experiment_id: 'EXP-1', project_id: 'PROJECT-A', name: 'Updated Ocean Exp' }],
+            []
+          );
+        });
+
+        // Should still be 1 experiment (replaced, not duplicated)
+        expect(result.current.state.experiments).toHaveLength(1);
+        // Should have updated name
+        expect(result.current.state.experiments[0].name).toBe('Updated Ocean Exp');
+        // Should have PROJECT-B, not the stale PROJECT-A from file
+        expect(result.current.state.experiments[0].formData.project_id).toBe('PROJECT-B');
+      });
+
+      it('should use current session project_id when importing experiments without a project', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        // Setup: project with id already exists
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'SESSION-PROJECT' });
+        });
+
+        // Import only an experiment (no project in import) carrying a stale project_id
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [{ experiment_id: 'EXP-NEW', project_id: 'STALE-PROJECT' }],
+            []
+          );
+        });
+
+        const imported = result.current.state.experiments.find(
+          (e) => e.formData.experiment_id === 'EXP-NEW'
+        );
+        // Should get current session project_id, not the stale one from file
+        expect(imported?.formData.project_id).toBe('SESSION-PROJECT');
+      });
+
+      it('should set both project_id and experiment_id on linked dataset in combined import', () => {
+        const { result } = renderHook(() => useAppState(), {
+          wrapper: AppStateProvider
+        });
+
+        act(() => {
+          result.current.createProject();
+          result.current.updateProjectData({ project_id: 'PROJECT-X' });
+        });
+
+        // Import experiment + dataset linked to that experiment via cross-import
+        act(() => {
+          result.current.importSelectedData(
+            null,
+            [{ experiment_id: 'EXP-CROSS', name: 'Cross Exp' }],
+            [
+              {
+                formData: { name: 'DS-cross', project_id: 'WRONG', experiment_id: 'WRONG' },
+                experimentLinking: {
+                  mode: 'use-file',
+                  resolvedMatch: {
+                    type: 'importing',
+                    importKey: 'experiment-0',
+                    experimentName: 'Cross Exp',
+                    experimentId: 'EXP-CROSS'
+                  }
+                }
+              }
+            ]
+          );
+        });
+
+        const ds = result.current.state.datasets.find((d) => d.name === 'DS-cross');
+        // project_id from current session, not from file
+        expect(ds?.formData.project_id).toBe('PROJECT-X');
+        // experiment_id from linked experiment, not from file
+        expect(ds?.formData.experiment_id).toBe('EXP-CROSS');
+      });
     });
   });
 });
