@@ -879,7 +879,7 @@ export function resolveEffectiveType(
   genesis: string | undefined
 ): string | undefined {
   if (uiVariableType !== "other") return uiVariableType;
-  if (genesis === "ancillary") return "non_measured";
+  if (genesis === "contextual") return "non_measured";
   return "observed_property";
 }
 
@@ -893,7 +893,7 @@ export function getSchemaKeyForUI(
   sampling: string | undefined
 ): string | null {
   if (uiVariableType === "other") {
-    if (genesis === "ancillary") return getSchemaKey("non_measured", undefined, undefined);
+    if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
     return getSchemaKey("observed_property", genesis, sampling);
   }
   return getSchemaKey(uiVariableType, genesis, sampling);

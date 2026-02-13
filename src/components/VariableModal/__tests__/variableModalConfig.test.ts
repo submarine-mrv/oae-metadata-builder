@@ -420,8 +420,8 @@ describe("resolveEffectiveType", () => {
     expect(resolveEffectiveType(undefined, undefined)).toBeUndefined();
   });
 
-  it("maps 'other' + 'ancillary' to 'non_measured'", () => {
-    expect(resolveEffectiveType("other", "ancillary")).toBe("non_measured");
+  it("maps 'other' + 'contextual' to 'non_measured'", () => {
+    expect(resolveEffectiveType("other", "contextual")).toBe("non_measured");
   });
 
   it("maps 'other' + 'measured' to 'observed_property'", () => {
@@ -444,8 +444,8 @@ describe("getSchemaKeyForUI", () => {
     expect(getSchemaKeyForUI(undefined, undefined, undefined)).toBeNull();
   });
 
-  it("routes 'other' + 'ancillary' to NonMeasuredVariable", () => {
-    expect(getSchemaKeyForUI("other", "ancillary", undefined)).toBe("NonMeasuredVariable");
+  it("routes 'other' + 'contextual' to NonMeasuredVariable", () => {
+    expect(getSchemaKeyForUI("other", "contextual", undefined)).toBe("NonMeasuredVariable");
   });
 
   it("routes 'other' + 'measured' + sampling to observed_property schemas", () => {

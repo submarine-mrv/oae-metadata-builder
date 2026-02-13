@@ -40,7 +40,7 @@ function getVariableDisplayLabel(variable: VariableData): string {
 
   if (varType === "pH") return "pH";
   if (varType === "observed_property") return "Generic Variable";
-  if (varType === "non_measured") return "Ancillary/Descriptive";
+  if (varType === "non_measured") return "Contextual";
   if (schemaKey) return schemaKey;
   return "(no type)";
 }

@@ -19,10 +19,9 @@ import {
   Badge,
   Pill,
   Grid,
-  Box,
-  Tooltip
+  Box
 } from "@mantine/core";
-import { IconCheck, IconCategory, IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
+import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
@@ -43,6 +42,7 @@ import {
 import SchemaField from "./SchemaField";
 import EnumWithOtherField from "./EnumWithOtherField";
 import OptionalWithGateField from "./OptionalWithGateField";
+import FieldLabel from "./FieldLabel";
 
 // Genesis (measured/calculated) options
 const GENESIS_OPTIONS = [
@@ -56,11 +56,14 @@ const SAMPLING_OPTIONS = [
   { value: "continuous", label: "Continuous autonomous sensors" }
 ];
 
-// Genesis options for the "Other (Generic Variable Type)" — includes ancillary
+// Genesis options for the "Other (Generic Variable Type)" — includes contextual
 const OTHER_GENESIS_OPTIONS = [
-  { value: "measured", label: "Measured directly" },
-  { value: "calculated", label: "Calculated from other variables" },
-  { value: "ancillary", label: "Ancillary/Descriptive (e.g. lat/long, EXPOCODE, date, etc.)" }
+  { value: "measured", label: "Measured (directly observed or recorded by an instrument)" },
+  { value: "calculated", label: "Calculated (derived from other variables)" },
+  {
+    value: "contextual",
+    label: "Not applicable — contextual variable (metadata about the sample — e.g., EXPOCODE, region, timestamps)"
+  }
 ];
 
 // Human-readable labels for pills
@@ -79,7 +82,7 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
 const GENESIS_LABELS: Record<string, string> = {
   measured: "Measured",
   calculated: "Calculated",
-  ancillary: "Ancillary/Descriptive"
+  contextual: "Contextual"
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
@@ -138,11 +141,13 @@ export default function VariableModal({
           // Map to consolidated "other" UI type
           setVariableType("other");
           if (savedType === "non_measured") {
-            setGenesis("ancillary");
+            setGenesis("contextual");
             setSampling(null);
           } else {
             setGenesis((initialData.genesis as string)?.toLowerCase() || null);
-            setSampling((initialData.sampling as string)?.toLowerCase() || null);
+            setSampling(
+              (initialData.sampling as string)?.toLowerCase() || null
+            );
           }
         } else {
           setVariableType(savedType);
@@ -176,9 +181,13 @@ export default function VariableModal({
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
-    const effectiveType = resolveEffectiveType(variableType || undefined, genesis || undefined);
+    const effectiveType = resolveEffectiveType(
+      variableType || undefined,
+      genesis || undefined
+    );
     if (!effectiveType) return SAMPLING_OPTIONS;
-    const typeMap = VARIABLE_SCHEMA_MAP[effectiveType as keyof typeof VARIABLE_SCHEMA_MAP];
+    const typeMap =
+      VARIABLE_SCHEMA_MAP[effectiveType as keyof typeof VARIABLE_SCHEMA_MAP];
     if (!typeMap) return [];
     const measured = (typeMap as Record<string, unknown>).measured;
     if (!measured || typeof measured === "string") return [];
@@ -212,11 +221,13 @@ export default function VariableModal({
   }, [schemaKey, variableSchema, rootSchema]);
 
   // Check if variable type selection is complete
-  const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
+  const typeBehavior = variableType
+    ? VARIABLE_TYPE_BEHAVIOR[variableType]
+    : undefined;
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
     genesis === "calculated" ||
-    genesis === "ancillary" ||
+    genesis === "contextual" ||
     (genesis === "measured" && !!sampling);
 
   // When type selection BECOMES complete (transitions from false to true),
@@ -275,7 +286,7 @@ export default function VariableModal({
     if (variableType === "other") {
       // Resolve _variableType from the genesis selection
       const effectiveType = resolveEffectiveType("other", value || undefined);
-      if (value === "ancillary") {
+      if (value === "contextual") {
         // non_measured uses DIRECT — no genesis/sampling fields in saved data
         setFormData((prev) => ({
           ...prev,
@@ -317,7 +328,10 @@ export default function VariableModal({
   const handleSave = () => {
     if (!schemaKey) return;
     // Ensure _variableType is the internal type, never "other"
-    const effectiveType = resolveEffectiveType(variableType || undefined, genesis || undefined);
+    const effectiveType = resolveEffectiveType(
+      variableType || undefined,
+      genesis || undefined
+    );
     onSave({
       ...formData,
       _schemaKey: schemaKey,
@@ -438,41 +452,51 @@ export default function VariableModal({
                 />
 
                 {/* Genesis Selector - appears after variable type selected, hidden for direct/fixed types */}
-                {variableType && !typeBehavior?.directSchema && !typeBehavior?.fixedGenesis && (
-                  <Select
-                    label={
-                      variableType === "other" ? (
-                        <Group gap={6}>
-                          <Text size="sm" fw={500} component="span">How was this variable produced?</Text>
-                          <Tooltip
-                            label="Ancillary/descriptive variables are supporting metadata columns in your dataset that aren't directly measured or calculated — such as latitude, longitude, date, time, station ID, or EXPOCODE."
-                            multiline
-                            w={300}
-                          >
-                            <IconInfoCircle size={16} style={{ color: "var(--mantine-color-dimmed)", cursor: "help" }} />
-                          </Tooltip>
-                        </Group>
-                      ) : "Was this variable measured directly or calculated?"
-                    }
-                    placeholder={variableType === "other" ? "Select how this variable was produced" : "Select measurement method"}
-                    data={variableType === "other" ? OTHER_GENESIS_OPTIONS : GENESIS_OPTIONS}
-                    value={genesis}
-                    onChange={handleGenesisChange}
-                    required
-                  />
-                )}
+                {variableType &&
+                  !typeBehavior?.directSchema &&
+                  !typeBehavior?.fixedGenesis && (
+                    <Select
+                      label={
+                        variableType === "other" ? (
+                          <FieldLabel
+                            title="How was this variable produced?"
+                            description="Contextual variables are supporting metadata columns in your dataset that aren't directly measured or calculated — such as latitude, longitude, date, time, station ID, or EXPOCODE."
+                            required={true}
+                          />
+                        ) : (
+                          "Was this variable measured directly or calculated?"
+                        )
+                      }
+                      placeholder={
+                        variableType === "other"
+                          ? "Select how this variable was produced"
+                          : "Select measurement method"
+                      }
+                      data={
+                        variableType === "other"
+                          ? OTHER_GENESIS_OPTIONS
+                          : GENESIS_OPTIONS
+                      }
+                      value={genesis}
+                      onChange={handleGenesisChange}
+                      required
+                      withAsterisk={variableType !== "other"}
+                    />
+                  )}
 
-                {/* Sampling Selector - Only for measured, hidden for direct/fixed/ancillary types */}
-                {genesis === "measured" && !typeBehavior?.directSchema && !typeBehavior?.fixedSampling && (
-                  <Select
-                    label="Were the measurements taken from discrete bottles or continuous sensors?"
-                    placeholder="Select measurement type"
-                    data={availableSamplingOptions}
-                    value={sampling}
-                    onChange={handleSamplingChange}
-                    required
-                  />
-                )}
+                {/* Sampling Selector - Only for measured, hidden for direct/fixed/contextual types */}
+                {genesis === "measured" &&
+                  !typeBehavior?.directSchema &&
+                  !typeBehavior?.fixedSampling && (
+                    <Select
+                      label="Were the measurements taken from discrete bottles or continuous sensors?"
+                      placeholder="Select measurement type"
+                      data={availableSamplingOptions}
+                      value={sampling}
+                      onChange={handleSamplingChange}
+                      required
+                    />
+                  )}
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
@@ -497,71 +521,86 @@ export default function VariableModal({
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Grid gutter="sm">
-                      {section.visibleFields.flatMap((field): React.ReactElement[] => {
-                        // Compute effective placeholder with override support
-                        const effectivePlaceholder =
-                          getPlaceholderOverride(variableType || undefined, field.path) ||
-                          field.placeholderText;
+                      {section.visibleFields.flatMap(
+                        (field): React.ReactElement[] => {
+                          // Compute effective placeholder with override support
+                          const effectivePlaceholder =
+                            getPlaceholderOverride(
+                              variableType || undefined,
+                              field.path
+                            ) || field.placeholderText;
 
-                        // Helper to add row spacer if needed
-                        const maybeAddSpacer = (elements: React.ReactElement[]): React.ReactElement[] => {
-                          if (field.newRowAfter && field.span && field.span < 12) {
-                            elements.push(
-                              <Grid.Col key={`${field.path}-spacer`} span={12 - field.span} />
-                            );
+                          // Helper to add row spacer if needed
+                          const maybeAddSpacer = (
+                            elements: React.ReactElement[]
+                          ): React.ReactElement[] => {
+                            if (
+                              field.newRowAfter &&
+                              field.span &&
+                              field.span < 12
+                            ) {
+                              elements.push(
+                                <Grid.Col
+                                  key={`${field.path}-spacer`}
+                                  span={12 - field.span}
+                                />
+                              );
+                            }
+                            return elements;
+                          };
+
+                          if (field.inputType === "enum_with_other") {
+                            return [
+                              <EnumWithOtherField
+                                key={field.path}
+                                fieldPath={field.path}
+                                variableSchema={variableSchema}
+                                rootSchema={rootSchema}
+                                formData={formData}
+                                onChange={handleFormChange}
+                                descriptionModal={field.descriptionModal}
+                                placeholderText={effectivePlaceholder}
+                              />
+                            ];
                           }
-                          return elements;
-                        };
 
-                        if (field.inputType === "enum_with_other") {
-                          return [
-                            <EnumWithOtherField
-                              key={field.path}
-                              fieldPath={field.path}
-                              variableSchema={variableSchema}
-                              rootSchema={rootSchema}
-                              formData={formData}
-                              onChange={handleFormChange}
-                              descriptionModal={field.descriptionModal}
-                              placeholderText={effectivePlaceholder}
-                            />
-                          ];
+                          if (field.inputType === "optional_with_gate") {
+                            return [
+                              <OptionalWithGateField
+                                key={field.path}
+                                fieldPath={field.path}
+                                variableSchema={variableSchema}
+                                rootSchema={rootSchema}
+                                formData={formData}
+                                onChange={handleFormChange}
+                                descriptionModal={field.descriptionModal}
+                                placeholderText={effectivePlaceholder}
+                                gateLabel={
+                                  field.gateLabel || "Include this field?"
+                                }
+                              />
+                            ];
+                          }
+
+                          return maybeAddSpacer([
+                            <Grid.Col key={field.path} span={field.span}>
+                              <SchemaField
+                                fieldPath={field.path}
+                                variableSchema={variableSchema}
+                                rootSchema={rootSchema}
+                                formData={formData}
+                                onChange={handleFormChange}
+                                inputType={field.inputType}
+                                descriptionMode={
+                                  field.descriptionModal ? "modal" : "tooltip"
+                                }
+                                placeholderText={effectivePlaceholder}
+                                rows={field.rows}
+                              />
+                            </Grid.Col>
+                          ]);
                         }
-
-                        if (field.inputType === "optional_with_gate") {
-                          return [
-                            <OptionalWithGateField
-                              key={field.path}
-                              fieldPath={field.path}
-                              variableSchema={variableSchema}
-                              rootSchema={rootSchema}
-                              formData={formData}
-                              onChange={handleFormChange}
-                              descriptionModal={field.descriptionModal}
-                              placeholderText={effectivePlaceholder}
-                              gateLabel={field.gateLabel || "Include this field?"}
-                            />
-                          ];
-                        }
-
-                        return maybeAddSpacer([
-                          <Grid.Col key={field.path} span={field.span}>
-                            <SchemaField
-                              fieldPath={field.path}
-                              variableSchema={variableSchema}
-                              rootSchema={rootSchema}
-                              formData={formData}
-                              onChange={handleFormChange}
-                              inputType={field.inputType}
-                              descriptionMode={
-                                field.descriptionModal ? "modal" : "tooltip"
-                              }
-                              placeholderText={effectivePlaceholder}
-                              rows={field.rows}
-                            />
-                          </Grid.Col>
-                        ]);
-                      })}
+                      )}
                     </Grid>
                   </Accordion.Panel>
                 </Accordion.Item>
@@ -576,7 +615,9 @@ export default function VariableModal({
         </Button>
         <Button
           onClick={handleSave}
-          disabled={!schemaKey || !formData.long_name || !formData.dataset_variable_name}
+          disabled={
+            !schemaKey || !formData.long_name || !formData.dataset_variable_name
+          }
         >
           {isEditing ? "Update Variable" : "Add Variable"}
         </Button>
@@ -623,7 +664,9 @@ function AccordionControlContent({
         cursor: "pointer"
       }}
     >
-      <Text fw={500} style={{ flex: 1 }}>{label}</Text>
+      <Text fw={500} style={{ flex: 1 }}>
+        {label}
+      </Text>
       {!isOpen && collapsedContent}
       <Box
         onClick={(e) => {
@@ -650,8 +693,6 @@ function AccordionControlContent({
     </Box>
   );
 }
-
-
 
 interface ProgressBadgeProps {
   filled: number;
@@ -701,4 +742,3 @@ function ProgressBadge({
     </Badge>
   );
 }
-
