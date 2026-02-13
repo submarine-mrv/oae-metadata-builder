@@ -84,7 +84,8 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
 
 const GENESIS_LABELS: Record<string, string> = {
   measured: "Measured",
-  calculated: "Calculated"
+  calculated: "Calculated",
+  contextual: "Contextual"
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
@@ -146,7 +147,8 @@ export default function VariableModal({
             setGenesis("contextual");
             setSampling(null);
           } else {
-            setGenesis((initialData.genesis as string)?.toLowerCase() || null);
+            const rawGenesis = (initialData.genesis as string)?.toLowerCase() || null;
+            setGenesis(rawGenesis === "ancillary" ? "contextual" : rawGenesis);
             setSampling(
               (initialData.sampling as string)?.toLowerCase() || null
             );
