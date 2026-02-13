@@ -76,7 +76,7 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
   dic: "DIC",
   other: "Generic Variable",
   observed_property: "Generic Variable",
-  non_measured: "Generic Variable",
+  non_measured: "Contextual",
   sediment: "Sediment",
   co2: "CO₂",
   hplc: "HPLC"
@@ -421,7 +421,7 @@ export default function VariableModal({
                           {VARIABLE_TYPE_LABELS[variableType] || variableType}
                         </Pill>
                       )}
-                      {genesis != "contextual" && (
+                      {genesis && genesis !== "contextual" && (
                         <Pill size="sm">
                           {GENESIS_LABELS[genesis] || genesis}
                         </Pill>

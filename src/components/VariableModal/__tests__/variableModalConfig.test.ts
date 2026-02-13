@@ -432,8 +432,8 @@ describe("resolveEffectiveType", () => {
     expect(resolveEffectiveType("other", "calculated")).toBe("observed_property");
   });
 
-  it("maps 'other' + undefined to 'observed_property' (default)", () => {
-    expect(resolveEffectiveType("other", undefined)).toBe("observed_property");
+  it("returns undefined for 'other' + undefined (genesis not yet selected)", () => {
+    expect(resolveEffectiveType("other", undefined)).toBeUndefined();
   });
 });
 

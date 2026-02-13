@@ -879,6 +879,7 @@ export function resolveEffectiveType(
   genesis: string | undefined
 ): string | undefined {
   if (uiVariableType !== "other") return uiVariableType;
+  if (!genesis) return undefined;
   if (genesis === "contextual") return "non_measured";
   return "observed_property";
 }
