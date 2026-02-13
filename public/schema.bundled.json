@@ -387,6 +387,9 @@
           "title": "Dataset variable name (raw)",
           "type": "string"
         },
+        "genesis": {
+          "$ref": "#/$defs/GenesisType"
+        },
         "long_name": {
           "description": "Full descriptive name of the variable.",
           "title": "Variable full name",
@@ -447,6 +450,7 @@
         }
       },
       "required": [
+        "genesis",
         "calculation_method_and_parameters",
         "units",
         "dataset_variable_name",
@@ -5341,5 +5345,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "fced7a0d42396859c49a17da9d876b7476611ea6"
+  "x-protocol-git-hash": "275a98dbbf9ce4e94c95dca27c6b82ba3cb28992"
 }

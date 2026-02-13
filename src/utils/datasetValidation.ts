@@ -189,11 +189,14 @@ function validateVariable(
     $defs: rootSchema.$defs
   } as RJSFSchema;
 
-  // Strip internal underscore-prefixed fields before validation.
-  // These are UI-only fields (e.g. _variableType, _schemaKey) that aren't
-  // in the schema and would cause additionalProperties errors.
+  // Only keep fields that exist in the target schema.
+  // This strips UI-only fields (_variableType, _schemaKey) AND fields from
+  // the type selection that don't belong in this variable type — e.g. genesis
+  // and sampling exist in MeasuredVariable schemas but not in CalculatedVariable
+  // or NonMeasuredVariable, which have additionalProperties: false.
+  const schemaProps = new Set(Object.keys(variableSchema.properties || {}));
   const cleanedVariable = Object.fromEntries(
-    Object.entries(variable).filter(([key]) => !key.startsWith("_"))
+    Object.entries(variable).filter(([key]) => schemaProps.has(key))
   );
 
   // Validate the variable against its specific schema
