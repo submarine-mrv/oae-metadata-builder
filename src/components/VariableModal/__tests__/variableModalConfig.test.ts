@@ -5,7 +5,9 @@ import {
   VARIABLE_TYPE_LAYERS,
   VARIABLE_SCHEMA_MAP,
   normalizeFieldConfig,
-  getSchemaKey
+  getSchemaKey,
+  resolveEffectiveType,
+  getSchemaKeyForUI
 } from "../variableModalConfig";
 import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
 
@@ -404,5 +406,63 @@ describe("normalizeFieldConfig", () => {
     expect(result.span).toBe(6);
     expect(result.inputType).toBe("text");
     expect(result.newRowAfter).toBe(false);
+  });
+});
+
+describe("resolveEffectiveType", () => {
+  it("returns non-'other' types unchanged", () => {
+    expect(resolveEffectiveType("pH", "measured")).toBe("pH");
+    expect(resolveEffectiveType("ta", undefined)).toBe("ta");
+    expect(resolveEffectiveType("hplc", "measured")).toBe("hplc");
+  });
+
+  it("returns undefined for undefined input", () => {
+    expect(resolveEffectiveType(undefined, undefined)).toBeUndefined();
+  });
+
+  it("maps 'other' + 'ancillary' to 'non_measured'", () => {
+    expect(resolveEffectiveType("other", "ancillary")).toBe("non_measured");
+  });
+
+  it("maps 'other' + 'measured' to 'observed_property'", () => {
+    expect(resolveEffectiveType("other", "measured")).toBe("observed_property");
+  });
+
+  it("maps 'other' + 'calculated' to 'observed_property'", () => {
+    expect(resolveEffectiveType("other", "calculated")).toBe("observed_property");
+  });
+
+  it("maps 'other' + undefined to 'observed_property' (default)", () => {
+    expect(resolveEffectiveType("other", undefined)).toBe("observed_property");
+  });
+});
+
+describe("getSchemaKeyForUI", () => {
+  it("delegates to getSchemaKey for non-'other' types", () => {
+    expect(getSchemaKeyForUI("pH", "measured", "discrete")).toBe("DiscretePHVariable");
+    expect(getSchemaKeyForUI("ta", "calculated", undefined)).toBe("CalculatedVariable");
+    expect(getSchemaKeyForUI(undefined, undefined, undefined)).toBeNull();
+  });
+
+  it("routes 'other' + 'ancillary' to NonMeasuredVariable", () => {
+    expect(getSchemaKeyForUI("other", "ancillary", undefined)).toBe("NonMeasuredVariable");
+  });
+
+  it("routes 'other' + 'measured' + sampling to observed_property schemas", () => {
+    expect(getSchemaKeyForUI("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
+    expect(getSchemaKeyForUI("other", "measured", "continuous")).toBe("ContinuousMeasuredVariable");
+  });
+
+  it("routes 'other' + 'calculated' to CalculatedVariable", () => {
+    expect(getSchemaKeyForUI("other", "calculated", undefined)).toBe("CalculatedVariable");
+  });
+
+  it("returns null for 'other' + 'measured' without sampling", () => {
+    expect(getSchemaKeyForUI("other", "measured", undefined)).toBeNull();
+  });
+
+  it("returns null for 'other' with no genesis", () => {
+    // observed_property requires genesis, so this returns null
+    expect(getSchemaKeyForUI("other", undefined, undefined)).toBeNull();
   });
 });

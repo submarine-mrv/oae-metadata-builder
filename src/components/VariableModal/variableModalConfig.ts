@@ -159,11 +159,10 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "pH", label: "pH" },
   { value: "ta", label: "Total Alkalinity (TA)" },
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
-  { value: "observed_property", label: "Observed Property" },
   { value: "sediment", label: "Sediment" },
   { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
   { value: "hplc", label: "HPLC" },
-  { value: "non_measured", label: "Non-Measured Variable" }
+  { value: "other", label: "Other (Generic Variable Type)" }
 ] as const;
 
 // =============================================================================
@@ -869,6 +868,35 @@ export function getSchemaKey(
   // MEASURED needs sampling to determine schema
   if (!sampling) return null;
   return (genesisMap as Record<string, string>)[sampling] || null;
+}
+
+/**
+ * Maps UI "other" + genesis to the internal _variableType.
+ * For non-"other" types, returns the type unchanged.
+ */
+export function resolveEffectiveType(
+  uiVariableType: string | undefined,
+  genesis: string | undefined
+): string | undefined {
+  if (uiVariableType !== "other") return uiVariableType;
+  if (genesis === "ancillary") return "non_measured";
+  return "observed_property";
+}
+
+/**
+ * Like getSchemaKey but handles "other" → effective type resolution first.
+ * Use this in the UI layer; validation/export paths should use getSchemaKey directly.
+ */
+export function getSchemaKeyForUI(
+  uiVariableType: string | undefined,
+  genesis: string | undefined,
+  sampling: string | undefined
+): string | null {
+  if (uiVariableType === "other") {
+    if (genesis === "ancillary") return getSchemaKey("non_measured", undefined, undefined);
+    return getSchemaKey("observed_property", genesis, sampling);
+  }
+  return getSchemaKey(uiVariableType, genesis, sampling);
 }
 
 /**

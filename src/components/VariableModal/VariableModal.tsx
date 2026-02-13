@@ -19,15 +19,17 @@ import {
   Badge,
   Pill,
   Grid,
-  Box
+  Box,
+  Tooltip
 } from "@mantine/core";
-import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
+import { IconCheck, IconCategory, IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
   VARIABLE_TYPE_BEHAVIOR,
   getAccordionConfig,
-  getSchemaKey,
+  getSchemaKeyForUI,
+  resolveEffectiveType,
   normalizeFieldConfig,
   getPlaceholderOverride
 } from "./variableModalConfig";
@@ -54,21 +56,30 @@ const SAMPLING_OPTIONS = [
   { value: "continuous", label: "Continuous autonomous sensors" }
 ];
 
+// Genesis options for the "Other (Generic Variable Type)" — includes ancillary
+const OTHER_GENESIS_OPTIONS = [
+  { value: "measured", label: "Measured directly" },
+  { value: "calculated", label: "Calculated from other variables" },
+  { value: "ancillary", label: "Ancillary/Descriptive (e.g. lat/long, EXPOCODE, date, etc.)" }
+];
+
 // Human-readable labels for pills
 const VARIABLE_TYPE_LABELS: Record<string, string> = {
   pH: "pH",
   ta: "Total Alkalinity",
   dic: "DIC",
-  observed_property: "Observed Property",
+  other: "Generic Variable",
+  observed_property: "Generic Variable",
+  non_measured: "Generic Variable",
   sediment: "Sediment",
   co2: "CO₂",
-  hplc: "HPLC",
-  non_measured: "Non-Measured"
+  hplc: "HPLC"
 };
 
 const GENESIS_LABELS: Record<string, string> = {
   measured: "Measured",
-  calculated: "Calculated"
+  calculated: "Calculated",
+  ancillary: "Ancillary/Descriptive"
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
@@ -122,9 +133,22 @@ export default function VariableModal({
         setFormData(initialData);
         // Extract selection state from initial data
         // Normalize to lowercase for backwards compat with pre-enum-migration data
-        setVariableType((initialData._variableType as string) || null);
-        setGenesis((initialData.genesis as string)?.toLowerCase() || null);
-        setSampling((initialData.sampling as string)?.toLowerCase() || null);
+        const savedType = (initialData._variableType as string) || null;
+        if (savedType === "observed_property" || savedType === "non_measured") {
+          // Map to consolidated "other" UI type
+          setVariableType("other");
+          if (savedType === "non_measured") {
+            setGenesis("ancillary");
+            setSampling(null);
+          } else {
+            setGenesis((initialData.genesis as string)?.toLowerCase() || null);
+            setSampling((initialData.sampling as string)?.toLowerCase() || null);
+          }
+        } else {
+          setVariableType(savedType);
+          setGenesis((initialData.genesis as string)?.toLowerCase() || null);
+          setSampling((initialData.sampling as string)?.toLowerCase() || null);
+        }
         // If editing, start with variable-type collapsed and basic open
         setOpenSections(["basic"]);
         // Mark as already complete so auto-collapse doesn't re-trigger
@@ -143,7 +167,7 @@ export default function VariableModal({
 
   // Determine which schema to use based on current selections
   const schemaKey = useMemo(() => {
-    return getSchemaKey(
+    return getSchemaKeyForUI(
       variableType || undefined,
       genesis || undefined,
       sampling || undefined
@@ -152,15 +176,16 @@ export default function VariableModal({
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
-    if (!variableType) return SAMPLING_OPTIONS;
-    const typeMap = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+    const effectiveType = resolveEffectiveType(variableType || undefined, genesis || undefined);
+    if (!effectiveType) return SAMPLING_OPTIONS;
+    const typeMap = VARIABLE_SCHEMA_MAP[effectiveType as keyof typeof VARIABLE_SCHEMA_MAP];
     if (!typeMap) return [];
     const measured = (typeMap as Record<string, unknown>).measured;
     if (!measured || typeof measured === "string") return [];
     return SAMPLING_OPTIONS.filter(
       (opt) => opt.value in (measured as Record<string, unknown>)
     );
-  }, [variableType]);
+  }, [variableType, genesis]);
 
   // Get the resolved variable schema
   const variableSchema = useMemo(() => {
@@ -191,6 +216,7 @@ export default function VariableModal({
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
     genesis === "calculated" ||
+    genesis === "ancillary" ||
     (genesis === "measured" && !!sampling);
 
   // When type selection BECOMES complete (transitions from false to true),
@@ -218,6 +244,16 @@ export default function VariableModal({
         genesis: behavior.fixedGenesis,
         sampling: behavior.fixedSampling || undefined
       }));
+    } else if (value === "other") {
+      // "other" resolves _variableType later via genesis selection
+      setGenesis(null);
+      setSampling(null);
+      setFormData((prev) => ({
+        ...prev,
+        _variableType: undefined,
+        genesis: undefined,
+        sampling: undefined
+      }));
     } else {
       // Standard and directSchema: reset genesis and sampling
       setGenesis(null);
@@ -235,11 +271,33 @@ export default function VariableModal({
     setGenesis(value);
     // Always reset sampling when genesis changes to avoid stale values
     setSampling(null);
-    setFormData((prev) => ({
-      ...prev,
-      genesis: value,
-      sampling: undefined
-    }));
+
+    if (variableType === "other") {
+      // Resolve _variableType from the genesis selection
+      const effectiveType = resolveEffectiveType("other", value || undefined);
+      if (value === "ancillary") {
+        // non_measured uses DIRECT — no genesis/sampling fields in saved data
+        setFormData((prev) => ({
+          ...prev,
+          _variableType: effectiveType,
+          genesis: undefined,
+          sampling: undefined
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          _variableType: effectiveType,
+          genesis: value,
+          sampling: undefined
+        }));
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        genesis: value,
+        sampling: undefined
+      }));
+    }
   };
 
   const handleSamplingChange = (value: string | null) => {
@@ -258,11 +316,12 @@ export default function VariableModal({
   // Handle save
   const handleSave = () => {
     if (!schemaKey) return;
-    // Include the schema key and selection state in saved data
+    // Ensure _variableType is the internal type, never "other"
+    const effectiveType = resolveEffectiveType(variableType || undefined, genesis || undefined);
     onSave({
       ...formData,
       _schemaKey: schemaKey,
-      _variableType: variableType
+      _variableType: effectiveType
     });
   };
 
@@ -381,16 +440,29 @@ export default function VariableModal({
                 {/* Genesis Selector - appears after variable type selected, hidden for direct/fixed types */}
                 {variableType && !typeBehavior?.directSchema && !typeBehavior?.fixedGenesis && (
                   <Select
-                    label="Was this variable measured directly or calculated?"
-                    placeholder="Select measurement method"
-                    data={GENESIS_OPTIONS}
+                    label={
+                      variableType === "other" ? (
+                        <Group gap={6}>
+                          <Text size="sm" fw={500} component="span">How was this variable produced?</Text>
+                          <Tooltip
+                            label="Ancillary/descriptive variables are supporting metadata columns in your dataset that aren't directly measured or calculated — such as latitude, longitude, date, time, station ID, or EXPOCODE."
+                            multiline
+                            w={300}
+                          >
+                            <IconInfoCircle size={16} style={{ color: "var(--mantine-color-dimmed)", cursor: "help" }} />
+                          </Tooltip>
+                        </Group>
+                      ) : "Was this variable measured directly or calculated?"
+                    }
+                    placeholder={variableType === "other" ? "Select how this variable was produced" : "Select measurement method"}
+                    data={variableType === "other" ? OTHER_GENESIS_OPTIONS : GENESIS_OPTIONS}
                     value={genesis}
                     onChange={handleGenesisChange}
                     required
                   />
                 )}
 
-                {/* Sampling Selector - Only for measured, hidden for direct/fixed types */}
+                {/* Sampling Selector - Only for measured, hidden for direct/fixed/ancillary types */}
                 {genesis === "measured" && !typeBehavior?.directSchema && !typeBehavior?.fixedSampling && (
                   <Select
                     label="Were the measurements taken from discrete bottles or continuous sensors?"
