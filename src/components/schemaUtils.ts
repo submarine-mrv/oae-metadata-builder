@@ -8,6 +8,8 @@
  * - Handle nested paths like "analyzing_instrument.calibration.dye_purified"
  */
 
+import { formatEnumTitle } from "@/utils/enumDecorator";
+
 // Type definitions for JSON Schema
 export interface JSONSchema {
   $ref?: string;
@@ -101,6 +103,24 @@ export function getFieldSchema(
     // Resolve any $ref at current level
     currentSchema = resolveRef(currentSchema, rootSchema);
 
+    // Handle allOf - merge all branches' properties before checking for the field
+    if (currentSchema.allOf) {
+      const merged: JSONSchema = { ...currentSchema, properties: { ...currentSchema.properties } };
+      for (const branch of currentSchema.allOf) {
+        const resolved = resolveRef(branch, rootSchema);
+        if (resolved.properties) {
+          merged.properties = { ...merged.properties, ...resolved.properties };
+        }
+        if (resolved.required) {
+          merged.required = [...(merged.required || []), ...resolved.required];
+        }
+      }
+      if (merged.required) {
+        merged.required = [...new Set(merged.required)];
+      }
+      currentSchema = merged;
+    }
+
     // Handle anyOf/oneOf - try to find a schema that has this property
     if (currentSchema.anyOf || currentSchema.oneOf) {
       const options = currentSchema.anyOf || currentSchema.oneOf || [];
@@ -144,6 +164,31 @@ export function fieldExistsInSchema(
 }
 
 /**
+ * Resolves a schema and merges allOf required arrays.
+ * Used by isFieldRequired to correctly detect conditionally-required fields.
+ */
+function resolveWithAllOf(
+  schema: JSONSchema,
+  rootSchema: JSONSchema
+): JSONSchema {
+  const resolved = resolveRef(schema, rootSchema);
+  if (!resolved.allOf) return resolved;
+
+  const merged: JSONSchema = { ...resolved };
+  let required = [...(merged.required || [])];
+  for (const branch of resolved.allOf) {
+    const resolvedBranch = resolveRef(branch, rootSchema);
+    if (resolvedBranch.required) {
+      required = [...required, ...resolvedBranch.required];
+    }
+  }
+  if (required.length > 0) {
+    merged.required = [...new Set(required)];
+  }
+  return merged;
+}
+
+/**
  * Checks if a field is required at its nesting level.
  * For "analyzing_instrument.calibration.dye_purified":
  * - Checks if "dye_purified" is in PHCalibration.required
@@ -158,9 +203,9 @@ export function isFieldRequired(
   const parts = fieldPath.split(".");
   const fieldName = parts[parts.length - 1];
 
-  // If it's a top-level field, check variableSchema.required
+  // If it's a top-level field, check variableSchema.required (with allOf merge)
   if (parts.length === 1) {
-    const resolved = resolveRef(variableSchema, rootSchema);
+    const resolved = resolveWithAllOf(variableSchema, rootSchema);
     return resolved.required?.includes(fieldName) ?? false;
   }
 
@@ -172,7 +217,7 @@ export function isFieldRequired(
     return false;
   }
 
-  const resolvedParent = resolveRef(parentSchema, rootSchema);
+  const resolvedParent = resolveWithAllOf(parentSchema, rootSchema);
   return resolvedParent.required?.includes(fieldName) ?? false;
 }
 
@@ -281,6 +326,7 @@ export function setNestedValue(
 /**
  * Gets enum options from a schema, resolving $refs if needed.
  * Returns array of { value, label } objects.
+ * Uses formatEnumTitle from enumDecorator for consistent formatting with override support.
  */
 export function getEnumOptions(
   fieldSchema: JSONSchema,
@@ -291,21 +337,9 @@ export function getEnumOptions(
   if (resolved.enum) {
     return resolved.enum.map((value) => ({
       value: String(value),
-      label: formatEnumLabel(String(value)),
+      label: formatEnumTitle(String(value)),
     }));
   }
 
   return [];
-}
-
-/**
- * Formats an enum value as a human-readable label.
- * "SURFACE_UNDERWAY" -> "Surface Underway"
- */
-export function formatEnumLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }

@@ -387,6 +387,9 @@
                     "title": "Dataset variable name (raw)",
                     "type": "string"
                 },
+                "genesis": {
+                    "$ref": "#/$defs/GenesisType"
+                },
                 "long_name": {
                     "description": "Full descriptive name of the variable.",
                     "title": "Variable full name",
@@ -447,6 +450,7 @@
                 }
             },
             "required": [
+                "genesis",
                 "calculation_method_and_parameters",
                 "units",
                 "dataset_variable_name",
@@ -561,6 +565,11 @@
             "additionalProperties": false,
             "description": "Dissolved Inorganic Carbon (DIC) measured variable from continuous autonomous sensor.",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -691,6 +700,7 @@
             "required": [
                 "concentration_basis",
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
@@ -712,6 +722,11 @@
             "additionalProperties": false,
             "description": "Fields for continuous sampling information.",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -831,6 +846,7 @@
             },
             "required": [
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
@@ -852,6 +868,11 @@
             "additionalProperties": false,
             "description": "pH measured variable from continuous autonomous sensor",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -976,6 +997,7 @@
             },
             "required": [
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
@@ -997,6 +1019,11 @@
             "additionalProperties": false,
             "description": "Measured sediment variable collected from continuous autonomous sensor",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -1096,19 +1123,23 @@
                     "type": "string"
                 },
                 "sediment_sampling_depth": {
-                    "description": "Depth that sediment was collected below sediment surface. It is recommended to include as a variable with data rather than here.",
+                    "description": "Depth that sediment was collected below sediment surface. If provided as a variable (recommended), please list the column header name here.",
+                    "title": "Sediment Sampling Depth",
                     "type": "string"
                 },
                 "sediment_sampling_method": {
                     "description": "e.g., sediment core, grab sampling, dredging, etc.",
+                    "title": "Sediment Sampling Method",
                     "type": "string"
                 },
                 "sediment_sampling_water_depth": {
-                    "description": "Water depth where sediment was collected.  It is recommended to include as a variable with data rather than here.",
+                    "description": "Water depth where sediment was collected. If provided as a variable (recommended), please list the column header name here.",
+                    "title": "Sediment Sampling Water Depth",
                     "type": "string"
                 },
                 "sediment_type": {
                     "description": "e.g., mud, sand, etc.",
+                    "title": "Sediment Type",
                     "type": "string"
                 },
                 "standard_identifier": {
@@ -1136,6 +1167,7 @@
                 "sediment_sampling_depth",
                 "sediment_sampling_water_depth",
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
@@ -1157,6 +1189,11 @@
             "additionalProperties": false,
             "description": "Total Alkalinity (TA) measured variable from continuous autonomous sensor",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -1287,6 +1324,7 @@
             "required": [
                 "concentration_basis",
                 "raw_data_calculation_method",
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",
@@ -2185,19 +2223,23 @@
                     "type": "string"
                 },
                 "sediment_sampling_depth": {
-                    "description": "Depth that sediment was collected below sediment surface. It is recommended to include as a variable with data rather than here.",
+                    "description": "Depth that sediment was collected below sediment surface. If provided as a variable (recommended), please list the column header name here.",
+                    "title": "Sediment Sampling Depth",
                     "type": "string"
                 },
                 "sediment_sampling_method": {
                     "description": "e.g., sediment core, grab sampling, dredging, etc.",
+                    "title": "Sediment Sampling Method",
                     "type": "string"
                 },
                 "sediment_sampling_water_depth": {
-                    "description": "Water depth where sediment was collected.  It is recommended to include as a variable with data rather than here.",
+                    "description": "Water depth where sediment was collected. If provided as a variable (recommended), please list the column header name here.",
+                    "title": "Sediment Sampling Water Depth",
                     "type": "string"
                 },
                 "sediment_type": {
                     "description": "e.g., mud, sand, etc.",
+                    "title": "Sediment Type",
                     "type": "string"
                 },
                 "standard_identifier": {
@@ -3495,6 +3537,11 @@
             "additionalProperties": false,
             "description": "Variable that is directly measured in-situ using instruments. Reference: OAPMetadata XSD variables.xsd - basic_measured_observation_base",
             "properties": {
+                "analyzing_instrument": {
+                    "$ref": "#/$defs/AnalyzingInstrument",
+                    "description": "Instrument used to analyze the water samples or measure the water body continuously. Instrument includes calibration information.",
+                    "title": "Analyzing instrument"
+                },
                 "analyzing_method": {
                     "description": "Additional information describing how the sample was analyzed. DOIs provided as applicable.",
                     "title": "Analyzing Method",
@@ -3603,6 +3650,7 @@
                 }
             },
             "required": [
+                "analyzing_instrument",
                 "sampling_method",
                 "analyzing_method",
                 "observation_type",

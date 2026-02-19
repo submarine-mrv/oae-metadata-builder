@@ -24,7 +24,7 @@ import {
 } from "./schemaUtils";
 import {
   getSchemaKey,
-  ACCORDION_CONFIG,
+  getAccordionConfig,
   normalizeFieldConfig
 } from "./VariableModal/variableModalConfig";
 
@@ -39,7 +39,8 @@ function getVariableDisplayLabel(variable: VariableData): string {
   const schemaKey = variable._schemaKey as string | undefined;
 
   if (varType === "pH") return "pH";
-  if (varType === "observed_property") return "Observed Property";
+  if (varType === "observed_property") return "Generic Variable";
+  if (varType === "non_measured") return "Contextual";
   if (schemaKey) return schemaKey;
   return "(no type)";
 }
@@ -71,7 +72,7 @@ function countMissingRequiredFields(
   // Count missing required fields across all accordion sections
   let missingCount = 0;
 
-  for (const section of ACCORDION_CONFIG) {
+  for (const section of getAccordionConfig(schemaKey)) {
     for (const fieldEntry of section.fields) {
       const field = normalizeFieldConfig(fieldEntry);
 

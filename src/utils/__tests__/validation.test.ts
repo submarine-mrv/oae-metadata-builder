@@ -66,8 +66,8 @@ describe('Validation', () => {
   describe('validateExperiment', () => {
     it('should validate experiment with baseline type', () => {
       const validExperiment = {
-        project_id: 'proj-001',
         experiment_id: 'exp-baseline-001',
+        project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
         experiment_type: 'baseline',
         description: 'Baseline measurements before intervention',
         spatial_coverage: {
@@ -91,6 +91,7 @@ describe('Validation', () => {
     it('should select Intervention schema for intervention type', () => {
       const interventionExperiment = {
         experiment_id: 'exp-intervention-001',
+        project_id: '',
         experiment_type: 'intervention',
         description: 'Alkalinity addition experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -124,6 +125,7 @@ describe('Validation', () => {
     it('should select Tracer schema for tracer_study type', () => {
       const tracerExperiment = {
         experiment_id: 'exp-tracer-001',
+        project_id: '',
         experiment_type: 'tracer_study',
         description: 'SF6 tracer study',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -157,6 +159,7 @@ describe('Validation', () => {
     it('should use base Experiment schema for control type', () => {
       const controlExperiment = {
         experiment_id: 'exp-control-001',
+        project_id: '',
         experiment_type: 'control',
         description: 'Control experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -189,8 +192,8 @@ describe('Validation', () => {
           id: 1,
           name: 'Baseline',
           formData: {
-            project_id: 'project-001',
             experiment_id: 'exp-001',
+            project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
             experiment_type: 'baseline',
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -254,8 +257,8 @@ describe('Validation', () => {
           id: 1,
           name: 'Baseline',
           formData: {
-            project_id: 'project-001',
             experiment_id: 'exp-baseline',
+            project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
             experiment_type: 'baseline',
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -269,8 +272,8 @@ describe('Validation', () => {
           id: 2,
           name: 'Control',
           formData: {
-            project_id: 'project-001',
             experiment_id: 'exp-control',
+            project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
             experiment_type: 'control',
             description: 'Control',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
@@ -304,8 +307,8 @@ describe('Validation', () => {
           id: 1,
           name: 'Valid',
           formData: {
-            project_id: 'project-001',
             experiment_id: 'exp-001',
+            project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
             experiment_type: 'baseline',
             description: 'Valid',
             spatial_coverage: { geo: { box: '0 0 1 1' } },

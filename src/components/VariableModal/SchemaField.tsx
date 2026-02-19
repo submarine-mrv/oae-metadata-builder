@@ -1,17 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   TextInput,
   Textarea,
   Select,
-  Checkbox,
-  Group,
-  Text,
-  Tooltip,
-  ActionIcon
+  Checkbox
 } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
 import {
   getFieldMetadata,
   getNestedValue,
@@ -19,7 +14,7 @@ import {
   type JSONSchema,
   type FieldMetadata
 } from "../schemaUtils";
-import DescriptionModal from "../rjsf/DescriptionModal";
+import FieldLabel, { type DescriptionMode } from "./FieldLabel";
 import { formatEnumTitle } from "@/utils/enumDecorator";
 
 export interface SchemaFieldProps {
@@ -34,7 +29,7 @@ export interface SchemaFieldProps {
   /** Callback when value changes */
   onChange: (newFormData: Record<string, unknown>) => void;
   /** Description display mode */
-  descriptionMode?: "tooltip" | "modal" | "placeholder" | "none";
+  descriptionMode?: DescriptionMode;
   /** Input type: "text", "textarea", or "boolean_select" (Yes/No dropdown). Default is "text" */
   inputType?: "text" | "textarea" | "boolean_select";
   /** Custom placeholder text (overrides schema description in placeholder mode) */
@@ -58,8 +53,6 @@ export default function SchemaField({
   placeholderText,
   rows
 }: SchemaFieldProps) {
-  const [modalOpen, setModalOpen] = useState(false);
-
   // Get field metadata from schema
   const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
 
@@ -75,85 +68,18 @@ export default function SchemaField({
     onChange(newFormData);
   };
 
-  // Render the label with description tooltip/modal
-  const renderLabel = () => {
-    const { title, description, required } = metadata;
-
-    // No description or mode is none
-    if (!description || descriptionMode === "none") {
-      return (
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-      );
-    }
-
-    // Placeholder mode - description goes in placeholder, not label
-    if (descriptionMode === "placeholder") {
-      return (
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-      );
-    }
-
-    // Modal mode
-    if (descriptionMode === "modal") {
-      return (
-        <>
-          <Group gap={4}>
-            <Text size="sm" fw={500}>
-              {title} {required && <span style={{ color: "red" }}>*</span>}
-            </Text>
-            <ActionIcon
-              variant="transparent"
-              size="xs"
-              color="gray"
-              onClick={() => setModalOpen(true)}
-              style={{ cursor: "pointer" }}
-            >
-              <IconInfoCircle size={14} />
-            </ActionIcon>
-          </Group>
-          <DescriptionModal
-            opened={modalOpen}
-            onClose={() => setModalOpen(false)}
-            title={title}
-            description={description}
-          />
-        </>
-      );
-    }
-
-    // Default: tooltip mode
-    return (
-      <Group gap={4}>
-        <Text size="sm" fw={500}>
-          {title} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-        <Tooltip
-          label={description}
-          position="top"
-          withArrow
-          multiline
-          maw={400}
-          style={{ wordWrap: "break-word" }}
-        >
-          <ActionIcon variant="transparent" size="xs" color="gray">
-            <IconInfoCircle size={14} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-    );
-  };
+  const label = (
+    <FieldLabel
+      title={metadata.title}
+      description={metadata.description}
+      required={metadata.required}
+      descriptionMode={descriptionMode}
+    />
+  );
 
   // Get placeholder text
   const getPlaceholder = () => {
-    // Use explicit placeholderText if provided
-    if (placeholderText) {
-      return placeholderText;
-    }
-    // Fall back to description in placeholder mode
+    if (placeholderText) return placeholderText;
     if (descriptionMode === "placeholder" && metadata.description) {
       return metadata.description;
     }
@@ -165,7 +91,7 @@ export default function SchemaField({
     metadata,
     currentValue,
     handleChange,
-    renderLabel,
+    label,
     getPlaceholder,
     inputType,
     rows
@@ -175,14 +101,14 @@ export default function SchemaField({
 /**
  * Renders the appropriate input component based on field metadata.
  * Note: We don't pass `required` to Mantine components because we handle
- * the asterisk manually in renderLabel(). Mantine's `required` prop would
+ * the asterisk manually in FieldLabel. Mantine's `required` prop would
  * add a duplicate asterisk.
  */
 function renderInput(
   metadata: FieldMetadata,
   currentValue: unknown,
   handleChange: (value: unknown) => void,
-  renderLabel: () => React.ReactNode,
+  label: React.ReactNode,
   getPlaceholder: () => string | undefined,
   inputType: "text" | "textarea" | "boolean_select",
   rows?: number
@@ -194,7 +120,7 @@ function renderInput(
     const boolValue = currentValue === true ? "yes" : currentValue === false ? "no" : null;
     return (
       <Select
-        label={renderLabel()}
+        label={label}
         placeholder={getPlaceholder() || "Select an option"}
         data={[
           { value: "yes", label: "Yes" },
@@ -211,7 +137,7 @@ function renderInput(
   if (type === "boolean") {
     return (
       <Checkbox
-        label={renderLabel()}
+        label={label}
         checked={Boolean(currentValue)}
         onChange={(e) => handleChange(e.currentTarget.checked)}
       />
@@ -228,7 +154,7 @@ function renderInput(
 
     return (
       <Select
-        label={renderLabel()}
+        label={label}
         placeholder={getPlaceholder() || "Select an option"}
         data={options}
         value={currentValue ? String(currentValue) : null}
@@ -244,7 +170,7 @@ function renderInput(
     // Could enhance with DateTimePicker later
     return (
       <TextInput
-        label={renderLabel()}
+        label={label}
         placeholder={getPlaceholder() || "YYYY-MM-DDTHH:MM:SSZ"}
         value={String(currentValue || "")}
         onChange={(e) => handleChange(e.target.value)}
@@ -256,7 +182,7 @@ function renderInput(
   if (inputType === "textarea") {
     return (
       <Textarea
-        label={renderLabel()}
+        label={label}
         placeholder={getPlaceholder()}
         value={String(currentValue || "")}
         onChange={(e) => handleChange(e.target.value)}
@@ -270,7 +196,7 @@ function renderInput(
   // Default: TextInput (single line)
   return (
     <TextInput
-      label={renderLabel()}
+      label={label}
       placeholder={getPlaceholder()}
       value={String(currentValue || "")}
       onChange={(e) => handleChange(e.target.value)}

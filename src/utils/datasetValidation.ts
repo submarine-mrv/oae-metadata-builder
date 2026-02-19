@@ -189,14 +189,21 @@ function validateVariable(
     $defs: rootSchema.$defs
   } as RJSFSchema;
 
+  // Only keep fields that exist in the target schema.
+  // This strips UI-only fields (_variableType, _schemaKey) AND fields from
+  // the type selection that don't belong in this variable type — e.g. genesis
+  // and sampling exist in MeasuredVariable schemas but not in CalculatedVariable
+  // or NonMeasuredVariable, which have additionalProperties: false.
+  const schemaProps = new Set(Object.keys(variableSchema.properties || {}));
+  const cleanedVariable = Object.fromEntries(
+    Object.entries(variable).filter(([key]) => schemaProps.has(key))
+  );
+
   // Validate the variable against its specific schema
-  const result = validator.validateFormData(variable, completeSchema);
+  const result = validator.validateFormData(cleanedVariable, completeSchema);
 
   // Convert RJSF errors to simple messages
   result.errors.forEach((error) => {
-    // Skip internal fields that start with underscore
-    if (error.property?.startsWith("._")) return;
-
     const field = error.property?.replace(/^\./, "") || "unknown field";
     const message = error.message || "validation error";
     errors.push(`${field}: ${message}`);
