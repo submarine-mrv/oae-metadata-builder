@@ -981,6 +981,49 @@ describe('AppStateContext', () => {
     });
   });
 
+  describe('replaceDatasetFormData', () => {
+    it('should fully replace formData without merging old keys', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Add a dataset
+      act(() => {
+        result.current.addDataset('Test Dataset');
+      });
+
+      const dsId = result.current.state.datasets[0].id;
+
+      // Set initial form data with several fields via updateDataset (merge)
+      act(() => {
+        result.current.updateDataset(dsId, {
+          dataset_type: 'model_output',
+          model_name: 'CESM2',
+          simulation_type: 'perturbation'
+        });
+      });
+
+      // Verify the fields are there
+      expect(result.current.state.datasets[0].formData.model_name).toBe('CESM2');
+      expect(result.current.state.datasets[0].formData.simulation_type).toBe('perturbation');
+
+      // Now replace with data that omits model-specific fields (simulating type switch)
+      act(() => {
+        result.current.replaceDatasetFormData(dsId, {
+          dataset_type: 'field',
+          name: 'Test Dataset'
+        });
+      });
+
+      // Old keys should be gone — not merged back
+      const formData = result.current.state.datasets[0].formData;
+      expect(formData.dataset_type).toBe('field');
+      expect(formData.name).toBe('Test Dataset');
+      expect(formData).not.toHaveProperty('model_name');
+      expect(formData).not.toHaveProperty('simulation_type');
+    });
+  });
+
   describe('importSelectedData with experiment linking', () => {
     it('should link dataset to existing experiment when resolved match is existing', () => {
       const { result } = renderHook(() => useAppState(), {

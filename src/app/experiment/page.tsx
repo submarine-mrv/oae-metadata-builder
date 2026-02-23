@@ -31,6 +31,7 @@ import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
+import StringListField from "@/components/rjsf/StringListField";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -42,13 +43,17 @@ import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
 import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
+import modelUiSchema from "./modelUiSchema";
 import { cleanFormDataForType } from "@/utils/experimentFields";
 import {
   cleanupConditionalFields,
-  type ConditionalFieldPair
+  cleanupNestedConditionalFields,
+  type ConditionalFieldPair,
+  type NestedConditionalFieldPair
 } from "@/utils/conditionalFields";
 import {
-  getExperimentSchema,
+  getInSituExperimentSchema,
+  getModelSchema,
   getInterventionSchema,
   getTracerSchema,
   getInterventionWithTracerSchema
@@ -78,11 +83,21 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
   }
 ];
 
+// Conditional field pairs nested inside array fields
+const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
+  {
+    arrayField: "model_components",
+    triggerField: "model_component_type",
+    triggerValue: "other",
+    customField: "model_component_type_custom"
+  }
+];
+
 export default function ExperimentPage() {
   const { state, updateExperiment, setActiveTab } =
     useAppState();
 
-  const [activeSchema, setActiveSchema] = useState<any>(() => getExperimentSchema());
+  const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
   const [formData, setFormData] = useState<any>({});
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -130,9 +145,12 @@ export default function ExperimentPage() {
     } else if (experimentType === "intervention_with_tracer") {
       setActiveSchema(getInterventionWithTracerSchema());
       setActiveUiSchema(tracerUiSchema); // TODO: may need separate UI schema
+    } else if (experimentType === "model") {
+      setActiveSchema(getModelSchema());
+      setActiveUiSchema(modelUiSchema);
     } else {
-      // Use base Experiment schema (default for baseline, control, model, other)
-      setActiveSchema(getExperimentSchema());
+      // Use InSituExperiment schema (default for baseline, control, other)
+      setActiveSchema(getInSituExperimentSchema());
       setActiveUiSchema(experimentUiSchema);
     }
   }, [formData.experiment_type]);
@@ -159,6 +177,7 @@ export default function ExperimentPage() {
       // Clean up conditional custom fields when trigger conditions are not met
       // This prevents orphaned fields from rendering as "additional properties"
       newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
+      newData = cleanupNestedConditionalFields(newData, MODEL_NESTED_CONDITIONAL_FIELDS);
 
       setFormData(newData);
       if (activeExperimentId) {
@@ -277,7 +296,8 @@ export default function ExperimentPage() {
               SpatialCoverageMiniMap: SpatialCoverageField,
               PlaceholderField: PlaceholderField,
               DosingLocationField: DosingLocationField,
-              DosingConcentrationField: DosingConcentrationField
+              DosingConcentrationField: DosingConcentrationField,
+              StringListField: StringListField
             }}
             showErrorList={download.showErrorList ? "top" : false}
           />

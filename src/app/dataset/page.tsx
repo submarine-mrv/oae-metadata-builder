@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   Container,
   Title,
@@ -15,7 +15,9 @@ import Ajv2019 from "ajv/dist/2019";
 import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
 
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
-import uiSchema from "./uiSchema";
+import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
+import fieldDatasetUiSchema from "./uiSchema";
+import modelOutputUiSchema from "./modelOutputUiSchema";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
@@ -33,11 +35,19 @@ import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
 import FilenamesField from "@/components/FilenamesField";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
-import { getDatasetSchema } from "@/utils/schemaViews";
+import {
+  getFieldDatasetSchema,
+  getModelOutputDatasetSchema
+} from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateDataset } from "@/utils/validation";
 import { exportSingleDataset } from "@/utils/exportImport";
 import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { cleanDatasetFormDataForType } from "@/utils/datasetFields";
+import {
+  cleanupConditionalFields,
+  type ConditionalFieldPair
+} from "@/utils/conditionalFields";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -47,8 +57,17 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
 
+// Conditional field pairs for model output dataset forms
+const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
+  {
+    triggerField: "simulation_type",
+    triggerValue: "perturbation",
+    customField: "alkalinity_perturbation_description"
+  }
+];
+
 /**
- * Creates a modified dataset schema for RJSF form validation.
+ * Creates a modified FieldDataset schema for RJSF form validation.
  *
  * ============================================================================
  * WORKAROUND: See beads issue oae-form-99i, GitHub #47
@@ -65,8 +84,8 @@ const HiddenSubmitButton = () => null;
  * REMOVE THIS when oae-form-c0s is complete (proper polymorphism via
  * LinkML type_designator and two-schema approach).
  */
-function createFormSchema() {
-  const schema = getDatasetSchema();
+function createFieldDatasetFormSchema() {
+  const schema = getFieldDatasetSchema();
 
   // Replace variables schema to skip item validation
   // Variables are rendered by custom VariablesField and validated separately
@@ -89,23 +108,38 @@ function createFormSchema() {
   return schema;
 }
 
+function isModelOutputType(datasetType: string | undefined): boolean {
+  return datasetType === "model_output";
+}
+
 export default function DatasetPage() {
-  const { state, updateDataset, getDataset, setActiveTab } =
+  const { state, replaceDatasetFormData, getDataset, setActiveTab } =
     useAppState();
 
-  // Use modified schema that skips variable item validation (workaround - see oae-form-99i)
-  const [schema] = useState<any>(() => createFormSchema());
+  // Dynamic schema/uiSchema switching based on dataset_type
+  const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
+  const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldDatasetUiSchema);
+
+  // Local form data state — decoupled from context to prevent stale fields
+  // on type switch (updateDataset uses merge semantics which would re-add
+  // fields that cleanup removed)
+  const [formData, setFormData] = useState<any>({});
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
     ? getDataset(state.activeDatasetId)
     : null;
 
-  // Memoize formData to prevent dependency changes on every render
-  const formData = useMemo(
-    () => currentDataset?.formData || {},
-    [currentDataset?.formData]
-  );
+  // Load dataset data when active dataset changes
+  useEffect(() => {
+    setIsInitialLoad(true);
+
+    if (currentDataset) {
+      setFormData(currentDataset.formData);
+      setTimeout(() => setIsInitialLoad(false), 0);
+    }
+  }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Use the download hook
   const hasExperiments = state.experiments.length > 0;
@@ -118,6 +152,19 @@ export default function DatasetPage() {
   // being recreated on every keystroke
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
+
+  // Dynamic schema switching based on dataset_type
+  useEffect(() => {
+    const datasetType = formData.dataset_type;
+
+    if (isModelOutputType(datasetType)) {
+      setActiveSchema(getModelOutputDatasetSchema());
+      setActiveUiSchema(modelOutputUiSchema);
+    } else {
+      setActiveSchema(createFieldDatasetFormSchema());
+      setActiveUiSchema(fieldDatasetUiSchema);
+    }
+  }, [formData.dataset_type]);
 
   // Wrap error transformer to:
   // 1. Suppress experiment_id errors when no experiments exist
@@ -140,12 +187,15 @@ export default function DatasetPage() {
       // Run variable validation and inject errors into RJSF's error list.
       // This is needed because RJSF uses a simplified schema that skips
       // variable item validation (polymorphism workaround - oae-form-99i).
-      const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
-      const variableErrors = datasetResult.errors.filter(
-        (e) => e.name === "variable"
-      );
-      if (variableErrors.length > 0) {
-        transformed = [...transformed, ...variableErrors];
+      // Only applies to FieldDataset (ModelOutputDataset has no variables field).
+      if (!isModelOutputType(formDataRef.current.dataset_type)) {
+        const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
+        const variableErrors = datasetResult.errors.filter(
+          (e) => e.name === "variable"
+        );
+        if (variableErrors.length > 0) {
+          transformed = [...transformed, ...variableErrors];
+        }
       }
 
       return transformed;
@@ -156,11 +206,32 @@ export default function DatasetPage() {
     setActiveTab("dataset");
   }, [setActiveTab]);
 
-  const handleFormChange = (e: any) => {
-    if (state.activeDatasetId) {
-      updateDataset(state.activeDatasetId, e.formData);
+  const handleFormChange = useCallback((e: any) => {
+    if (!state.activeDatasetId || isInitialLoad) return;
+
+    let newData = e.formData;
+
+    // Check if dataset_type changed
+    const oldType = formData.dataset_type;
+    const newType = newData.dataset_type;
+
+    if (newType && oldType !== newType) {
+      // Dataset type changed — clean fields that don't belong to new type.
+      // Note: oldType can be undefined on first selection (fresh dataset),
+      // so we don't guard on oldType being truthy.
+      newData = cleanDatasetFormDataForType(newData, newType);
     }
-  };
+
+    // Clean up conditional custom fields for model output datasets
+    if (isModelOutputType(newData.dataset_type)) {
+      newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
+    }
+
+    // Update local state first (form sees cleaned data immediately),
+    // then sync to context
+    setFormData(newData);
+    replaceDatasetFormData(state.activeDatasetId, newData);
+  }, [isInitialLoad, formData, state.activeDatasetId, replaceDatasetFormData]);
 
   // Show message if no dataset is selected
   if (!currentDataset) {
@@ -194,8 +265,8 @@ export default function DatasetPage() {
 
           <Form
             ref={download.formRef}
-            schema={schema}
-            uiSchema={uiSchema}
+            schema={activeSchema}
+            uiSchema={activeUiSchema}
             formData={formData}
             onChange={handleFormChange}
             validator={validator}
@@ -216,7 +287,8 @@ export default function DatasetPage() {
               CustomSelectWidget: CustomSelectWidget,
               TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget,
-              LinkedExperimentIdWidget: LinkedExperimentIdWidget
+              LinkedExperimentIdWidget: LinkedExperimentIdWidget,
+              DateTimeWidget: DateTimeWidget
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,

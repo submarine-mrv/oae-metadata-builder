@@ -51,6 +51,49 @@ export interface ConditionalFieldPair {
  *   setFormData(newData);
  * };
  */
+/**
+ * Configuration for a conditional field pair nested inside an array field
+ */
+export interface NestedConditionalFieldPair extends ConditionalFieldPair {
+  /** The array field containing items with conditional fields (e.g., "model_components") */
+  arrayField: string;
+}
+
+/**
+ * Cleans up conditional custom fields inside array items when their trigger conditions are not met.
+ *
+ * Same logic as cleanupConditionalFields but operates on each item within a named array field.
+ */
+export function cleanupNestedConditionalFields<T extends FormDataRecord>(
+  formData: T,
+  nestedPairs: NestedConditionalFieldPair[]
+): T {
+  let cleanedData = { ...formData } as T;
+
+  nestedPairs.forEach(({ arrayField, triggerField, triggerValue, customField }) => {
+    const items = cleanedData[arrayField];
+    if (!Array.isArray(items)) return;
+
+    let changed = false;
+    const cleanedItems = items.map((item: FormDataRecord) => {
+      if (!item || typeof item !== "object") return item;
+      if (item[triggerField] !== triggerValue && customField in item) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [customField]: _removed, ...rest } = item;
+        changed = true;
+        return rest;
+      }
+      return item;
+    });
+
+    if (changed) {
+      cleanedData = { ...cleanedData, [arrayField]: cleanedItems } as T;
+    }
+  });
+
+  return cleanedData;
+}
+
 export function cleanupConditionalFields<T extends FormDataRecord>(
   formData: T,
   conditionalPairs: ConditionalFieldPair[]

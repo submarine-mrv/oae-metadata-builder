@@ -18,3 +18,7 @@ export const nestedItemStyle = {
 export const halfWidthStyle = {
   "ui:style": { width: "50%" }
 };
+
+export const quarterWidthStyle = {
+  "ui:style": { width: "25%" }
+};

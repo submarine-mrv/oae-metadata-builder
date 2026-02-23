@@ -57,7 +57,10 @@ function createSchemaView(defName: string, schemaId: string, hasConditionalField
     // This is required for conditional fields to render, but causes issues with
     // nested object properties being rendered as additional properties.
     additionalProperties: hasConditionalFields ? true : def.additionalProperties,
-    allOf: def.allOf
+    allOf: def.allOf,
+    if: def.if,
+    then: def.then,
+    else: def.else
   } as unknown as RJSFSchema;
 }
 
@@ -103,10 +106,47 @@ export function getInterventionWithTracerSchema() {
 }
 
 /**
- * Gets the Dataset schema for the dataset form
+ * Gets the InSituExperiment schema for field experiment types
+ * (baseline, control, other). Has the field-specific fields like
+ * vertical_coverage, permits, meteorological_and_tidal_data that
+ * moved from Experiment to InSituExperiment in the schema refactor.
+ */
+export function getInSituExperimentSchema() {
+  return createSchemaView("InSituExperiment", "InSituExperimentSchema");
+}
+
+/**
+ * Gets the Model schema for model-type experiments.
+ * Has model-specific fields: grid_details, model_components,
+ * input_details, model_configuration.
+ */
+export function getModelSchema() {
+  return createSchemaView("Model", "ModelSchema");
+}
+
+/**
+ * Gets the Dataset schema for the dataset form (base class)
  */
 export function getDatasetSchema() {
   return createSchemaView("Dataset", "DatasetSchema");
+}
+
+/**
+ * Gets the FieldDataset schema for field dataset types.
+ * Has field-specific fields: platform_info, temporal_coverage,
+ * variables, calibration_files, qc_flag_scheme, data_product_type.
+ */
+export function getFieldDatasetSchema() {
+  return createSchemaView("FieldDataset", "FieldDatasetSchema");
+}
+
+/**
+ * Gets the ModelOutputDataset schema for model output datasets.
+ * Has if/then conditional (simulation_type → alkalinity_perturbation_description)
+ * so needs additionalProperties: true.
+ */
+export function getModelOutputDatasetSchema() {
+  return createSchemaView("ModelOutputDataset", "ModelOutputDatasetSchema", true);
 }
 
 // =============================================================================

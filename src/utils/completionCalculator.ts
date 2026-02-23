@@ -38,8 +38,7 @@ const REQUIRED_FIELDS_MAP = {
     "spatial_coverage",
     "vertical_coverage",
     "principal_investigators",
-    "start_datetime",
-    "end_datetime"
+    "start_datetime"
   ],
   intervention: [
     "alkalinity_feedstock_processing",

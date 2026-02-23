@@ -46,7 +46,12 @@ const ENUM_OVERRIDES: Record<string, string> = {
   "unit:MilliGM-PER-MilliL": "mg/mL",
   "unit:NanoGM-PER-L": "ng/L",
   "unit:NanoGM-PER-MilliL": "ng/mL",
-  "unit:PicoGM-PER-MilliL": "pg/mL"
+  "unit:PicoGM-PER-MilliL": "pg/mL",
+
+  // Model-related enums
+  bgc_ecosystem: "BGC / Ecosystem",
+  air_sea_co2_flux: "Air-Sea CO₂ Flux",
+  ph: "pH"
 };
 
 /**
