@@ -10,15 +10,19 @@ import {
   Button,
   Progress,
   Badge,
-  SimpleGrid
+  SimpleGrid,
+  Alert,
+  Anchor
 } from "@mantine/core";
 import {
   IconPlus,
   IconFolder,
   IconFlask,
   IconDatabase,
-  IconTrash
+  IconTrash,
+  IconAlertTriangle
 } from "@tabler/icons-react";
+import Link from "next/link";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
@@ -168,10 +172,44 @@ export default function OverviewPage() {
           {/* Header */}
           <div>
             <Title order={1}>OAE Metadata Builder – Overview</Title>
-            <Text c="dimmed" mt="sm">
-              Track your project and experiments at a glance
-            </Text>
           </div>
+
+          {/* Beta notice */}
+          <Alert
+            variant="light"
+            color="progressBlue"
+            icon={<IconAlertTriangle size={20} />}
+            title="Welcome to the OAE Metadata Builder"
+          >
+            <Text size="sm">
+              The metadata builder allows you to manage metadata for Ocean
+              Alkalinity Enhancement (OAE) projects, experiments, and datasets
+              in compliance with the{" "}
+              <Anchor
+                href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
+                target="_blank"
+              >
+                OAE Data Management Protocol
+              </Anchor>
+              .
+            </Text>
+            <Text size="sm" mt="xs">
+              The metadata builder is currently in beta testing with a planned
+              Spring 2026 launch. If you have questions or concerns, please
+              contact{" "}
+              <Anchor href="mailto:data@carbontosea.org">
+                data@carbontosea.org
+              </Anchor>
+              .
+            </Text>
+            <Text size="sm" mt="xs">
+              For more information, visit the{" "}
+              <Anchor component={Link} href="/about">
+                About page
+              </Anchor>
+              .
+            </Text>
+          </Alert>
 
           {/* Project Section — only when created */}
           {state.hasProject && (

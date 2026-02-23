@@ -27,7 +27,7 @@ const experimentUiSchema = {
     "end_datetime",
     "spatial_coverage",
     "vertical_coverage",
-    "principal_investigators",
+    "experiment_leads",
     "permits",
     "meteorological_and_tidal_data",
     "data_conflicts_and_unreported_data",
@@ -82,11 +82,11 @@ const experimentUiSchema = {
       "max_height_in_m"
     ]
   },
-  principal_investigators: {
+  experiment_leads: {
     "ui:options": {
       addable: true,
       orderable: false,
-      addItemText: "Add Investigator"
+      addItemText: "Add Person"
     },
     items: {
       "ui:style": nestedItemStyle,

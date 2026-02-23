@@ -122,6 +122,15 @@ interface AppStateContextType {
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
+  // Session persistence
+  restoreFullState: (saved: {
+    hasProject: boolean;
+    projectData: ProjectFormData;
+    experiments: ExperimentState[];
+    datasets: DatasetState[];
+    nextExperimentId: number;
+    nextDatasetId: number;
+  }) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(
@@ -676,6 +685,29 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // Restore full state from session persistence (preserves IDs and linking)
+  const restoreFullState = useCallback(
+    (saved: {
+      hasProject: boolean;
+      projectData: ProjectFormData;
+      experiments: ExperimentState[];
+      datasets: DatasetState[];
+      nextExperimentId: number;
+      nextDatasetId: number;
+    }) => {
+      setState((prev) => ({
+        ...prev,
+        hasProject: saved.hasProject,
+        projectData: saved.projectData,
+        experiments: saved.experiments,
+        datasets: saved.datasets,
+        nextExperimentId: saved.nextExperimentId,
+        nextDatasetId: saved.nextDatasetId
+      }));
+    },
+    []
+  );
+
   const value: AppStateContextType = {
     state,
     createProject,
@@ -702,7 +734,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setActiveDataset,
     getDataset,
     // ID Linking methods
-    updateDatasetLinking
+    updateDatasetLinking,
+    // Session persistence
+    restoreFullState
   };
 
   return (
