@@ -6,6 +6,7 @@ import type { ProjectFormData } from "@/types/forms";
 
 const STORAGE_KEY = "oae-metadata-builder-session";
 const DEBOUNCE_MS = 2000;
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export interface SavedSession {
   savedAt: number;
@@ -25,15 +26,38 @@ function sessionHasContent(state: AppFormState): boolean {
   );
 }
 
+function isValidSavedSession(data: unknown): data is SavedSession {
+  if (typeof data !== "object" || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    typeof obj.savedAt === "number" &&
+    typeof obj.hasProject === "boolean" &&
+    typeof obj.projectData === "object" &&
+    obj.projectData !== null &&
+    Array.isArray(obj.experiments) &&
+    Array.isArray(obj.datasets) &&
+    typeof obj.nextExperimentId === "number" &&
+    typeof obj.nextDatasetId === "number"
+  );
+}
+
 function loadSavedSession(): SavedSession | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as SavedSession;
-    // Basic validity check
-    if (typeof parsed.savedAt !== "number") return null;
+    const parsed = JSON.parse(raw);
+    if (!isValidSavedSession(parsed)) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    // Expire sessions older than 30 days
+    if (Date.now() - parsed.savedAt > MAX_AGE_MS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
+    localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }

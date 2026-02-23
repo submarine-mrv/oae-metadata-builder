@@ -188,6 +188,7 @@ export default function OverviewPage() {
               <Anchor
                 href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 OAE Data Management Protocol
               </Anchor>
