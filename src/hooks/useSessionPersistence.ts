@@ -41,23 +41,31 @@ function isValidSavedSession(data: unknown): data is SavedSession {
   );
 }
 
+function safeClearSession() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage unavailable — nothing to do
+  }
+}
+
 function loadSavedSession(): SavedSession | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!isValidSavedSession(parsed)) {
-      localStorage.removeItem(STORAGE_KEY);
+      safeClearSession();
       return null;
     }
     // Expire sessions older than 30 days
     if (Date.now() - parsed.savedAt > MAX_AGE_MS) {
-      localStorage.removeItem(STORAGE_KEY);
+      safeClearSession();
       return null;
     }
     return parsed;
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    safeClearSession();
     return null;
   }
 }
