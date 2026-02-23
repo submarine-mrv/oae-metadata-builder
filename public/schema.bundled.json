@@ -3725,6 +3725,16 @@
     "ModelComponent": {
       "additionalProperties": false,
       "description": "A component of a model (e.g., physics, biogeochemistry/ecosystem).",
+      "if": {
+        "properties": {
+          "model_component_type": {
+            "const": "other"
+          }
+        },
+        "required": [
+          "model_component_type"
+        ]
+      },
       "properties": {
         "codebase": {
           "description": "Link to model code repository.",
@@ -3740,10 +3750,6 @@
           "$ref": "#/$defs/ModelComponentType",
           "description": "The type of model component (physics, BGC/ecosystem, or other).",
           "title": "Model Component Type"
-        },
-        "model_component_type_custom": {
-          "title": "Model Compoent Type (custom)",
-          "type": "string"
         },
         "name": {
           "description": "Name of the model component (e.g., ROMS, MARBL, Oceananigans).",
@@ -3771,6 +3777,17 @@
         "model_component_type",
         "name"
       ],
+      "then": {
+        "properties": {
+          "model_component_type_custom": {
+            "title": "Model Component Type (custom)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_component_type_custom"
+        ]
+      },
       "title": "ModelComponent",
       "type": "object"
     },
@@ -6080,5 +6097,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "f792e7850fd03c129bc9ec389761b21cb2b5b7f6"
+  "x-protocol-git-hash": "ee6485b79e78464976b19662f63cdaa0ae65017f"
 }

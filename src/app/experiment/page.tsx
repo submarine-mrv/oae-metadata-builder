@@ -47,7 +47,9 @@ import modelUiSchema from "./modelUiSchema";
 import { cleanFormDataForType } from "@/utils/experimentFields";
 import {
   cleanupConditionalFields,
-  type ConditionalFieldPair
+  cleanupNestedConditionalFields,
+  type ConditionalFieldPair,
+  type NestedConditionalFieldPair
 } from "@/utils/conditionalFields";
 import {
   getInSituExperimentSchema,
@@ -78,6 +80,16 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
     triggerField: "alkalinity_feedstock_processing",
     triggerValue: "other",
     customField: "alkalinity_feedstock_processing_custom"
+  }
+];
+
+// Conditional field pairs nested inside array fields
+const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
+  {
+    arrayField: "model_components",
+    triggerField: "model_component_type",
+    triggerValue: "other",
+    customField: "model_component_type_custom"
   }
 ];
 
@@ -165,6 +177,7 @@ export default function ExperimentPage() {
       // Clean up conditional custom fields when trigger conditions are not met
       // This prevents orphaned fields from rendering as "additional properties"
       newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
+      newData = cleanupNestedConditionalFields(newData, MODEL_NESTED_CONDITIONAL_FIELDS);
 
       setFormData(newData);
       if (activeExperimentId) {

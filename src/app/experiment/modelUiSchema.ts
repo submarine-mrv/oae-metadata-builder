@@ -74,6 +74,7 @@ const modelUiSchema = {
       "ui:order": [
         "name",
         "model_component_type",
+        "model_component_type_custom",
         "version",
         "codebase",
         "description",
@@ -89,6 +90,10 @@ const modelUiSchema = {
         "ui:options": {
           enumNames: enumNames.ModelComponentType
         }
+      },
+      model_component_type_custom: {
+        ...halfWidthStyle,
+        "ui:placeholder": "Specify other component type"
       },
       version: {
         ...halfWidthStyle,
