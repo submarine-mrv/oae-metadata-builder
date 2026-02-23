@@ -213,21 +213,26 @@ export default function Navigation() {
                 {/*>*/}
                 {/*  How-to Guide*/}
                 {/*</Menu.Item>*/}
-                <Menu.Divider />
-                <Menu.Item
-                  closeMenuOnClick={false}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toggleJsonPreview();
-                  }}
-                >
-                  <Switch
-                    label="JSON Preview"
-                    checked={state.showJsonPreview}
-                    onChange={toggleJsonPreview}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </Menu.Item>
+                {/* JSON Preview toggle — desktop only (sidebar is hidden on mobile) */}
+                {!isMobile && (
+                  <>
+                    <Menu.Divider />
+                    <Menu.Item
+                      closeMenuOnClick={false}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleJsonPreview();
+                      }}
+                    >
+                      <Switch
+                        label="JSON Preview"
+                        checked={state.showJsonPreview}
+                        onChange={toggleJsonPreview}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Menu.Item>
+                  </>
+                )}
               </Menu.Dropdown>
             </Menu>
           </Group>

@@ -1,6 +1,6 @@
 // uiSchemaConstants.ts - Shared UI schema configuration constants
 // These constants are used across multiple experiment form UI schemas
-import "./uiSchemaConstants.css";
+// CSS for field-half-width is in uiSchemaConstants.css, imported via layout.tsx
 
 export const textAreaWidget = {
   "ui:widget": "textarea",

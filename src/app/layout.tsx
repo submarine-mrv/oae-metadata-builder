@@ -7,6 +7,7 @@ import { theme } from "@/theme";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "./globals.css";
+import "./uiSchemaConstants.css";
 
 export default function RootLayout({
   children
