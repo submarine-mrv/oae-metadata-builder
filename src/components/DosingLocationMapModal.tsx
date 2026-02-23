@@ -12,6 +12,7 @@ import {
   Box,
   Select
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
 
 type DosingMode = "point" | "line" | "box";
@@ -33,6 +34,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
   mode,
   onChange
 }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -710,6 +712,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       onClose={onClose}
       title="Set Dosing Location"
       size="xl"
+      fullScreen={isMobile ?? false}
     >
       <Stack gap="md">
         <Select

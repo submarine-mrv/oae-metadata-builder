@@ -21,6 +21,7 @@ import {
   Grid,
   Box
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
@@ -120,6 +121,8 @@ export default function VariableModal({
   initialData,
   rootSchema
 }: VariableModalProps) {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   // Form state
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [openSections, setOpenSections] = useState<string[]>(["variable-type"]);
@@ -399,6 +402,7 @@ export default function VariableModal({
       title={isEditing ? "Edit Variable" : "Add Variable"}
       size="xl"
       centered
+      fullScreen={isMobile ?? false}
     >
       <ScrollArea h={550} offsetScrollbars>
         <Accordion

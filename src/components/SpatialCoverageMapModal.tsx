@@ -10,6 +10,7 @@ import {
   NumberInput,
   Group
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
   normalizeLongitude,
   DEGREES_IN_CIRCLE,
@@ -41,6 +42,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   onSelect,
   initialBounds = ""
 }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const startPointRef = useRef<{ lng: number; lat: number } | null>(null);
@@ -299,6 +301,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       title="Select Bounding Box"
       size="xl"
       centered
+      fullScreen={isMobile ?? false}
       zIndex={1100}
     >
       <Stack gap="md">

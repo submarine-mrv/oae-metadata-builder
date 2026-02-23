@@ -211,3 +211,10 @@ a:hover {
 input, select, textarea, .mantine-Input-wrapper {
   scroll-margin-top: 80px;
 }
+
+/* Mobile: stack 2-column grids in RJSF forms (gridCols: 2 array items) */
+@media (max-width: 768px) {
+  form .mantine-SimpleGrid-root {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
