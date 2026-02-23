@@ -30,7 +30,6 @@ const tracerUiSchema = {
     "vertical_coverage",
     // Tracer-specific fields
     "tracer_form",
-    "tracer_form_custom",
     "tracer_details",
     "tracer_concentration",
     "dosing_location",
@@ -54,10 +53,6 @@ const tracerUiSchema = {
     "ui:options": {
       enumNames: enumNames.TracerForm
     }
-  },
-  tracer_form_custom: {
-    ...halfWidthStyle,
-    "ui:placeholder": "Specify other tracer form"
   },
   tracer_details: {
     ...halfWidthStyle
