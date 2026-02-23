@@ -5,7 +5,10 @@ import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import { textAreaWidget, nestedItemStyle } from "../uiSchemaConstants";
 
-const enumNames = generateEnumNames(schema, ["MCDRPathway"]);
+const enumNames = generateEnumNames(schema, [
+  "MCDRPathway",
+  "ResearcherIDType"
+]);
 
 // UI schema configuration for project form
 const projectUiSchema = {
@@ -21,6 +24,7 @@ const projectUiSchema = {
     "sea_names",
     "spatial_coverage",
     "temporal_coverage",
+    "project_leads",
     "physical_site_description",
     "social_context_site_description",
     "social_research_conducted_to_date",
@@ -50,6 +54,63 @@ const projectUiSchema = {
   spatial_coverage: {
     "ui:field": "SpatialCoverageMiniMap",
     "ui:title": "Spatial Coverage"
+  },
+  project_leads: {
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Person"
+    },
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2
+      },
+      "ui:order": [
+        "name",
+        "email",
+        "role",
+        "phone",
+        "identifier_type",
+        "identifier",
+        "affiliation"
+      ],
+      name: {
+        "ui:placeholder": "Full name"
+      },
+      email: {
+        "ui:placeholder": "email@example.com"
+      },
+      phone: {
+        "ui:placeholder": "+1-555-555-5555"
+      },
+      role: {
+        "ui:placeholder": "e.g., Principal Investigator"
+      },
+      identifier_type: {
+        "ui:widget": "CustomSelectWidget",
+        "ui:options": {
+          enumNames: enumNames.ResearcherIDType
+        }
+      },
+      identifier: {
+        "ui:placeholder": "e.g., 0000-0000-0000-0000"
+      },
+      affiliation: {
+        "ui:order": ["name", "identifier", "country"],
+        name: {
+          "ui:title": "Organization Name",
+          "ui:placeholder": "Organization name"
+        },
+        identifier: {
+          "ui:title": "Organization Identifier",
+          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)"
+        },
+        country: {
+          "ui:placeholder": "e.g., US"
+        }
+      }
+    }
   },
   mcdr_pathway: {
     "ui:style": { width: "50%" },

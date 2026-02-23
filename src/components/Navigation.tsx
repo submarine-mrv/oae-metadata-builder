@@ -142,19 +142,15 @@ export default function Navigation() {
 
         {/* Actions - right aligned */}
         <Group gap="xs" justify="flex-end">
-          <Tooltip label="Import metadata file">
-            <ActionIcon
-              variant="subtle"
-              size="lg"
-              onClick={handleImportClick}
-              aria-label="Import File"
-            >
-              <IconFileImport size={20} />
-            </ActionIcon>
-          </Tooltip>
-
           <Button
-            variant="filled"
+              variant="light"
+              leftSection={<IconFileImport size={16} />}
+              onClick={handleImportClick}
+          >
+             Import
+          </Button>
+          <Button
+            variant="outline"
             leftSection={<IconDownload size={16} />}
             onClick={openModal}
           >
@@ -183,12 +179,12 @@ export default function Navigation() {
               >
                 About
               </Menu.Item>
-              <Menu.Item
-                leftSection={<IconHelp size={16} />}
-                onClick={() => router.push("/how-to")}
-              >
-                How-to Guide
-              </Menu.Item>
+              {/*<Menu.Item*/}
+              {/*  leftSection={<IconHelp size={16} />}*/}
+              {/*  onClick={() => router.push("/how-to")}*/}
+              {/*>*/}
+              {/*  How-to Guide*/}
+              {/*</Menu.Item>*/}
               <Menu.Divider />
               <Menu.Item
                 closeMenuOnClick={false}

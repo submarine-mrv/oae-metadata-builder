@@ -14,7 +14,8 @@ describe('Validation', () => {
             box: '-124.0 47.0 -122.0 48.0'
           }
         },
-        temporal_coverage: '2024-01-01/2024-12-31'
+        temporal_coverage: '2024-01-01/2024-12-31',
+        project_leads: []
       };
 
       const result = validateProject(validData);
@@ -77,7 +78,7 @@ describe('Validation', () => {
           min_depth_in_m: 0,
           max_depth_in_m: -100
         },
-        principal_investigators: [],
+        experiment_leads: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z'
       };
@@ -96,7 +97,7 @@ describe('Validation', () => {
         description: 'Alkalinity addition experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-        principal_investigators: [],
+        experiment_leads: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z',
         // Intervention-specific required fields
@@ -130,7 +131,7 @@ describe('Validation', () => {
         description: 'SF6 tracer study',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-        principal_investigators: [],
+        experiment_leads: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z',
         // Tracer-specific fields
@@ -164,7 +165,7 @@ describe('Validation', () => {
         description: 'Control experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-        principal_investigators: [],
+        experiment_leads: [],
         start_datetime: '2024-01-01T00:00:00Z',
         end_datetime: '2024-12-31T23:59:59Z'
       };
@@ -184,7 +185,8 @@ describe('Validation', () => {
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 1 1' } },
-        temporal_coverage: '2024-01-01/2024-12-31'
+        temporal_coverage: '2024-01-01/2024-12-31',
+        project_leads: []
       };
 
       const experiments = [
@@ -198,7 +200,7 @@ describe('Validation', () => {
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            principal_investigators: [],
+            experiment_leads: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }
@@ -263,7 +265,7 @@ describe('Validation', () => {
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            principal_investigators: [],
+            experiment_leads: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }
@@ -278,7 +280,7 @@ describe('Validation', () => {
             description: 'Control',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            principal_investigators: [],
+            experiment_leads: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }
@@ -299,7 +301,8 @@ describe('Validation', () => {
         mcdr_pathway: 'ocean_alkalinity_enhancement',
         sea_names: [],
         spatial_coverage: { geo: { box: '0 0 1 1' } },
-        temporal_coverage: '2024-01-01/2024-12-31'
+        temporal_coverage: '2024-01-01/2024-12-31',
+        project_leads: []
       };
 
       const experiments = [
@@ -313,7 +316,7 @@ describe('Validation', () => {
             description: 'Valid',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
-            principal_investigators: [],
+            experiment_leads: [],
             start_datetime: '2024-01-01T00:00:00Z',
             end_datetime: '2024-12-31T23:59:59Z'
           }

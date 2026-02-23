@@ -1,6 +1,7 @@
 "use client";
 import { MantineProvider } from "@mantine/core";
 import { AppStateProvider } from "@/contexts/AppStateContext";
+import SessionManager from "@/components/SessionManager";
 import { theme } from "@/theme";
 // Import Mantine styles BEFORE globals.css so our styles take precedence
 import "@mantine/core/styles.css";
@@ -20,7 +21,10 @@ export default function RootLayout({
       </head>
       <body>
         <MantineProvider theme={theme} defaultColorScheme="light">
-          <AppStateProvider>{children}</AppStateProvider>
+          <AppStateProvider>
+            <SessionManager />
+            {children}
+          </AppStateProvider>
         </MantineProvider>
       </body>
     </html>
