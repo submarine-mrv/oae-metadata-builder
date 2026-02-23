@@ -115,6 +115,7 @@ const modelUiSchema = {
       addItemText: "Add Grid"
     },
     items: {
+      "ui:title": "",
       "ui:style": nestedItemStyle,
       "ui:options": {
         ObjectFieldTemplate: GridObjectFieldTemplate
@@ -126,11 +127,12 @@ const modelUiSchema = {
         "arrangement",
         "n_x",
         "n_y",
+        "vertical_coordinate_type",
         "n_z",
         "n_nodes",
+        "region",
         "horizontal_resolution_range",
         "vertical_resolution_range",
-        "region",
         "spatial_coverage"
       ],
       grid_name: {
@@ -197,7 +199,8 @@ const modelUiSchema = {
       "tidal_forcing",
       "bathymetry",
       "river_sediment_flux_details",
-      "processing_of_input_data"
+      "processing_of_input_data",
+      "processing_code"
     ],
     initial_conditions: namedLinkArray("Add Initial Condition Source"),
     boundary_conditions: namedLinkArray("Add Boundary Condition Source"),
@@ -207,6 +210,7 @@ const modelUiSchema = {
     river_sediment_flux_details: namedLinkArray(
       "Add River/Sediment Flux Source"
     ),
+    processing_code: namedLinkArray("Add Processing Code"),
     processing_of_input_data: textAreaWidget
   },
 

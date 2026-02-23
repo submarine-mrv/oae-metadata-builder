@@ -2496,7 +2496,7 @@
         "end_datetime": {
           "description": "End date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "End Date and Time",
+          "title": "End Date and Time (UTC)",
           "type": "string"
         },
         "experiment_id": {
@@ -2535,7 +2535,7 @@
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "Start Date and Time",
+          "title": "Start Date and Time (UTC)",
           "type": "string"
         }
       },
@@ -2546,8 +2546,7 @@
         "experiment_id",
         "experiment_type",
         "principal_investigators",
-        "start_datetime",
-        "end_datetime"
+        "start_datetime"
       ],
       "title": "Experiment",
       "type": "object"
@@ -3024,7 +3023,7 @@
         "end_datetime": {
           "description": "End date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "End Date and Time",
+          "title": "End Date and Time (UTC)",
           "type": "string"
         },
         "experiment_id": {
@@ -3085,7 +3084,7 @@
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "Start Date and Time",
+          "title": "Start Date and Time (UTC)",
           "type": "string"
         },
         "vertical_coverage": {
@@ -3101,8 +3100,7 @@
         "experiment_id",
         "experiment_type",
         "principal_investigators",
-        "start_datetime",
-        "end_datetime"
+        "start_datetime"
       ],
       "title": "InSituExperiment",
       "type": "object"
@@ -3239,7 +3237,7 @@
         "end_datetime": {
           "description": "End date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "End Date and Time",
+          "title": "End Date and Time (UTC)",
           "type": "string"
         },
         "equilibration": {
@@ -3305,7 +3303,7 @@
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "Start Date and Time",
+          "title": "Start Date and Time (UTC)",
           "type": "string"
         },
         "vertical_coverage": {
@@ -3334,8 +3332,7 @@
         "experiment_id",
         "experiment_type",
         "principal_investigators",
-        "start_datetime",
-        "end_datetime"
+        "start_datetime"
       ],
       "title": "Intervention",
       "type": "object"
@@ -3472,7 +3469,7 @@
         "end_datetime": {
           "description": "End date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "End Date and Time",
+          "title": "End Date and Time (UTC)",
           "type": "string"
         },
         "equilibration": {
@@ -3538,7 +3535,7 @@
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "Start Date and Time",
+          "title": "Start Date and Time (UTC)",
           "type": "string"
         },
         "tracer_concentration": {
@@ -3585,8 +3582,7 @@
         "experiment_id",
         "experiment_type",
         "principal_investigators",
-        "start_datetime",
-        "end_datetime"
+        "start_datetime"
       ],
       "title": "InterventionWithTracer",
       "type": "object"
@@ -3633,7 +3629,7 @@
         "end_datetime": {
           "description": "End date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "End Date and Time",
+          "title": "End Date and Time (UTC)",
           "type": "string"
         },
         "experiment_id": {
@@ -3710,7 +3706,7 @@
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "Start Date and Time",
+          "title": "Start Date and Time (UTC)",
           "type": "string"
         }
       },
@@ -3721,8 +3717,7 @@
         "experiment_id",
         "experiment_type",
         "principal_investigators",
-        "start_datetime",
-        "end_datetime"
+        "start_datetime"
       ],
       "title": "Model",
       "type": "object"
@@ -3737,8 +3732,8 @@
           "type": "string"
         },
         "description": {
-          "description": "A description of the model component characteristics. For physics components, this may include the version of equations being solved (hydrostatic vs non-hydrostatic), tracer advection scheme, how bottom drag is represented, mixed layer parameterizations, sub-grid mixing parameterizations if applicable, etc. For BGC components, this may include air-sea CO2 flux parameterization, gas transfer velocity formulation, and atmospheric CO2 details. Associated links to data, DOIs, or publications can be noted here, but should be supplemental.",
-          "title": "Description",
+          "description": "A description of the model component characteristics.\nFor physics components, this should include the version of equations being solved (hydrostatic vs non-hydrostatic), tracer advection scheme, how bottom drag is represented, mixed layer parameterizations, sub-grid mixing parameterizations if applicable, etc.\nFor BGC components, this should include details of which parameters are modeled explicitly, derived carbonate system parameters, advection scheme for biological tracers, CO₂ solver protocol (e.g., CO₂SYS), links to data/code with biological model parameters (e.g., growth and mortality rates), etc. Equations for each explicitly modeled parameter should be provided (can be links to publications), and it should be noted if any equations or parameter values (e.g. growth rates) were modified. Description and/or references of air-sea CO₂ flux parameterization used, gas transfer velocity formulation and atmospheric CO₂ details (e.g., fixed or time varying, and if time varying which data were used). Also include details on whether dissolution and precipitation of calcium carbonate are considered, how exchanges between sediment and overlying water are represented (if applicable), and whether active feedbacks between biological processes and the carbonate system are represented.\nAssociated links to data, DOIs, or publications can be noted here, but should be supplemental.",
+          "title": "Model Component Description",
           "type": "string"
         },
         "model_component_type": {
@@ -3746,13 +3741,17 @@
           "description": "The type of model component (physics, BGC/ecosystem, or other).",
           "title": "Model Component Type"
         },
+        "model_component_type_custom": {
+          "title": "Model Compoent Type (custom)",
+          "type": "string"
+        },
         "name": {
           "description": "Name of the model component (e.g., ROMS, MARBL, Oceananigans).",
           "title": "Component Name",
           "type": "string"
         },
         "references": {
-          "description": "DOIs or links to publications describing the model component.",
+          "description": "Links or DOIs to any reference(s) relevant to the model components/development, specific model configuration, model validation etc.",
           "items": {
             "type": "string"
           },
@@ -3780,6 +3779,8 @@
       "enum": [
         "physics",
         "bgc_ecosystem",
+        "sea_ice",
+        "atmosphere",
         "other"
       ],
       "title": "ModelComponentType",
@@ -3816,22 +3817,22 @@
         },
         "n_nodes": {
           "description": "Number of nodes in the grid (for unstructured grids).",
-          "title": "N_nodes",
+          "title": "N nodes",
           "type": "integer"
         },
         "n_x": {
           "description": "Number of grid points in the x-direction.",
-          "title": "N_x",
+          "title": "Nx",
           "type": "integer"
         },
         "n_y": {
           "description": "Number of grid points in the y-direction.",
-          "title": "N_y",
+          "title": "Ny",
           "type": "integer"
         },
         "n_z": {
           "description": "Number of vertical coordinate levels.",
-          "title": "N_z",
+          "title": "Nz",
           "type": "integer"
         },
         "region": {
@@ -3844,12 +3845,20 @@
           "description": "Bounding box for this grid, provided as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude.",
           "title": "Spatial Coverage"
         },
+        "vertical_coordinate_type": {
+          "description": "The vertical grid coordinate type (e.g. z-coordinate, z*-coordinate, terrain-following coordinate, isopycnal coordinate)",
+          "title": "Veritical coordinate type",
+          "type": "string"
+        },
         "vertical_resolution_range": {
           "description": "Description of vertical resolution (e.g., 'Max. 4 m near surface, stretching to 500 m at depth').",
           "title": "Vertical Resolution Range",
           "type": "string"
         }
       },
+      "required": [
+        "grid_type"
+      ],
       "title": "ModelGrid",
       "type": "object"
     },
@@ -3896,6 +3905,17 @@
             "$ref": "#/$defs/NamedLink"
           },
           "title": "Initial Conditions",
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "processing_code": {
+          "description": "If applicable, link to any code for processing of raw forcing and input data listed in the fields above.",
+          "items": {
+            "$ref": "#/$defs/NamedLink"
+          },
+          "title": "Processing code",
           "type": [
             "array",
             "null"
@@ -5788,7 +5808,7 @@
         "end_datetime": {
           "description": "End date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "End Date and Time",
+          "title": "End Date and Time (UTC)",
           "type": "string"
         },
         "experiment_id": {
@@ -5849,7 +5869,7 @@
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
-          "title": "Start Date and Time",
+          "title": "Start Date and Time (UTC)",
           "type": "string"
         },
         "tracer_concentration": {
@@ -5889,8 +5909,7 @@
         "experiment_id",
         "experiment_type",
         "principal_investigators",
-        "start_datetime",
-        "end_datetime"
+        "start_datetime"
       ],
       "title": "Tracer",
       "type": "object"
@@ -6061,5 +6080,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "14838b9e722d9d52925e2c15dfd9d43ab8c19a31"
+  "x-protocol-git-hash": "f792e7850fd03c129bc9ec389761b21cb2b5b7f6"
 }
