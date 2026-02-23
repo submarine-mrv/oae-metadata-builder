@@ -116,6 +116,7 @@ interface AppStateContextType {
   // Dataset methods
   addDataset: (name?: string) => number;
   updateDataset: (id: number, data: Partial<DatasetFormData> & { name?: string }) => void;
+  replaceDatasetFormData: (id: number, data: DatasetFormData) => void;
   deleteDataset: (id: number) => void;
   setActiveDataset: (id: number | null) => void;
   getDataset: (id: number) => DatasetData | undefined;
@@ -361,6 +362,24 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
                 ...ds,
                 formData: { ...ds.formData, ...data } as DatasetFormData,
                 name: data.name || ds.name,
+                updatedAt: Date.now()
+              }
+            : ds
+        )
+      }));
+    },
+    []
+  );
+
+  const replaceDatasetFormData = useCallback(
+    (id: number, data: DatasetFormData) => {
+      setState((prev) => ({
+        ...prev,
+        datasets: prev.datasets.map((ds) =>
+          ds.id === id
+            ? {
+                ...ds,
+                formData: data,
                 updatedAt: Date.now()
               }
             : ds
@@ -677,6 +696,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     // Dataset methods
     addDataset,
     updateDataset,
+    replaceDatasetFormData,
     deleteDataset,
     setActiveDataset,
     getDataset,

@@ -113,7 +113,7 @@ function isModelOutputType(datasetType: string | undefined): boolean {
 }
 
 export default function DatasetPage() {
-  const { state, updateDataset, getDataset, setActiveTab } =
+  const { state, replaceDatasetFormData, getDataset, setActiveTab } =
     useAppState();
 
   // Dynamic schema/uiSchema switching based on dataset_type
@@ -230,8 +230,8 @@ export default function DatasetPage() {
     // Update local state first (form sees cleaned data immediately),
     // then sync to context
     setFormData(newData);
-    updateDataset(state.activeDatasetId, newData);
-  }, [isInitialLoad, formData, state.activeDatasetId, updateDataset]);
+    replaceDatasetFormData(state.activeDatasetId, newData);
+  }, [isInitialLoad, formData, state.activeDatasetId, replaceDatasetFormData]);
 
   // Show message if no dataset is selected
   if (!currentDataset) {
