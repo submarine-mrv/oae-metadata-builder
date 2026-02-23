@@ -380,6 +380,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             ? {
                 ...ds,
                 formData: data,
+                name: (data.name as string) || ds.name,
                 updatedAt: Date.now()
               }
             : ds
