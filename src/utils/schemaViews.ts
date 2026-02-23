@@ -57,7 +57,10 @@ function createSchemaView(defName: string, schemaId: string, hasConditionalField
     // This is required for conditional fields to render, but causes issues with
     // nested object properties being rendered as additional properties.
     additionalProperties: hasConditionalFields ? true : def.additionalProperties,
-    allOf: def.allOf
+    allOf: def.allOf,
+    if: def.if,
+    then: def.then,
+    else: def.else
   } as unknown as RJSFSchema;
 }
 

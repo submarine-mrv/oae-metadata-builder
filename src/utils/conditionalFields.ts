@@ -76,6 +76,7 @@ export function cleanupNestedConditionalFields<T extends FormDataRecord>(
 
     let changed = false;
     const cleanedItems = items.map((item: FormDataRecord) => {
+      if (!item || typeof item !== "object") return item;
       if (item[triggerField] !== triggerValue && customField in item) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [customField]: _removed, ...rest } = item;

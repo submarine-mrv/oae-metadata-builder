@@ -3864,7 +3864,7 @@
         },
         "vertical_coordinate_type": {
           "description": "The vertical grid coordinate type (e.g. z-coordinate, z*-coordinate, terrain-following coordinate, isopycnal coordinate)",
-          "title": "Veritical coordinate type",
+          "title": "Vertical coordinate type",
           "type": "string"
         },
         "vertical_resolution_range": {
@@ -6097,5 +6097,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "ee6485b79e78464976b19662f63cdaa0ae65017f"
+  "x-protocol-git-hash": "e0fa98c992215b377013c5961ba7186a740369d6"
 }

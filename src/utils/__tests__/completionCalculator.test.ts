@@ -167,8 +167,8 @@ describe("completionCalculator", () => {
       };
 
       const result = calculateFormCompletion(data);
-      // 4 out of 8 base fields filled (experiment_id, experiment_type, description, vertical_coverage)
-      expect(result).toBe(50);
+      // 4 out of 7 base fields filled (experiment_id, experiment_type, description, vertical_coverage)
+      expect(result).toBe(57);
     });
   });
 });
