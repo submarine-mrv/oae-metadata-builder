@@ -156,13 +156,13 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
 // =============================================================================
 
 export const VARIABLE_TYPE_OPTIONS = [
+    { value: "other", label: "Generic Variable" },
   { value: "pH", label: "pH" },
   { value: "ta", label: "Total Alkalinity (TA)" },
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
   { value: "sediment", label: "Sediment" },
   { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
-  { value: "hplc", label: "HPLC" },
-  { value: "other", label: "Other (Generic Variable Type)" }
+  { value: "hplc", label: "HPLC" }
 ] as const;
 
 // =============================================================================

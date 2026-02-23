@@ -167,7 +167,7 @@ export default function OverviewPage() {
         <Stack gap="xl">
           {/* Header */}
           <div>
-            <Title order={1}>OAE Data Protocol – Overview</Title>
+            <Title order={1}>OAE Metadata Builder – Overview</Title>
             <Text c="dimmed" mt="sm">
               Track your project and experiments at a glance
             </Text>
