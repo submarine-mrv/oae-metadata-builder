@@ -157,7 +157,8 @@ function fixConditionalFields(schema) {
   const conditionalFields = [
     "feedstock_type_custom",
     "alkalinity_feedstock_custom",
-    "alkalinity_feedstock_processing_custom"
+    "alkalinity_feedstock_processing_custom",
+    "alkalinity_perturbation_description"
   ];
 
   Object.keys(schema.$defs || {}).forEach((className) => {
@@ -193,6 +194,68 @@ function fixConditionalFields(schema) {
   return schema;
 }
 
+/**
+ * Converts snake_case enum values to Title Case labels.
+ * Mirrors the frontend's formatEnumTitle() in src/utils/enumDecorator.ts
+ */
+const BUNDLER_ENUM_OVERRIDES = {
+  air_sea_co2_flux: "Air-Sea CO₂ Flux",
+  dissolved_inorganic_carbon: "Dissolved Inorganic Carbon (DIC)",
+  total_alkalinity: "Total Alkalinity (TA)",
+  ph: "pH",
+  bgc_ecosystem: "BGC / Ecosystem"
+};
+
+function formatEnumTitle(value) {
+  if (BUNDLER_ENUM_OVERRIDES[value]) return BUNDLER_ENUM_OVERRIDES[value];
+  return value
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/**
+ * Resolves array fields that have items.$ref pointing to an enum $def.
+ * Inlines the enum values as oneOf with formatted labels and adds uniqueItems.
+ * This makes RJSF render them as multi-select widgets (like sea_names).
+ *
+ * @param {Object} schema - The full schema
+ * @param {Array} configs - Array of { defName, fieldPath } to process
+ */
+function inlineEnumArrayItems(schema, configs) {
+  for (const { defName, fieldPath } of configs) {
+    const classDef = schema.$defs?.[defName];
+    if (!classDef) continue;
+
+    // Navigate to the field
+    let target = classDef;
+    for (const key of fieldPath.split(".")) {
+      target = target?.[key];
+    }
+
+    if (!target || !target.items?.$ref) continue;
+
+    // Resolve the $ref to get the enum def
+    const refName = target.items.$ref.replace("#/$defs/", "");
+    const enumDef = schema.$defs?.[refName];
+    if (!enumDef?.enum) continue;
+
+    // Build oneOf from enum values with formatted labels
+    const oneOf = enumDef.enum.map((value) => ({
+      const: value,
+      title: formatEnumTitle(value)
+    }));
+
+    // Inline as oneOf with uniqueItems
+    target.items = { oneOf };
+    target.uniqueItems = true;
+
+    console.log(`✓ Inlined ${refName} enum into ${defName}.${fieldPath.replace("properties.", "")} (${oneOf.length} options)`);
+  }
+
+  return schema;
+}
+
 // NVS decoration configurations
 // Add new entries here when adding more NVS vocabularies
 const nvsDecorations = [
@@ -216,6 +279,14 @@ let decorated = base;
 for (const config of nvsDecorations) {
   decorated = decorateWithNvsLabels(decorated, config);
 }
+
+// Inline enum $ref array items as oneOf with labels for multi-select rendering
+decorated = inlineEnumArrayItems(decorated, [
+  {
+    defName: "ModelSimulationDataset",
+    fieldPath: "properties.model_output_variables"
+  }
+]);
 
 decorated = fixConditionalFields(decorated);
 

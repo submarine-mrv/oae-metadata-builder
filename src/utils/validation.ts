@@ -3,11 +3,13 @@ import Ajv2019 from "ajv/dist/2019";
 import type { RJSFValidationError } from "@rjsf/utils";
 import {
   getProjectSchema,
-  getExperimentSchema,
+  getInSituExperimentSchema,
+  getModelSchema,
   getInterventionSchema,
   getTracerSchema,
   getInterventionWithTracerSchema,
-  getDatasetSchema
+  getFieldDatasetSchema,
+  getModelSimulationDatasetSchema
 } from "./schemaViews";
 import { validateDatasetWithVariables } from "./datasetValidation";
 import type {
@@ -65,9 +67,12 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
       schema = getTracerSchema();
     } else if (experimentType === "intervention_with_tracer") {
       schema = getInterventionWithTracerSchema();
+    } else if (experimentType === "model") {
+      schema = getModelSchema();
     } else {
-      // Use base Experiment schema for baseline, control, model, other
-      schema = getExperimentSchema();
+      // Use InSituExperiment schema for baseline, control, other
+      // (has vertical_coverage, permits, etc. that moved from base Experiment)
+      schema = getInSituExperimentSchema();
     }
 
     const result = validator.validateFormData(experimentData, schema);
@@ -111,7 +116,10 @@ export function validateDataset(
   options?: ValidateDatasetOptions
 ): ValidationResult {
   try {
-    const schema = getDatasetSchema();
+    const datasetType = datasetData.dataset_type;
+    const schema = datasetType === "model_output"
+      ? getModelSimulationDatasetSchema()
+      : getFieldDatasetSchema();
     const result = validateDatasetWithVariables(datasetData, schema);
 
     let errors = result.datasetErrors;

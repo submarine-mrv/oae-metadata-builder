@@ -5,8 +5,8 @@
 
 import type { FormDataRecord } from "@/types/forms";
 
-// Common fields present in all experiment types
-const COMMON_FIELDS = [
+// Fields present in the base Experiment class (shared by all types)
+const BASE_EXPERIMENT_FIELDS = [
   "experiment_id",
   "experiment_type",
   "name",
@@ -15,8 +15,13 @@ const COMMON_FIELDS = [
   "start_datetime",
   "end_datetime",
   "spatial_coverage",
+  "principal_investigators"
+];
+
+// Additional fields on InSituExperiment (field experiment types)
+const IN_SITU_FIELDS = [
   "vertical_coverage",
-  "principal_investigators",
+  "permits",
   "meteorological_and_tidal_data",
   "data_conflicts_and_unreported_data",
   "additional_details"
@@ -52,28 +57,43 @@ const TRACER_FIELDS = [
   "dosing_regimen"
 ];
 
+// Model-specific fields
+const MODEL_FIELDS = [
+  "grid_details",
+  "input_details",
+  "model_components",
+  "model_configuration"
+];
+
 /**
  * Returns the set of valid fields for a given experiment type
  */
 export function getValidFieldsForType(experimentType: string): Set<string> {
-  const validFields = new Set(COMMON_FIELDS);
+  const validFields = new Set(BASE_EXPERIMENT_FIELDS);
 
   switch (experimentType) {
+    case "model":
+      MODEL_FIELDS.forEach((field) => validFields.add(field));
+      break;
     case "intervention":
+      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
       INTERVENTION_FIELDS.forEach((field) => validFields.add(field));
       break;
     case "tracer_study":
+      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
       TRACER_FIELDS.forEach((field) => validFields.add(field));
       break;
     case "intervention_with_tracer":
+      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
       INTERVENTION_FIELDS.forEach((field) => validFields.add(field));
       TRACER_FIELDS.forEach((field) => validFields.add(field));
       break;
     case "control":
     case "baseline":
-    case "model":
     case "other":
-      // Only common fields
+    default:
+      // InSituExperiment fields (field experiment types)
+      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
       break;
   }
 
