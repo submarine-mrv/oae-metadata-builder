@@ -141,12 +141,12 @@ export function getFieldDatasetSchema() {
 }
 
 /**
- * Gets the ModelSimulationDataset schema for model output datasets.
+ * Gets the ModelOutputDataset schema for model output datasets.
  * Has if/then conditional (simulation_type → alkalinity_perturbation_description)
  * so needs additionalProperties: true.
  */
-export function getModelSimulationDatasetSchema() {
-  return createSchemaView("ModelSimulationDataset", "ModelSimulationDatasetSchema", true);
+export function getModelOutputDatasetSchema() {
+  return createSchemaView("ModelOutputDataset", "ModelOutputDatasetSchema", true);
 }
 
 // =============================================================================

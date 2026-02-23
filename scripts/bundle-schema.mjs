@@ -146,13 +146,28 @@ function decorateWithNvsLabels(schema, config) {
   }
 }
 
+// LinkML generates conditional fields (if/then rules) with the field in BOTH
+// root `properties` (full definition) AND the `then` block (empty placeholder {}).
+//
+// Problem: RJSF renders anything in root `properties` unconditionally. The
+// if/then only controls whether a field is *required*, not *visible*. So without
+// this fix, conditional fields (e.g., alkalinity_feedstock_custom) would always
+// show in the form — even when their trigger condition isn't met.
+//
+// Fix: Remove the field from root `properties` and copy the full definition
+// into the `then` block. This way the field only appears when the condition
+// matches.
+//
+// Note: The $defs here keep `additionalProperties: false` from LinkML, but at
+// runtime schemaViews.ts overrides it to `true` for schemas with conditionals
+// (RJSF requires that for if/then to render). That override creates a side
+// effect — orphaned conditional data shows as key/value editors — which
+// conditionalFields.ts cleans up via onChange.
+//
+// See: docs/conditional-fields.md for the full pipeline.
+// See: src/utils/schemaViews.ts (additionalProperties override)
+// See: src/utils/conditionalFields.ts (orphan cleanup)
 function fixConditionalFields(schema) {
-  // Remove conditional "_custom" fields from root properties in any class that has them
-  // This fixes LinkML-generated schemas where conditional fields appear in both
-  // root properties AND the then block, causing them to always be visible
-  //
-  // IMPORTANT: All schemas which have conditional fields MUST have
-  // additionalProperties set to false
 
   const conditionalFields = [
     "feedstock_type_custom",
@@ -215,14 +230,19 @@ function formatEnumTitle(value) {
     .join(" ");
 }
 
-/**
- * Resolves array fields that have items.$ref pointing to an enum $def.
- * Inlines the enum values as oneOf with formatted labels and adds uniqueItems.
- * This makes RJSF render them as multi-select widgets (like sea_names).
- *
- * @param {Object} schema - The full schema
- * @param {Array} configs - Array of { defName, fieldPath } to process
- */
+// Resolves array fields where `items` references an enum via $ref, converting
+// them into `items.oneOf` with human-readable labels.
+//
+// Why this is needed: For single-value enum properties, RJSF resolves the $ref
+// and we provide labels via `ui:enumNames` in the uiSchema. But for multi-select
+// arrays (type: "array" with enum items), `ui:enumNames` doesn't work — RJSF
+// expects `items.oneOf` with `{ const, title }` pairs to render labeled options.
+//
+// This is the same structure that sea_names uses (produced by decorateWithNvsLabels),
+// just with labels derived from snake_case formatting instead of NVS vocabularies.
+//
+// Without this, the multi-select would show raw enum values like "air_sea_co2_flux"
+// instead of "Air-Sea CO₂ Flux".
 function inlineEnumArrayItems(schema, configs) {
   for (const { defName, fieldPath } of configs) {
     const classDef = schema.$defs?.[defName];
@@ -284,7 +304,7 @@ for (const config of nvsDecorations) {
 // Inline enum $ref array items as oneOf with labels for multi-select rendering
 decorated = inlineEnumArrayItems(decorated, [
   {
-    defName: "ModelSimulationDataset",
+    defName: "ModelOutputDataset",
     fieldPath: "properties.model_output_variables"
   }
 ]);

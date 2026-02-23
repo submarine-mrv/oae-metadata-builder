@@ -3969,7 +3969,7 @@
       "title": "ModelInputDetails",
       "type": "object"
     },
-    "ModelSimulationDataset": {
+    "ModelOutputDataset": {
       "additionalProperties": false,
       "description": "A model simulation output dataset. Contains fields specific to computational model output including simulation configuration, output variables, and hardware information.",
       "if": {
@@ -4028,7 +4028,7 @@
             "type": "string"
           },
           "minItems": 1,
-          "title": "Filenames",
+          "title": "Model Output Filenames",
           "type": "array"
         },
         "hardware_configuration": {
@@ -4080,14 +4080,10 @@
               {
                 "const": "vertical_velocity",
                 "title": "Vertical Velocity"
-              },
-              {
-                "const": "other",
-                "title": "Other"
               }
             ]
           },
-          "title": "Model Output Variables",
+          "title": "Key Model Output Variables",
           "type": [
             "array",
             "null"
@@ -4155,10 +4151,10 @@
           "alkalinity_perturbation_description"
         ]
       },
-      "title": "ModelSimulationDataset",
+      "title": "ModelOutputDataset",
       "type": "object"
     },
-    "ModelSimulationVariable": {
+    "ModelOutputVariable": {
       "description": "Variables commonly included in model simulation output datasets",
       "enum": [
         "air_sea_co2_flux",
@@ -4169,10 +4165,9 @@
         "ph",
         "phytoplankton",
         "horizontal_velocity",
-        "vertical_velocity",
-        "other"
+        "vertical_velocity"
       ],
-      "title": "ModelSimulationVariable",
+      "title": "ModelOutputVariable",
       "type": "string"
     },
     "MonetaryGrant": {
@@ -6097,5 +6092,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "e0fa98c992215b377013c5961ba7186a740369d6"
+  "x-protocol-git-hash": "0858b34f55a2e9d4bec9da67d93ccb798a53a91c"
 }

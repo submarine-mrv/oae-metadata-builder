@@ -9,7 +9,7 @@ import {
   getTracerSchema,
   getInterventionWithTracerSchema,
   getFieldDatasetSchema,
-  getModelSimulationDatasetSchema
+  getModelOutputDatasetSchema
 } from "./schemaViews";
 import { validateDatasetWithVariables } from "./datasetValidation";
 import type {
@@ -118,7 +118,7 @@ export function validateDataset(
   try {
     const datasetType = datasetData.dataset_type;
     const schema = datasetType === "model_output"
-      ? getModelSimulationDatasetSchema()
+      ? getModelOutputDatasetSchema()
       : getFieldDatasetSchema();
     const result = validateDatasetWithVariables(datasetData, schema);
 

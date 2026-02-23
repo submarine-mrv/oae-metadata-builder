@@ -1,5 +1,5 @@
-// modelSimulationUiSchema.ts - UI configuration for model simulation datasets
-// Tailored for ModelSimulationDataset schema fields
+// modelOutputUiSchema.ts - UI configuration for model output datasets
+// Tailored for ModelOutputDataset schema fields
 
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
@@ -11,7 +11,7 @@ import {
 
 const enumNames = generateEnumNames(schema, ["DatasetType", "SimulationType"]);
 
-const modelSimulationUiSchema = {
+const modelOutputUiSchema = {
   "ui:title": "",
   "ui:options": {
     expandable: false
@@ -127,7 +127,6 @@ const modelSimulationUiSchema = {
   },
   filenames: {
     "ui:field": "FilenamesField",
-    "ui:title": "Dataset Filenames"
   },
   data_submitter: {
     "ui:style": nestedItemStyle,
@@ -190,4 +189,4 @@ const modelSimulationUiSchema = {
   }
 };
 
-export default modelSimulationUiSchema;
+export default modelOutputUiSchema;

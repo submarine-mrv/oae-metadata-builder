@@ -1,6 +1,6 @@
 /**
  * Defines which fields belong to each dataset type
- * Used for cleaning form data when switching between FieldDataset and ModelSimulationDataset
+ * Used for cleaning form data when switching between FieldDataset and ModelOutputDataset
  */
 
 import type { FormDataRecord } from "@/types/forms";
@@ -20,7 +20,7 @@ const BASE_DATASET_FIELDS = [
   "fair_use_data_request"
 ];
 
-// FieldDataset-specific fields (not in ModelSimulationDataset)
+// FieldDataset-specific fields (not in ModelOutputDataset)
 const FIELD_DATASET_FIELDS = [
   "platform_info",
   "calibration_files",
@@ -30,7 +30,7 @@ const FIELD_DATASET_FIELDS = [
   "variables"
 ];
 
-// ModelSimulationDataset-specific fields (not in FieldDataset)
+// ModelOutputDataset-specific fields (not in FieldDataset)
 const MODEL_SIMULATION_FIELDS = [
   "simulation_type",
   "alkalinity_perturbation_description",

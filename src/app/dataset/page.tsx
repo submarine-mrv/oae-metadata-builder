@@ -17,7 +17,7 @@ import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
 import fieldDatasetUiSchema from "./uiSchema";
-import modelSimulationUiSchema from "./modelSimulationUiSchema";
+import modelOutputUiSchema from "./modelOutputUiSchema";
 import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
@@ -37,7 +37,7 @@ import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import {
   getFieldDatasetSchema,
-  getModelSimulationDatasetSchema
+  getModelOutputDatasetSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateDataset } from "@/utils/validation";
@@ -57,7 +57,7 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
 
-// Conditional field pairs for model simulation dataset forms
+// Conditional field pairs for model output dataset forms
 const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
   {
     triggerField: "simulation_type",
@@ -120,16 +120,26 @@ export default function DatasetPage() {
   const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldDatasetUiSchema);
 
+  // Local form data state — decoupled from context to prevent stale fields
+  // on type switch (updateDataset uses merge semantics which would re-add
+  // fields that cleanup removed)
+  const [formData, setFormData] = useState<any>({});
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   // Get current dataset
   const currentDataset = state.activeDatasetId
     ? getDataset(state.activeDatasetId)
     : null;
 
-  // Memoize formData to prevent dependency changes on every render
-  const formData = useMemo(
-    () => currentDataset?.formData || {},
-    [currentDataset?.formData]
-  );
+  // Load dataset data when active dataset changes
+  useEffect(() => {
+    setIsInitialLoad(true);
+
+    if (currentDataset) {
+      setFormData(currentDataset.formData);
+      setTimeout(() => setIsInitialLoad(false), 0);
+    }
+  }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Use the download hook
   const hasExperiments = state.experiments.length > 0;
@@ -148,8 +158,8 @@ export default function DatasetPage() {
     const datasetType = formData.dataset_type;
 
     if (isModelOutputType(datasetType)) {
-      setActiveSchema(getModelSimulationDatasetSchema());
-      setActiveUiSchema(modelSimulationUiSchema);
+      setActiveSchema(getModelOutputDatasetSchema());
+      setActiveUiSchema(modelOutputUiSchema);
     } else {
       setActiveSchema(createFieldDatasetFormSchema());
       setActiveUiSchema(fieldDatasetUiSchema);
@@ -177,7 +187,7 @@ export default function DatasetPage() {
       // Run variable validation and inject errors into RJSF's error list.
       // This is needed because RJSF uses a simplified schema that skips
       // variable item validation (polymorphism workaround - oae-form-99i).
-      // Only applies to FieldDataset (ModelSimulationDataset has no variables field).
+      // Only applies to FieldDataset (ModelOutputDataset has no variables field).
       if (!isModelOutputType(formDataRef.current.dataset_type)) {
         const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
         const variableErrors = datasetResult.errors.filter(
@@ -197,7 +207,7 @@ export default function DatasetPage() {
   }, [setActiveTab]);
 
   const handleFormChange = useCallback((e: any) => {
-    if (!state.activeDatasetId) return;
+    if (!state.activeDatasetId || isInitialLoad) return;
 
     let newData = e.formData;
 
@@ -205,18 +215,23 @@ export default function DatasetPage() {
     const oldType = formData.dataset_type;
     const newType = newData.dataset_type;
 
-    if (oldType && newType && oldType !== newType) {
-      // Dataset type changed — clean fields that don't belong to new type
+    if (newType && oldType !== newType) {
+      // Dataset type changed — clean fields that don't belong to new type.
+      // Note: oldType can be undefined on first selection (fresh dataset),
+      // so we don't guard on oldType being truthy.
       newData = cleanDatasetFormDataForType(newData, newType);
     }
 
-    // Clean up conditional custom fields for model simulation datasets
+    // Clean up conditional custom fields for model output datasets
     if (isModelOutputType(newData.dataset_type)) {
       newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
     }
 
+    // Update local state first (form sees cleaned data immediately),
+    // then sync to context
+    setFormData(newData);
     updateDataset(state.activeDatasetId, newData);
-  }, [formData, state.activeDatasetId, updateDataset]);
+  }, [isInitialLoad, formData, state.activeDatasetId, updateDataset]);
 
   // Show message if no dataset is selected
   if (!currentDataset) {
