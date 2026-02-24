@@ -21,7 +21,8 @@ import {
   IconFileImport
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { importMetadata } from "@/utils/exportImport";
 import DownloadModal from "@/components/DownloadModal";
 import ImportPreviewModal from "@/components/ImportPreviewModal";
@@ -104,6 +105,9 @@ export default function Navigation() {
     router.push("/overview");
   };
 
+  const pathname = usePathname();
+  const isTabPage = ["/overview", "/project", "/experiment", "/dataset"].includes(pathname);
+
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   return (
@@ -118,13 +122,19 @@ export default function Navigation() {
             gap: "1rem"
           }}
         >
-          {/* Logo and title - left aligned */}
-          <Group gap="sm">
-            <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
-            <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
-              OAE Metadata Builder
-            </Text>
-          </Group>
+          {/* Logo and title - left aligned, links to Overview */}
+          <Link
+            href="/overview"
+            onClick={() => setActiveTab("overview")}
+            style={{ textDecoration: "none" }}
+          >
+            <Group gap="sm">
+              <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
+              <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
+                OAE Metadata Builder
+              </Text>
+            </Group>
+          </Link>
 
           {/* Navigation tabs - centered (desktop only) */}
           {!isMobile && (
@@ -132,7 +142,7 @@ export default function Navigation() {
               style={{
                 backgroundColor: "var(--brand-sunlight)"
               }}
-              value={state.activeTab}
+              value={isTabPage ? state.activeTab : ""}
               onChange={handleNavigation}
               data={[
                 { value: "overview", label: "Overview" },
@@ -245,7 +255,7 @@ export default function Navigation() {
               backgroundColor: "var(--brand-sunlight)",
               marginTop: "0.5rem"
             }}
-            value={state.activeTab}
+            value={isTabPage ? state.activeTab : ""}
             onChange={handleNavigation}
             data={[
               { value: "overview", label: "Overview" },
