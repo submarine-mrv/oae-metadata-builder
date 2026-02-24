@@ -11,6 +11,7 @@ import {
   Select,
   Tooltip
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
   IconAlertTriangle,
   IconFileImport,
@@ -65,6 +66,7 @@ export default function ImportPreviewModal({
   duplicateExperimentIdError,
   onImport
 }: ImportPreviewModalProps) {
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
   const hasBlockingError = duplicateExperimentIdError !== null;
@@ -219,6 +221,7 @@ export default function ImportPreviewModal({
       }
       centered
       size="xl"
+      fullScreen={isMobile ?? false}
     >
       <Stack gap="md">
         {/* Success message with summary */}

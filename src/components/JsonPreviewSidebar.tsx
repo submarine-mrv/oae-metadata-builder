@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Box, Group, Text, Button } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 
@@ -20,6 +21,7 @@ const MAX_WIDTH = 800;
  */
 export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
   const { state, setShowJsonPreview } = useAppState();
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
@@ -46,7 +48,7 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
     };
   }, [isResizing]);
 
-  if (!state.showJsonPreview) {
+  if (!state.showJsonPreview || isMobile) {
     return null;
   }
 
