@@ -3,7 +3,11 @@
 // Generate formatted enum names from schema
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
-import { textAreaWidget, nestedItemStyle } from "../uiSchemaConstants";
+import {
+  textAreaWidget,
+  nestedItemStyle,
+  halfWidthStyle
+} from "../uiSchemaConstants";
 
 const enumNames = generateEnumNames(schema, [
   "MCDRPathway",
@@ -37,7 +41,7 @@ const projectUiSchema = {
     "*"
   ],
   project_id: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "LockableIdWidget",
     "ui:placeholder": "Enter project ID",
     "ui:descriptionModal": true,
@@ -47,9 +51,9 @@ const projectUiSchema = {
     }
   },
   temporal_coverage: {
+    ...halfWidthStyle,
     "ui:widget": "IsoIntervalWidget",
-    "ui:title": "",
-    "ui:style": { width: "50%" }
+    "ui:title": ""
   },
   spatial_coverage: {
     "ui:field": "SpatialCoverageMiniMap",
@@ -113,7 +117,7 @@ const projectUiSchema = {
     }
   },
   mcdr_pathway: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.MCDRPathway
   },
@@ -122,7 +126,7 @@ const projectUiSchema = {
       "filename(s) of public comments provided, separated by a comma"
   },
   sea_names: {
-    "ui:style": { width: "50%" },
+    ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },
   description: textAreaWidget,
@@ -145,8 +149,8 @@ const projectUiSchema = {
     "ui:options": { rows: 3 }
   },
   research_project: {
-    "ui:title": "Research Project",
-    "ui:style": { width: "50%" }
+    ...halfWidthStyle,
+    "ui:title": "Research Project"
   },
   funding: {
     "ui:options": {
