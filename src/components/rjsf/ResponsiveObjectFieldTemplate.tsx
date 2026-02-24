@@ -59,7 +59,9 @@ export default function ResponsiveObjectFieldTemplate<
   const gridCols =
     typeof rawGridCols === "number"
       ? { base: 1, sm: rawGridCols }
-      : rawGridCols || undefined;
+      : typeof rawGridCols === "object" && rawGridCols !== null
+        ? rawGridCols
+        : undefined;
   // ---------------------------------------------------------------------------
 
   const gridSpacing = uiOptions?.gridSpacing;
