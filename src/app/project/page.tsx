@@ -24,6 +24,7 @@ import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
+import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
@@ -172,6 +173,7 @@ export default function ProjectPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
               ArrayFieldItemButtonsTemplate:

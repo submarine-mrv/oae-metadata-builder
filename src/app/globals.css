@@ -212,12 +212,3 @@ input, select, textarea, .mantine-Input-wrapper {
   scroll-margin-top: 80px;
 }
 
-/* Mobile: stack 2-column grids in RJSF forms (gridCols: 2 array items).
-   Scoped to `form` so only RJSF SimpleGrids are affected — overview page grids
-   are outside <form> and keep their responsive cols={{ base:1, sm:2, lg:3 }}.
-   !important overrides Mantine's inline grid-template-columns from the cols prop. */
-@media (max-width: 768px) {
-  form .mantine-SimpleGrid-root {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-}

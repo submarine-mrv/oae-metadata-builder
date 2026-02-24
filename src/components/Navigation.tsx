@@ -106,7 +106,13 @@ export default function Navigation() {
   };
 
   const pathname = usePathname();
-  const isTabPage = ["/overview", "/project", "/experiment", "/dataset"].includes(pathname);
+  const pathToTab: Record<string, string> = {
+    "/overview": "overview",
+    "/project": "project",
+    "/experiment": "experiment",
+    "/dataset": "dataset",
+  };
+  const currentTab = pathToTab[pathname] ?? "";
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -142,7 +148,7 @@ export default function Navigation() {
               style={{
                 backgroundColor: "var(--brand-sunlight)"
               }}
-              value={isTabPage ? state.activeTab : ""}
+              value={currentTab}
               onChange={handleNavigation}
               data={[
                 { value: "overview", label: "Overview" },
@@ -255,7 +261,7 @@ export default function Navigation() {
               backgroundColor: "var(--brand-sunlight)",
               marginTop: "0.5rem"
             }}
-            value={isTabPage ? state.activeTab : ""}
+            value={currentTab}
             onChange={handleNavigation}
             data={[
               { value: "overview", label: "Overview" },
