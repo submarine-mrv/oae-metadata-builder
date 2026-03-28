@@ -34,9 +34,9 @@ const projectUiSchema = {
     "social_research_conducted_to_date",
     "colocated_operations",
     "previous_or_ongoing_colocated_research",
-    "public_comments",
     "permits",
-    "funding",
+
+      "funding",
     "additional_details",
     "*"
   ],
@@ -120,10 +120,6 @@ const projectUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.MCDRPathway
-  },
-  public_comments: {
-    "ui:placeholder":
-      "filename(s) of public comments provided, separated by a comma"
   },
   sea_names: {
     ...halfWidthStyle,

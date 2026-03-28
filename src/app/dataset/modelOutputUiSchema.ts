@@ -22,7 +22,7 @@ const modelOutputUiSchema = {
     "description",
     "dataset_type",
     "simulation_type",
-    "alkalinity_perturbation_description",
+    "mcdr_forcing_description",
     "start_datetime",
     "end_datetime",
     "model_output_variables",
@@ -67,7 +67,7 @@ const modelOutputUiSchema = {
       enumNames: enumNames.SimulationType
     }
   },
-  alkalinity_perturbation_description: textAreaWidget,
+  mcdr_forcing_description: textAreaWidget,
   start_datetime: {
     ...halfWidthStyle,
     "ui:widget": "DateTimeWidget",

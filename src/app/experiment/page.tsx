@@ -45,7 +45,7 @@ import experimentUiSchema from "./experimentUiSchema";
 import interventionUiSchema from "./interventionUiSchema";
 import tracerUiSchema from "./tracerUiSchema";
 import modelUiSchema from "./modelUiSchema";
-import { cleanFormDataForType } from "@/utils/experimentFields";
+import { cleanFormDataForType, getPrimaryExperimentType } from "@/utils/experimentFields";
 import {
   cleanupConditionalFields,
   cleanupNestedConditionalFields,
@@ -81,6 +81,11 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
     triggerField: "alkalinity_feedstock_processing",
     triggerValue: "other",
     customField: "alkalinity_feedstock_processing_custom"
+  },
+  {
+    triggerField: "tracer_form",
+    triggerValue: "other",
+    customField: "tracer_form_custom"
   }
 ];
 
@@ -135,18 +140,18 @@ export default function ExperimentPage() {
 
   // Dynamic schema and uiSchema switching based on experiment_type
   useEffect(() => {
-    const experimentType = formData.experiment_type;
+    const primaryType = getPrimaryExperimentType(formData.experiment_type);
 
-    if (experimentType === "intervention") {
+    if (primaryType === "intervention") {
       setActiveSchema(getInterventionSchema());
       setActiveUiSchema(interventionUiSchema);
-    } else if (experimentType === "tracer_study") {
+    } else if (primaryType === "tracer_study") {
       setActiveSchema(getTracerSchema());
       setActiveUiSchema(tracerUiSchema);
-    } else if (experimentType === "intervention_with_tracer") {
+    } else if (primaryType === "intervention_with_tracer") {
       setActiveSchema(getInterventionWithTracerSchema());
-      setActiveUiSchema(tracerUiSchema); // TODO: may need separate UI schema
-    } else if (experimentType === "model") {
+      setActiveUiSchema(tracerUiSchema);
+    } else if (primaryType === "model") {
       setActiveSchema(getModelSchema());
       setActiveUiSchema(modelUiSchema);
     } else {
@@ -166,13 +171,13 @@ export default function ExperimentPage() {
 
       let newData = e.formData;
 
-      // Check if experiment_type changed
-      const oldType = formData.experiment_type;
-      const newType = newData.experiment_type;
+      // Check if primary experiment type changed (experiment_type is now an array)
+      const oldPrimary = getPrimaryExperimentType(formData.experiment_type);
+      const newPrimary = getPrimaryExperimentType(newData.experiment_type);
 
-      if (oldType && newType && oldType !== newType) {
-        // Experiment type changed - clean fields that don't belong to new type
-        newData = cleanFormDataForType(newData, newType);
+      if (oldPrimary && newPrimary && oldPrimary !== newPrimary) {
+        // Primary experiment type changed - clean fields that don't belong to new type
+        newData = cleanFormDataForType(newData, newPrimary);
       }
 
       // Clean up conditional custom fields when trigger conditions are not met

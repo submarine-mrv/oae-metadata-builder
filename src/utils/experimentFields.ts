@@ -15,7 +15,9 @@ const BASE_EXPERIMENT_FIELDS = [
   "start_datetime",
   "end_datetime",
   "spatial_coverage",
-  "principal_investigators"
+  "principal_investigators",
+  "experiment_leads",
+  "public_comments"
 ];
 
 // Additional fields on InSituExperiment (field experiment types)
@@ -49,6 +51,7 @@ const TRACER_FIELDS = [
   "tracer_concentration",
   "tracer_details",
   "tracer_form",
+  "tracer_form_custom",
   "dosing_delivery_type",
   "dosing_depth",
   "dosing_description",
@@ -64,6 +67,37 @@ const MODEL_FIELDS = [
   "model_components",
   "model_configuration"
 ];
+
+/**
+ * Derives the primary experiment type for schema/UI selection from the
+ * (now multivalued) experiment_type array. Uses a priority order so that
+ * the most field-rich schema is shown when multiple types are selected.
+ */
+export function getPrimaryExperimentType(experimentType: unknown): string | undefined {
+  const types: string[] = Array.isArray(experimentType)
+    ? experimentType
+    : typeof experimentType === "string" && experimentType
+      ? [experimentType]
+      : [];
+
+  if (types.length === 0) return undefined;
+
+  if (types.includes("intervention") && types.includes("tracer_study")) {
+    return "intervention_with_tracer";
+  }
+
+  const priority = [
+    "intervention_with_tracer",
+    "intervention",
+    "tracer_study",
+    "model"
+  ];
+  for (const t of priority) {
+    if (types.includes(t)) return t;
+  }
+
+  return types[0];
+}
 
 /**
  * Returns the set of valid fields for a given experiment type

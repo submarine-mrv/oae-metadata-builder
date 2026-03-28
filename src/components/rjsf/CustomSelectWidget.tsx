@@ -149,12 +149,13 @@ export default function CustomSelectWidget<
         onBlur={!readonly ? handleBlur : undefined}
         onFocus={!readonly ? handleFocus : undefined}
         autoFocus={autofocus}
-        placeholder={placeholder}
+        placeholder={placeholder || "Select\u2026"}
         disabled={disabled || readonly}
         error={
           rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : undefined
         }
         searchable
+        clearable={!multiple}
         {...mantineProps}
         aria-describedby={ariaDescribedByIds(id)}
         comboboxProps={{ withinPortal: false }}

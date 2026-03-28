@@ -12,6 +12,7 @@ import {
   getModelOutputDatasetSchema
 } from "./schemaViews";
 import { validateDatasetWithVariables } from "./datasetValidation";
+import { getPrimaryExperimentType } from "./experimentFields";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -57,17 +58,17 @@ export function validateProject(projectData: ProjectFormData): ValidationResult 
  */
 export function validateExperiment(experimentData: ExperimentFormData): ValidationResult {
   try {
-    // Select the appropriate schema based on experiment_type
-    const experimentType = experimentData.experiment_type;
+    // Select the appropriate schema based on experiment_type (now multivalued)
+    const primaryType = getPrimaryExperimentType(experimentData.experiment_type);
     let schema;
 
-    if (experimentType === "intervention") {
+    if (primaryType === "intervention") {
       schema = getInterventionSchema();
-    } else if (experimentType === "tracer_study") {
+    } else if (primaryType === "tracer_study") {
       schema = getTracerSchema();
-    } else if (experimentType === "intervention_with_tracer") {
+    } else if (primaryType === "intervention_with_tracer") {
       schema = getInterventionWithTracerSchema();
-    } else if (experimentType === "model") {
+    } else if (primaryType === "model") {
       schema = getModelSchema();
     } else {
       // Use InSituExperiment schema for baseline, control, other

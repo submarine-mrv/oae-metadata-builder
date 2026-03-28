@@ -26,7 +26,6 @@ const PROJECT_FIELDS = [
   "social_research_conducted_to_date",
   "colocated_operations",
   "previous_or_ongoing_colocated_research",
-  "public_comments",
   "permits",
   "research_project",
   "funding",

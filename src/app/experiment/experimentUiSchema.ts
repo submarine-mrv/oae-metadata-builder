@@ -28,6 +28,7 @@ const experimentUiSchema = {
     "spatial_coverage",
     "vertical_coverage",
     "experiment_leads",
+    "public_comments",
     "permits",
     "meteorological_and_tidal_data",
     "data_conflicts_and_unreported_data",
@@ -182,6 +183,10 @@ const experimentUiSchema = {
         "ui:placeholder": "URL or DOI (e.g. https://...)"
       }
     }
+  },
+  public_comments: {
+    "ui:placeholder":
+      "Filename(s) of public comments provided, separated by a comma"
   },
   data_conflicts_and_unreported_data: textAreaWidget,
   additional_details: textAreaWidget,

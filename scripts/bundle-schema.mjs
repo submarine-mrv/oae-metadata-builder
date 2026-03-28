@@ -173,8 +173,9 @@ function fixConditionalFields(schema) {
     "feedstock_type_custom",
     "alkalinity_feedstock_custom",
     "alkalinity_feedstock_processing_custom",
-    "alkalinity_perturbation_description",
-    "model_component_type_custom"
+    "mcdr_forcing_description",
+    "model_component_type_custom",
+    "tracer_form_custom"
   ];
 
   Object.keys(schema.$defs || {}).forEach((className) => {
