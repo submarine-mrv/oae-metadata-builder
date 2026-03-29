@@ -37,7 +37,7 @@ const REQUIRED_FIELDS_MAP = {
     "description",
     "spatial_coverage",
     "vertical_coverage",
-    "principal_investigators",
+    "experiment_leads",
     "start_datetime"
   ],
   intervention: [
