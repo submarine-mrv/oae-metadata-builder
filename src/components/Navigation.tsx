@@ -18,7 +18,8 @@ import {
   IconInfoCircle,
   IconHelp,
   IconDownload,
-  IconFileImport
+  IconFileImport,
+  IconFileCheck
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useRouter, usePathname } from "next/navigation";
@@ -222,6 +223,12 @@ export default function Navigation() {
                   onClick={() => router.push("/about")}
                 >
                   About
+                </Menu.Item>
+                <Menu.Item
+                  leftSection={<IconFileCheck size={16} />}
+                  onClick={() => router.push("/checker")}
+                >
+                  Compliance Checker
                 </Menu.Item>
                 {/*<Menu.Item*/}
                 {/*  leftSection={<IconHelp size={16} />}*/}
