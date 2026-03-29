@@ -277,7 +277,8 @@ export default function DatasetPage() {
             noHtml5Validate={false}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
-              emptyObjectFields: "skipEmptyDefaults"
+              emptyObjectFields: "skipEmptyDefaults",
+              constAsDefaults: "never"
             }}
             fields={{
               FilenamesField: FilenamesField,

@@ -32,7 +32,9 @@ const base = await $RefParser.bundle(INPUT, {
 
 // Load NVS vocabulary labels
 const seaNameLabels = JSON.parse(await readFile(SEA_NAMES_FILE, "utf-8"));
-const platformTypeLabels = JSON.parse(await readFile(PLATFORM_TYPES_FILE, "utf-8"));
+const platformTypeLabels = JSON.parse(
+  await readFile(PLATFORM_TYPES_FILE, "utf-8")
+);
 
 /**
  * Converts NVS labels array to oneOf format for JSON Schema
@@ -40,12 +42,20 @@ const platformTypeLabels = JSON.parse(await readFile(PLATFORM_TYPES_FILE, "utf-8
  * @param {Array} [allowedUris] - Optional list of URIs to filter by (from schema enum)
  * @returns {Array} oneOf array with { const, title }
  */
+// Capitalize first letter of each word in NVS labels, leaving rest untouched.
+// Splits on spaces and "/" (e.g., "beach/intertidal zone" → "Beach/Intertidal Zone").
+// Hyphenated compounds are left as-is (e.g., "Ice-tethered" stays "Ice-tethered").
+// Preserves all-caps like "DUKW" since we only uppercase, never lowercase.
+function capitalizeLabel(label) {
+  return label.replace(/(?:^|[ /])\S/g, (ch) => ch.toUpperCase());
+}
+
 function labelsToOneOf(labels, allowedUris = null) {
   // Build lookup map from labels
   const labelMap = new Map(
     labels
       .filter((x) => x && x.uri && x.prefLabel)
-      .map(({ uri, prefLabel }) => [uri, prefLabel])
+      .map(({ uri, prefLabel }) => [uri, capitalizeLabel(prefLabel)])
   );
 
   // If allowedUris provided, use those and look up labels
@@ -55,9 +65,9 @@ function labelsToOneOf(labels, allowedUris = null) {
         const: uri,
         title: labelMap.get(uri) || uri.split("/").pop() // fallback to last URI segment
       }))
-    : Array.from(labelMap.entries()).map(([uri, prefLabel]) => ({
+    : Array.from(labelMap.entries()).map(([uri, label]) => ({
         const: uri,
-        title: prefLabel
+        title: label
       }));
 
   // Dedupe by URI and sort by label
@@ -93,7 +103,9 @@ function decorateWithNvsLabels(schema, config) {
   }
 
   if (!target) {
-    console.warn(`⚠️  ${name}: target not found at $defs.${defName}${fieldPath ? "." + fieldPath : ""}`);
+    console.warn(
+      `⚠️  ${name}: target not found at $defs.${defName}${fieldPath ? "." + fieldPath : ""}`
+    );
     return schema;
   }
 
@@ -168,9 +180,7 @@ function decorateWithNvsLabels(schema, config) {
 // See: src/utils/schemaViews.ts (additionalProperties override)
 // See: src/utils/conditionalFields.ts (orphan cleanup)
 function fixConditionalFields(schema) {
-
   const conditionalFields = [
-    "feedstock_type_custom",
     "alkalinity_feedstock_custom",
     "alkalinity_feedstock_processing_custom",
     "mcdr_forcing_description",
@@ -272,7 +282,9 @@ function inlineEnumArrayItems(schema, configs) {
     target.items = { oneOf };
     target.uniqueItems = true;
 
-    console.log(`✓ Inlined ${refName} enum into ${defName}.${fieldPath.replace("properties.", "")} (${oneOf.length} options)`);
+    console.log(
+      `✓ Inlined ${refName} enum into ${defName}.${fieldPath.replace("properties.", "")} (${oneOf.length} options)`
+    );
   }
 
   return schema;
@@ -304,10 +316,15 @@ for (const config of nvsDecorations) {
 
 // Inline enum $ref array items as oneOf with labels for multi-select rendering
 decorated = inlineEnumArrayItems(decorated, [
-  {
-    defName: "ModelOutputDataset",
-    fieldPath: "properties.model_output_variables"
-  }
+  { defName: "ModelOutputDataset", fieldPath: "properties.model_output_variables" },
+  // experiment_type is multivalued — inline on every experiment class so RJSF
+  // can render labeled multi-select options (items.$ref → items.oneOf)
+  { defName: "Experiment", fieldPath: "properties.experiment_type" },
+  { defName: "InSituExperiment", fieldPath: "properties.experiment_type" },
+  { defName: "Intervention", fieldPath: "properties.experiment_type" },
+  { defName: "InterventionWithTracer", fieldPath: "properties.experiment_type" },
+  { defName: "Model", fieldPath: "properties.experiment_type" },
+  { defName: "Tracer", fieldPath: "properties.experiment_type" }
 ]);
 
 decorated = fixConditionalFields(decorated);
@@ -315,11 +332,19 @@ decorated = fixConditionalFields(decorated);
 // Add x-protocol-git-hash field to root schema if git hash is provided
 if (protocolGitHash) {
   decorated["x-protocol-git-hash"] = protocolGitHash;
-  console.log(`✓ Added x-protocol-git-hash: ${protocolGitHash.substring(0, 8)}...`);
+  console.log(
+    `✓ Added x-protocol-git-hash: ${protocolGitHash.substring(0, 8)}...`
+  );
 }
 
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log("✅ Bundled schema written to", OUTPUT);
-console.log(`   - Protocol version: ${decorated["x-protocol-version"] || "unknown"}`);
-console.log(`   - Protocol git hash: ${decorated["x-protocol-git-hash"]?.substring(0, 8) || "none"}...`);
-console.log("\nSchema views (Project, Experiment, etc.) are created at runtime in src/utils/schemaViews.ts");
+console.log(
+  `   - Protocol version: ${decorated["x-protocol-version"] || "unknown"}`
+);
+console.log(
+  `   - Protocol git hash: ${decorated["x-protocol-git-hash"]?.substring(0, 8) || "none"}...`
+);
+console.log(
+  "\nSchema views (Project, Experiment, etc.) are created at runtime in src/utils/schemaViews.ts"
+);

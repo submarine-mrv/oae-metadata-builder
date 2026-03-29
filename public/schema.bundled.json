@@ -2515,10 +2515,36 @@
         "experiment_type": {
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
           "items": {
-            "$ref": "#/$defs/ExperimentType"
+            "oneOf": [
+              {
+                "const": "baseline",
+                "title": "Baseline"
+              },
+              {
+                "const": "control",
+                "title": "Control"
+              },
+              {
+                "const": "intervention",
+                "title": "Intervention"
+              },
+              {
+                "const": "tracer_study",
+                "title": "Tracer Study"
+              },
+              {
+                "const": "model",
+                "title": "Model"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "title": "mCDR Experiment Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "name": {
           "description": "Optional common name for experiment.",
@@ -3050,10 +3076,36 @@
         "experiment_type": {
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
           "items": {
-            "$ref": "#/$defs/ExperimentType"
+            "oneOf": [
+              {
+                "const": "baseline",
+                "title": "Baseline"
+              },
+              {
+                "const": "control",
+                "title": "Control"
+              },
+              {
+                "const": "intervention",
+                "title": "Intervention"
+              },
+              {
+                "const": "tracer_study",
+                "title": "Tracer Study"
+              },
+              {
+                "const": "model",
+                "title": "Model"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "title": "mCDR Experiment Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "meteorological_and_tidal_data": {
           "description": "Include links to relevant open datasets if referenced in the experiment but not provided in the submission.",
@@ -3277,10 +3329,36 @@
         "experiment_type": {
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
           "items": {
-            "$ref": "#/$defs/ExperimentType"
+            "oneOf": [
+              {
+                "const": "baseline",
+                "title": "Baseline"
+              },
+              {
+                "const": "control",
+                "title": "Control"
+              },
+              {
+                "const": "intervention",
+                "title": "Intervention"
+              },
+              {
+                "const": "tracer_study",
+                "title": "Tracer Study"
+              },
+              {
+                "const": "model",
+                "title": "Model"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "title": "mCDR Experiment Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "meteorological_and_tidal_data": {
           "description": "Include links to relevant open datasets if referenced in the experiment but not provided in the submission.",
@@ -3541,10 +3619,36 @@
         "experiment_type": {
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
           "items": {
-            "$ref": "#/$defs/ExperimentType"
+            "oneOf": [
+              {
+                "const": "baseline",
+                "title": "Baseline"
+              },
+              {
+                "const": "control",
+                "title": "Control"
+              },
+              {
+                "const": "intervention",
+                "title": "Intervention"
+              },
+              {
+                "const": "tracer_study",
+                "title": "Tracer Study"
+              },
+              {
+                "const": "model",
+                "title": "Model"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "title": "mCDR Experiment Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "meteorological_and_tidal_data": {
           "description": "Include links to relevant open datasets if referenced in the experiment but not provided in the submission.",
@@ -3704,10 +3808,36 @@
         "experiment_type": {
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
           "items": {
-            "$ref": "#/$defs/ExperimentType"
+            "oneOf": [
+              {
+                "const": "baseline",
+                "title": "Baseline"
+              },
+              {
+                "const": "control",
+                "title": "Control"
+              },
+              {
+                "const": "intervention",
+                "title": "Intervention"
+              },
+              {
+                "const": "tracer_study",
+                "title": "Tracer Study"
+              },
+              {
+                "const": "model",
+                "title": "Model"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "title": "mCDR Experiment Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "grid_details": {
           "description": "Details about the model grid(s). Use multiple entries for nested grid configurations.",
@@ -4772,159 +4902,159 @@
       "oneOf": [
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/62/",
-          "title": "aeroplane"
+          "title": "Aeroplane"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/3B/",
-          "title": "autonomous surface water vehicle"
+          "title": "Autonomous Surface Water Vehicle"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/25/",
-          "title": "autonomous underwater vehicle"
+          "title": "Autonomous Underwater Vehicle"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/13/",
-          "title": "beach/intertidal zone structure"
+          "title": "Beach/Intertidal Zone Structure"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/17/",
-          "title": "coastal structure"
+          "title": "Coastal Structure"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/72/",
-          "title": "diver"
+          "title": "Diver"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/44/",
-          "title": "drifting subsurface float"
+          "title": "Drifting Subsurface Float"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/46/",
-          "title": "drifting subsurface profiling float"
+          "title": "Drifting Subsurface Profiling Float"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/42/",
-          "title": "drifting surface float"
+          "title": "Drifting Surface Float"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/36/",
-          "title": "fishing vessel"
+          "title": "Fishing Vessel"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/11/",
-          "title": "fixed benthic node"
+          "title": "Fixed Benthic Node"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/45/",
-          "title": "fixed subsurface vertical profiler"
+          "title": "Fixed Subsurface Vertical Profiler"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/47/",
-          "title": "float"
+          "title": "Float"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/6A/",
-          "title": "glider"
+          "title": "Glider"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/67/",
-          "title": "helicopter"
+          "title": "Helicopter"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/71/",
-          "title": "human"
+          "title": "Human"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/14/",
-          "title": "land/onshore structure"
+          "title": "Land/Onshore Structure"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/15/",
-          "title": "land/onshore vehicle"
+          "title": "Land/Onshore Vehicle"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/26/",
-          "title": "lowered unmanned submersible"
+          "title": "Lowered Unmanned Submersible"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/3A/",
-          "title": "man-powered small boat"
+          "title": "Man-powered Small Boat"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/19/",
-          "title": "mesocosm bag"
+          "title": "Mesocosm Bag"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/99/",
-          "title": "mesocosm tank"
+          "title": "Mesocosm Tank"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/41/",
-          "title": "moored surface buoy"
+          "title": "Moored Surface Buoy"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/48/",
-          "title": "mooring"
+          "title": "Mooring"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/16/",
-          "title": "offshore structure"
+          "title": "Offshore Structure"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/61/",
-          "title": "research aeroplane"
+          "title": "Research Aeroplane"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/31/",
-          "title": "research vessel"
+          "title": "Research Vessel"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/18/",
-          "title": "river station"
+          "title": "River Station"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/68/",
-          "title": "satellite"
+          "title": "Satellite"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/12/",
-          "title": "sea bed vehicle"
+          "title": "Sea Bed Vehicle"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/33/",
-          "title": "self-propelled small boat"
+          "title": "Self-propelled Small Boat"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/30/",
-          "title": "ship"
+          "title": "Ship"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/27/",
-          "title": "sub-surface gliders"
+          "title": "Sub-surface Gliders"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/20/",
-          "title": "submersible"
+          "title": "Submersible"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/43/",
-          "title": "subsurface mooring"
+          "title": "Subsurface Mooring"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/3C/",
-          "title": "surface gliders"
+          "title": "Surface Gliders"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/3Z/",
-          "title": "surface vessel"
+          "title": "Surface Vessel"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/23/",
-          "title": "towed unmanned submersible"
+          "title": "Towed Unmanned Submersible"
         },
         {
           "const": "http://vocab.nerc.ac.uk/collection/L06/current/6D/",
-          "title": "unmanned aerial vehicle"
+          "title": "Unmanned Aerial Vehicle"
         }
       ]
     },
@@ -5025,7 +5155,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/44/",
-                "title": "Andaman or Burma Sea"
+                "title": "Andaman Or Burma Sea"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/39/",
@@ -5077,15 +5207,15 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/43/",
-                "title": "Bay of Bengal"
+                "title": "Bay Of Bengal"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/22/",
-                "title": "Bay of Biscay"
+                "title": "Bay Of Biscay"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/25/",
-                "title": "Bay of Fundy"
+                "title": "Bay Of Fundy"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/13/",
@@ -5133,7 +5263,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/59/",
-                "title": "Coastal Waters of SE Alaska and British Columbia"
+                "title": "Coastal Waters Of SE Alaska And British Columbia"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/64/",
@@ -5181,67 +5311,67 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/38/",
-                "title": "Gulf of Aden"
+                "title": "Gulf Of Aden"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/58/",
-                "title": "Gulf of Alaska"
+                "title": "Gulf Of Alaska"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/36/",
-                "title": "Gulf of Aqaba"
+                "title": "Gulf Of Aqaba"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/48k/",
-                "title": "Gulf of Boni (East Indian Archipelago)"
+                "title": "Gulf Of Boni (East Indian Archipelago)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/01a/",
-                "title": "Gulf of Bothnia (Baltic Sea)"
+                "title": "Gulf Of Bothnia (Baltic Sea)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/60/",
-                "title": "Gulf of California"
+                "title": "Gulf Of California"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/01b/",
-                "title": "Gulf of Finland (Baltic Sea)"
+                "title": "Gulf Of Finland (Baltic Sea)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/34/",
-                "title": "Gulf of Guinea"
+                "title": "Gulf Of Guinea"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/41/",
-                "title": "Gulf of Iran (Persian Gulf)"
+                "title": "Gulf Of Iran (Persian Gulf)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/26/",
-                "title": "Gulf of Mexico"
+                "title": "Gulf Of Mexico"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/40/",
-                "title": "Gulf of Oman"
+                "title": "Gulf Of Oman"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/01c/",
-                "title": "Gulf of Riga (Baltic Sea)"
+                "title": "Gulf Of Riga (Baltic Sea)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/24/",
-                "title": "Gulf of St. Lawrence"
+                "title": "Gulf Of St. Lawrence"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/35/",
-                "title": "Gulf of Suez"
+                "title": "Gulf Of Suez"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/47/",
-                "title": "Gulf of Thailand (Siam)"
+                "title": "Gulf Of Thailand (Siam)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/48d/",
-                "title": "Gulf of Tomini (East Indian Archipelago)"
+                "title": "Gulf Of Tomini (East Indian Archipelago)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/48e/",
@@ -5269,7 +5399,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/18/",
-                "title": "Inner Seas off the West Coast of Scotland"
+                "title": "Inner Seas Off The West Coast Of Scotland"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Bf/",
@@ -5277,7 +5407,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/19/",
-                "title": "Irish Sea and St. George's Channel"
+                "title": "Irish Sea And St. George's Channel"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/IRM/",
@@ -5297,7 +5427,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/02/",
-                "title": "Kattegat, Sound and Belts"
+                "title": "Kattegat, Sound And Belts"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/15a/",
@@ -5321,7 +5451,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/46/",
-                "title": "Malacca and Singapore Straits"
+                "title": "Malacca And Singapore Straits"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/46a/",
@@ -5337,11 +5467,11 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/28B/",
-                "title": "Mediterranean Sea - Eastern basin"
+                "title": "Mediterranean Sea - Eastern Basin"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/28A/",
-                "title": "Mediterranean Sea - Western basin"
+                "title": "Mediterranean Sea - Western Basin"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/48c/",
@@ -5397,7 +5527,7 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/33/",
-                "title": "Rio de La Plata"
+                "title": "Rio De La Plata"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/48o/",
@@ -5405,19 +5535,19 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/31/",
-                "title": "Sea of Azov"
+                "title": "Sea Of Azov"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/29/",
-                "title": "Sea of Marmara"
+                "title": "Sea Of Marmara"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/54/",
-                "title": "Sea of Okhotsk"
+                "title": "Sea Of Okhotsk"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/53/",
-                "title": "Seto Naikai or Inland Sea"
+                "title": "Seto Naikai Or Inland Sea"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/46b/",
@@ -5465,11 +5595,11 @@
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/28Aa/",
-                "title": "Strait of Gibraltar (Mediterranean Sea)"
+                "title": "Strait Of Gibraltar (Mediterranean Sea)"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/28C/",
-                "title": "Strait of Sicily"
+                "title": "Strait Of Sicily"
               },
               {
                 "const": "http://vocab.nerc.ac.uk/collection/C16/current/48a/",
@@ -5913,10 +6043,36 @@
         "experiment_type": {
           "description": "The type of mCDR experiment conducted. See Controlled Vocabularies section for definitions.",
           "items": {
-            "$ref": "#/$defs/ExperimentType"
+            "oneOf": [
+              {
+                "const": "baseline",
+                "title": "Baseline"
+              },
+              {
+                "const": "control",
+                "title": "Control"
+              },
+              {
+                "const": "intervention",
+                "title": "Intervention"
+              },
+              {
+                "const": "tracer_study",
+                "title": "Tracer Study"
+              },
+              {
+                "const": "model",
+                "title": "Model"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "title": "mCDR Experiment Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "meteorological_and_tidal_data": {
           "description": "Include links to relevant open datasets if referenced in the experiment but not provided in the submission.",

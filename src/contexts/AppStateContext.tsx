@@ -4,7 +4,7 @@ import {
   calculateFormCompletion,
   calculateProjectCompletion
 } from "@/utils/completionCalculator";
-import { getPrimaryExperimentType } from "@/utils/experimentFields";
+import { getExperimentSchemaType } from "@/utils/experimentFields";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -316,7 +316,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
       return calculateFormCompletion(
         experiment.formData,
-        getPrimaryExperimentType(experiment.experiment_type)
+        getExperimentSchemaType(experiment.experiment_type)
       );
     },
     [state.experiments]

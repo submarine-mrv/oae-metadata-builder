@@ -15,7 +15,7 @@ const BASE_EXPERIMENT_FIELDS = [
   "start_datetime",
   "end_datetime",
   "spatial_coverage",
-  "principal_investigators",
+  "experiment_leads",
   "experiment_leads",
   "public_comments"
 ];
@@ -69,34 +69,57 @@ const MODEL_FIELDS = [
 ];
 
 /**
- * Derives the primary experiment type for schema/UI selection from the
- * (now multivalued) experiment_type array. Uses a priority order so that
- * the most field-rich schema is shown when multiple types are selected.
+ * Determines which schema class to use based on the selected experiment types.
+ *
+ * Rules (see docs/experiment-type-multi-select.md):
+ * - model is exclusive — cannot combine with other types
+ * - intervention + tracer_study → InterventionWithTracer (combined class)
+ * - intervention alone → Intervention
+ * - tracer_study alone → Tracer
+ * - base types (baseline, control, other) → InSituExperiment
+ *
+ * Returns: "model" | "intervention_with_tracer" | "intervention" | "tracer_study" | "in_situ"
  */
-export function getPrimaryExperimentType(experimentType: unknown): string | undefined {
+export function getExperimentSchemaType(experimentType: unknown): string {
   const types: string[] = Array.isArray(experimentType)
     ? experimentType
     : typeof experimentType === "string" && experimentType
       ? [experimentType]
       : [];
 
-  if (types.length === 0) return undefined;
+  const hasIntervention = types.includes("intervention");
+  const hasTracer = types.includes("tracer_study");
+  const hasModel = types.includes("model");
 
-  if (types.includes("intervention") && types.includes("tracer_study")) {
-    return "intervention_with_tracer";
+  if (hasModel) return "model";
+  if (hasIntervention && hasTracer) return "intervention_with_tracer";
+  if (hasIntervention) return "intervention";
+  if (hasTracer) return "tracer_study";
+  return "in_situ";
+}
+
+/**
+ * Enforces model exclusivity on the experiment_type array.
+ * - If model was just added (not previously selected), remove all other types.
+ * - If a non-model type was added while model was selected, remove model.
+ * Returns the cleaned array, or the original if no changes needed.
+ */
+export function enforceModelExclusivity(
+  newTypes: string[],
+  previousTypes: string[]
+): string[] {
+  const hadModel = previousTypes.includes("model");
+  const hasModel = newTypes.includes("model");
+
+  if (hasModel && !hadModel) {
+    // Model was just added — keep only model
+    return ["model"];
   }
-
-  const priority = [
-    "intervention_with_tracer",
-    "intervention",
-    "tracer_study",
-    "model"
-  ];
-  for (const t of priority) {
-    if (types.includes(t)) return t;
+  if (hasModel && hadModel && newTypes.length > 1) {
+    // Had model, user added something else — remove model
+    return newTypes.filter((t) => t !== "model");
   }
-
-  return types[0];
+  return newTypes;
 }
 
 /**
@@ -122,6 +145,7 @@ export function getValidFieldsForType(experimentType: string): Set<string> {
       INTERVENTION_FIELDS.forEach((field) => validFields.add(field));
       TRACER_FIELDS.forEach((field) => validFields.add(field));
       break;
+    case "in_situ":
     case "control":
     case "baseline":
     case "other":

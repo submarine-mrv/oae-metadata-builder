@@ -1,4 +1,12 @@
-// experimentUiSchema.ts - UI configuration for experiment forms
+// fieldExperimentUiSchema.ts - Consolidated UI configuration for all field experiment types
+// (baseline, control, intervention, tracer, intervention+tracer, other)
+//
+// RJSF silently ignores ui:order entries for fields not in the active schema,
+// so one master ordering works for all field experiment types.
+// Model experiments use a separate modelUiSchema.
+//
+// See docs/experiment-type-multi-select.md for schema selection rules.
+
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import {
@@ -7,13 +15,18 @@ import {
   halfWidthStyle
 } from "../uiSchemaConstants";
 
-// Generate formatted enum names from schema
 const enumNames = generateEnumNames(schema, [
-  "ExperimentType",
-  "ResearcherIDType"
+  "ResearcherIDType",
+  "FeedstockType",
+  "AlkalinityFeedstockForm",
+  "AlkalinityFeedstockProcessing",
+  "EquilibrationStatus",
+  "TracerForm",
+  "HydrologicLocation",
+  "DosingDeliveryType"
 ]);
 
-const experimentUiSchema = {
+const fieldExperimentUiSchema = {
   "ui:title": "",
   "ui:options": {
     expandable: false
@@ -27,6 +40,29 @@ const experimentUiSchema = {
     "end_datetime",
     "spatial_coverage",
     "vertical_coverage",
+    // Intervention fields (ignored when schema doesn't include them)
+    "alkalinity_feedstock_processing",
+    "alkalinity_feedstock_processing_custom",
+    "alkalinity_feedstock_form",
+    "alkalinity_feedstock",
+    "alkalinity_feedstock_custom",
+    "alkalinity_feedstock_co2_removal_potential",
+    "alkalinity_feedstock_description",
+    "equilibration",
+    "alkalinity_dosing_effluent_density",
+    // Tracer fields (ignored when schema doesn't include them)
+    "tracer_form",
+    "tracer_form_custom",
+    "tracer_details",
+    "tracer_concentration",
+    // Shared dosing fields (DosingDetails mixin — on Intervention, Tracer, and combined)
+    "dosing_location",
+    "dosing_dispersal_hydrologic_location",
+    "dosing_delivery_type",
+    "dosing_depth",
+    "dosing_description",
+    "dosing_regimen",
+    // Common tail
     "experiment_leads",
     "public_comments",
     "permits",
@@ -35,6 +71,9 @@ const experimentUiSchema = {
     "additional_details",
     "*"
   ],
+
+  // --- Base experiment fields ---
+
   experiment_id: {
     ...halfWidthStyle,
     "ui:widget": "LockableIdWidget",
@@ -51,10 +90,7 @@ const experimentUiSchema = {
   },
   experiment_type: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget",
-    "ui:options": {
-      enumNames: enumNames.ExperimentType
-    }
+    "ui:widget": "CustomSelectWidget"
   },
   description: textAreaWidget,
   start_datetime: {
@@ -140,6 +176,10 @@ const experimentUiSchema = {
       }
     }
   },
+  public_comments: {
+    "ui:placeholder":
+      "Filename(s) of public comments provided, separated by a comma"
+  },
   permits: {
     "ui:title": "Permits (if applicable)",
     "ui:options": {
@@ -184,15 +224,107 @@ const experimentUiSchema = {
       }
     }
   },
-  public_comments: {
-    "ui:placeholder":
-      "Filename(s) of public comments provided, separated by a comma"
-  },
   data_conflicts_and_unreported_data: textAreaWidget,
   additional_details: textAreaWidget,
   project_id: {
     "ui:widget": "hidden"
-  }
+  },
+
+  // --- Intervention fields (InterventionDetails mixin) ---
+
+  alkalinity_feedstock: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.FeedstockType
+    }
+  },
+  alkalinity_feedstock_custom: {
+    ...halfWidthStyle,
+    "ui:placeholder": "Specify other alkalinity feedstock type"
+  },
+  alkalinity_feedstock_form: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.AlkalinityFeedstockForm
+    }
+  },
+  alkalinity_feedstock_processing: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:descriptionModal": true,
+    "ui:options": {
+      enumNames: enumNames.AlkalinityFeedstockProcessing
+    }
+  },
+  alkalinity_feedstock_processing_custom: {
+    ...halfWidthStyle,
+    "ui:placeholder": "Specify custom processing method"
+  },
+  alkalinity_feedstock_description: textAreaWidget,
+  alkalinity_feedstock_co2_removal_potential: {
+    ...halfWidthStyle,
+    "ui:placeholder": "kg CO\u2082 per tonne of feedstock"
+  },
+  equilibration: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.EquilibrationStatus
+    }
+  },
+  alkalinity_dosing_effluent_density: {
+    ...halfWidthStyle,
+    "ui:field": "DosingConcentrationField"
+  },
+
+  // --- Tracer fields (TracerDetails mixin) ---
+
+  tracer_form: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.TracerForm
+    }
+  },
+  tracer_form_custom: {
+    ...halfWidthStyle,
+    "ui:placeholder": "Specify other tracer form"
+  },
+  tracer_details: {
+    ...halfWidthStyle
+  },
+  tracer_concentration: {
+    ...halfWidthStyle,
+    "ui:field": "DosingConcentrationField"
+  },
+
+  // --- Shared dosing fields (DosingDetails mixin) ---
+
+  dosing_location: {
+    "ui:field": "DosingLocationField"
+  },
+  dosing_dispersal_hydrologic_location: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.HydrologicLocation
+    }
+  },
+  dosing_delivery_type: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      enumNames: enumNames.DosingDeliveryType
+    }
+  },
+  dosing_depth: {
+    ...halfWidthStyle,
+    "ui:widget": "DosingDepthWidget"
+  },
+  dosing_description: textAreaWidget,
+  dosing_regimen: textAreaWidget
 };
 
-export default experimentUiSchema;
+export default fieldExperimentUiSchema;
