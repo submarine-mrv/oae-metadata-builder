@@ -17,7 +17,7 @@ test.describe("Conditional Dropdown Fields", () => {
     await page.waitForLoadState("networkidle");
 
     // Select "Intervention" experiment type to get alkalinity feedstock fields
-    await page.locator("#root_experiment_type").click();
+    await page.locator("#root_experiment_types").click();
     await page.waitForTimeout(200);
     await page.getByRole("option", { name: "Intervention" }).click();
     await page.waitForTimeout(500);
