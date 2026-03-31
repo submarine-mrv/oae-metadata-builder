@@ -94,7 +94,7 @@ interface AppStateContextType {
   deleteProject: () => void;
   updateProjectData: (data: ProjectFormData) => void;
   addExperiment: (name?: string) => number;
-  updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string | string[] }) => void;
+  updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string[] }) => void;
   deleteExperiment: (id: number) => void;
   setActiveTab: (tab: "overview" | "project" | "experiment" | "dataset") => void;
   setActiveExperiment: (id: number | null) => void;
@@ -233,7 +233,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateExperiment = useCallback(
-    (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string | string[] }) => {
+    (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string[] }) => {
       setState((prev) => {
         // Find the existing experiment to check for experiment_id changes
         const existingExp = prev.experiments.find((exp) => exp.id === id);
@@ -316,7 +316,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
       return calculateFormCompletion(
         experiment.formData,
-        getExperimentSchemaType(experiment.experiment_type)
+        getExperimentSchemaType(experiment.experiment_type ?? [])
       );
     },
     [state.experiments]

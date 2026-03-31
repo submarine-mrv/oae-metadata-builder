@@ -60,7 +60,7 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
   try {
     // Select the appropriate schema based on experiment_type (now multivalued)
     // See docs/experiment-type-multi-select.md for the decision table
-    const schemaType = getExperimentSchemaType(experimentData.experiment_type);
+    const schemaType = getExperimentSchemaType(experimentData.experiment_type ?? []);
     let schema;
 
     if (schemaType === "intervention") {

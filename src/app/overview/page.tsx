@@ -367,12 +367,9 @@ export default function OverviewPage() {
                           </Button>
                         </Group>
 
-                        {experiment.experiment_type && (
+                        {experiment.experiment_type && experiment.experiment_type.length > 0 && (
                           <Group gap="xs">
-                            {(Array.isArray(experiment.experiment_type)
-                              ? experiment.experiment_type
-                              : [experiment.experiment_type]
-                            ).map((t: string) => (
+                            {experiment.experiment_type.map((t: string) => (
                               <Badge variant="light" size="sm" key={t}>
                                 {t
                                   .replace(/_/g, " ")

@@ -35,8 +35,7 @@ const projectUiSchema = {
     "colocated_operations",
     "previous_or_ongoing_colocated_research",
     "permits",
-
-      "funding",
+    "funding",
     "additional_details",
     "*"
   ],

@@ -44,7 +44,7 @@ export interface ProjectFormData extends FormDataRecord {
  */
 export interface ExperimentFormData extends FormDataRecord {
   project_id?: string;
-  experiment_type?: string | string[];
+  experiment_type?: string[];
   description?: string;
   // Spatial coverage has a known structure
   spatial_coverage?: {
@@ -113,7 +113,7 @@ export interface ExperimentState {
   /** Form data (schema-driven) */
   formData: ExperimentFormData;
   /** Experiment type for conditional schema selection */
-  experiment_type?: string | string[];
+  experiment_type?: string[];
   /** Creation timestamp */
   createdAt: number;
   /** Last update timestamp */

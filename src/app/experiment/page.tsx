@@ -139,7 +139,7 @@ export default function ExperimentPage() {
   // Dynamic schema and uiSchema switching based on experiment_type
   // See docs/experiment-type-multi-select.md for the full decision table
   useEffect(() => {
-    const schemaType = getExperimentSchemaType(formData.experiment_type);
+    const schemaType = getExperimentSchemaType(formData.experiment_type ?? []);
 
     // Schema selection — see docs/experiment-type-multi-select.md
     const schemaMap: Record<string, () => any> = {
@@ -177,8 +177,8 @@ export default function ExperimentPage() {
       }
 
       // Check if schema type changed and clean fields that don't belong
-      const oldSchemaType = getExperimentSchemaType(formData.experiment_type);
-      const newSchemaType = getExperimentSchemaType(newData.experiment_type);
+      const oldSchemaType = getExperimentSchemaType(formData.experiment_type ?? []);
+      const newSchemaType = getExperimentSchemaType(newData.experiment_type ?? []);
 
       if (oldSchemaType !== newSchemaType) {
         newData = cleanFormDataForType(newData, newSchemaType);

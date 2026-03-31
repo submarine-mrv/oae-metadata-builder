@@ -264,7 +264,7 @@ describe('AppStateContext', () => {
 
       const newFormData = {
         experiment_id: 'exp-001',
-        experiment_type: 'baseline',
+        experiment_type: ['baseline'],
         description: 'Updated description'
       };
 
@@ -295,14 +295,14 @@ describe('AppStateContext', () => {
 
       act(() => {
         result.current.updateExperiment(experimentId!, {
-          experiment_type: 'intervention'
+          experiment_type: ['intervention']
         });
       });
 
       const experiment = result.current.state.experiments.find(
         (e) => e.id === experimentId
       );
-      expect(experiment?.experiment_type).toBe('intervention');
+      expect(experiment?.experiment_type).toEqual(['intervention']);
     });
 
     it('should update name from formData if provided', () => {
@@ -717,7 +717,7 @@ describe('AppStateContext', () => {
       act(() => {
         result.current.updateExperiment(experimentId!, {
           experiment_id: 'exp-001',
-          experiment_type: 'baseline',
+          experiment_type: ['baseline'],
           description: 'Test'
           // Missing other required fields
         });
@@ -744,7 +744,7 @@ describe('AppStateContext', () => {
       act(() => {
         result.current.updateExperiment(experimentId!, {
           experiment_id: 'exp-001',
-          experiment_type: 'intervention',
+          experiment_type: ['intervention'],
           description: 'Intervention test'
           // Missing intervention-specific fields
         });
