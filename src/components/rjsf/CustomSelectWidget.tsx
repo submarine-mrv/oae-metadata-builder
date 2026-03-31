@@ -149,7 +149,11 @@ export default function CustomSelectWidget<
         onBlur={!readonly ? handleBlur : undefined}
         onFocus={!readonly ? handleFocus : undefined}
         autoFocus={autofocus}
-        placeholder={placeholder || "Select\u2026"}
+        placeholder={
+          multiple && Array.isArray(selectedIndexes) && selectedIndexes.length > 0
+            ? undefined
+            : (placeholder || "Select\u2026")
+        }
         disabled={disabled || readonly}
         error={
           rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : undefined
