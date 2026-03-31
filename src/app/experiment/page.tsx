@@ -136,10 +136,10 @@ export default function ExperimentPage() {
     }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Dynamic schema and uiSchema switching based on experiment_type
+  // Dynamic schema and uiSchema switching based on experiment_types
   // See docs/experiment-type-multi-select.md for the full decision table
   useEffect(() => {
-    const schemaType = getExperimentSchemaType(formData.experiment_type ?? []);
+    const schemaType = getExperimentSchemaType(formData.experiment_types ?? []);
 
     // Schema selection — see docs/experiment-type-multi-select.md
     const schemaMap: Record<string, () => any> = {
@@ -150,7 +150,7 @@ export default function ExperimentPage() {
     };
     setActiveSchema((schemaMap[schemaType] || getInSituExperimentSchema)());
     setActiveUiSchema(schemaType === "model" ? modelUiSchema : fieldExperimentUiSchema);
-  }, [formData.experiment_type]);
+  }, [formData.experiment_types]);
 
   const handleFormChange = useCallback(
     (e: any) => {
@@ -163,22 +163,22 @@ export default function ExperimentPage() {
       let newData = e.formData;
 
       // Enforce model exclusivity (model can't combine with other types)
-      if (Array.isArray(newData.experiment_type)) {
-        const previousTypes = Array.isArray(formData.experiment_type)
-          ? formData.experiment_type
+      if (Array.isArray(newData.experiment_types)) {
+        const previousTypes = Array.isArray(formData.experiment_types)
+          ? formData.experiment_types
           : [];
         const cleaned = enforceModelExclusivity(
-          newData.experiment_type,
+          newData.experiment_types,
           previousTypes
         );
-        if (cleaned !== newData.experiment_type) {
-          newData = { ...newData, experiment_type: cleaned };
+        if (cleaned !== newData.experiment_types) {
+          newData = { ...newData, experiment_types: cleaned };
         }
       }
 
       // Check if schema type changed and clean fields that don't belong
-      const oldSchemaType = getExperimentSchemaType(formData.experiment_type ?? []);
-      const newSchemaType = getExperimentSchemaType(newData.experiment_type ?? []);
+      const oldSchemaType = getExperimentSchemaType(formData.experiment_types ?? []);
+      const newSchemaType = getExperimentSchemaType(newData.experiment_types ?? []);
 
       if (oldSchemaType !== newSchemaType) {
         newData = cleanFormDataForType(newData, newSchemaType);

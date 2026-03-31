@@ -33,7 +33,7 @@ const REQUIRED_FIELDS_MAP = {
   ],
   experiment_base: [
     "experiment_id",
-    "experiment_type",
+    "experiment_types",
     "description",
     "spatial_coverage",
     "vertical_coverage",

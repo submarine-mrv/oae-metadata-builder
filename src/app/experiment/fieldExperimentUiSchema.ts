@@ -34,7 +34,7 @@ const fieldExperimentUiSchema = {
   "ui:order": [
     "name",
     "experiment_id",
-    "experiment_type",
+    "experiment_types",
     "description",
     "start_datetime",
     "end_datetime",
@@ -88,7 +88,7 @@ const fieldExperimentUiSchema = {
     "ui:title": "Experiment Name",
     "ui:placeholder": "e.g., Baseline Water Chemistry Study"
   },
-  experiment_type: {
+  experiment_types: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget"
   },

@@ -94,7 +94,7 @@ interface AppStateContextType {
   deleteProject: () => void;
   updateProjectData: (data: ProjectFormData) => void;
   addExperiment: (name?: string) => number;
-  updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string[] }) => void;
+  updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_types?: string[] }) => void;
   deleteExperiment: (id: number) => void;
   setActiveTab: (tab: "overview" | "project" | "experiment" | "dataset") => void;
   setActiveExperiment: (id: number | null) => void;
@@ -233,7 +233,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateExperiment = useCallback(
-    (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_type?: string[] }) => {
+    (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_types?: string[] }) => {
       setState((prev) => {
         // Find the existing experiment to check for experiment_id changes
         const existingExp = prev.experiments.find((exp) => exp.id === id);
@@ -246,7 +246,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             ? {
                 ...exp,
                 formData: { ...exp.formData, ...data } as ExperimentFormData,
-                experiment_type: data.experiment_type || exp.experiment_type,
+                experiment_types: data.experiment_types || exp.experiment_types,
                 name: data.name || exp.name,
                 updatedAt: Date.now()
               }
@@ -316,7 +316,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
       return calculateFormCompletion(
         experiment.formData,
-        getExperimentSchemaType(experiment.experiment_type ?? [])
+        getExperimentSchemaType(experiment.experiment_types ?? [])
       );
     },
     [state.experiments]
@@ -558,7 +558,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               ...newExperiments[existingIndex],
               formData: expData,
               name: expName || newExperiments[existingIndex].name,
-              experiment_type: expData.experiment_type,
+              experiment_types: expData.experiment_types,
               updatedAt: Date.now()
             };
             // Map import key to existing internal ID
@@ -570,7 +570,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
               id: newInternalId,
               name: expName || `Experiment ${newInternalId}`,
               formData: expData,
-              experiment_type: expData.experiment_type,
+              experiment_types: expData.experiment_types,
               createdAt: Date.now(),
               updatedAt: Date.now()
             });

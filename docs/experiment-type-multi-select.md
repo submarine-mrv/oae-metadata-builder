@@ -2,14 +2,14 @@
 
 ## Background
 
-`experiment_type` is a **multivalued** field on the `Experiment` class — users can
+`experiment_types` is a **multivalued** field on the `Experiment` class — users can
 select multiple types to describe a single experiment (e.g., an intervention that
 also includes a tracer study selects both "Intervention" and "Tracer Study").
 
 The schema architecture uses class inheritance and mixins to model this:
 
 ```
-Experiment (base: experiment_type, description, spatial_coverage, ...)
+Experiment (base: experiment_types, description, spatial_coverage, ...)
   └─ InSituExperiment (+ vertical_coverage, permits, met data, ...)
        ├─ Intervention (+ InterventionDetails mixin, DosingDetails mixin)
        ├─ Tracer (+ TracerDetails mixin, DosingDetails mixin)
@@ -20,7 +20,7 @@ Experiment (base: experiment_type, description, spatial_coverage, ...)
 ## Schema Selection Rules
 
 The form renders different schemas (and uiSchemas) depending on which
-`experiment_type` values are selected. The rules are:
+`experiment_types` values are selected. The rules are:
 
 ### 1. Model is exclusive
 

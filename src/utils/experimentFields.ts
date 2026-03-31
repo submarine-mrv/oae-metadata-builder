@@ -10,7 +10,7 @@ import type { FormDataRecord } from "@/types/forms";
 // Fields present in the base Experiment class (shared by all types)
 const BASE_EXPERIMENT_FIELDS = [
   "experiment_id",
-  "experiment_type",
+  "experiment_types",
   "name",
   "description",
   "project_id",
@@ -92,7 +92,7 @@ export function getExperimentSchemaType(experimentType: string[]): string {
 }
 
 /**
- * Enforces model exclusivity on the experiment_type array.
+ * Enforces model exclusivity on the experiment_types array.
  * - If model was just added (not previously selected), remove all other types.
  * - If a non-model type was added while model was selected, remove model.
  */

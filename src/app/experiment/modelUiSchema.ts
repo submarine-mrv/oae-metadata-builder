@@ -46,7 +46,7 @@ const modelUiSchema = {
   "ui:order": [
     "name",
     "experiment_id",
-    "experiment_type",
+    "experiment_types",
     "description",
     "start_datetime",
     "end_datetime",

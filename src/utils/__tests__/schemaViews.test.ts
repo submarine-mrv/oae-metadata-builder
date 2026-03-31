@@ -111,7 +111,7 @@ describe('Schema Views', () => {
       const schema = getExperimentSchema();
 
       expect(schema.properties!.experiment_id).toBeDefined();
-      expect(schema.properties!.experiment_type).toBeDefined();
+      expect(schema.properties!.experiment_types).toBeDefined();
       expect(schema.properties!.description).toBeDefined();
       expect(schema.properties!.experiment_leads).toBeDefined();
     });
@@ -148,7 +148,7 @@ describe('Schema Views', () => {
 
       // Base experiment fields should also be present
       expect(schema.properties!.experiment_id).toBeDefined();
-      expect(schema.properties!.experiment_type).toBeDefined();
+      expect(schema.properties!.experiment_types).toBeDefined();
       expect(schema.properties!.description).toBeDefined();
     });
   });

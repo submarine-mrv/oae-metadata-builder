@@ -317,14 +317,14 @@ for (const config of nvsDecorations) {
 // Inline enum $ref array items as oneOf with labels for multi-select rendering
 decorated = inlineEnumArrayItems(decorated, [
   { defName: "ModelOutputDataset", fieldPath: "properties.model_output_variables" },
-  // experiment_type is multivalued — inline on every experiment class so RJSF
+  // experiment_types is multivalued — inline on every experiment class so RJSF
   // can render labeled multi-select options (items.$ref → items.oneOf)
-  { defName: "Experiment", fieldPath: "properties.experiment_type" },
-  { defName: "InSituExperiment", fieldPath: "properties.experiment_type" },
-  { defName: "Intervention", fieldPath: "properties.experiment_type" },
-  { defName: "InterventionWithTracer", fieldPath: "properties.experiment_type" },
-  { defName: "Model", fieldPath: "properties.experiment_type" },
-  { defName: "Tracer", fieldPath: "properties.experiment_type" }
+  { defName: "Experiment", fieldPath: "properties.experiment_types" },
+  { defName: "InSituExperiment", fieldPath: "properties.experiment_types" },
+  { defName: "Intervention", fieldPath: "properties.experiment_types" },
+  { defName: "InterventionWithTracer", fieldPath: "properties.experiment_types" },
+  { defName: "Model", fieldPath: "properties.experiment_types" },
+  { defName: "Tracer", fieldPath: "properties.experiment_types" }
 ]);
 
 decorated = fixConditionalFields(decorated);
