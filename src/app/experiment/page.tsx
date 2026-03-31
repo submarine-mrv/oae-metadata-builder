@@ -41,11 +41,9 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { validateExperiment } from "@/utils/validation";
 import { exportSingleExperiment } from "@/utils/exportImport";
 import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
-import experimentUiSchema from "./experimentUiSchema";
-import interventionUiSchema from "./interventionUiSchema";
-import tracerUiSchema from "./tracerUiSchema";
+import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
 import modelUiSchema from "./modelUiSchema";
-import { cleanFormDataForType } from "@/utils/experimentFields";
+import { cleanFormDataForType, getExperimentSchemaType, enforceModelExclusivity } from "@/utils/experimentFields";
 import {
   cleanupConditionalFields,
   cleanupNestedConditionalFields,
@@ -81,6 +79,11 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
     triggerField: "alkalinity_feedstock_processing",
     triggerValue: "other",
     customField: "alkalinity_feedstock_processing_custom"
+  },
+  {
+    triggerField: "tracer_form",
+    triggerValue: "other",
+    customField: "tracer_form_custom"
   }
 ];
 
@@ -99,7 +102,7 @@ export default function ExperimentPage() {
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
-  const [activeUiSchema, setActiveUiSchema] = useState<any>(experimentUiSchema);
+  const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -133,28 +136,21 @@ export default function ExperimentPage() {
     }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Dynamic schema and uiSchema switching based on experiment_type
+  // Dynamic schema and uiSchema switching based on experiment_types
+  // See docs/experiment-type-multi-select.md for the full decision table
   useEffect(() => {
-    const experimentType = formData.experiment_type;
+    const schemaType = getExperimentSchemaType(formData.experiment_types ?? []);
 
-    if (experimentType === "intervention") {
-      setActiveSchema(getInterventionSchema());
-      setActiveUiSchema(interventionUiSchema);
-    } else if (experimentType === "tracer_study") {
-      setActiveSchema(getTracerSchema());
-      setActiveUiSchema(tracerUiSchema);
-    } else if (experimentType === "intervention_with_tracer") {
-      setActiveSchema(getInterventionWithTracerSchema());
-      setActiveUiSchema(tracerUiSchema); // TODO: may need separate UI schema
-    } else if (experimentType === "model") {
-      setActiveSchema(getModelSchema());
-      setActiveUiSchema(modelUiSchema);
-    } else {
-      // Use InSituExperiment schema (default for baseline, control, other)
-      setActiveSchema(getInSituExperimentSchema());
-      setActiveUiSchema(experimentUiSchema);
-    }
-  }, [formData.experiment_type]);
+    // Schema selection — see docs/experiment-type-multi-select.md
+    const schemaMap: Record<string, () => any> = {
+      intervention: getInterventionSchema,
+      tracer_study: getTracerSchema,
+      intervention_with_tracer: getInterventionWithTracerSchema,
+      model: getModelSchema
+    };
+    setActiveSchema((schemaMap[schemaType] || getInSituExperimentSchema)());
+    setActiveUiSchema(schemaType === "model" ? modelUiSchema : fieldExperimentUiSchema);
+  }, [formData.experiment_types]);
 
   const handleFormChange = useCallback(
     (e: any) => {
@@ -166,13 +162,26 @@ export default function ExperimentPage() {
 
       let newData = e.formData;
 
-      // Check if experiment_type changed
-      const oldType = formData.experiment_type;
-      const newType = newData.experiment_type;
+      // Enforce model exclusivity (model can't combine with other types)
+      if (Array.isArray(newData.experiment_types)) {
+        const previousTypes = Array.isArray(formData.experiment_types)
+          ? formData.experiment_types
+          : [];
+        const cleaned = enforceModelExclusivity(
+          newData.experiment_types,
+          previousTypes
+        );
+        if (cleaned !== newData.experiment_types) {
+          newData = { ...newData, experiment_types: cleaned };
+        }
+      }
 
-      if (oldType && newType && oldType !== newType) {
-        // Experiment type changed - clean fields that don't belong to new type
-        newData = cleanFormDataForType(newData, newType);
+      // Check if schema type changed and clean fields that don't belong
+      const oldSchemaType = getExperimentSchemaType(formData.experiment_types ?? []);
+      const newSchemaType = getExperimentSchemaType(newData.experiment_types ?? []);
+
+      if (oldSchemaType !== newSchemaType) {
+        newData = cleanFormDataForType(newData, newSchemaType);
       }
 
       // Clean up conditional custom fields when trigger conditions are not met
@@ -269,7 +278,8 @@ export default function ExperimentPage() {
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
-              emptyObjectFields: "skipEmptyDefaults"
+              emptyObjectFields: "skipEmptyDefaults",
+              constAsDefaults: "never"
             }}
             widgets={{
               CustomSelectWidget: CustomSelectWidget,

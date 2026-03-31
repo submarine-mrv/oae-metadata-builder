@@ -1,7 +1,7 @@
 // modelUiSchema.ts - UI configuration for model experiments
 // Inherits from experimentUiSchema and adds model-specific customizations
 
-import experimentUiSchema from "./experimentUiSchema";
+import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
 import schema from "../../../public/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import {
@@ -40,13 +40,13 @@ const namedLinkArray = (addItemText: string) => ({
 // Create model uiSchema by inheriting from experiment uiSchema
 const modelUiSchema = {
   // Inherit all base experiment uiSchema properties
-  ...experimentUiSchema,
+  ...fieldExperimentUiSchema,
 
   // Override ui:order to include model-specific fields
   "ui:order": [
     "name",
     "experiment_id",
-    "experiment_type",
+    "experiment_types",
     "description",
     "start_datetime",
     "end_datetime",
@@ -56,8 +56,9 @@ const modelUiSchema = {
     "grid_details",
     "input_details",
     "model_configuration",
-    // Common fields
-    "principal_investigators",
+    // Common tail
+    "experiment_leads",
+    "public_comments",
     "*"
   ],
 

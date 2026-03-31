@@ -1,6 +1,8 @@
 /**
  * Defines which fields belong to each experiment type
  * Used for cleaning form data when switching between types
+ *
+ * See docs/experiment-type-multi-select.md for schema selection rules.
  */
 
 import type { FormDataRecord } from "@/types/forms";
@@ -8,14 +10,15 @@ import type { FormDataRecord } from "@/types/forms";
 // Fields present in the base Experiment class (shared by all types)
 const BASE_EXPERIMENT_FIELDS = [
   "experiment_id",
-  "experiment_type",
+  "experiment_types",
   "name",
   "description",
   "project_id",
   "start_datetime",
   "end_datetime",
   "spatial_coverage",
-  "principal_investigators"
+  "experiment_leads",
+  "public_comments"
 ];
 
 // Additional fields on InSituExperiment (field experiment types)
@@ -49,6 +52,7 @@ const TRACER_FIELDS = [
   "tracer_concentration",
   "tracer_details",
   "tracer_form",
+  "tracer_form_custom",
   "dosing_delivery_type",
   "dosing_depth",
   "dosing_description",
@@ -64,6 +68,49 @@ const MODEL_FIELDS = [
   "model_components",
   "model_configuration"
 ];
+
+/**
+ * Determines which schema class to use based on the selected experiment types.
+ *
+ * Rules (see docs/experiment-type-multi-select.md):
+ * - model is exclusive — cannot combine with other types
+ * - intervention + tracer_study → InterventionWithTracer (combined class)
+ * - intervention alone → Intervention
+ * - tracer_study alone → Tracer
+ * - base types (baseline, control, other) → InSituExperiment
+ */
+export function getExperimentSchemaType(experimentType: string[]): string {
+  const hasIntervention = experimentType.includes("intervention");
+  const hasTracer = experimentType.includes("tracer_study");
+  const hasModel = experimentType.includes("model");
+
+  if (hasModel) return "model";
+  if (hasIntervention && hasTracer) return "intervention_with_tracer";
+  if (hasIntervention) return "intervention";
+  if (hasTracer) return "tracer_study";
+  return "in_situ";
+}
+
+/**
+ * Enforces model exclusivity on the experiment_types array.
+ * - If model was just added (not previously selected), remove all other types.
+ * - If a non-model type was added while model was selected, remove model.
+ */
+export function enforceModelExclusivity(
+  newTypes: string[],
+  previousTypes: string[]
+): string[] {
+  const hadModel = previousTypes.includes("model");
+  const hasModel = newTypes.includes("model");
+
+  if (hasModel && !hadModel) {
+    return ["model"];
+  }
+  if (hasModel && hadModel && newTypes.length > 1) {
+    return newTypes.filter((t) => t !== "model");
+  }
+  return newTypes;
+}
 
 /**
  * Returns the set of valid fields for a given experiment type
@@ -88,11 +135,11 @@ export function getValidFieldsForType(experimentType: string): Set<string> {
       INTERVENTION_FIELDS.forEach((field) => validFields.add(field));
       TRACER_FIELDS.forEach((field) => validFields.add(field));
       break;
+    case "in_situ":
     case "control":
     case "baseline":
     case "other":
     default:
-      // InSituExperiment fields (field experiment types)
       IN_SITU_FIELDS.forEach((field) => validFields.add(field));
       break;
   }
@@ -111,7 +158,6 @@ export function cleanFormDataForType<T extends FormDataRecord>(
   const validFields = getValidFieldsForType(experimentType);
   const cleanedData: Partial<T> = {};
 
-  // Keep only fields that are valid for this experiment type
   (Object.keys(formData) as Array<keyof T>).forEach((key) => {
     if (validFields.has(key as string)) {
       cleanedData[key] = formData[key];

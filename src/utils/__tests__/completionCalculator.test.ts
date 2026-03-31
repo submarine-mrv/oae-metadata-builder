@@ -73,11 +73,11 @@ describe("completionCalculator", () => {
     it("should calculate base experiment completion", () => {
       const experimentData = {
         experiment_id: "EXP-001",
-        experiment_type: "baseline",
+        experiment_types: "baseline",
         description: "Test experiment",
         spatial_coverage: { geo: { box: "0 0 10 10" } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        principal_investigators: [{ name: "Dr. Test" }],
+        experiment_leads: [{ name: "Dr. Test" }],
         start_datetime: "2024-01-01 00:00:00",
         end_datetime: "2024-12-31 23:59:59"
       };
@@ -90,11 +90,11 @@ describe("completionCalculator", () => {
       const experimentData = {
         // Base fields
         experiment_id: "EXP-001",
-        experiment_type: "intervention",
+        experiment_types: "intervention",
         description: "Test intervention",
         spatial_coverage: { geo: { box: "0 0 10 10" } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        principal_investigators: [{ name: "Dr. Test" }],
+        experiment_leads: [{ name: "Dr. Test" }],
         start_datetime: "2024-01-01 00:00:00",
         end_datetime: "2024-12-31 23:59:59",
         // Intervention-specific fields
@@ -120,11 +120,11 @@ describe("completionCalculator", () => {
     it("should handle tracer study type", () => {
       const experimentData = {
         experiment_id: "EXP-001",
-        experiment_type: "tracer_study",
+        experiment_types: "tracer_study",
         description: "Test tracer",
         spatial_coverage: { geo: { box: "0 0 10 10" } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        principal_investigators: [{ name: "Dr. Test" }],
+        experiment_leads: [{ name: "Dr. Test" }],
         start_datetime: "2024-01-01 00:00:00",
         end_datetime: "2024-12-31 23:59:59",
         tracer_concentration: 100,
@@ -146,7 +146,7 @@ describe("completionCalculator", () => {
       // This type should require both intervention and tracer fields
       const experimentData = {
         experiment_id: "EXP-001",
-        experiment_type: "intervention_with_tracer"
+        experiment_types: "intervention_with_tracer"
         // Missing all other fields
       };
 
@@ -160,14 +160,14 @@ describe("completionCalculator", () => {
     it("should count numbers as filled and use base fields when no type specified", () => {
       const data = {
         experiment_id: "test-123",
-        experiment_type: "baseline",
+        experiment_types: "baseline",
         description: "Test experiment",
         vertical_coverage: { min_depth_in_m: 0 }, // Number zero should count
         empty_string: ""
       };
 
       const result = calculateFormCompletion(data);
-      // 4 out of 7 base fields filled (experiment_id, experiment_type, description, vertical_coverage)
+      // 4 out of 7 base fields filled (experiment_id, experiment_types, description, vertical_coverage)
       expect(result).toBe(57);
     });
   });

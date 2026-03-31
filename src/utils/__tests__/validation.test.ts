@@ -69,7 +69,7 @@ describe('Validation', () => {
       const validExperiment = {
         experiment_id: 'exp-baseline-001',
         project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
-        experiment_type: 'baseline',
+        experiment_types: ['baseline'],
         description: 'Baseline measurements before intervention',
         spatial_coverage: {
           geo: { box: '0 0 1 1' }
@@ -93,7 +93,7 @@ describe('Validation', () => {
       const interventionExperiment = {
         experiment_id: 'exp-intervention-001',
         project_id: '',
-        experiment_type: 'intervention',
+        experiment_types: ['intervention'],
         description: 'Alkalinity addition experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -127,7 +127,7 @@ describe('Validation', () => {
       const tracerExperiment = {
         experiment_id: 'exp-tracer-001',
         project_id: '',
-        experiment_type: 'tracer_study',
+        experiment_types: ['tracer_study'],
         description: 'SF6 tracer study',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -147,7 +147,7 @@ describe('Validation', () => {
 
     it('should fail validation for missing required experiment fields', () => {
       const invalidExperiment = {
-        experiment_type: 'baseline',
+        experiment_types: ['baseline'],
         // Missing experiment_id and other required fields
       };
 
@@ -161,7 +161,7 @@ describe('Validation', () => {
       const controlExperiment = {
         experiment_id: 'exp-control-001',
         project_id: '',
-        experiment_type: 'control',
+        experiment_types: ['control'],
         description: 'Control experiment',
         spatial_coverage: { geo: { box: '0 0 1 1' } },
         vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -196,7 +196,7 @@ describe('Validation', () => {
           formData: {
             experiment_id: 'exp-001',
             project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
-            experiment_type: 'baseline',
+            experiment_types: ['baseline'],
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -228,7 +228,7 @@ describe('Validation', () => {
           id: 1,
           name: 'Invalid',
           formData: {
-            experiment_type: 'baseline',
+            experiment_types: ['baseline'],
             // Missing required fields
           }
         }
@@ -261,7 +261,7 @@ describe('Validation', () => {
           formData: {
             experiment_id: 'exp-baseline',
             project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
-            experiment_type: 'baseline',
+            experiment_types: ['baseline'],
             description: 'Baseline',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -276,7 +276,7 @@ describe('Validation', () => {
           formData: {
             experiment_id: 'exp-control',
             project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
-            experiment_type: 'control',
+            experiment_types: ['control'],
             description: 'Control',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -312,7 +312,7 @@ describe('Validation', () => {
           formData: {
             experiment_id: 'exp-001',
             project_id: '', // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
-            experiment_type: 'baseline',
+            experiment_types: ['baseline'],
             description: 'Valid',
             spatial_coverage: { geo: { box: '0 0 1 1' } },
             vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -50 },
@@ -325,7 +325,7 @@ describe('Validation', () => {
           id: 2,
           name: 'Invalid',
           formData: {
-            experiment_type: 'baseline',
+            experiment_types: ['baseline'],
             // Missing required fields (project_id, experiment_id, description, etc.)
           }
         }

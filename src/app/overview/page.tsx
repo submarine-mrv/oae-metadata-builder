@@ -367,12 +367,16 @@ export default function OverviewPage() {
                           </Button>
                         </Group>
 
-                        {experiment.experiment_type && (
-                          <Badge variant="light" size="sm">
-                            {experiment.experiment_type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (c) => c.toUpperCase())}
-                          </Badge>
+                        {experiment.experiment_types && experiment.experiment_types.length > 0 && (
+                          <Group gap="xs">
+                            {experiment.experiment_types.map((t: string) => (
+                              <Badge variant="light" size="sm" key={t}>
+                                {t
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                              </Badge>
+                            ))}
+                          </Group>
                         )}
 
                         <Stack gap="xs">

@@ -33,7 +33,7 @@ const FIELD_DATASET_FIELDS = [
 // ModelOutputDataset-specific fields (not in FieldDataset)
 const MODEL_SIMULATION_FIELDS = [
   "simulation_type",
-  "alkalinity_perturbation_description",
+  "mcdr_forcing_description",
   "model_output_variables",
   "output_frequency",
   "spin_up_protocol",

@@ -142,7 +142,7 @@ export function getFieldDatasetSchema() {
 
 /**
  * Gets the ModelOutputDataset schema for model output datasets.
- * Has if/then conditional (simulation_type → alkalinity_perturbation_description)
+ * Has if/then conditional (simulation_type → mcdr_forcing_description)
  * so needs additionalProperties: true.
  */
 export function getModelOutputDatasetSchema() {

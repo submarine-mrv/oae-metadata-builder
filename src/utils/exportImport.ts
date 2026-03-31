@@ -26,7 +26,6 @@ const PROJECT_FIELDS = [
   "social_research_conducted_to_date",
   "colocated_operations",
   "previous_or_ongoing_colocated_research",
-  "public_comments",
   "permits",
   "research_project",
   "funding",
@@ -279,7 +278,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
               (expData.experiment_id as string) ||
               `Experiment ${index + 1}`,
             formData: expData,
-            experiment_type: expData.experiment_type,
+            experiment_types: expData.experiment_types,
             createdAt: Date.now(),
             updatedAt: Date.now()
           })

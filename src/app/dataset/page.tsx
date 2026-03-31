@@ -63,7 +63,7 @@ const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
   {
     triggerField: "simulation_type",
     triggerValue: "perturbation",
-    customField: "alkalinity_perturbation_description"
+    customField: "mcdr_forcing_description"
   }
 ];
 
@@ -277,7 +277,8 @@ export default function DatasetPage() {
             noHtml5Validate={false}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
-              emptyObjectFields: "skipEmptyDefaults"
+              emptyObjectFields: "skipEmptyDefaults",
+              constAsDefaults: "never"
             }}
             fields={{
               FilenamesField: FilenamesField,
