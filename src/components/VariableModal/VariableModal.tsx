@@ -29,7 +29,7 @@ import {
   VARIABLE_TYPE_BEHAVIOR,
   getAccordionConfig,
   getSchemaKeyForUI,
-  resolveEffectiveType,
+  resolveVariableType,
   normalizeFieldConfig,
   getPlaceholderOverride
 } from "./variableModalConfig";
@@ -183,7 +183,7 @@ export default function VariableModal({
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
-    const effectiveType = resolveEffectiveType(
+    const effectiveType = resolveVariableType(
       variableType || undefined,
       genesis || undefined
     );
@@ -320,8 +320,8 @@ export default function VariableModal({
   const handleSave = () => {
     if (!schemaKey) return;
     // For "non_measured" the UI uses variableType directly;
-    // for "other" with contextual genesis, resolveEffectiveType maps to "non_measured"
-    const effectiveType = resolveEffectiveType(
+    // for "other" with contextual genesis, resolveVariableType maps to "non_measured"
+    const effectiveType = resolveVariableType(
       variableType || undefined,
       genesis || undefined
     );
@@ -519,7 +519,7 @@ export default function VariableModal({
                           // Compute effective placeholder with override support
                           const effectivePlaceholder =
                             getPlaceholderOverride(
-                              resolveEffectiveType(variableType || undefined, genesis || undefined),
+                              resolveVariableType(variableType || undefined, genesis || undefined),
                               field.path
                             ) || field.placeholderText;
 

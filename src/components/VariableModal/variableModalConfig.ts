@@ -156,7 +156,7 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
 // =============================================================================
 
 export const VARIABLE_TYPE_OPTIONS = [
-    { value: "other", label: "Generic Variable" },
+  { value: "other", label: "Generic Variable" },
   { value: "pH", label: "pH" },
   { value: "ta", label: "Total Alkalinity (TA)" },
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
@@ -315,9 +315,9 @@ export function buildSectionFields(
 // Layer Definitions (mirror LinkML class hierarchy)
 // =============================================================================
 
-/** BaseVariable + Variable + ObservedPropertyVariable + QCFields */
+/** Variable + InSituVariable + MeasuredVariable + QCFields */
 const BASE: HierarchyLayer = {
-  name: "BaseVariable",
+  name: "Variable",
   sections: {
     basic: [
       { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
@@ -874,14 +874,14 @@ export function getSchemaKey(
  * Maps UI "other" + genesis to the internal variable type.
  * For non-"other" types, returns the type unchanged.
  */
-export function resolveEffectiveType(
+export function resolveVariableType(
   uiVariableType: string | undefined,
   genesis: string | undefined
 ): string | undefined {
   if (uiVariableType !== "other") return uiVariableType;
   if (!genesis) return undefined;
   if (genesis === "contextual") return "non_measured";
-  return "observed_property";
+  return "other";
 }
 
 /**
@@ -894,7 +894,8 @@ export function getSchemaKeyForUI(
   sampling: string | undefined
 ): string | null {
   if (uiVariableType === "other") {
-    if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
+    if (genesis === "contextual")
+      return getSchemaKey("non_measured", undefined, undefined);
     return getSchemaKey("observed_property", genesis, sampling);
   }
   return getSchemaKey(uiVariableType, genesis, sampling);

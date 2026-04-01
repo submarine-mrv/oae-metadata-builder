@@ -31,10 +31,11 @@ import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
 
-// Build label lookup from the dropdown options
-const VARIABLE_TYPE_LABEL_MAP = Object.fromEntries(
-  VARIABLE_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])
-);
+// Build label lookup from the dropdown options + non_measured (not a dropdown option)
+const VARIABLE_TYPE_LABEL_MAP: Record<string, string> = {
+  ...Object.fromEntries(VARIABLE_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])),
+  non_measured: "Contextual"
+};
 
 function getVariableDisplayLabel(variable: VariableData): string {
   const varType = variable.variable_type as string | undefined;

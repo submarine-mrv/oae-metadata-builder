@@ -6,7 +6,7 @@ import {
   VARIABLE_SCHEMA_MAP,
   normalizeFieldConfig,
   getSchemaKey,
-  resolveEffectiveType,
+  resolveVariableType,
   getSchemaKeyForUI
 } from "../variableModalConfig";
 import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
@@ -409,31 +409,31 @@ describe("normalizeFieldConfig", () => {
   });
 });
 
-describe("resolveEffectiveType", () => {
+describe("resolveVariableType", () => {
   it("returns non-'other' types unchanged", () => {
-    expect(resolveEffectiveType("pH", "measured")).toBe("pH");
-    expect(resolveEffectiveType("ta", undefined)).toBe("ta");
-    expect(resolveEffectiveType("hplc", "measured")).toBe("hplc");
+    expect(resolveVariableType("pH", "measured")).toBe("pH");
+    expect(resolveVariableType("ta", undefined)).toBe("ta");
+    expect(resolveVariableType("hplc", "measured")).toBe("hplc");
   });
 
   it("returns undefined for undefined input", () => {
-    expect(resolveEffectiveType(undefined, undefined)).toBeUndefined();
+    expect(resolveVariableType(undefined, undefined)).toBeUndefined();
   });
 
   it("maps 'other' + 'contextual' to 'non_measured'", () => {
-    expect(resolveEffectiveType("other", "contextual")).toBe("non_measured");
+    expect(resolveVariableType("other", "contextual")).toBe("non_measured");
   });
 
-  it("maps 'other' + 'measured' to 'observed_property'", () => {
-    expect(resolveEffectiveType("other", "measured")).toBe("observed_property");
+  it("maps 'other' + 'measured' to 'other'", () => {
+    expect(resolveVariableType("other", "measured")).toBe("other");
   });
 
-  it("maps 'other' + 'calculated' to 'observed_property'", () => {
-    expect(resolveEffectiveType("other", "calculated")).toBe("observed_property");
+  it("maps 'other' + 'calculated' to 'other'", () => {
+    expect(resolveVariableType("other", "calculated")).toBe("other");
   });
 
   it("returns undefined for 'other' + undefined (genesis not yet selected)", () => {
-    expect(resolveEffectiveType("other", undefined)).toBeUndefined();
+    expect(resolveVariableType("other", undefined)).toBeUndefined();
   });
 });
 
