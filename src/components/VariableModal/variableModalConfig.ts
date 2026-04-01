@@ -50,7 +50,7 @@ export const VARIABLE_SCHEMA_MAP = {
       units: "NBS scale, total scale, seawater scale, etc."
     }
   },
-  observed_property: {
+  other: {
     measured: {
       discrete: "DiscreteMeasuredVariable",
       continuous: "ContinuousMeasuredVariable"
@@ -884,6 +884,121 @@ export function resolveVariableType(
   return "other";
 }
 
+// Build reverse lookup: schema_class → { variable_type, genesis, sampling }
+// Used by normalizeVariableFields to fix inconsistencies on load.
+interface SchemaClassInfo {
+  variable_type: string;
+  genesis?: string;
+  sampling?: string;
+}
+
+function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
+  const lookup: Record<string, SchemaClassInfo> = {};
+  for (const [varType, topLevel] of Object.entries(VARIABLE_SCHEMA_MAP)) {
+    if ("DIRECT" in topLevel) {
+      lookup[(topLevel as Record<string, unknown>).DIRECT as string] = {
+        variable_type: varType
+      };
+      continue;
+    }
+    for (const [key, genesisValue] of Object.entries(topLevel)) {
+      if (key === "placeholderOverrides") continue;
+      if (typeof genesisValue === "string") {
+        // Calculated — genesis is the key, no sampling
+        // Don't overwrite if already set (CalculatedVariable is shared)
+        if (!lookup[genesisValue]) {
+          lookup[genesisValue] = { variable_type: varType, genesis: key };
+        }
+      } else if (typeof genesisValue === "object" && genesisValue !== null) {
+        for (const [samplingKey, schemaClass] of Object.entries(genesisValue as Record<string, string>)) {
+          if (typeof schemaClass === "string") {
+            lookup[schemaClass] = { variable_type: varType, genesis: key, sampling: samplingKey };
+          }
+        }
+      }
+    }
+  }
+  return lookup;
+}
+
+const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
+
+/**
+ * Normalizes variable fields to be consistent with schema_class.
+ * Called on load/import to fix any inconsistencies between schema_class
+ * and its sibling fields (variable_type, genesis, sampling).
+ *
+ * schema_class is the source of truth. If sibling fields conflict,
+ * they are overridden. For shared classes like CalculatedVariable,
+ * variable_type is trusted if present.
+ */
+export function normalizeVariableFields(
+  variable: Record<string, unknown>
+): Record<string, unknown> {
+  let schemaClass = variable.schema_class as string | undefined;
+
+  // If schema_class is missing, try to derive it from variable_type + genesis + sampling
+  if (!schemaClass) {
+    const varType = variable.variable_type as string | undefined;
+    const derived = varType
+      ? getSchemaKey(
+          varType,
+          variable.genesis as string | undefined,
+          variable.sampling as string | undefined
+        )
+      : null;
+    if (!derived) return variable;
+    schemaClass = derived;
+    return { ...variable, schema_class: schemaClass };
+  }
+
+  const expected = SCHEMA_CLASS_LOOKUP[schemaClass];
+  if (!expected) return variable;
+
+  const changes: Record<string, unknown> = {};
+
+  // For shared classes (CalculatedVariable), trust existing variable_type
+  // unless it's clearly invalid
+  const isSharedClass = schemaClass === "CalculatedVariable";
+  if (isSharedClass) {
+    const currentType = variable.variable_type as string | undefined;
+    if (!currentType || currentType === "non_measured") {
+      changes.variable_type = "other";
+    }
+  } else {
+    if (variable.variable_type !== expected.variable_type) {
+      changes.variable_type = expected.variable_type;
+    }
+  }
+
+  // Fix genesis
+  if (expected.genesis !== undefined) {
+    if (variable.genesis !== expected.genesis) {
+      changes.genesis = expected.genesis;
+    }
+  } else {
+    // No genesis expected (NonMeasuredVariable) — clear it
+    if (variable.genesis !== undefined) {
+      changes.genesis = undefined;
+    }
+  }
+
+  // Fix sampling
+  if (expected.sampling !== undefined) {
+    if (variable.sampling !== expected.sampling) {
+      changes.sampling = expected.sampling;
+    }
+  } else {
+    // No sampling expected (Calculated, NonMeasured) — clear it
+    if (variable.sampling !== undefined) {
+      changes.sampling = undefined;
+    }
+  }
+
+  if (Object.keys(changes).length === 0) return variable;
+  return { ...variable, ...changes };
+}
+
 /**
  * Like getSchemaKey but handles "other" → effective type resolution first.
  * Use this in the UI layer; validation/export paths should use getSchemaKey directly.
@@ -896,7 +1011,7 @@ export function getSchemaKeyForUI(
   if (uiVariableType === "other") {
     if (genesis === "contextual")
       return getSchemaKey("non_measured", undefined, undefined);
-    return getSchemaKey("observed_property", genesis, sampling);
+    return getSchemaKey("other", genesis, sampling);
   }
   return getSchemaKey(uiVariableType, genesis, sampling);
 }

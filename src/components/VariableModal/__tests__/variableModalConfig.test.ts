@@ -345,7 +345,7 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("dic", "measured", "discrete")).toBe("DiscreteDICVariable");
     expect(getSchemaKey("sediment", "measured", "discrete")).toBe("DiscreteSedimentVariable");
     expect(getSchemaKey("co2", "measured", "discrete")).toBe("DiscreteCO2Variable");
-    expect(getSchemaKey("observed_property", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
+    expect(getSchemaKey("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
   });
 
   it("returns CalculatedVariable for all calculated types", () => {
@@ -448,7 +448,7 @@ describe("getSchemaKeyForUI", () => {
     expect(getSchemaKeyForUI("other", "contextual", undefined)).toBe("NonMeasuredVariable");
   });
 
-  it("routes 'other' + 'measured' + sampling to observed_property schemas", () => {
+  it("routes 'other' + 'measured' + sampling to other schemas", () => {
     expect(getSchemaKeyForUI("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
     expect(getSchemaKeyForUI("other", "measured", "continuous")).toBe("ContinuousMeasuredVariable");
   });
@@ -462,7 +462,7 @@ describe("getSchemaKeyForUI", () => {
   });
 
   it("returns null for 'other' with no genesis", () => {
-    // observed_property requires genesis, so this returns null
+    // other requires genesis, so this returns null
     expect(getSchemaKeyForUI("other", undefined, undefined)).toBeNull();
   });
 });

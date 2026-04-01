@@ -1,4 +1,5 @@
 import { getProtocolMetadata } from "./schemaViews";
+import { normalizeVariableFields } from "@/components/VariableModal/variableModalConfig";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -286,7 +287,15 @@ export async function importMetadata(file: File): Promise<ImportResult> {
 
         // Convert dataset data to DatasetState format
         const datasets: DatasetState[] = datasetsData.map(
-          (dsData: DatasetFormData, index: number) => ({
+          (dsData: DatasetFormData, index: number) => {
+            // Normalize variable fields on import (fix inconsistencies)
+            if (Array.isArray(dsData.variables)) {
+              dsData = {
+                ...dsData,
+                variables: dsData.variables.map((v) => normalizeVariableFields(v) as typeof v)
+              };
+            }
+            return {
             id: index + 1,
             name:
               (dsData.name as string) ||
@@ -297,7 +306,8 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             },
             createdAt: Date.now(),
             updatedAt: Date.now()
-          })
+            };
+          }
         );
 
         resolve({ projectData, experiments, datasets });

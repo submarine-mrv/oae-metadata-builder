@@ -76,7 +76,6 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
   ta: "Total Alkalinity",
   dic: "DIC",
   other: "Generic Variable",
-  observed_property: "Generic Variable",
   non_measured: "Contextual",
   sediment: "Sediment",
   co2: "CO₂",
@@ -107,7 +106,7 @@ interface VariableModalProps {
  * Schema-driven Variable Modal
  *
  * The variable type is determined by the combination of:
- * - variable_type (pH, ta, dic, observed_property, sediment, co2, hplc, non_measured)
+ * - variable_type (pH, ta, dic, other, sediment, co2, hplc, non_measured)
  * - genesis (measured, calculated)
  * - sampling (discrete, continuous) - only for measured
  *
@@ -140,7 +139,6 @@ export default function VariableModal({
     if (opened) {
       if (initialData) {
         setFormData(initialData);
-        // Read variable_type directly — it's a real schema field
         const savedType = (initialData.variable_type as string) || null;
         if (savedType === "non_measured") {
           // non_measured maps to UI "other" + genesis "contextual"
