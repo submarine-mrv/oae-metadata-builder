@@ -430,6 +430,13 @@
           "title": "QC steps taken",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "CalculatedVariable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -678,6 +685,13 @@
           "title": "Sampling Method",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "ContinuousDICVariable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -823,6 +837,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "ContinuousMeasuredVariable"
+          ],
           "type": "string"
         },
         "standard_identifier": {
@@ -976,6 +997,13 @@
           "title": "Sampling Method",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "ContinuousPHVariable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -1120,6 +1148,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "ContinuousSedimentVariable"
+          ],
           "type": "string"
         },
         "sediment_sampling_depth": {
@@ -1300,6 +1335,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "ContinuousTAVariable"
+          ],
           "type": "string"
         },
         "standard_identifier": {
@@ -1570,6 +1612,13 @@
           "title": "Sampling Method",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "DiscreteCO2Variable"
+          ],
+          "type": "string"
+        },
         "seawater_volume": {
           "description": "Volume (in mL) of seawater in the flask.",
           "title": "Seawater volume",
@@ -1748,6 +1797,13 @@
           "title": "Sampling Method",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "DiscreteDICVariable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -1884,6 +1940,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "DiscreteMeasuredVariable"
+          ],
           "type": "string"
         },
         "standard_identifier": {
@@ -2036,6 +2099,13 @@
           "title": "Sampling Method",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "DiscretePHVariable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -2176,6 +2246,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "DiscreteSedimentVariable"
+          ],
           "type": "string"
         },
         "sediment_sampling_depth": {
@@ -2360,6 +2437,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "DiscreteTAVariable"
+          ],
           "type": "string"
         },
         "standard_identifier": {
@@ -2758,7 +2842,53 @@
         },
         "variables": {
           "items": {
-            "$ref": "#/$defs/Variable"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/ObservedPropertyVariable"
+              },
+              {
+                "$ref": "#/$defs/CalculatedVariable"
+              },
+              {
+                "$ref": "#/$defs/DiscreteMeasuredVariable"
+              },
+              {
+                "$ref": "#/$defs/ContinuousMeasuredVariable"
+              },
+              {
+                "$ref": "#/$defs/ContinuousPHVariable"
+              },
+              {
+                "$ref": "#/$defs/ContinuousTAVariable"
+              },
+              {
+                "$ref": "#/$defs/ContinuousDICVariable"
+              },
+              {
+                "$ref": "#/$defs/ContinuousSedimentVariable"
+              },
+              {
+                "$ref": "#/$defs/DiscretePHVariable"
+              },
+              {
+                "$ref": "#/$defs/DiscreteTAVariable"
+              },
+              {
+                "$ref": "#/$defs/DiscreteDICVariable"
+              },
+              {
+                "$ref": "#/$defs/DiscreteSedimentVariable"
+              },
+              {
+                "$ref": "#/$defs/DiscreteCO2Variable"
+              },
+              {
+                "$ref": "#/$defs/HPLCVariable"
+              }
+            ]
           },
           "title": "Variables",
           "type": [
@@ -2944,6 +3074,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "HPLCVariable"
+          ],
           "type": "string"
         },
         "standard_identifier": {
@@ -4431,6 +4568,13 @@
           "title": "Variable full name",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "NonMeasuredVariable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -4557,6 +4701,13 @@
         "sampling_method": {
           "description": "Method used to collect samples.",
           "title": "Sampling Method",
+          "type": "string"
+        },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "ObservedPropertyVariable"
+          ],
           "type": "string"
         },
         "standard_identifier": {
@@ -6229,6 +6380,13 @@
           "title": "Other Detailed Information",
           "type": "string"
         },
+        "schema_class": {
+          "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
+          "enum": [
+            "Variable"
+          ],
+          "type": "string"
+        },
         "standard_identifier": {
           "$ref": "#/$defs/VocabularyItemReference"
         },
@@ -6346,5 +6504,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "06d3d5c5f7cf970d0ae7d1b6e826788d2795408e"
+  "x-protocol-git-hash": "50d3904cb76f845d0023ce59b54c72ae19340fb5"
 }

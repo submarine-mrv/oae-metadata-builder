@@ -152,12 +152,13 @@ function validateVariable(
 ): string[] {
   const errors: string[] = [];
 
-  // Get the schema key from the variable's type selections
-  const schemaKey = getSchemaKey(
-    variable._variableType as string | undefined,
-    variable.genesis as string | undefined,
-    variable.sampling as string | undefined
-  );
+  // Use schema_class directly if available, fall back to deriving from type selections
+  const schemaKey = (variable.schema_class as string | undefined)
+    || getSchemaKey(
+      variable._variableType as string | undefined,
+      variable.genesis as string | undefined,
+      variable.sampling as string | undefined
+    );
 
   if (!schemaKey) {
     // Can't validate without knowing the type
@@ -190,10 +191,9 @@ function validateVariable(
   } as RJSFSchema;
 
   // Only keep fields that exist in the target schema.
-  // This strips UI-only fields (_variableType, _schemaKey) AND fields from
-  // the type selection that don't belong in this variable type — e.g. genesis
-  // and sampling exist in MeasuredVariable schemas but not in CalculatedVariable
-  // or NonMeasuredVariable, which have additionalProperties: false.
+  // This strips UI-only fields (_variableType) AND fields from the type
+  // selection that don't belong in this variable type. schema_class is a real
+  // schema field (designates_type) so it stays.
   const schemaProps = new Set(Object.keys(variableSchema.properties || {}));
   const cleanedVariable = Object.fromEntries(
     Object.entries(variable).filter(([key]) => schemaProps.has(key))

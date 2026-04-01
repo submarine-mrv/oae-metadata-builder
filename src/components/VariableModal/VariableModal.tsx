@@ -22,7 +22,13 @@ import {
   Box
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
+import { IconCheck, IconCategory, IconChevronDown, IconLock } from "@tabler/icons-react";
+import {
+  STANDARD_IDENTIFIER_OPTIONS,
+  isLockedIdentifier,
+  getDefaultIdentifier,
+  variableTypeFromSchemaClass
+} from "@/config/standardIdentifiers";
 import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
@@ -141,8 +147,11 @@ export default function VariableModal({
       if (initialData) {
         setFormData(initialData);
         // Extract selection state from initial data
-        // Normalize to lowercase for backwards compat with pre-enum-migration data
-        const savedType = (initialData._variableType as string) || null;
+        // Prefer schema_class, fall back to _variableType for backward compat
+        const schemaClassName = (initialData.schema_class as string) || (initialData._schemaKey as string) || null;
+        const savedType = (initialData._variableType as string)
+          || (schemaClassName ? variableTypeFromSchemaClass(schemaClassName) : null)
+          || null;
         if (savedType === "observed_property" || savedType === "non_measured") {
           // Map to consolidated "other" UI type
           setVariableType("other");
@@ -341,7 +350,7 @@ export default function VariableModal({
     );
     onSave({
       ...formData,
-      _schemaKey: schemaKey,
+      schema_class: schemaKey,
       _variableType: effectiveType
     });
   };

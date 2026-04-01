@@ -62,7 +62,8 @@ export interface ExperimentFormData extends FormDataRecord {
  * All variable types share these common fields
  */
 export interface VariableFormData extends FormDataRecord {
-  variable_type?: string; // Discriminator field (e.g., "DICVariable", "PHVariable")
+  schema_class?: string; // Type designator (e.g., "DiscretePHVariable")
+  variable_type?: string; // Deprecated — use schema_class
   dataset_variable_name?: string;
   long_name?: string;
   variable_unit?: string;
