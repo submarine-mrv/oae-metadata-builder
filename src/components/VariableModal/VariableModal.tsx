@@ -26,9 +26,8 @@ import { IconCheck, IconCategory, IconChevronDown, IconLock } from "@tabler/icon
 import {
   STANDARD_IDENTIFIER_OPTIONS,
   isLockedIdentifier,
-  getDefaultIdentifier,
-  variableTypeFromSchemaClass
-} from "@/config/standardIdentifiers";
+  getDefaultIdentifier
+} from "./standardIdentifiers";
 import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
@@ -36,6 +35,7 @@ import {
   getAccordionConfig,
   getSchemaKeyForUI,
   resolveEffectiveType,
+  variableTypeFromSchemaClass,
   normalizeFieldConfig,
   getPlaceholderOverride
 } from "./variableModalConfig";
@@ -146,12 +146,9 @@ export default function VariableModal({
     if (opened) {
       if (initialData) {
         setFormData(initialData);
-        // Extract selection state from initial data
-        // Prefer schema_class, fall back to _variableType for backward compat
-        const schemaClassName = (initialData.schema_class as string) || (initialData._schemaKey as string) || null;
-        const savedType = (initialData._variableType as string)
-          || (schemaClassName ? variableTypeFromSchemaClass(schemaClassName) : null)
-          || null;
+        // Derive variable type from schema_class (single source of truth)
+        const schemaClass = initialData.schema_class as string | undefined;
+        const savedType = schemaClass ? variableTypeFromSchemaClass(schemaClass) ?? null : null;
         if (savedType === "observed_property" || savedType === "non_measured") {
           // Map to consolidated "other" UI type
           setVariableType("other");
@@ -267,27 +264,22 @@ export default function VariableModal({
       setSampling(behavior.fixedSampling || null);
       setFormData((prev) => ({
         ...prev,
-        _variableType: value,
         genesis: behavior.fixedGenesis,
         sampling: behavior.fixedSampling || undefined
       }));
     } else if (value === "other") {
-      // "other" resolves _variableType later via genesis selection
       setGenesis(null);
       setSampling(null);
       setFormData((prev) => ({
         ...prev,
-        _variableType: undefined,
         genesis: undefined,
         sampling: undefined
       }));
     } else {
-      // Standard and directSchema: reset genesis and sampling
       setGenesis(null);
       setSampling(null);
       setFormData((prev) => ({
         ...prev,
-        _variableType: value,
         genesis: undefined,
         sampling: undefined
       }));
@@ -300,20 +292,16 @@ export default function VariableModal({
     setSampling(null);
 
     if (variableType === "other") {
-      // Resolve _variableType from the genesis selection
-      const effectiveType = resolveEffectiveType("other", value || undefined);
       if (value === "contextual") {
         // non_measured uses DIRECT — no genesis/sampling fields in saved data
         setFormData((prev) => ({
           ...prev,
-          _variableType: effectiveType,
           genesis: undefined,
           sampling: undefined
         }));
       } else {
         setFormData((prev) => ({
           ...prev,
-          _variableType: effectiveType,
           genesis: value,
           sampling: undefined
         }));
@@ -340,18 +328,11 @@ export default function VariableModal({
     []
   );
 
-  // Handle save
   const handleSave = () => {
     if (!schemaKey) return;
-    // Ensure _variableType is the internal type, never "other"
-    const effectiveType = resolveEffectiveType(
-      variableType || undefined,
-      genesis || undefined
-    );
     onSave({
       ...formData,
-      schema_class: schemaKey,
-      _variableType: effectiveType
+      schema_class: schemaKey
     });
   };
 
@@ -375,7 +356,7 @@ export default function VariableModal({
     []
   );
 
-  const isEditing = !!initialData?._variableType;
+  const isEditing = !!initialData?.schema_class;
 
   // Calculate section progress
   const getSectionProgress = (section: (typeof visibleAccordions)[0]) => {

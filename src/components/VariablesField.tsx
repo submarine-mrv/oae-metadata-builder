@@ -23,9 +23,9 @@ import {
   type JSONSchema
 } from "./schemaUtils";
 import {
-  getSchemaKey,
   getAccordionConfig,
-  normalizeFieldConfig
+  normalizeFieldConfig,
+  variableTypeFromSchemaClass
 } from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
@@ -35,14 +35,14 @@ type VariableData = Record<string, unknown>;
  * Gets a display label for the variable type based on schema_class
  */
 function getVariableDisplayLabel(variable: VariableData): string {
-  const varType = variable._variableType as string | undefined;
-  const schemaClass = (variable.schema_class || variable._schemaKey) as string | undefined;
+  const schemaClass = variable.schema_class as string | undefined;
+  if (!schemaClass) return "(no type)";
 
+  const varType = variableTypeFromSchemaClass(schemaClass);
   if (varType === "pH") return "pH";
   if (varType === "observed_property") return "Generic Variable";
   if (varType === "non_measured") return "Contextual";
-  if (schemaClass) return schemaClass;
-  return "(no type)";
+  return schemaClass;
 }
 
 /**
@@ -55,13 +55,7 @@ function countMissingRequiredFields(
   rootSchema: JSONSchema
 ): number {
   // Get schema key from variable's type selections
-  // Use schema_class directly if available, fall back to deriving from type selections
-  const schemaKey = (variable.schema_class as string | undefined)
-    || getSchemaKey(
-      variable._variableType as string | undefined,
-      variable.genesis as string | undefined,
-      variable.sampling as string | undefined
-    );
+  const schemaKey = variable.schema_class as string | undefined;
 
   if (!schemaKey || !rootSchema.$defs) return 0;
 

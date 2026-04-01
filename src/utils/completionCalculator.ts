@@ -9,7 +9,6 @@ import type {
 } from "@/types/forms";
 import type { RJSFSchema } from "@rjsf/utils";
 import {
-  getSchemaKey,
   getAccordionConfig,
   normalizeFieldConfig
 } from "@/components/VariableModal/variableModalConfig";
@@ -352,13 +351,7 @@ export function countMissingVariableFields(
   variable: VariableFormData | FormDataRecord,
   rootSchema: RJSFSchema | JSONSchema
 ): number {
-  // Use schema_class directly if available, fall back to deriving from type selections
-  const schemaKey = (variable.schema_class as string | undefined)
-    || getSchemaKey(
-      variable._variableType as string | undefined,
-      variable.genesis as string | undefined,
-      variable.sampling as string | undefined
-    );
+  const schemaKey = variable.schema_class as string | undefined;
 
   if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 0;
 

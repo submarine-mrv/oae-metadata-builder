@@ -1,5 +1,4 @@
 import { getProtocolMetadata } from "./schemaViews";
-import { variableTypeFromSchemaClass } from "@/config/standardIdentifiers";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -306,33 +305,19 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         );
 
         // Convert dataset data to DatasetState format
-        // Reconstruct _variableType from schema_class for UI display
         const datasets: DatasetState[] = datasetsData.map(
-          (dsData: DatasetFormData, index: number) => {
-            if (Array.isArray(dsData.variables)) {
-              dsData = {
-                ...dsData,
-                variables: dsData.variables.map((v) => {
-                  if (v.schema_class && !v._variableType) {
-                    return { ...v, _variableType: variableTypeFromSchemaClass(v.schema_class as string) };
-                  }
-                  return v;
-                })
-              };
-            }
-            return {
-              id: index + 1,
-              name:
-                (dsData.name as string) ||
-                `Dataset ${index + 1}`,
-              formData: dsData,
-              linking: {
-                linkedExperimentInternalId: null
-              },
-              createdAt: Date.now(),
-              updatedAt: Date.now()
-            };
-          }
+          (dsData: DatasetFormData, index: number) => ({
+            id: index + 1,
+            name:
+              (dsData.name as string) ||
+              `Dataset ${index + 1}`,
+            formData: dsData,
+            linking: {
+              linkedExperimentInternalId: null
+            },
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          })
         );
 
         resolve({ projectData, experiments, datasets });

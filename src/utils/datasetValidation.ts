@@ -18,7 +18,7 @@
  * ## The Workaround
  *
  * 1. Skip the `variables` array when validating the dataset against the schema
- * 2. Validate each variable individually using its `_schemaKey` field to select
+ * 2. Validate each variable individually using its `schema_class` field to select
  *    the correct type-specific schema from $defs
  *
  * ## When to Remove
@@ -35,7 +35,6 @@
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import type { RJSFValidationError, RJSFSchema } from "@rjsf/utils";
-import { getSchemaKey } from "@/components/VariableModal/variableModalConfig";
 import { resolveRef, type JSONSchema } from "@/components/schemaUtils";
 import type { DatasetFormData, FormDataRecord } from "@/types/forms";
 
@@ -69,7 +68,7 @@ export interface DatasetValidationResult {
    * Per-variable validation errors.
    * Key is the variable index, value contains error details.
    *
-   * WORKAROUND: This uses _schemaKey to validate each variable against its
+   * WORKAROUND: This uses schema_class to validate each variable against its
    * specific type schema. See file header for details.
    */
   variableErrors: Map<number, VariableValidationError>;
@@ -138,7 +137,7 @@ function validateDatasetFields(
 /**
  * Validates a single variable against its type-specific schema.
  *
- * WORKAROUND: Uses the `_schemaKey` field (e.g., "DiscretePHVariable") to
+ * WORKAROUND: Uses the `schema_class` field (e.g., "DiscretePHVariable") to
  * look up the correct schema from $defs. This is a temporary solution until
  * proper polymorphism support via LinkML type_designator (oae-form-c0s).
  *
@@ -152,13 +151,7 @@ function validateVariable(
 ): string[] {
   const errors: string[] = [];
 
-  // Use schema_class directly if available, fall back to deriving from type selections
-  const schemaKey = (variable.schema_class as string | undefined)
-    || getSchemaKey(
-      variable._variableType as string | undefined,
-      variable.genesis as string | undefined,
-      variable.sampling as string | undefined
-    );
+  const schemaKey = variable.schema_class as string | undefined;
 
   if (!schemaKey) {
     // Can't validate without knowing the type
@@ -191,7 +184,7 @@ function validateVariable(
   } as RJSFSchema;
 
   // Only keep fields that exist in the target schema.
-  // This strips UI-only fields (_variableType) AND fields from the type
+  // Only keep fields that exist in the target schema. This strips fields from the type
   // selection that don't belong in this variable type. schema_class is a real
   // schema field (designates_type) so it stays.
   const schemaProps = new Set(Object.keys(variableSchema.properties || {}));
@@ -257,7 +250,7 @@ function validateAllVariables(
  * This is the main entry point for dataset validation. It handles the
  * polymorphism workaround by:
  * 1. Validating dataset-level fields against a modified schema (variables skipped)
- * 2. Validating each variable individually against its _schemaKey schema
+ * 2. Validating each variable individually against its schema_class schema
  *
  * ============================================================================
  * WORKAROUND: See beads issue oae-form-99i
@@ -281,7 +274,7 @@ export function validateDatasetWithVariables(
   // 1. Validate dataset-level fields (skip variables)
   const datasetErrors = validateDatasetFields(formData, schema);
 
-  // 2. Validate each variable individually using its _schemaKey
+  // 2. Validate each variable individually using its schema_class
   const variableErrors = validateAllVariables(formData, schema as JSONSchema);
 
   return {

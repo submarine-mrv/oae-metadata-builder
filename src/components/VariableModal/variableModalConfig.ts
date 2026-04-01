@@ -870,8 +870,39 @@ export function getSchemaKey(
   return (genesisMap as Record<string, string>)[sampling] || null;
 }
 
+// Build reverse mapping: schema_class → variableType
+// Derived from VARIABLE_SCHEMA_MAP so there's a single source of truth.
+// e.g., "DiscretePHVariable" → "pH", "NonMeasuredVariable" → "non_measured"
+function buildSchemaClassToVariableType(): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [varType, topLevel] of Object.entries(VARIABLE_SCHEMA_MAP)) {
+    if ("DIRECT" in topLevel) {
+      map[(topLevel as Record<string, unknown>).DIRECT as string] = varType;
+      continue;
+    }
+    for (const [key, genesisValue] of Object.entries(topLevel)) {
+      if (key === "placeholderOverrides") continue;
+      if (typeof genesisValue === "string") {
+        map[genesisValue] = varType;
+      } else if (typeof genesisValue === "object" && genesisValue !== null) {
+        for (const schemaClass of Object.values(genesisValue as Record<string, string>)) {
+          if (typeof schemaClass === "string") map[schemaClass] = varType;
+        }
+      }
+    }
+  }
+  return map;
+}
+
+const SCHEMA_CLASS_TO_TYPE = buildSchemaClassToVariableType();
+
+/** Derive the UI variable type from a schema_class name */
+export function variableTypeFromSchemaClass(schemaClass: string): string | undefined {
+  return SCHEMA_CLASS_TO_TYPE[schemaClass];
+}
+
 /**
- * Maps UI "other" + genesis to the internal _variableType.
+ * Maps UI "other" + genesis to the internal variable type.
  * For non-"other" types, returns the type unchanged.
  */
 export function resolveEffectiveType(

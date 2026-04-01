@@ -39,27 +39,3 @@ export function getDefaultIdentifier(variableType: string): StandardIdentifierOp
   const options = STANDARD_IDENTIFIER_OPTIONS[variableType];
   return options?.length === 1 ? options[0] : undefined;
 }
-
-/** Reverse mapping from schema_class → variable type for UI display */
-const SCHEMA_CLASS_TO_VARIABLE_TYPE: Record<string, string> = {
-  DiscretePHVariable: "pH",
-  ContinuousPHVariable: "pH",
-  DiscreteTAVariable: "ta",
-  ContinuousTAVariable: "ta",
-  DiscreteDICVariable: "dic",
-  ContinuousDICVariable: "dic",
-  DiscreteCO2Variable: "co2",
-  DiscreteSedimentVariable: "sediment",
-  ContinuousSedimentVariable: "sediment",
-  HPLCVariable: "hplc",
-  DiscreteMeasuredVariable: "other",
-  ContinuousMeasuredVariable: "other",
-  ObservedPropertyVariable: "other",
-  CalculatedVariable: "other",
-  NonMeasuredVariable: "other",
-};
-
-/** Derive the UI variable type from a schema_class name */
-export function variableTypeFromSchemaClass(schemaClass: string): string | undefined {
-  return SCHEMA_CLASS_TO_VARIABLE_TYPE[schemaClass];
-}
