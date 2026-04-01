@@ -55,7 +55,7 @@ function countMissingRequiredFields(
   // Get schema key from variable's type selections
   const schemaKey = variable.schema_class as string | undefined;
 
-  if (!schemaKey || !rootSchema.$defs) return 0;
+  if (!schemaKey || !rootSchema.$defs) return 1; // No type = incomplete
 
   const variableSchema = resolveRef(
     rootSchema.$defs[schemaKey],

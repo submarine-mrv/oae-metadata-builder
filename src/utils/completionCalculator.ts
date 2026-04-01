@@ -353,7 +353,7 @@ export function countMissingVariableFields(
 ): number {
   const schemaKey = variable.schema_class as string | undefined;
 
-  if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 0;
+  if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 1; // No type = incomplete
 
   const variableSchema = resolveRef(
     (rootSchema as JSONSchema).$defs![schemaKey],

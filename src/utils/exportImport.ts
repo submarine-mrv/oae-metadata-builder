@@ -47,26 +47,6 @@ function cleanProjectData(data: FormDataRecord): ProjectFormData {
 }
 
 /**
- * Strips UI-only fields (prefixed with _) from variables before export.
- * schema_class is kept — it's a real schema field (designates_type).
- */
-function cleanDatasetForExport(data: DatasetFormData): DatasetFormData {
-  if (!data.variables || !Array.isArray(data.variables)) return data;
-  return {
-    ...data,
-    variables: data.variables.map((v) => {
-      const cleaned: FormDataRecord = {};
-      for (const [key, value] of Object.entries(v)) {
-        if (!key.startsWith("_")) {
-          cleaned[key] = value;
-        }
-      }
-      return cleaned;
-    })
-  };
-}
-
-/**
  * Options for exporting metadata
  */
 export interface ExportOptions {
@@ -121,7 +101,7 @@ export function exportMetadata(
     experiments: includeExperiments
       ? experiments.map((exp) => exp.formData)
       : [],
-    datasets: includeDatasets ? datasets.map((ds) => cleanDatasetForExport(ds.formData)) : []
+    datasets: includeDatasets ? datasets.map((ds) => ds.formData) : []
   };
 
   // Create blob and download
@@ -237,7 +217,7 @@ export function exportSingleDataset(
     metadata_builder_git_hash: "",
     project: {}, // Empty project - only exporting dataset
     experiments: [],
-    datasets: [cleanDatasetForExport(dataset)]
+    datasets: [dataset]
   };
 
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {
