@@ -24,25 +24,22 @@ import {
 } from "./schemaUtils";
 import {
   getAccordionConfig,
-  normalizeFieldConfig,
-  variableTypeFromSchemaClass
+  normalizeFieldConfig
 } from "./VariableModal/variableModalConfig";
+import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
 
-/**
- * Gets a display label for the variable type based on schema_class
- */
-function getVariableDisplayLabel(variable: VariableData): string {
-  const schemaClass = variable.schema_class as string | undefined;
-  if (!schemaClass) return "(no type)";
+// Build label lookup from the dropdown options
+const VARIABLE_TYPE_LABEL_MAP = Object.fromEntries(
+  VARIABLE_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])
+);
 
-  const varType = variableTypeFromSchemaClass(schemaClass);
-  if (varType === "pH") return "pH";
-  if (varType === "observed_property") return "Generic Variable";
-  if (varType === "non_measured") return "Contextual";
-  return schemaClass;
+function getVariableDisplayLabel(variable: VariableData): string {
+  const varType = variable.variable_type as string | undefined;
+  if (!varType) return "(no type)";
+  return VARIABLE_TYPE_LABEL_MAP[varType] || varType;
 }
 
 /**

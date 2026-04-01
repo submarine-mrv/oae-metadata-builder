@@ -63,6 +63,7 @@ export interface ExperimentFormData extends FormDataRecord {
  */
 export interface VariableFormData extends FormDataRecord {
   schema_class?: string; // Type designator (e.g., "DiscretePHVariable")
+  variable_type?: string; // High-level classification (e.g., "pH", "ta", "non_measured")
   dataset_variable_name?: string;
   long_name?: string;
   variable_unit?: string;

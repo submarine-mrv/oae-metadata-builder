@@ -22,12 +22,7 @@ import {
   Box
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconCheck, IconCategory, IconChevronDown, IconLock } from "@tabler/icons-react";
-import {
-  STANDARD_IDENTIFIER_OPTIONS,
-  isLockedIdentifier,
-  getDefaultIdentifier
-} from "./standardIdentifiers";
+import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
 import {
   VARIABLE_TYPE_OPTIONS,
   VARIABLE_SCHEMA_MAP,
@@ -35,7 +30,6 @@ import {
   getAccordionConfig,
   getSchemaKeyForUI,
   resolveEffectiveType,
-  variableTypeFromSchemaClass,
   normalizeFieldConfig,
   getPlaceholderOverride
 } from "./variableModalConfig";
@@ -146,22 +140,17 @@ export default function VariableModal({
     if (opened) {
       if (initialData) {
         setFormData(initialData);
-        // Derive variable type from schema_class (single source of truth)
-        const schemaClass = initialData.schema_class as string | undefined;
-        const savedType = schemaClass ? variableTypeFromSchemaClass(schemaClass) ?? null : null;
-        if (savedType === "observed_property" || savedType === "non_measured") {
-          // Map to consolidated "other" UI type
+        // Read variable_type directly — it's a real schema field
+        const savedType = (initialData.variable_type as string) || null;
+        if (savedType === "non_measured") {
+          // non_measured maps to UI "other" + genesis "contextual"
           setVariableType("other");
-          if (savedType === "non_measured") {
-            setGenesis("contextual");
-            setSampling(null);
-          } else {
-            const rawGenesis = (initialData.genesis as string)?.toLowerCase() || null;
-            setGenesis(rawGenesis === "ancillary" ? "contextual" : rawGenesis);
-            setSampling(
-              (initialData.sampling as string)?.toLowerCase() || null
-            );
-          }
+          setGenesis("contextual");
+          setSampling(null);
+        } else if (savedType === "other") {
+          setVariableType("other");
+          setGenesis((initialData.genesis as string)?.toLowerCase() || null);
+          setSampling((initialData.sampling as string)?.toLowerCase() || null);
         } else {
           setVariableType(savedType);
           setGenesis((initialData.genesis as string)?.toLowerCase() || null);
@@ -330,9 +319,16 @@ export default function VariableModal({
 
   const handleSave = () => {
     if (!schemaKey) return;
+    // For "non_measured" the UI uses variableType directly;
+    // for "other" with contextual genesis, resolveEffectiveType maps to "non_measured"
+    const effectiveType = resolveEffectiveType(
+      variableType || undefined,
+      genesis || undefined
+    );
     onSave({
       ...formData,
-      schema_class: schemaKey
+      schema_class: schemaKey,
+      variable_type: effectiveType
     });
   };
 
