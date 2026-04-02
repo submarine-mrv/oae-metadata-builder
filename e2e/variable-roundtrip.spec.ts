@@ -134,10 +134,10 @@ test.describe("Variable Round-Trip", () => {
     const rows = page.locator("table tbody tr");
     await expect(rows).toHaveCount(VARIABLE_COMBOS.length);
 
-    // Export the dataset — click Download, handle validation modal
-    await page.getByRole("button", { name: /Download Dataset Metadata/i }).click();
+    // Export via nav bar Export button, then handle export modal
+    await page.getByRole("button", { name: /Export/i }).click();
     await page.waitForTimeout(500);
-    // Validation modal appears — click "Download Anyway"
+    // Export modal appears — click "Download Anyway" (has validation errors)
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: /Download Anyway/i }).click();
     const download: Download = await downloadPromise;
