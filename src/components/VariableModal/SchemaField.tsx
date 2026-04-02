@@ -55,16 +55,10 @@ export default function SchemaField({
 }: SchemaFieldProps) {
   // Get field metadata from schema
   const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
-
-  if (!metadata) {
-    console.warn(`SchemaField: No metadata found for path "${fieldPath}"`);
-    return null;
-  }
-
   const currentValue = getNestedValue(formData, fieldPath);
+  const schemaConst = metadata?.schema?.const;
 
-  // Const fields: auto-set the value and render as disabled text
-  const schemaConst = metadata.schema?.const;
+  // Auto-set const value in form data
   React.useEffect(() => {
     if (schemaConst !== undefined && currentValue !== String(schemaConst)) {
       const newFormData = setNestedValue(formData, fieldPath, String(schemaConst));
@@ -72,6 +66,11 @@ export default function SchemaField({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemaConst, fieldPath]);
+
+  if (!metadata) {
+    console.warn(`SchemaField: No metadata found for path "${fieldPath}"`);
+    return null;
+  }
 
   const handleChange = (value: unknown) => {
     const newFormData = setNestedValue(formData, fieldPath, value);
