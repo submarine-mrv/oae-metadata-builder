@@ -12,7 +12,8 @@ import type {
   DatasetFormData,
   DatasetState,
   AppFormState,
-  DatasetLinkingMetadata
+  DatasetLinkingMetadata,
+  ValidationStatus
 } from "@/types/forms";
 import type { DatasetExperimentLinking } from "@/hooks/useImportPreview";
 
@@ -21,6 +22,8 @@ export type ExperimentData = ExperimentState;
 export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
+
+import { stripEmptyArrays } from "@/utils/formDataCleanup";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -123,6 +126,10 @@ interface AppStateContextType {
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
+  // Validation status
+  setProjectValidation: (status: boolean | null) => void;
+  setExperimentValidation: (id: number, status: boolean | null) => void;
+  setDatasetValidation: (id: number, status: boolean | null) => void;
   // Session persistence
   restoreFullState: (saved: {
     hasProject: boolean;
@@ -150,7 +157,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     nextExperimentId: 1,
     nextDatasetId: 1,
     triggerValidation: false,
-    showJsonPreview: false
+    showJsonPreview: false,
+    validationStatus: { project: null, experiments: {}, datasets: {} }
   });
 
   const createProject = useCallback(() => {
@@ -178,6 +186,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateProjectData = useCallback((data: ProjectFormData) => {
     setState((prev) => {
+      data = stripEmptyArrays(data);
       const newProjectId = data.project_id;
       const oldProjectId = prev.projectData.project_id;
 
@@ -194,7 +203,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         projectData: data,
         experiments: newExperiments,
-        datasets: newDatasets
+        datasets: newDatasets,
+        validationStatus: { ...prev.validationStatus, project: null }
       };
     });
   }, []);
@@ -245,7 +255,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           exp.id === id
             ? {
                 ...exp,
-                formData: { ...exp.formData, ...data } as ExperimentFormData,
+                formData: stripEmptyArrays({ ...exp.formData, ...data }) as ExperimentFormData,
                 experiment_types: data.experiment_types || exp.experiment_types,
                 name: data.name || exp.name,
                 updatedAt: Date.now()
@@ -265,7 +275,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         return {
           ...prev,
           experiments: newExperiments,
-          datasets: newDatasets
+          datasets: newDatasets,
+          validationStatus: {
+            ...prev.validationStatus,
+            experiments: { ...prev.validationStatus.experiments, [id]: null }
+          }
         };
       });
     },
@@ -389,12 +403,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           ds.id === id
             ? {
                 ...ds,
-                formData: data,
+                formData: stripEmptyArrays(data),
                 name: (data.name as string) || ds.name,
                 updatedAt: Date.now()
               }
             : ds
-        )
+        ),
+        validationStatus: {
+          ...prev.validationStatus,
+          datasets: { ...prev.validationStatus.datasets, [id]: null }
+        }
       }));
     },
     []
@@ -508,7 +526,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         nextExperimentId: nextExpId + experiments.length,
         nextDatasetId: nextDsId + datasets.length,
         triggerValidation: false,
-        showJsonPreview: prev.showJsonPreview
+        showJsonPreview: prev.showJsonPreview,
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       }));
     },
     [state.nextExperimentId, state.nextDatasetId]
@@ -686,6 +705,34 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // Validation status setters
+  const setProjectValidation = useCallback((status: boolean | null) => {
+    setState((prev) => ({
+      ...prev,
+      validationStatus: { ...prev.validationStatus, project: status }
+    }));
+  }, []);
+
+  const setExperimentValidation = useCallback((id: number, status: boolean | null) => {
+    setState((prev) => ({
+      ...prev,
+      validationStatus: {
+        ...prev.validationStatus,
+        experiments: { ...prev.validationStatus.experiments, [id]: status }
+      }
+    }));
+  }, []);
+
+  const setDatasetValidation = useCallback((id: number, status: boolean | null) => {
+    setState((prev) => ({
+      ...prev,
+      validationStatus: {
+        ...prev.validationStatus,
+        datasets: { ...prev.validationStatus.datasets, [id]: status }
+      }
+    }));
+  }, []);
+
   // Restore full state from session persistence (preserves IDs and linking)
   const restoreFullState = useCallback(
     (saved: {
@@ -736,6 +783,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getDataset,
     // ID Linking methods
     updateDatasetLinking,
+    // Validation status
+    setProjectValidation,
+    setExperimentValidation,
+    setDatasetValidation,
     // Session persistence
     restoreFullState
   };

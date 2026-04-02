@@ -32,7 +32,8 @@ describe('AppStateContext', () => {
         nextExperimentId: 1,
         nextDatasetId: 1,
         triggerValidation: false,
-        showJsonPreview: false
+        showJsonPreview: false,
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       });
     });
   });

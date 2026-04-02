@@ -7,6 +7,8 @@ interface ValidationResult {
 interface UseFormValidationOptions {
   /** Function that validates the data and returns error count */
   validate: () => ValidationResult;
+  /** Called when validation status changes (for persisting to context) */
+  onStatusChange?: (status: boolean | null) => void;
 }
 
 interface UseFormValidationReturn {
@@ -33,7 +35,8 @@ interface UseFormValidationReturn {
  * - Any form edit calls resetValidation() to clear the checkmark
  */
 export function useFormValidation({
-  validate
+  validate,
+  onStatusChange
 }: UseFormValidationOptions): UseFormValidationReturn {
   const [showErrorList, setShowErrorList] = useState(false);
   const [validationPassed, setValidationPassed] = useState<boolean | null>(null);
@@ -47,8 +50,10 @@ export function useFormValidation({
     if (result.errorCount === 0) {
       setShowErrorList(false);
       setValidationPassed(true);
+      onStatusChange?.(true);
     } else {
       setValidationPassed(false);
+      onStatusChange?.(false);
       setShowErrorList(true);
 
       // Trigger RJSF validation to show the error list
@@ -62,12 +67,13 @@ export function useFormValidation({
       // Scroll to top where errors are displayed
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [validate]);
+  }, [validate, onStatusChange]);
 
   const resetValidation = useCallback(() => {
     setValidationPassed(null);
     setShowErrorList(false);
-  }, []);
+    onStatusChange?.(null);
+  }, [onStatusChange]);
 
   return {
     showErrorList,

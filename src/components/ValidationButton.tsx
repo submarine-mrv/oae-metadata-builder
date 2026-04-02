@@ -1,6 +1,6 @@
 import React from "react";
-import { Badge } from "@mantine/core";
-import { IconCheck, IconShieldCheck } from "@tabler/icons-react";
+import { Button } from "@mantine/core";
+import { IconCheck, IconShieldCheck, IconAlertCircle } from "@tabler/icons-react";
 
 interface ValidationButtonProps {
   /** null = not yet run, true = passed, false = failed */
@@ -12,21 +12,38 @@ export default function ValidationButton({
   validationPassed,
   onClick
 }: ValidationButtonProps) {
+  const icon =
+    validationPassed === true
+      ? <IconCheck size={14} />
+      : validationPassed === false
+        ? <IconAlertCircle size={14} />
+        : <IconShieldCheck size={14} />;
+
+  const label =
+    validationPassed === true
+      ? "Validated"
+      : validationPassed === false
+        ? "Validation Failed"
+        : "Validate Metadata";
+
+  const color =
+    validationPassed === true
+      ? "green"
+      : validationPassed === false
+        ? "red"
+        : "blue";
+
   return (
-    <Badge
-      component="button"
+    <Button
+      variant="outline"
+      color={color}
+      size="compact-sm"
+      leftSection={icon}
       onClick={onClick}
-      leftSection={
-        validationPassed === true
-          ? <IconCheck size={14} />
-          : <IconShieldCheck size={14} />
-      }
-      variant="light"
-      color={validationPassed === true ? "green" : "gray"}
-      size="lg"
-      style={{ cursor: "pointer" }}
+      radius="xl"
+      w="fit-content"
     >
-      {validationPassed === true ? "Validation Passed" : "Run Validation"}
-    </Badge>
+      {label}
+    </Button>
   );
 }

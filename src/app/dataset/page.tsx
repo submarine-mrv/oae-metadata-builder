@@ -46,6 +46,7 @@ import {
   cleanupConditionalFields,
   type ConditionalFieldPair
 } from "@/utils/conditionalFields";
+import { stripEmptyArrays } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -111,7 +112,7 @@ function isModelOutputType(datasetType: string | undefined): boolean {
 }
 
 export default function DatasetPage() {
-  const { state, replaceDatasetFormData, getDataset, setActiveTab } =
+  const { state, replaceDatasetFormData, getDataset, setActiveTab, setDatasetValidation } =
     useAppState();
 
   // Dynamic schema/uiSchema switching based on dataset_type
@@ -140,8 +141,17 @@ export default function DatasetPage() {
   }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasExperiments = state.experiments.length > 0;
+
+  const onValidationStatusChange = useCallback(
+    (status: boolean | null) => {
+      if (state.activeDatasetId) setDatasetValidation(state.activeDatasetId, status);
+    },
+    [state.activeDatasetId, setDatasetValidation]
+  );
+
   const validation = useFormValidation({
-    validate: () => validateDataset(formData, { hasExperiments })
+    validate: () => validateDataset(formData, { hasExperiments }),
+    onStatusChange: onValidationStatusChange
   });
 
   // Ref for formData so transformErrors can access latest data without
@@ -223,6 +233,7 @@ export default function DatasetPage() {
     if (isModelOutputType(newData.dataset_type)) {
       newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
     }
+    newData = stripEmptyArrays(newData);
 
     // Update local state first (form sees cleaned data immediately),
     // then sync to context
@@ -251,17 +262,17 @@ export default function DatasetPage() {
       >
         <Container size="md" py="lg">
           <Stack gap="sm">
-            <Group justify="space-between" align="center">
+            <Group align="center" gap="md">
               <Title order={2}>Dataset Metadata: {currentDataset.name}</Title>
+              <ValidationButton
+                validationPassed={validation.validationPassed}
+                onClick={validation.runValidation}
+              />
             </Group>
             <Text c="dimmed">
               Define metadata for your dataset including data files, platform
               information, and variable specifications.
             </Text>
-            <ValidationButton
-              validationPassed={validation.validationPassed}
-              onClick={validation.runValidation}
-            />
           </Stack>
 
           <Form

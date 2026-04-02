@@ -20,7 +20,8 @@ import {
   IconFlask,
   IconDatabase,
   IconTrash,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconCircleCheck
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -244,7 +245,12 @@ export default function OverviewPage() {
                         style={{ flexShrink: 0, marginTop: 2 }}
                       />
                       <div style={{ minWidth: 0 }}>
-                        <Text fw={600}>Project Metadata</Text>
+                        <Text fw={600}>
+                          Project Metadata
+                          {state.validationStatus.project === true && (
+                            <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
+                          )}
+                        </Text>
                         <Text
                           size="sm"
                           c="dimmed"
@@ -352,6 +358,9 @@ export default function OverviewPage() {
                               }}
                             >
                               {experiment.name}
+                              {state.validationStatus.experiments[experiment.id] === true && (
+                                <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
+                              )}
                             </Text>
                           </Group>
                           <Button
@@ -470,6 +479,9 @@ export default function OverviewPage() {
                               }}
                             >
                               {dataset.name}
+                              {state.validationStatus.datasets[dataset.id] === true && (
+                                <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
+                              )}
                             </Text>
                           </Group>
                           <Button

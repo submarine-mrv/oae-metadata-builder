@@ -55,6 +55,7 @@ import {
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
+import { stripEmptyArrays } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -95,7 +96,7 @@ const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
 ];
 
 export default function ExperimentPage() {
-  const { state, updateExperiment, setActiveTab } =
+  const { state, updateExperiment, setActiveTab, setExperimentValidation } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
@@ -105,8 +106,16 @@ export default function ExperimentPage() {
 
   const activeExperimentId = state.activeExperimentId;
 
+  const onValidationStatusChange = useCallback(
+    (status: boolean | null) => {
+      if (activeExperimentId) setExperimentValidation(activeExperimentId, status);
+    },
+    [activeExperimentId, setExperimentValidation]
+  );
+
   const validation = useFormValidation({
-    validate: () => validateExperiment(formData)
+    validate: () => validateExperiment(formData),
+    onStatusChange: onValidationStatusChange
   });
 
   const experiment = activeExperimentId
@@ -183,6 +192,7 @@ export default function ExperimentPage() {
       // This prevents orphaned fields from rendering as "additional properties"
       newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
       newData = cleanupNestedConditionalFields(newData, MODEL_NESTED_CONDITIONAL_FIELDS);
+      newData = stripEmptyArrays(newData);
 
       setFormData(newData);
       if (activeExperimentId) {
@@ -253,15 +263,15 @@ export default function ExperimentPage() {
           <Stack gap="sm" mb="md">
             <Group align="center" gap="md">
               <Title order={2}>{experiment.name || "Experiment"}</Title>
+              <ValidationButton
+                validationPassed={validation.validationPassed}
+                onClick={validation.runValidation}
+              />
             </Group>
             <Text c="dimmed">
               Edit experiment metadata. Fields marked with an asterisk (*) are
               required.
             </Text>
-            <ValidationButton
-              validationPassed={validation.validationPassed}
-              onClick={validation.runValidation}
-            />
           </Stack>
 
           <Form
