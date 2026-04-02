@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "@mantine/core";
+import { Badge } from "@mantine/core";
 import { IconCheck, IconShieldCheck } from "@tabler/icons-react";
 
 interface ValidationButtonProps {
@@ -12,26 +12,21 @@ export default function ValidationButton({
   validationPassed,
   onClick
 }: ValidationButtonProps) {
-  if (validationPassed === true) {
-    return (
-      <Button
-        variant="light"
-        color="green"
-        leftSection={<IconCheck size={18} />}
-        onClick={onClick}
-      >
-        Validation Passed
-      </Button>
-    );
-  }
-
   return (
-    <Button
-      variant="light"
-      leftSection={<IconShieldCheck size={18} />}
+    <Badge
+      component="button"
       onClick={onClick}
+      leftSection={
+        validationPassed === true
+          ? <IconCheck size={14} />
+          : <IconShieldCheck size={14} />
+      }
+      variant="light"
+      color={validationPassed === true ? "green" : "gray"}
+      size="lg"
+      style={{ cursor: "pointer" }}
     >
-      Run Validation
-    </Button>
+      {validationPassed === true ? "Validation Passed" : "Run Validation"}
+    </Badge>
   );
 }
