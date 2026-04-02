@@ -72,6 +72,12 @@ export default function ProjectPage() {
   }
 
   const customValidate = (data: any, errors: any) => {
+    // project_leads is required but schema has no minItems, so [] passes AJV
+    const leads = data?.project_leads;
+    if (!Array.isArray(leads) || leads.length === 0) {
+      errors?.project_leads?.addError("At least one project lead is required.");
+    }
+
     const t = data?.temporal_coverage as string | undefined;
     if (!t) errors?.temporal_coverage?.addError("Start date is required.");
     else {
