@@ -35,6 +35,7 @@ import {
 } from "./variableModalConfig";
 import {
   fieldExistsInSchema,
+  getFieldSchema,
   isFieldRequired,
   getNestedValue,
   resolveRef,
@@ -505,6 +506,37 @@ export default function VariableModal({
                             }
                             return elements;
                           };
+
+                          // Const fields always render via SchemaField (disabled text)
+                          if (
+                            field.inputType === "enum_with_other" ||
+                            field.inputType === "boolean_select" ||
+                            field.inputType === "optional_with_gate"
+                          ) {
+                            const fieldSchema = getFieldSchema(
+                              field.path,
+                              variableSchema,
+                              rootSchema
+                            );
+                            if (fieldSchema?.const !== undefined) {
+                              return maybeAddSpacer([
+                                <Grid.Col
+                                  key={field.path}
+                                  span={field.span}
+                                >
+                                  <SchemaField
+                                    fieldPath={field.path}
+                                    variableSchema={variableSchema}
+                                    rootSchema={rootSchema}
+                                    formData={formData}
+                                    onChange={handleFormChange}
+                                    placeholderText={effectivePlaceholder}
+                                    rows={field.rows}
+                                  />
+                                </Grid.Col>
+                              ]);
+                            }
+                          }
 
                           if (field.inputType === "enum_with_other") {
                             return [

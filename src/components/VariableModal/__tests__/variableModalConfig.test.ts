@@ -358,8 +358,8 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("co2", "calculated", undefined)).toBe("CalculatedVariable");
   });
 
-  it("returns null for co2 + measured + continuous (no continuous variant)", () => {
-    expect(getSchemaKey("co2", "measured", "continuous")).toBeNull();
+  it("returns ContinuousCO2Variable for co2 + measured + continuous", () => {
+    expect(getSchemaKey("co2", "measured", "continuous")).toBe("ContinuousCO2Variable");
   });
 
   it("returns schema key for continuous variants that exist", () => {

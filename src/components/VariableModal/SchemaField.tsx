@@ -63,6 +63,16 @@ export default function SchemaField({
 
   const currentValue = getNestedValue(formData, fieldPath);
 
+  // Const fields: auto-set the value and render as disabled text
+  const schemaConst = metadata.schema?.const;
+  React.useEffect(() => {
+    if (schemaConst !== undefined && currentValue !== String(schemaConst)) {
+      const newFormData = setNestedValue(formData, fieldPath, String(schemaConst));
+      onChange(newFormData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schemaConst, fieldPath]);
+
   const handleChange = (value: unknown) => {
     const newFormData = setNestedValue(formData, fieldPath, value);
     onChange(newFormData);
@@ -85,6 +95,17 @@ export default function SchemaField({
     }
     return undefined;
   };
+
+  // Const fields render as a disabled text input with formatted value
+  if (schemaConst !== undefined) {
+    return (
+      <TextInput
+        label={label}
+        value={formatEnumTitle(String(schemaConst))}
+        disabled
+      />
+    );
+  }
 
   // Render the appropriate input based on type
   return renderInput(
