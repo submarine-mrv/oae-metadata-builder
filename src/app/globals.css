@@ -23,7 +23,25 @@
   --brand-sand: #F2EEEB;
   --brand-sunlight: #E8EDEE;
   --brand-sunlight-overlay: rgba(232, 237, 238, 0.7);  /* Sunlight with 70% opacity for overlays */
-    --brand-sunlight-overlay-light: rgba(232, 237, 238, 0.4);  /* Sunlight with 50% opacity for overlays */
+  --brand-sunlight-overlay-light: rgba(232, 237, 238, 0.4);  /* Sunlight with 40% opacity for overlays */
+  --brand-sunlight-border: rgba(232, 237, 238, 0.3);  /* Sunlight for subtle borders */
+  --brand-sunlight-border-medium: rgba(232, 237, 238, 0.5);  /* Sunlight for card borders */
+
+  /* Coral overlays */
+  --brand-coral-overlay-light: rgba(238, 89, 25, 0.05);  /* Coral tint for callout backgrounds */
+  --brand-coral-overlay: rgba(238, 89, 25, 0.1);  /* Coral tint for step circles */
+  --brand-coral-overlay-border: rgba(238, 89, 25, 0.2);  /* Coral for subtle borders */
+  --brand-coral-overlay-medium: rgba(238, 89, 25, 0.3);  /* Coral for card borders */
+
+  /* Sand overlays */
+  --brand-sand-overlay: rgba(242, 238, 235, 0.2);  /* Sand for section backgrounds */
+  --brand-sand-overlay-medium: rgba(242, 238, 235, 0.3);  /* Sand for darker sections */
+  --brand-sand-overlay-strong: rgba(242, 238, 235, 0.5);  /* Sand for callout backgrounds */
+
+  /* Other overlays */
+  --brand-hadal-overlay: rgba(22, 35, 38, 0.05);  /* Hadal tint for badges */
+  --brand-midnight-overlay: rgba(124, 146, 152, 0.4);  /* Midnight for experiment borders */
+  --brand-shell-overlay: rgba(246, 246, 245, 0.5);  /* Shell for item backgrounds */
 
   /* Mid-tones */
   --brand-twilight: #C1CCCF;
