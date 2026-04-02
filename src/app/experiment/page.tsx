@@ -5,10 +5,8 @@ import {
   Title,
   Text,
   Stack,
-  Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -36,11 +34,10 @@ import StringListField from "@/components/rjsf/StringListField";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
+import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
 import { validateExperiment } from "@/utils/validation";
-import { exportSingleExperiment } from "@/utils/exportImport";
-import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { useFormValidation } from "@/hooks/useFormValidation";
 import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
 import modelUiSchema from "./modelUiSchema";
 import { cleanFormDataForType, getExperimentSchemaType, enforceModelExclusivity } from "@/utils/experimentFields";
@@ -108,11 +105,8 @@ export default function ExperimentPage() {
 
   const activeExperimentId = state.activeExperimentId;
 
-  // Use the download hook - note: formData is used in callbacks
-  // so we use arrow functions to capture current formData
-  const download = useSingleItemDownload({
-    validate: () => validateExperiment(formData),
-    export: () => exportSingleExperiment(state.projectData, formData)
+  const validation = useFormValidation({
+    validate: () => validateExperiment(formData)
   });
 
   const experiment = activeExperimentId
@@ -160,6 +154,7 @@ export default function ExperimentPage() {
         return;
       }
 
+      validation.resetValidation();
       let newData = e.formData;
 
       // Enforce model exclusivity (model can't combine with other types)
@@ -248,7 +243,7 @@ export default function ExperimentPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={download.scrollContainerRef}
+        ref={validation.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -263,10 +258,14 @@ export default function ExperimentPage() {
               Edit experiment metadata. Fields marked with an asterisk (*) are
               required.
             </Text>
+            <ValidationButton
+              validationPassed={validation.validationPassed}
+              onClick={validation.runValidation}
+            />
           </Stack>
 
           <Form
-            ref={download.formRef}
+            ref={validation.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}
             formData={formData}
@@ -311,32 +310,12 @@ export default function ExperimentPage() {
               DosingConcentrationField: DosingConcentrationField,
               StringListField: StringListField
             }}
-            showErrorList={download.showErrorList ? "top" : false}
+            showErrorList={validation.showErrorList ? "top" : false}
           />
-
-          {/* Download button - bypasses RJSF validation */}
-          <Group justify="flex-end" mt="xl">
-            <Button
-              leftSection={<IconDownload size={18} />}
-              onClick={download.handleDownloadClick}
-            >
-              Download Experiment Metadata
-            </Button>
-          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={formData} />
-
-      <SingleItemDownloadModal
-        opened={download.showModal}
-        onClose={download.closeModal}
-        onDownload={download.handleDownload}
-        title="Download Experiment Metadata"
-        errorCount={download.errorCount}
-        onGoBack={download.handleGoBack}
-        onExitTransitionEnd={download.handleModalExitComplete}
-      />
     </AppLayout>
   );
 }

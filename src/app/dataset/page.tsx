@@ -5,10 +5,8 @@ import {
   Title,
   Text,
   Stack,
-  Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -32,7 +30,7 @@ import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
+import ValidationButton from "@/components/ValidationButton";
 import FilenamesField from "@/components/FilenamesField";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -42,8 +40,7 @@ import {
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateDataset } from "@/utils/validation";
-import { exportSingleDataset } from "@/utils/exportImport";
-import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { useFormValidation } from "@/hooks/useFormValidation";
 import { cleanDatasetFormDataForType } from "@/utils/datasetFields";
 import {
   cleanupConditionalFields,
@@ -142,11 +139,9 @@ export default function DatasetPage() {
     }
   }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Use the download hook
   const hasExperiments = state.experiments.length > 0;
-  const download = useSingleItemDownload({
-    validate: () => validateDataset(formData, { hasExperiments }),
-    export: () => exportSingleDataset(state.projectData, formData)
+  const validation = useFormValidation({
+    validate: () => validateDataset(formData, { hasExperiments })
   });
 
   // Ref for formData so transformErrors can access latest data without
@@ -210,6 +205,7 @@ export default function DatasetPage() {
   const handleFormChange = useCallback((e: any) => {
     if (!state.activeDatasetId || isInitialLoad) return;
 
+    validation.resetValidation();
     let newData = e.formData;
 
     // Check if dataset_type changed
@@ -247,7 +243,7 @@ export default function DatasetPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={download.scrollContainerRef}
+        ref={validation.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -262,10 +258,14 @@ export default function DatasetPage() {
               Define metadata for your dataset including data files, platform
               information, and variable specifications.
             </Text>
+            <ValidationButton
+              validationPassed={validation.validationPassed}
+              onClick={validation.runValidation}
+            />
           </Stack>
 
           <Form
-            ref={download.formRef}
+            ref={validation.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}
             formData={formData}
@@ -306,32 +306,12 @@ export default function DatasetPage() {
                 SubmitButton: HiddenSubmitButton
               }
             }}
-            showErrorList={download.showErrorList ? "top" : false}
+            showErrorList={validation.showErrorList ? "top" : false}
           />
-
-          {/* Download button - bypasses RJSF validation */}
-          <Group justify="flex-end" mt="xl">
-            <Button
-              leftSection={<IconDownload size={18} />}
-              onClick={download.handleDownloadClick}
-            >
-              Download Dataset Metadata
-            </Button>
-          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={formData} />
-
-      <SingleItemDownloadModal
-        opened={download.showModal}
-        onClose={download.closeModal}
-        onDownload={download.handleDownload}
-        title="Download Dataset Metadata"
-        errorCount={download.errorCount}
-        onGoBack={download.handleGoBack}
-        onExitTransitionEnd={download.handleModalExitComplete}
-      />
     </AppLayout>
   );
 }

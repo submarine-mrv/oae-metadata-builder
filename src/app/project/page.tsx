@@ -5,10 +5,8 @@ import {
   Title,
   Text,
   Stack,
-  Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -33,13 +31,12 @@ import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
+import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateProject } from "@/utils/validation";
-import { exportProject } from "@/utils/exportImport";
-import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { useFormValidation } from "@/hooks/useFormValidation";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -57,9 +54,8 @@ export default function ProjectPage() {
   } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
-  const download = useSingleItemDownload({
-    validate: () => validateProject(state.projectData),
-    export: () => exportProject(state.projectData)
+  const validation = useFormValidation({
+    validate: () => validateProject(state.projectData)
   });
 
   useEffect(() => {
@@ -130,7 +126,7 @@ export default function ProjectPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={download.scrollContainerRef}
+        ref={validation.scrollContainerRef}
         style={{
           flex: 1,
           overflow: "auto"
@@ -146,14 +142,21 @@ export default function ProjectPage() {
               Enhancement project. Click the info icons next to field labels
               for detailed descriptions.
             </Text>
+            <ValidationButton
+              validationPassed={validation.validationPassed}
+              onClick={validation.runValidation}
+            />
           </Stack>
 
           <Form
-            ref={download.formRef}
+            ref={validation.formRef}
             schema={schema}
             uiSchema={uiSchema}
             formData={state.projectData}
-            onChange={(e) => updateProjectData(e.formData)}
+            onChange={(e) => {
+              validation.resetValidation();
+              updateProjectData(e.formData);
+            }}
             validator={validator}
             customValidate={customValidate}
             transformErrors={transformFormErrors}
@@ -190,32 +193,12 @@ export default function ProjectPage() {
               SpatialCoverageMiniMap: SpatialCoverageField,
               ExternalProjectField: ExternalProjectField
             }}
-            showErrorList={download.showErrorList ? "top" : false}
+            showErrorList={validation.showErrorList ? "top" : false}
           />
-
-          {/* Download button - bypasses RJSF validation */}
-          <Group justify="flex-end" mt="xl">
-            <Button
-              leftSection={<IconDownload size={18} />}
-              onClick={download.handleDownloadClick}
-            >
-              Download Project Metadata
-            </Button>
-          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={state.projectData} />
-
-      <SingleItemDownloadModal
-        opened={download.showModal}
-        onClose={download.closeModal}
-        onDownload={download.handleDownload}
-        title="Download Project Metadata"
-        errorCount={download.errorCount}
-        onGoBack={download.handleGoBack}
-        onExitTransitionEnd={download.handleModalExitComplete}
-      />
     </AppLayout>
   );
 }
