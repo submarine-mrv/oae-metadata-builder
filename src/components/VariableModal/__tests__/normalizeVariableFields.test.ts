@@ -144,4 +144,21 @@ describe("normalizeVariableFields", () => {
     const v = { dataset_variable_name: "unknown" };
     expect(normalizeVariableFields(v)).toBe(v);
   });
+
+  it("strips _-prefixed legacy UI fields", () => {
+    const v = {
+      _schemaKey: "DiscretePHVariable",
+      _variableType: "pH",
+      schema_class: "DiscretePHVariable",
+      variable_type: "pH",
+      genesis: "measured",
+      sampling: "discrete",
+      dataset_variable_name: "pH_total"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result._schemaKey).toBeUndefined();
+    expect(result._variableType).toBeUndefined();
+    expect(result.schema_class).toBe("DiscretePHVariable");
+    expect(result.variable_type).toBe("pH");
+  });
 });

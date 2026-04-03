@@ -935,6 +935,14 @@ const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
 export function normalizeVariableFields(
   variable: Record<string, unknown>
 ): Record<string, unknown> {
+  // Strip any _-prefixed UI-only fields (legacy _schemaKey, _variableType, etc.)
+  const hasUnderscoreKeys = Object.keys(variable).some((k) => k.startsWith("_"));
+  if (hasUnderscoreKeys) {
+    variable = Object.fromEntries(
+      Object.entries(variable).filter(([k]) => !k.startsWith("_"))
+    );
+  }
+
   let schemaClass = variable.schema_class as string | undefined;
 
   // If schema_class is missing, try to derive it from variable_type + genesis + sampling
