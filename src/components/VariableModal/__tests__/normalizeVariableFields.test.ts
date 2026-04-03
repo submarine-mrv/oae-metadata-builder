@@ -175,4 +175,34 @@ describe("normalizeVariableFields", () => {
     expect(result.schema_class).toBe("DiscretePHVariable");
     expect(result.variable_type).toBe("pH");
   });
+
+  it("re-derives schema_class when it is unknown (e.g., abstract class)", () => {
+    const v = {
+      schema_class: "InSituVariable",
+      variable_type: "other",
+      genesis: "measured",
+      sampling: "continuous",
+      dataset_variable_name: "Temperature"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.schema_class).toBe("ContinuousMeasuredVariable");
+  });
+
+  it("re-derives schema_class for unknown class with non_measured type", () => {
+    const v = {
+      schema_class: "MeasuredVariable",
+      variable_type: "non_measured",
+      dataset_variable_name: "Cruise_ID"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.schema_class).toBe("NonMeasuredVariable");
+  });
+
+  it("returns unchanged when schema_class is unknown and siblings cannot derive", () => {
+    const v = {
+      schema_class: "BogusClass",
+      dataset_variable_name: "mystery"
+    };
+    expect(normalizeVariableFields(v)).toBe(v);
+  });
 });

@@ -253,7 +253,9 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             if (Array.isArray(dsData.variables)) {
               dsData = {
                 ...dsData,
-                variables: dsData.variables.map((v) => normalizeVariableFields(v) as typeof v)
+                variables: dsData.variables
+                  .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
+                  .map((v) => normalizeVariableFields(v) as typeof v)
               };
             }
             return {

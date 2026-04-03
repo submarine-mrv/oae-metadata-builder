@@ -966,7 +966,22 @@ export function normalizeVariableFields(
   }
 
   const expected = SCHEMA_CLASS_LOOKUP[schemaClass];
-  if (!expected) return variable;
+  if (!expected) {
+    // Unknown schema_class (e.g., abstract class like "InSituVariable") —
+    // try to derive a valid one from variable_type + genesis + sampling
+    const varType = variable.variable_type as string | undefined;
+    const derived = varType
+      ? getSchemaKey(
+          varType,
+          variable.genesis as string | undefined,
+          variable.sampling as string | undefined
+        )
+      : null;
+    if (derived) {
+      return { ...variable, schema_class: derived };
+    }
+    return variable;
+  }
 
   const changes: Record<string, unknown> = {};
 
