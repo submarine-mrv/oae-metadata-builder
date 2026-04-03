@@ -30,7 +30,7 @@ import type {
 } from "@/utils/complianceChecker";
 import { runComplianceChecks } from "@/utils/complianceChecker";
 
-const ACCEPTED_EXTENSIONS = ".csv,.tsv,.nc,.netcdf";
+const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
 
 const SEVERITY_CONFIG: Record<
   CheckSeverity,
@@ -225,8 +225,8 @@ export default function CheckerPage() {
           <div>
             <Title order={2}>Compliance Checker</Title>
             <Text c="dimmed" mt="xs">
-              Upload a CSV or NetCDF data file to check column headers against
-              the OAE Data Protocol&apos;s recommended variable names.
+              Upload a CSV, Excel, or NetCDF data file to check column headers
+              against the OAE Data Protocol&apos;s recommended variable names.
             </Text>
           </div>
 
@@ -258,7 +258,7 @@ export default function CheckerPage() {
               </ThemeIcon>
               <Text fw={500}>Drop a file here or click to browse</Text>
               <Text size="sm" c="dimmed">
-                Accepts CSV (.csv, .tsv) and NetCDF (.nc) files
+                Accepts CSV, Excel (.xlsx), and NetCDF (.nc) files
               </Text>
             </Stack>
             <input

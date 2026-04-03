@@ -110,6 +110,20 @@ export interface ComplianceReport {
 // ---------------------------------------------------------------------------
 
 /**
+ * Parse column headers from an Excel file's first sheet, first row.
+ */
+export async function parseExcelHeaders(buffer: ArrayBuffer): Promise<string[]> {
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!firstSheet) return [];
+  const rows = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
+  const firstRow = rows[0];
+  if (!Array.isArray(firstRow)) return [];
+  return firstRow.map((h) => String(h).trim()).filter((h) => h.length > 0);
+}
+
+/**
  * Parse column headers from a CSV file's first line.
  */
 export function parseCsvHeaders(text: string): string[] {
@@ -377,6 +391,20 @@ export async function runComplianceChecks(
     return buildReport(filename, "csv", headers, checks);
   }
 
+  if (ext === "xlsx" || ext === "xls") {
+    const buffer = await file.arrayBuffer();
+    const headers = await parseExcelHeaders(buffer);
+
+    const checks: CheckResult[] = [
+      ...checkRecommendedHeaders(headers),
+      ...checkUnrecognizedHeaders(headers),
+      ...checkQcFlags(headers),
+      ...checkUnitsCsv(),
+    ];
+
+    return buildReport(filename, "csv", headers, checks);
+  }
+
   if (ext === "nc" || ext === "netcdf") {
     const buffer = await file.arrayBuffer();
     const variables = await parseNetCdfVariables(buffer);
@@ -393,7 +421,7 @@ export async function runComplianceChecks(
   }
 
   throw new Error(
-    `Unsupported file type: .${ext}. Please upload a CSV (.csv) or NetCDF (.nc) file.`
+    `Unsupported file type: .${ext}. Please upload a CSV, Excel (.xlsx), or NetCDF (.nc) file.`
   );
 }
 
