@@ -355,10 +355,10 @@ export function countMissingVariableFields(
 
   if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 1; // No type = incomplete
 
-  const variableSchema = resolveRef(
-    (rootSchema as JSONSchema).$defs![schemaKey],
-    rootSchema as JSONSchema
-  );
+  const schemaDef = (rootSchema as JSONSchema).$defs![schemaKey];
+  if (!schemaDef) return 1; // Unknown schema_class = incomplete
+
+  const variableSchema = resolveRef(schemaDef, rootSchema as JSONSchema);
   if (!variableSchema) return 0;
 
   // Count missing required fields across all accordion sections

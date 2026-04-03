@@ -145,6 +145,20 @@ describe("normalizeVariableFields", () => {
     expect(normalizeVariableFields(v)).toBe(v);
   });
 
+  it("handles null input gracefully", () => {
+    expect(normalizeVariableFields(null as unknown as Record<string, unknown>)).toBeNull();
+  });
+
+  it("handles non-object input gracefully", () => {
+    expect(normalizeVariableFields("string" as unknown as Record<string, unknown>)).toBe("string");
+    expect(normalizeVariableFields(42 as unknown as Record<string, unknown>)).toBe(42);
+  });
+
+  it("handles array input gracefully", () => {
+    const arr = [1, 2, 3];
+    expect(normalizeVariableFields(arr as unknown as Record<string, unknown>)).toBe(arr);
+  });
+
   it("strips _-prefixed legacy UI fields", () => {
     const v = {
       _schemaKey: "DiscretePHVariable",

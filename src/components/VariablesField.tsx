@@ -57,10 +57,10 @@ function countMissingRequiredFields(
 
   if (!schemaKey || !rootSchema.$defs) return 1; // No type = incomplete
 
-  const variableSchema = resolveRef(
-    rootSchema.$defs[schemaKey],
-    rootSchema
-  );
+  const schemaDef = rootSchema.$defs[schemaKey];
+  if (!schemaDef) return 1; // Unknown schema_class = incomplete
+
+  const variableSchema = resolveRef(schemaDef, rootSchema);
   if (!variableSchema) return 0;
 
   // Count missing required fields across all accordion sections

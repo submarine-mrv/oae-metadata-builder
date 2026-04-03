@@ -935,6 +935,11 @@ const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
 export function normalizeVariableFields(
   variable: Record<string, unknown>
 ): Record<string, unknown> {
+  // Guard against non-object entries in imported data
+  if (!variable || typeof variable !== "object" || Array.isArray(variable)) {
+    return variable;
+  }
+
   // Strip any _-prefixed UI-only fields (legacy _schemaKey, _variableType, etc.)
   const hasUnderscoreKeys = Object.keys(variable).some((k) => k.startsWith("_"));
   if (hasUnderscoreKeys) {
