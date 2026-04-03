@@ -474,9 +474,9 @@ const BASE: HierarchyLayer = {
   }
 };
 
-/** DiscreteMeasuredVariable — shared calibration fields (top + bottom) */
-const DISCRETE: HierarchyLayer = {
-  name: "DiscreteMeasuredVariable",
+/** Shared calibration fields from base Calibration class (all measured variable types) */
+const CALIBRATION: HierarchyLayer = {
+  name: "Calibration",
   sections: {
     calibration: [
       {
@@ -996,26 +996,27 @@ const HPLC: HierarchyLayer = {
  * Uses Record<string, ...> rather than a strict union type for maintainability;
  * the VARIABLE_TYPE_LAYERS test validates every VARIABLE_SCHEMA_MAP key is present.
  *
- * Continuous types omit the DISCRETE layer, so type-specific layers with
- * `{ after }` calibration anchors will fall back to append. This is fine because
- * fieldExistsInSchema() in VariableModal.tsx filters fields at runtime.
+ * The CALIBRATION layer provides shared calibration fields from the base Calibration
+ * class. Type-specific layers with `{ after }` calibration anchors insert relative
+ * to these shared fields. fieldExistsInSchema() in VariableModal.tsx filters fields
+ * at runtime based on the actual schema for each variable type.
  */
 export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   // Discrete
-  DiscretePHVariable: [BASE, DISCRETE, PH],
-  DiscreteTAVariable: [BASE, DISCRETE, TA_DIC],
-  DiscreteDICVariable: [BASE, DISCRETE, TA_DIC],
-  DiscreteSedimentVariable: [BASE, DISCRETE, SEDIMENT],
-  DiscreteCO2Variable: [BASE, DISCRETE, CO2],
-  ContinuousCO2Variable: [BASE, CONTINUOUS, CO2, CO2_CONTINUOUS],
-  HPLCVariable: [BASE, DISCRETE, HPLC],
-  DiscreteMeasuredVariable: [BASE, DISCRETE],
+  DiscretePHVariable: [BASE, CALIBRATION, PH],
+  DiscreteTAVariable: [BASE, CALIBRATION, TA_DIC],
+  DiscreteDICVariable: [BASE, CALIBRATION, TA_DIC],
+  DiscreteSedimentVariable: [BASE, CALIBRATION, SEDIMENT],
+  DiscreteCO2Variable: [BASE, CALIBRATION, CO2],
+  ContinuousCO2Variable: [BASE, CALIBRATION, CONTINUOUS, CO2, CO2_CONTINUOUS],
+  HPLCVariable: [BASE, CALIBRATION, HPLC],
+  DiscreteMeasuredVariable: [BASE, CALIBRATION],
   // Continuous
-  ContinuousPHVariable: [BASE, CONTINUOUS, PH],
-  ContinuousTAVariable: [BASE, CONTINUOUS, TA_DIC],
-  ContinuousDICVariable: [BASE, CONTINUOUS, TA_DIC],
-  ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
-  ContinuousMeasuredVariable: [BASE, CONTINUOUS],
+  ContinuousPHVariable: [BASE, CALIBRATION, CONTINUOUS, PH],
+  ContinuousTAVariable: [BASE, CALIBRATION, CONTINUOUS, TA_DIC],
+  ContinuousDICVariable: [BASE, CALIBRATION, CONTINUOUS, TA_DIC],
+  ContinuousSedimentVariable: [BASE, CALIBRATION, CONTINUOUS, SEDIMENT],
+  ContinuousMeasuredVariable: [BASE, CALIBRATION, CONTINUOUS],
   // Other
   CalculatedVariable: [BASE, CALCULATED],
   NonMeasuredVariable: [BASE]

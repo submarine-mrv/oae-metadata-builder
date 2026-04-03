@@ -302,7 +302,8 @@ describe("VARIABLE_TYPE_LAYERS", () => {
       "ContinuousTAVariable",
       "ContinuousDICVariable",
       "ContinuousSedimentVariable",
-      "ContinuousMeasuredVariable"
+      "ContinuousMeasuredVariable",
+      "ContinuousCO2Variable"
     ];
     for (const key of continuousKeys) {
       const analysisFields = buildSectionFields(
@@ -314,6 +315,20 @@ describe("VARIABLE_TYPE_LAYERS", () => {
       );
       expect(paths).toContain("raw_data_calculation_method");
     }
+  });
+
+  it("ContinuousCO2Variable includes required calibration fields", () => {
+    const calFields = buildSectionFields(
+      "calibration",
+      VARIABLE_TYPE_LAYERS["ContinuousCO2Variable"]
+    );
+    const paths = calFields.map((f) => (typeof f === "string" ? f : f.path));
+    expect(paths).toContain(
+      "analyzing_instrument.calibration.technique_description"
+    );
+    expect(paths).toContain(
+      "analyzing_instrument.calibration.standard_gas_info.number_of_nonzero_standards"
+    );
   });
 
   it("calculated type includes calculation section", () => {

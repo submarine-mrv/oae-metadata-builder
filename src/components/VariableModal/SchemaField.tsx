@@ -58,11 +58,18 @@ export default function SchemaField({
   const currentValue = getNestedValue(formData, fieldPath);
   const schemaConst = metadata?.schema?.const;
 
+  // Keep a ref to latest formData so const-field effects don't use stale snapshots
+  const formDataRef = React.useRef(formData);
+  formDataRef.current = formData;
+
   // Auto-set const value in form data
   React.useEffect(() => {
-    if (schemaConst !== undefined && currentValue !== String(schemaConst)) {
-      const newFormData = setNestedValue(formData, fieldPath, String(schemaConst));
-      onChange(newFormData);
+    if (schemaConst !== undefined) {
+      const latest = formDataRef.current;
+      const current = getNestedValue(latest, fieldPath);
+      if (current !== String(schemaConst)) {
+        onChange(setNestedValue(latest, fieldPath, String(schemaConst)));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemaConst, fieldPath]);
