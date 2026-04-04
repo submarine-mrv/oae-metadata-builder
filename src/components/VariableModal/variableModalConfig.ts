@@ -968,11 +968,16 @@ export function normalizeVariableFields(
   const changes: Record<string, unknown> = {};
 
   // For shared classes (CalculatedVariable), trust existing variable_type
-  // unless it's clearly invalid
+  // if it's a type that supports calculated variables
   const isSharedClass = schemaClass === "CalculatedVariable";
   if (isSharedClass) {
+    const validCalculatedTypes = new Set(
+      Object.entries(VARIABLE_SCHEMA_MAP)
+        .filter(([, v]) => typeof v === "object" && "calculated" in v)
+        .map(([k]) => k)
+    );
     const currentType = variable.variable_type as string | undefined;
-    if (!currentType || currentType === "non_measured") {
+    if (!currentType || !validCalculatedTypes.has(currentType)) {
       changes.variable_type = "other";
     }
   } else {

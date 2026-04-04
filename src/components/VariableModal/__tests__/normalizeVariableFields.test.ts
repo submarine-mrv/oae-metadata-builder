@@ -99,6 +99,16 @@ describe("normalizeVariableFields", () => {
     expect(result.variable_type).toBe("other");
   });
 
+  it("coerces invalid variable_type for CalculatedVariable to 'other'", () => {
+    const v = {
+      schema_class: "CalculatedVariable",
+      variable_type: "typo_value",
+      genesis: "calculated"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.variable_type).toBe("other");
+  });
+
   it("fills missing fields from schema_class", () => {
     const v = {
       schema_class: "ContinuousTAVariable",
