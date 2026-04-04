@@ -1,50 +1,14 @@
 import { getProtocolMetadata } from "./schemaViews";
+import { normalizeVariableFields } from "@/components/VariableModal/variableModalConfig";
 import type {
   ProjectFormData,
   ExperimentFormData,
   ExperimentState,
   DatasetFormData,
   DatasetState,
-  FormDataRecord,
   ExportContainer,
   ImportResult
 } from "@/types/forms";
-
-/**
- * Project schema fields that should be in the root project data
- */
-const PROJECT_FIELDS = [
-  "project_id",
-  "description",
-  "mcdr_pathway",
-  "sea_names",
-  "temporal_coverage",
-  "spatial_coverage",
-  "vertical_coverage",
-  "physical_site_description",
-  "social_context_site_description",
-  "social_research_conducted_to_date",
-  "colocated_operations",
-  "previous_or_ongoing_colocated_research",
-  "permits",
-  "research_project",
-  "funding",
-  "additional_details"
-];
-
-/**
- * Cleans projectData to only include valid Project schema fields
- * Removes any experiment-specific fields that may have leaked in
- */
-function cleanProjectData(data: FormDataRecord): ProjectFormData {
-  const cleaned: ProjectFormData = {};
-  PROJECT_FIELDS.forEach((field) => {
-    if (data[field] !== undefined) {
-      cleaned[field] = data[field];
-    }
-  });
-  return cleaned;
-}
 
 /**
  * Options for exporting metadata
@@ -87,9 +51,8 @@ export function exportMetadata(
   // Get version metadata from schema
   const protocolMetadata = getProtocolMetadata();
 
-  // Clean project data to remove any experiment fields that may have leaked in
   const cleanedProjectData = includeProject
-    ? cleanProjectData(projectData)
+    ? projectData
     : {};
 
   // Build Container object matching schema structure
@@ -143,7 +106,7 @@ function downloadBlob(blob: Blob, filename: string): void {
  */
 export function exportProject(projectData: ProjectFormData): void {
   const protocolMetadata = getProtocolMetadata();
-  const cleanedProjectData = cleanProjectData(projectData);
+  const cleanedProjectData = projectData;
 
   const exportData: ExportContainer = {
     version: protocolMetadata.version,
@@ -265,9 +228,8 @@ export async function importMetadata(file: File): Promise<ImportResult> {
           ? data.datasets
           : [];
 
-        // Remove experiments from project data (in case of old format) and clean
-        const { experiments: _, ...rawProjectData } = projectDataRaw;
-        const projectData = cleanProjectData(rawProjectData);
+        // Remove experiments from project data (in case of old format)
+        const { experiments: _, ...projectData } = projectDataRaw;
 
         // Convert experiment data to ExperimentState format
         const experiments: ExperimentState[] = experimentsData.map(
@@ -286,18 +248,28 @@ export async function importMetadata(file: File): Promise<ImportResult> {
 
         // Convert dataset data to DatasetState format
         const datasets: DatasetState[] = datasetsData.map(
-          (dsData: DatasetFormData, index: number) => ({
-            id: index + 1, // Will be reassigned based on nextDatasetId
-            name:
-              (dsData.name as string) ||
-              `Dataset ${index + 1}`,
-            formData: dsData,
-            linking: {
-              linkedExperimentInternalId: null
-            },
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          })
+          (dsData: DatasetFormData, index: number) => {
+            // Normalize variable fields on import (fix inconsistencies)
+            const rawVars = Array.isArray(dsData.variables) ? dsData.variables : [];
+            dsData = {
+              ...dsData,
+              variables: rawVars
+                .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
+                .map((v) => normalizeVariableFields(v) as typeof v)
+            };
+            return {
+              id: index + 1,
+              name:
+                (dsData.name as string) ||
+                `Dataset ${index + 1}`,
+              formData: dsData,
+              linking: {
+                linkedExperimentInternalId: null
+              },
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            };
+          }
         );
 
         resolve({ projectData, experiments, datasets });

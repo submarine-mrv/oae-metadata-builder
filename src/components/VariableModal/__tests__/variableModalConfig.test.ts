@@ -6,7 +6,7 @@ import {
   VARIABLE_SCHEMA_MAP,
   normalizeFieldConfig,
   getSchemaKey,
-  resolveEffectiveType,
+  resolveVariableType,
   getSchemaKeyForUI
 } from "../variableModalConfig";
 import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
@@ -244,6 +244,10 @@ describe("VARIABLE_TYPE_LAYERS", () => {
   it("has an entry for every schema key in VARIABLE_SCHEMA_MAP", () => {
     const allSchemaKeys = new Set<string>();
     for (const typeMap of Object.values(VARIABLE_SCHEMA_MAP)) {
+      if (typeof typeMap === "string") {
+        allSchemaKeys.add(typeMap);
+        continue;
+      }
       for (const [key, value] of Object.entries(typeMap)) {
         if (key === "placeholderOverrides") continue;
         if (typeof value === "string") {
@@ -345,7 +349,7 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("dic", "measured", "discrete")).toBe("DiscreteDICVariable");
     expect(getSchemaKey("sediment", "measured", "discrete")).toBe("DiscreteSedimentVariable");
     expect(getSchemaKey("co2", "measured", "discrete")).toBe("DiscreteCO2Variable");
-    expect(getSchemaKey("observed_property", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
+    expect(getSchemaKey("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
   });
 
   it("returns CalculatedVariable for all calculated types", () => {
@@ -367,13 +371,13 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("hplc", "measured", "discrete")).toBe("HPLCVariable");
   });
 
-  it("returns NonMeasuredVariable for non_measured (DIRECT, no genesis needed)", () => {
+  it("returns NonMeasuredVariable for non_measured (direct mapping, no genesis needed)", () => {
     expect(getSchemaKey("non_measured", undefined, undefined)).toBe("NonMeasuredVariable");
   });
 
-  it("returns null for non_measured when genesis is provided (DIRECT rejects explicit genesis)", () => {
-    expect(getSchemaKey("non_measured", "measured", "discrete")).toBeNull();
-    expect(getSchemaKey("non_measured", "calculated", undefined)).toBeNull();
+  it("returns NonMeasuredVariable for non_measured even with stale genesis/sampling", () => {
+    expect(getSchemaKey("non_measured", "measured", "discrete")).toBe("NonMeasuredVariable");
+    expect(getSchemaKey("non_measured", "calculated", undefined)).toBe("NonMeasuredVariable");
   });
 
   it("returns null for unknown variable type", () => {
@@ -409,31 +413,31 @@ describe("normalizeFieldConfig", () => {
   });
 });
 
-describe("resolveEffectiveType", () => {
+describe("resolveVariableType", () => {
   it("returns non-'other' types unchanged", () => {
-    expect(resolveEffectiveType("pH", "measured")).toBe("pH");
-    expect(resolveEffectiveType("ta", undefined)).toBe("ta");
-    expect(resolveEffectiveType("hplc", "measured")).toBe("hplc");
+    expect(resolveVariableType("pH", "measured")).toBe("pH");
+    expect(resolveVariableType("ta", undefined)).toBe("ta");
+    expect(resolveVariableType("hplc", "measured")).toBe("hplc");
   });
 
   it("returns undefined for undefined input", () => {
-    expect(resolveEffectiveType(undefined, undefined)).toBeUndefined();
+    expect(resolveVariableType(undefined, undefined)).toBeUndefined();
   });
 
   it("maps 'other' + 'contextual' to 'non_measured'", () => {
-    expect(resolveEffectiveType("other", "contextual")).toBe("non_measured");
+    expect(resolveVariableType("other", "contextual")).toBe("non_measured");
   });
 
-  it("maps 'other' + 'measured' to 'observed_property'", () => {
-    expect(resolveEffectiveType("other", "measured")).toBe("observed_property");
+  it("maps 'other' + 'measured' to 'other'", () => {
+    expect(resolveVariableType("other", "measured")).toBe("other");
   });
 
-  it("maps 'other' + 'calculated' to 'observed_property'", () => {
-    expect(resolveEffectiveType("other", "calculated")).toBe("observed_property");
+  it("maps 'other' + 'calculated' to 'other'", () => {
+    expect(resolveVariableType("other", "calculated")).toBe("other");
   });
 
   it("returns undefined for 'other' + undefined (genesis not yet selected)", () => {
-    expect(resolveEffectiveType("other", undefined)).toBeUndefined();
+    expect(resolveVariableType("other", undefined)).toBeUndefined();
   });
 });
 
@@ -448,7 +452,7 @@ describe("getSchemaKeyForUI", () => {
     expect(getSchemaKeyForUI("other", "contextual", undefined)).toBe("NonMeasuredVariable");
   });
 
-  it("routes 'other' + 'measured' + sampling to observed_property schemas", () => {
+  it("routes 'other' + 'measured' + sampling to other schemas", () => {
     expect(getSchemaKeyForUI("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
     expect(getSchemaKeyForUI("other", "measured", "continuous")).toBe("ContinuousMeasuredVariable");
   });
@@ -462,7 +466,7 @@ describe("getSchemaKeyForUI", () => {
   });
 
   it("returns null for 'other' with no genesis", () => {
-    // observed_property requires genesis, so this returns null
+    // other requires genesis, so this returns null
     expect(getSchemaKeyForUI("other", undefined, undefined)).toBeNull();
   });
 });

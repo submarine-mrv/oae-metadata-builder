@@ -50,3 +50,4 @@ CLAUDE.md
 .claude/
 test-results/
 playwright-report/
+.roborev.toml

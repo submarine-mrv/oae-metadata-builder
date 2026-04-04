@@ -9,7 +9,6 @@ import type {
 } from "@/types/forms";
 import type { RJSFSchema } from "@rjsf/utils";
 import {
-  getSchemaKey,
   getAccordionConfig,
   normalizeFieldConfig
 } from "@/components/VariableModal/variableModalConfig";
@@ -352,19 +351,14 @@ export function countMissingVariableFields(
   variable: VariableFormData | FormDataRecord,
   rootSchema: RJSFSchema | JSONSchema
 ): number {
-  // Get schema key from variable's type selections
-  const schemaKey = getSchemaKey(
-    variable._variableType as string | undefined,
-    variable.genesis as string | undefined,
-    variable.sampling as string | undefined
-  );
+  const schemaKey = variable.schema_class as string | undefined;
 
-  if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 0;
+  if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 1; // No type = incomplete
 
-  const variableSchema = resolveRef(
-    (rootSchema as JSONSchema).$defs![schemaKey],
-    rootSchema as JSONSchema
-  );
+  const schemaDef = (rootSchema as JSONSchema).$defs![schemaKey];
+  if (!schemaDef) return 1; // Unknown schema_class = incomplete
+
+  const variableSchema = resolveRef(schemaDef, rootSchema as JSONSchema);
   if (!variableSchema) return 0;
 
   // Count missing required fields across all accordion sections

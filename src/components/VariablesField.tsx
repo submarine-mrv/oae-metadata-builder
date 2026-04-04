@@ -23,26 +23,24 @@ import {
   type JSONSchema
 } from "./schemaUtils";
 import {
-  getSchemaKey,
   getAccordionConfig,
   normalizeFieldConfig
 } from "./VariableModal/variableModalConfig";
+import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
 
-/**
- * Gets a display label for the variable type based on _variableType and _schemaKey
- */
-function getVariableDisplayLabel(variable: VariableData): string {
-  const varType = variable._variableType as string | undefined;
-  const schemaKey = variable._schemaKey as string | undefined;
+// Build label lookup from the dropdown options + non_measured (not a dropdown option)
+const VARIABLE_TYPE_LABEL_MAP: Record<string, string> = {
+  ...Object.fromEntries(VARIABLE_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])),
+  non_measured: "Contextual"
+};
 
-  if (varType === "pH") return "pH";
-  if (varType === "observed_property") return "Generic Variable";
-  if (varType === "non_measured") return "Contextual";
-  if (schemaKey) return schemaKey;
-  return "(no type)";
+function getVariableDisplayLabel(variable: VariableData): string {
+  const varType = variable.variable_type as string | undefined;
+  if (!varType) return "(no type)";
+  return VARIABLE_TYPE_LABEL_MAP[varType] || varType;
 }
 
 /**
@@ -55,18 +53,14 @@ function countMissingRequiredFields(
   rootSchema: JSONSchema
 ): number {
   // Get schema key from variable's type selections
-  const schemaKey = getSchemaKey(
-    variable._variableType as string | undefined,
-    variable.genesis as string | undefined,
-    variable.sampling as string | undefined
-  );
+  const schemaKey = variable.schema_class as string | undefined;
 
-  if (!schemaKey || !rootSchema.$defs) return 0;
+  if (!schemaKey || !rootSchema.$defs) return 1; // No type = incomplete
 
-  const variableSchema = resolveRef(
-    rootSchema.$defs[schemaKey],
-    rootSchema
-  );
+  const schemaDef = rootSchema.$defs[schemaKey];
+  if (!schemaDef) return 1; // Unknown schema_class = incomplete
+
+  const variableSchema = resolveRef(schemaDef, rootSchema);
   if (!variableSchema) return 0;
 
   // Count missing required fields across all accordion sections

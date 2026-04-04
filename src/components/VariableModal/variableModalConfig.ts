@@ -6,11 +6,31 @@
  * - VARIABLE_TYPE_OPTIONS: User-facing dropdown options
  * - getAccordionConfig(): Builds per-type accordion sections from layer stacks
  * - VARIABLE_TYPE_LAYERS: Maps schema keys to their hierarchy layer stacks
+ * - normalizeVariableFields(): Fixes inconsistencies on import/load
  *
  * Field organization uses a hierarchy-aware layer system that mirrors LinkML classes:
  * - Each HierarchyLayer corresponds to a level in the LinkML class tree
  * - buildSectionFields() merges layers using explicit insertion positions
  * - fieldExistsInSchema() handles runtime visibility — layers only organize authoring
+ *
+ * ## When to update this file after schema changes
+ *
+ * When a variable class is added/removed/renamed in LinkML (variable.yaml):
+ * 1. VARIABLE_SCHEMA_MAP — add/update the mapping from variable_type + genesis
+ *    + sampling to the new $defs class name. String value = direct mapping (no
+ *    genesis/sampling), object = drill into genesis → sampling.
+ * 2. VARIABLE_TYPE_OPTIONS — add a user-facing label if a new variable_type was added.
+ * 3. VARIABLE_TYPE_LAYERS — add a layer stack for the new class so the accordion
+ *    config knows which fields to show and in which sections.
+ * 4. normalizeVariableFields() — update only if:
+ *    - A new "shared" class is added (like CalculatedVariable, used by multiple
+ *      variable_types). The shared-class branch needs to know about it.
+ *    - The valid set of variable_types that support calculated changes.
+ *    The function derives its lookup (SCHEMA_CLASS_LOOKUP) from VARIABLE_SCHEMA_MAP
+ *    automatically, so simple additions don't require changes here.
+ *
+ * Long-term, VARIABLE_SCHEMA_MAP should be derived from JSON Schema $defs at build
+ * time rather than maintained by hand. See oae-data-commons#93.
  */
 
 import type { ComponentType } from "react";
@@ -50,7 +70,7 @@ export const VARIABLE_SCHEMA_MAP = {
       units: "NBS scale, total scale, seawater scale, etc."
     }
   },
-  observed_property: {
+  other: {
     measured: {
       discrete: "DiscreteMeasuredVariable",
       continuous: "ContinuousMeasuredVariable"
@@ -92,9 +112,8 @@ export const VARIABLE_SCHEMA_MAP = {
       discrete: "HPLCVariable"
     }
   },
-  non_measured: {
-    DIRECT: "NonMeasuredVariable"
-  }
+  // String value = direct mapping (no genesis/sampling sub-levels)
+  non_measured: "NonMeasuredVariable"
 } as const;
 
 export type VariableTypeKey = keyof typeof VARIABLE_SCHEMA_MAP;
@@ -108,7 +127,7 @@ export type SamplingKey = "discrete" | "continuous";
 /**
  * Defines non-standard selection behavior for specific variable types.
  * - fixedGenesis/fixedSampling: auto-set in handleVariableTypeChange, hide the dropdown
- * - directSchema: skip genesis/sampling entirely (maps via DIRECT key)
+ * - directSchema: skip genesis/sampling entirely (string value in VARIABLE_SCHEMA_MAP)
  */
 export const VARIABLE_TYPE_BEHAVIOR: Record<
   string,
@@ -156,7 +175,7 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
 // =============================================================================
 
 export const VARIABLE_TYPE_OPTIONS = [
-    { value: "other", label: "Generic Variable" },
+  { value: "other", label: "Generic Variable" },
   { value: "pH", label: "pH" },
   { value: "ta", label: "Total Alkalinity (TA)" },
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
@@ -315,9 +334,9 @@ export function buildSectionFields(
 // Layer Definitions (mirror LinkML class hierarchy)
 // =============================================================================
 
-/** BaseVariable + Variable + ObservedPropertyVariable + QCFields */
+/** Variable + InSituVariable + MeasuredVariable + QCFields */
 const BASE: HierarchyLayer = {
-  name: "BaseVariable",
+  name: "Variable",
   sections: {
     basic: [
       { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
@@ -849,10 +868,9 @@ export function getSchemaKey(
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
-  // DIRECT types skip genesis/sampling entirely — reject if genesis is provided
-  if ("DIRECT" in typeMap) {
-    if (genesis) return null;
-    return (typeMap as Record<string, unknown>).DIRECT as string;
+  // String value = direct mapping, no genesis/sampling needed
+  if (typeof typeMap === "string") {
+    return typeMap;
   }
 
   if (!genesis) return null;
@@ -871,17 +889,149 @@ export function getSchemaKey(
 }
 
 /**
- * Maps UI "other" + genesis to the internal _variableType.
+ * Maps UI "other" + genesis to the internal variable type.
  * For non-"other" types, returns the type unchanged.
  */
-export function resolveEffectiveType(
+export function resolveVariableType(
   uiVariableType: string | undefined,
   genesis: string | undefined
 ): string | undefined {
   if (uiVariableType !== "other") return uiVariableType;
   if (!genesis) return undefined;
   if (genesis === "contextual") return "non_measured";
-  return "observed_property";
+  return "other";
+}
+
+// Build reverse lookup: schema_class → { variable_type, genesis, sampling }
+// Used by normalizeVariableFields to fix inconsistencies on load.
+interface SchemaClassInfo {
+  variable_type: string;
+  genesis?: string;
+  sampling?: string;
+}
+
+function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
+  const lookup: Record<string, SchemaClassInfo> = {};
+  for (const [varType, topLevel] of Object.entries(VARIABLE_SCHEMA_MAP)) {
+    // String value = direct mapping (e.g., non_measured → NonMeasuredVariable)
+    if (typeof topLevel === "string") {
+      lookup[topLevel] = { variable_type: varType };
+      continue;
+    }
+    for (const [key, genesisValue] of Object.entries(topLevel)) {
+      if (key === "placeholderOverrides") continue;
+      if (typeof genesisValue === "string") {
+        // Calculated — genesis is the key, no sampling
+        // Don't overwrite if already set (CalculatedVariable is shared)
+        if (!lookup[genesisValue]) {
+          lookup[genesisValue] = { variable_type: varType, genesis: key };
+        }
+      } else if (typeof genesisValue === "object" && genesisValue !== null) {
+        for (const [samplingKey, schemaClass] of Object.entries(genesisValue as Record<string, string>)) {
+          if (typeof schemaClass === "string") {
+            lookup[schemaClass] = { variable_type: varType, genesis: key, sampling: samplingKey };
+          }
+        }
+      }
+    }
+  }
+  return lookup;
+}
+
+const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
+
+/**
+ * Normalizes variable fields to be consistent with schema_class.
+ * Called on load/import to fix any inconsistencies between schema_class
+ * and its sibling fields (variable_type, genesis, sampling).
+ *
+ * schema_class is the source of truth. If sibling fields conflict,
+ * they are overridden. For shared classes like CalculatedVariable,
+ * variable_type is trusted if present.
+ */
+export function normalizeVariableFields(
+  variable: Record<string, unknown>
+): Record<string, unknown> {
+  // Guard against non-object entries in imported data
+  if (!variable || typeof variable !== "object" || Array.isArray(variable)) {
+    return variable;
+  }
+
+  // Strip any _-prefixed UI-only fields (legacy _schemaKey, _variableType, etc.)
+  const hasUnderscoreKeys = Object.keys(variable).some((k) => k.startsWith("_"));
+  if (hasUnderscoreKeys) {
+    variable = Object.fromEntries(
+      Object.entries(variable).filter(([k]) => !k.startsWith("_"))
+    );
+  }
+
+  let schemaClass = variable.schema_class as string | undefined;
+
+  // If schema_class is missing or unknown, try to derive from sibling fields
+  if (!schemaClass || !SCHEMA_CLASS_LOOKUP[schemaClass]) {
+    const varType = variable.variable_type as string | undefined;
+    const derived = varType
+      ? getSchemaKey(
+          varType,
+          variable.genesis as string | undefined,
+          variable.sampling as string | undefined
+        )
+      : null;
+    if (!derived) return variable;
+    schemaClass = derived;
+    variable = { ...variable, schema_class: schemaClass };
+  }
+
+  const expected = SCHEMA_CLASS_LOOKUP[schemaClass];
+  if (!expected) return variable;
+
+  const changes: Record<string, unknown> = {};
+
+  // For shared classes (CalculatedVariable), trust existing variable_type
+  // if it's a type that supports calculated variables
+  const isSharedClass = schemaClass === "CalculatedVariable";
+  if (isSharedClass) {
+    const validCalculatedTypes = new Set(
+      Object.entries(VARIABLE_SCHEMA_MAP)
+        .filter(([, v]) => typeof v === "object" && "calculated" in v)
+        .map(([k]) => k)
+    );
+    const currentType = variable.variable_type as string | undefined;
+    if (!currentType || !validCalculatedTypes.has(currentType)) {
+      changes.variable_type = "other";
+    }
+  } else {
+    if (variable.variable_type !== expected.variable_type) {
+      changes.variable_type = expected.variable_type;
+    }
+  }
+
+  // Fix genesis
+  if (expected.genesis !== undefined) {
+    if (variable.genesis !== expected.genesis) {
+      changes.genesis = expected.genesis;
+    }
+  } else {
+    // No genesis expected (NonMeasuredVariable) — clear it
+    if (variable.genesis !== undefined) {
+      changes.genesis = undefined;
+    }
+  }
+
+  // Fix sampling
+  if (expected.sampling !== undefined) {
+    if (variable.sampling !== expected.sampling) {
+      changes.sampling = expected.sampling;
+    }
+  } else {
+    // No sampling expected (Calculated, NonMeasured) — clear it
+    if (variable.sampling !== undefined) {
+      changes.sampling = undefined;
+    }
+  }
+
+  if (Object.keys(changes).length === 0) return variable;
+  return { ...variable, ...changes };
 }
 
 /**
@@ -894,8 +1044,9 @@ export function getSchemaKeyForUI(
   sampling: string | undefined
 ): string | null {
   if (uiVariableType === "other") {
-    if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
-    return getSchemaKey("observed_property", genesis, sampling);
+    if (genesis === "contextual")
+      return getSchemaKey("non_measured", undefined, undefined);
+    return getSchemaKey("other", genesis, sampling);
   }
   return getSchemaKey(uiVariableType, genesis, sampling);
 }
@@ -911,7 +1062,7 @@ export function getPlaceholderOverride(
   if (!variableType) return undefined;
   const typeConfig =
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
-  if (!typeConfig || !("placeholderOverrides" in typeConfig)) return undefined;
+  if (!typeConfig || typeof typeConfig === "string" || !("placeholderOverrides" in typeConfig)) return undefined;
   const overrides = typeConfig.placeholderOverrides as
     | Record<string, string>
     | undefined;

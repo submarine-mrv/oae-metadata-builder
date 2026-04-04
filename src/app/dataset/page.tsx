@@ -79,7 +79,7 @@ const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
  * (e.g., pH calibration) because the base Variable schema has
  * `additionalProperties: false`.
  *
- * Variables are validated separately using their `_schemaKey` to select the
+ * Variables are validated separately using their `schema_class` to select the
  * correct type-specific schema. See `src/utils/datasetValidation.ts`.
  *
  * REMOVE THIS when oae-form-c0s is complete (proper polymorphism via

@@ -29,7 +29,7 @@ import {
   VARIABLE_TYPE_BEHAVIOR,
   getAccordionConfig,
   getSchemaKeyForUI,
-  resolveEffectiveType,
+  resolveVariableType,
   normalizeFieldConfig,
   getPlaceholderOverride
 } from "./variableModalConfig";
@@ -76,7 +76,6 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
   ta: "Total Alkalinity",
   dic: "DIC",
   other: "Generic Variable",
-  observed_property: "Generic Variable",
   non_measured: "Contextual",
   sediment: "Sediment",
   co2: "CO₂",
@@ -107,7 +106,7 @@ interface VariableModalProps {
  * Schema-driven Variable Modal
  *
  * The variable type is determined by the combination of:
- * - variable_type (pH, ta, dic, observed_property, sediment, co2, hplc, non_measured)
+ * - variable_type (pH, ta, dic, other, sediment, co2, hplc, non_measured)
  * - genesis (measured, calculated)
  * - sampling (discrete, continuous) - only for measured
  *
@@ -140,22 +139,16 @@ export default function VariableModal({
     if (opened) {
       if (initialData) {
         setFormData(initialData);
-        // Extract selection state from initial data
-        // Normalize to lowercase for backwards compat with pre-enum-migration data
-        const savedType = (initialData._variableType as string) || null;
-        if (savedType === "observed_property" || savedType === "non_measured") {
-          // Map to consolidated "other" UI type
+        const savedType = (initialData.variable_type as string) || null;
+        if (savedType === "non_measured") {
+          // non_measured maps to UI "other" + genesis "contextual"
           setVariableType("other");
-          if (savedType === "non_measured") {
-            setGenesis("contextual");
-            setSampling(null);
-          } else {
-            const rawGenesis = (initialData.genesis as string)?.toLowerCase() || null;
-            setGenesis(rawGenesis === "ancillary" ? "contextual" : rawGenesis);
-            setSampling(
-              (initialData.sampling as string)?.toLowerCase() || null
-            );
-          }
+          setGenesis("contextual");
+          setSampling(null);
+        } else if (savedType === "other") {
+          setVariableType("other");
+          setGenesis((initialData.genesis as string)?.toLowerCase() || null);
+          setSampling((initialData.sampling as string)?.toLowerCase() || null);
         } else {
           setVariableType(savedType);
           setGenesis((initialData.genesis as string)?.toLowerCase() || null);
@@ -188,7 +181,7 @@ export default function VariableModal({
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
-    const effectiveType = resolveEffectiveType(
+    const effectiveType = resolveVariableType(
       variableType || undefined,
       genesis || undefined
     );
@@ -252,70 +245,27 @@ export default function VariableModal({
     setVariableType(value);
     const behavior = value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
 
-    if (behavior?.fixedGenesis) {
-      // Auto-set fixed genesis and sampling
-      setGenesis(behavior.fixedGenesis);
-      setSampling(behavior.fixedSampling || null);
-      setFormData((prev) => ({
-        ...prev,
-        _variableType: value,
-        genesis: behavior.fixedGenesis,
-        sampling: behavior.fixedSampling || undefined
-      }));
-    } else if (value === "other") {
-      // "other" resolves _variableType later via genesis selection
-      setGenesis(null);
-      setSampling(null);
-      setFormData((prev) => ({
-        ...prev,
-        _variableType: undefined,
-        genesis: undefined,
-        sampling: undefined
-      }));
-    } else {
-      // Standard and directSchema: reset genesis and sampling
-      setGenesis(null);
-      setSampling(null);
-      setFormData((prev) => ({
-        ...prev,
-        _variableType: value,
-        genesis: undefined,
-        sampling: undefined
-      }));
-    }
+    const newGenesis = behavior?.fixedGenesis ?? null;
+    const newSampling = behavior?.fixedSampling ?? null;
+    setGenesis(newGenesis);
+    setSampling(newSampling);
+    setFormData((prev) => ({
+      ...prev,
+      genesis: newGenesis || undefined,
+      sampling: newSampling || undefined
+    }));
   };
 
   const handleGenesisChange = (value: string | null) => {
     setGenesis(value);
-    // Always reset sampling when genesis changes to avoid stale values
     setSampling(null);
-
-    if (variableType === "other") {
-      // Resolve _variableType from the genesis selection
-      const effectiveType = resolveEffectiveType("other", value || undefined);
-      if (value === "contextual") {
-        // non_measured uses DIRECT — no genesis/sampling fields in saved data
-        setFormData((prev) => ({
-          ...prev,
-          _variableType: effectiveType,
-          genesis: undefined,
-          sampling: undefined
-        }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          _variableType: effectiveType,
-          genesis: value,
-          sampling: undefined
-        }));
-      }
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        genesis: value,
-        sampling: undefined
-      }));
-    }
+    // "contextual" is a UI-only genesis option that maps to non_measured — don't persist it
+    const persistedGenesis = value === "contextual" ? undefined : value;
+    setFormData((prev) => ({
+      ...prev,
+      genesis: persistedGenesis,
+      sampling: undefined
+    }));
   };
 
   const handleSamplingChange = (value: string | null) => {
@@ -331,18 +281,18 @@ export default function VariableModal({
     []
   );
 
-  // Handle save
   const handleSave = () => {
     if (!schemaKey) return;
-    // Ensure _variableType is the internal type, never "other"
-    const effectiveType = resolveEffectiveType(
+    // For "non_measured" the UI uses variableType directly;
+    // for "other" with contextual genesis, resolveVariableType maps to "non_measured"
+    const effectiveType = resolveVariableType(
       variableType || undefined,
       genesis || undefined
     );
     onSave({
       ...formData,
-      _schemaKey: schemaKey,
-      _variableType: effectiveType
+      schema_class: schemaKey,
+      variable_type: effectiveType
     });
   };
 
@@ -366,7 +316,7 @@ export default function VariableModal({
     []
   );
 
-  const isEditing = !!initialData?._variableType;
+  const isEditing = !!initialData?.schema_class;
 
   // Calculate section progress
   const getSectionProgress = (section: (typeof visibleAccordions)[0]) => {
@@ -533,7 +483,7 @@ export default function VariableModal({
                           // Compute effective placeholder with override support
                           const effectivePlaceholder =
                             getPlaceholderOverride(
-                              resolveEffectiveType(variableType || undefined, genesis || undefined),
+                              resolveVariableType(variableType || undefined, genesis || undefined),
                               field.path
                             ) || field.placeholderText;
 
