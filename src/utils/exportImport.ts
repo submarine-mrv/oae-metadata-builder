@@ -250,14 +250,13 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         const datasets: DatasetState[] = datasetsData.map(
           (dsData: DatasetFormData, index: number) => {
             // Normalize variable fields on import (fix inconsistencies)
-            if (Array.isArray(dsData.variables)) {
-              dsData = {
-                ...dsData,
-                variables: dsData.variables
-                  .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
-                  .map((v) => normalizeVariableFields(v) as typeof v)
-              };
-            }
+            const rawVars = Array.isArray(dsData.variables) ? dsData.variables : [];
+            dsData = {
+              ...dsData,
+              variables: rawVars
+                .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
+                .map((v) => normalizeVariableFields(v) as typeof v)
+            };
             return {
               id: index + 1,
               name:
