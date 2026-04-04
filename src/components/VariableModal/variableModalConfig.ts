@@ -6,11 +6,31 @@
  * - VARIABLE_TYPE_OPTIONS: User-facing dropdown options
  * - getAccordionConfig(): Builds per-type accordion sections from layer stacks
  * - VARIABLE_TYPE_LAYERS: Maps schema keys to their hierarchy layer stacks
+ * - normalizeVariableFields(): Fixes inconsistencies on import/load
  *
  * Field organization uses a hierarchy-aware layer system that mirrors LinkML classes:
  * - Each HierarchyLayer corresponds to a level in the LinkML class tree
  * - buildSectionFields() merges layers using explicit insertion positions
  * - fieldExistsInSchema() handles runtime visibility — layers only organize authoring
+ *
+ * ## When to update this file after schema changes
+ *
+ * When a variable class is added/removed/renamed in LinkML (variable.yaml):
+ * 1. VARIABLE_SCHEMA_MAP — add/update the mapping from variable_type + genesis
+ *    + sampling to the new $defs class name. String value = direct mapping (no
+ *    genesis/sampling), object = drill into genesis → sampling.
+ * 2. VARIABLE_TYPE_OPTIONS — add a user-facing label if a new variable_type was added.
+ * 3. VARIABLE_TYPE_LAYERS — add a layer stack for the new class so the accordion
+ *    config knows which fields to show and in which sections.
+ * 4. normalizeVariableFields() — update only if:
+ *    - A new "shared" class is added (like CalculatedVariable, used by multiple
+ *      variable_types). The shared-class branch needs to know about it.
+ *    - The valid set of variable_types that support calculated changes.
+ *    The function derives its lookup (SCHEMA_CLASS_LOOKUP) from VARIABLE_SCHEMA_MAP
+ *    automatically, so simple additions don't require changes here.
+ *
+ * Long-term, VARIABLE_SCHEMA_MAP should be derived from JSON Schema $defs at build
+ * time rather than maintained by hand. See oae-data-commons#93.
  */
 
 import type { ComponentType } from "react";
