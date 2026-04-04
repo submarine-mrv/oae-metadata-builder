@@ -92,9 +92,8 @@ export const VARIABLE_SCHEMA_MAP = {
       discrete: "HPLCVariable"
     }
   },
-  non_measured: {
-    DIRECT: "NonMeasuredVariable"
-  }
+  // String value = direct mapping (no genesis/sampling sub-levels)
+  non_measured: "NonMeasuredVariable"
 } as const;
 
 export type VariableTypeKey = keyof typeof VARIABLE_SCHEMA_MAP;
@@ -108,7 +107,7 @@ export type SamplingKey = "discrete" | "continuous";
 /**
  * Defines non-standard selection behavior for specific variable types.
  * - fixedGenesis/fixedSampling: auto-set in handleVariableTypeChange, hide the dropdown
- * - directSchema: skip genesis/sampling entirely (maps via DIRECT key)
+ * - directSchema: skip genesis/sampling entirely (string value in VARIABLE_SCHEMA_MAP)
  */
 export const VARIABLE_TYPE_BEHAVIOR: Record<
   string,
@@ -849,9 +848,9 @@ export function getSchemaKey(
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
-  // DIRECT types skip genesis/sampling entirely
-  if ("DIRECT" in typeMap) {
-    return (typeMap as Record<string, unknown>).DIRECT as string;
+  // String value = direct mapping, no genesis/sampling needed
+  if (typeof typeMap === "string") {
+    return typeMap;
   }
 
   if (!genesis) return null;
@@ -894,10 +893,9 @@ interface SchemaClassInfo {
 function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
   const lookup: Record<string, SchemaClassInfo> = {};
   for (const [varType, topLevel] of Object.entries(VARIABLE_SCHEMA_MAP)) {
-    if ("DIRECT" in topLevel) {
-      lookup[(topLevel as Record<string, unknown>).DIRECT as string] = {
-        variable_type: varType
-      };
+    // String value = direct mapping (e.g., non_measured → NonMeasuredVariable)
+    if (typeof topLevel === "string") {
+      lookup[topLevel] = { variable_type: varType };
       continue;
     }
     for (const [key, genesisValue] of Object.entries(topLevel)) {
@@ -1039,7 +1037,7 @@ export function getPlaceholderOverride(
   if (!variableType) return undefined;
   const typeConfig =
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
-  if (!typeConfig || !("placeholderOverrides" in typeConfig)) return undefined;
+  if (!typeConfig || typeof typeConfig === "string" || !("placeholderOverrides" in typeConfig)) return undefined;
   const overrides = typeConfig.placeholderOverrides as
     | Record<string, string>
     | undefined;

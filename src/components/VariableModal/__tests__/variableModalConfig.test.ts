@@ -244,6 +244,10 @@ describe("VARIABLE_TYPE_LAYERS", () => {
   it("has an entry for every schema key in VARIABLE_SCHEMA_MAP", () => {
     const allSchemaKeys = new Set<string>();
     for (const typeMap of Object.values(VARIABLE_SCHEMA_MAP)) {
+      if (typeof typeMap === "string") {
+        allSchemaKeys.add(typeMap);
+        continue;
+      }
       for (const [key, value] of Object.entries(typeMap)) {
         if (key === "placeholderOverrides") continue;
         if (typeof value === "string") {
@@ -367,7 +371,7 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("hplc", "measured", "discrete")).toBe("HPLCVariable");
   });
 
-  it("returns NonMeasuredVariable for non_measured (DIRECT, no genesis needed)", () => {
+  it("returns NonMeasuredVariable for non_measured (direct mapping, no genesis needed)", () => {
     expect(getSchemaKey("non_measured", undefined, undefined)).toBe("NonMeasuredVariable");
   });
 

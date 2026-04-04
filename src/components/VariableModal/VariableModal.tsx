@@ -280,7 +280,7 @@ export default function VariableModal({
 
     if (variableType === "other") {
       if (value === "contextual") {
-        // non_measured uses DIRECT — no genesis/sampling fields in saved data
+        // non_measured maps directly to schema class — no genesis/sampling needed
         setFormData((prev) => ({
           ...prev,
           genesis: undefined,
