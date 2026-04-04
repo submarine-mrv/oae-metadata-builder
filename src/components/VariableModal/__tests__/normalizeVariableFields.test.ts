@@ -210,6 +210,20 @@ describe("normalizeVariableFields", () => {
     expect(result.sampling).toBeUndefined();
   });
 
+  it("derives non_measured with stale genesis and clears siblings", () => {
+    const v = {
+      variable_type: "non_measured",
+      genesis: "measured",
+      sampling: "discrete",
+      dataset_variable_name: "Cruise_ID"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.schema_class).toBe("NonMeasuredVariable");
+    expect(result.variable_type).toBe("non_measured");
+    expect(result.genesis).toBeUndefined();
+    expect(result.sampling).toBeUndefined();
+  });
+
   it("fixes sibling fields after re-deriving schema_class from unknown", () => {
     const v = {
       schema_class: "InSituVariable",

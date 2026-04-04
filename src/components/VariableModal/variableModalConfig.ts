@@ -849,9 +849,8 @@ export function getSchemaKey(
     VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
-  // DIRECT types skip genesis/sampling entirely — reject if genesis is provided
+  // DIRECT types skip genesis/sampling entirely
   if ("DIRECT" in typeMap) {
-    if (genesis) return null;
     return (typeMap as Record<string, unknown>).DIRECT as string;
   }
 

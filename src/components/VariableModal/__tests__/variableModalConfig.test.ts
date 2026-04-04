@@ -371,9 +371,9 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("non_measured", undefined, undefined)).toBe("NonMeasuredVariable");
   });
 
-  it("returns null for non_measured when genesis is provided (DIRECT rejects explicit genesis)", () => {
-    expect(getSchemaKey("non_measured", "measured", "discrete")).toBeNull();
-    expect(getSchemaKey("non_measured", "calculated", undefined)).toBeNull();
+  it("returns NonMeasuredVariable for non_measured even with stale genesis/sampling", () => {
+    expect(getSchemaKey("non_measured", "measured", "discrete")).toBe("NonMeasuredVariable");
+    expect(getSchemaKey("non_measured", "calculated", undefined)).toBe("NonMeasuredVariable");
   });
 
   it("returns null for unknown variable type", () => {
