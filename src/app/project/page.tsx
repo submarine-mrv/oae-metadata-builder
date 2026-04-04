@@ -162,6 +162,7 @@ export default function ProjectPage() {
             validator={validator}
             customValidate={customValidate}
             transformErrors={transformFormErrors}
+            noHtml5Validate
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
