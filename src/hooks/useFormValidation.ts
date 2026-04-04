@@ -18,8 +18,6 @@ interface UseFormValidationReturn {
   validationPassed: boolean | null;
   /** Ref for the RJSF Form component */
   formRef: React.RefObject<any>;
-  /** Ref for the scrollable container div */
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   /** Run validation — shows errors or checkmark */
   runValidation: () => void;
   /** Reset validation state (call on form change) */
@@ -29,9 +27,9 @@ interface UseFormValidationReturn {
 /**
  * Hook for form validation with visual feedback.
  *
- * - "Run Validation" button calls runValidation()
+ * - "Validate Metadata" button calls runValidation()
  * - If all valid: sets validationPassed = true (shows checkmark)
- * - If errors: triggers RJSF error list and scrolls to first error
+ * - If errors: triggers RJSF error list display
  * - Any form edit calls resetValidation() to clear the checkmark
  */
 export function useFormValidation({
@@ -42,7 +40,6 @@ export function useFormValidation({
   const [validationPassed, setValidationPassed] = useState<boolean | null>(null);
 
   const formRef = useRef<any>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const runValidation = useCallback(() => {
     const result = validate();
@@ -56,16 +53,8 @@ export function useFormValidation({
       onStatusChange?.(false);
       setShowErrorList(true);
 
-      // Trigger RJSF validation to show the error list
-      const formElement = scrollContainerRef.current?.querySelector("form") as HTMLFormElement | null;
-      const html5Valid = formElement?.reportValidity() ?? true;
-
-      if (html5Valid && formRef.current) {
-        formRef.current.submit();
-      }
-
-      // Scroll to top where errors are displayed
-      scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      // Trigger RJSF validation to populate the error list and inline errors
+      formRef.current?.submit();
     }
   }, [validate, onStatusChange]);
 
@@ -79,7 +68,6 @@ export function useFormValidation({
     showErrorList,
     validationPassed,
     formRef,
-    scrollContainerRef,
     runValidation,
     resetValidation
   };

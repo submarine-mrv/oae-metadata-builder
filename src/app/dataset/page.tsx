@@ -254,7 +254,7 @@ export default function DatasetPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={validation.scrollContainerRef}
+
         style={{
           flex: 1,
           overflow: "auto"
