@@ -245,61 +245,27 @@ export default function VariableModal({
     setVariableType(value);
     const behavior = value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
 
-    if (behavior?.fixedGenesis) {
-      // Auto-set fixed genesis and sampling
-      setGenesis(behavior.fixedGenesis);
-      setSampling(behavior.fixedSampling || null);
-      setFormData((prev) => ({
-        ...prev,
-        genesis: behavior.fixedGenesis,
-        sampling: behavior.fixedSampling || undefined
-      }));
-    } else if (value === "other") {
-      setGenesis(null);
-      setSampling(null);
-      setFormData((prev) => ({
-        ...prev,
-        genesis: undefined,
-        sampling: undefined
-      }));
-    } else {
-      setGenesis(null);
-      setSampling(null);
-      setFormData((prev) => ({
-        ...prev,
-        genesis: undefined,
-        sampling: undefined
-      }));
-    }
+    const newGenesis = behavior?.fixedGenesis ?? null;
+    const newSampling = behavior?.fixedSampling ?? null;
+    setGenesis(newGenesis);
+    setSampling(newSampling);
+    setFormData((prev) => ({
+      ...prev,
+      genesis: newGenesis || undefined,
+      sampling: newSampling || undefined
+    }));
   };
 
   const handleGenesisChange = (value: string | null) => {
     setGenesis(value);
-    // Always reset sampling when genesis changes to avoid stale values
     setSampling(null);
-
-    if (variableType === "other") {
-      if (value === "contextual") {
-        // non_measured maps directly to schema class — no genesis/sampling needed
-        setFormData((prev) => ({
-          ...prev,
-          genesis: undefined,
-          sampling: undefined
-        }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          genesis: value,
-          sampling: undefined
-        }));
-      }
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        genesis: value,
-        sampling: undefined
-      }));
-    }
+    // "contextual" is a UI-only genesis option that maps to non_measured — don't persist it
+    const persistedGenesis = value === "contextual" ? undefined : value;
+    setFormData((prev) => ({
+      ...prev,
+      genesis: persistedGenesis,
+      sampling: undefined
+    }));
   };
 
   const handleSamplingChange = (value: string | null) => {
