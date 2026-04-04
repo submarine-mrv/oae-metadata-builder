@@ -198,6 +198,33 @@ describe("normalizeVariableFields", () => {
     expect(result.schema_class).toBe("NonMeasuredVariable");
   });
 
+  it("fixes sibling fields after deriving schema_class from missing", () => {
+    const v = {
+      variable_type: "ta",
+      genesis: "calculated",
+      sampling: "discrete", // stale — CalculatedVariable has no sampling
+      dataset_variable_name: "ta_calc"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.schema_class).toBe("CalculatedVariable");
+    expect(result.sampling).toBeUndefined();
+  });
+
+  it("fixes sibling fields after re-deriving schema_class from unknown", () => {
+    const v = {
+      schema_class: "InSituVariable",
+      variable_type: "other",
+      genesis: "measured",
+      sampling: "continuous",
+      dataset_variable_name: "Temperature"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.schema_class).toBe("ContinuousMeasuredVariable");
+    expect(result.variable_type).toBe("other");
+    expect(result.genesis).toBe("measured");
+    expect(result.sampling).toBe("continuous");
+  });
+
   it("returns unchanged when schema_class is unknown and siblings cannot derive", () => {
     const v = {
       schema_class: "BogusClass",
