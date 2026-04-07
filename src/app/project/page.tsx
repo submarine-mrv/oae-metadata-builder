@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Container,
   Title,
@@ -36,6 +36,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateProject } from "@/utils/validation";
+import { isFormEmpty } from "@/utils/formDataCleanup";
 import { useFormValidation } from "@/hooks/useFormValidation";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -55,10 +56,38 @@ export default function ProjectPage() {
   } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
+  // Source of truth for badge counts: run AJV via validateProject, memoized
+  // on form data. Filter by err.name to split missing-required from others.
+  const validationResult = useMemo(
+    () => validateProject(state.projectData),
+    [state.projectData]
+  );
+  const missingRequired = useMemo(
+    () => validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult]
+  );
+  const otherErrors = validationResult.errors.length - missingRequired;
+  const isEmpty = useMemo(() => isFormEmpty(state.projectData), [state.projectData]);
+
   const validation = useFormValidation({
-    validate: () => validateProject(state.projectData),
+    missingRequired,
+    otherErrors,
+    isEmpty,
     onStatusChange: setProjectValidation
   });
+
+  // Hide required-field errors from inline display unless the user has
+  // explicitly clicked the badge to reveal the full error list. Required
+  // fields are obvious from the asterisks — non-required errors (format,
+  // pattern, cross-field) still surface immediately on blur.
+  const filteredTransformErrors = useMemo(() => {
+    return (errors: any[]) => {
+      const filtered = validation.showErrorList
+        ? errors
+        : errors.filter((e) => e.name !== "required");
+      return transformFormErrors(filtered);
+    };
+  }, [validation.showErrorList]);
 
   useEffect(() => {
     setActiveTab("project");
@@ -74,9 +103,12 @@ export default function ProjectPage() {
   }
 
   const customValidate = (data: any, errors: any) => {
+    // Schema already marks temporal_coverage as required — AJV produces
+    // the "required" error on its own. We only add the cross-field
+    // end ≥ start check which isn't expressible in JSON Schema.
+    // TODO: consider an AJV custom keyword for this; `new Date()` is brittle.
     const t = data?.temporal_coverage as string | undefined;
-    if (!t) errors?.temporal_coverage?.addError("Start date is required.");
-    else {
+    if (t) {
       const [start, end] = t.split("/");
       if (start && end && end !== "..") {
         const s = +new Date(start),
@@ -139,8 +171,10 @@ export default function ProjectPage() {
             <Group align="center" gap="md">
               <Title order={2}>Project Metadata</Title>
               <ValidationButton
-                validationPassed={validation.validationPassed}
-                onClick={validation.runValidation}
+                badgeState={validation.badgeState}
+                missingRequired={validation.missingRequired}
+                otherErrors={validation.otherErrors}
+                onClick={validation.handleClick}
               />
             </Group>
             <Text c="dimmed">
@@ -156,12 +190,12 @@ export default function ProjectPage() {
             uiSchema={uiSchema}
             formData={state.projectData}
             onChange={(e) => {
-              validation.resetValidation();
               updateProjectData(e.formData);
             }}
             validator={validator}
             customValidate={customValidate}
-            transformErrors={transformFormErrors}
+            transformErrors={filteredTransformErrors}
+            liveValidate="onBlur"
             noHtml5Validate
             omitExtraData={false}
             liveOmit={false}

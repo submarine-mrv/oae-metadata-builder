@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Container,
   Title,
@@ -55,7 +55,7 @@ import {
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { stripEmptyArrays } from "@/utils/formDataCleanup";
+import { stripEmptyArrays, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -113,10 +113,37 @@ export default function ExperimentPage() {
     [activeExperimentId, setExperimentValidation]
   );
 
+  // AJV validation result, memoized on form data. Split by err.name.
+  const validationResult = useMemo(
+    () => validateExperiment(formData),
+    [formData]
+  );
+  const missingRequired = useMemo(
+    () => validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult]
+  );
+  const otherErrors = validationResult.errors.length - missingRequired;
+  const isEmpty = useMemo(() => isFormEmpty(formData), [formData]);
+
   const validation = useFormValidation({
-    validate: () => validateExperiment(formData),
+    missingRequired,
+    otherErrors,
+    isEmpty,
     onStatusChange: onValidationStatusChange
   });
+
+  // Hide required-field errors from inline display unless the user has
+  // explicitly clicked the badge to reveal the full error list. Required
+  // fields are obvious from the asterisks — non-required errors (format,
+  // pattern, cross-field) still surface immediately on blur.
+  const filteredTransformErrors = useMemo(() => {
+    return (errors: any[]) => {
+      const filtered = validation.showErrorList
+        ? errors
+        : errors.filter((e) => e.name !== "required");
+      return transformFormErrors(filtered);
+    };
+  }, [validation.showErrorList]);
 
   const experiment = activeExperimentId
     ? state.experiments.find((exp) => exp.id === activeExperimentId)
@@ -163,7 +190,6 @@ export default function ExperimentPage() {
         return;
       }
 
-      validation.resetValidation();
       let newData = e.formData;
 
       // Enforce model exclusivity (model can't combine with other types)
@@ -264,8 +290,10 @@ export default function ExperimentPage() {
             <Group align="center" gap="md">
               <Title order={2}>{experiment.name || "Experiment"}</Title>
               <ValidationButton
-                validationPassed={validation.validationPassed}
-                onClick={validation.runValidation}
+                badgeState={validation.badgeState}
+                missingRequired={validation.missingRequired}
+                otherErrors={validation.otherErrors}
+                onClick={validation.handleClick}
               />
             </Group>
             <Text c="dimmed">
@@ -282,7 +310,8 @@ export default function ExperimentPage() {
             onChange={handleFormChange}
             validator={validator}
             customValidate={customValidate}
-            transformErrors={transformFormErrors}
+            transformErrors={filteredTransformErrors}
+            liveValidate="onBlur"
             noHtml5Validate
             omitExtraData={false}
             liveOmit={false}

@@ -16,8 +16,7 @@ import { getExperimentSchemaType } from "./experimentFields";
 import type {
   ProjectFormData,
   ExperimentFormData,
-  DatasetFormData,
-  ExperimentState
+  DatasetFormData
 } from "@/types/forms";
 
 // Create validator with Draft 2019-09 support
@@ -183,38 +182,3 @@ export function validateDataset(
   }
 }
 
-/**
- * Validates all data (project + experiments) before export
- * Returns validation results for both project and experiments
- */
-export function validateAllData(
-  projectData: ProjectFormData,
-  experiments: Array<Pick<ExperimentState, "id" | "name" | "formData">>
-): {
-  projectValidation: ValidationResult;
-  experimentValidations: Map<number, ValidationResult>;
-  isAllValid: boolean;
-} {
-  // Validate project
-  const projectValidation = validateProject(projectData);
-
-  // Validate all experiments
-  const experimentValidations = new Map<number, ValidationResult>();
-
-  for (const exp of experiments) {
-    const validation = validateExperiment(exp.formData);
-    experimentValidations.set(exp.id, validation);
-  }
-
-  // Check if everything is valid
-  const allExperimentsValid = Array.from(experimentValidations.values()).every(
-    (v) => v.isValid
-  );
-  const isAllValid = projectValidation.isValid && allExperimentsValid;
-
-  return {
-    projectValidation,
-    experimentValidations,
-    isAllValid
-  };
-}

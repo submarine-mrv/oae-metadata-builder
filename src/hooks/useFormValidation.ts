@@ -1,74 +1,108 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
-interface ValidationResult {
-  errorCount: number;
-}
+export type BadgeState =
+  | "empty"
+  | "missing-only"
+  | "missing-and-errors"
+  | "errors-only"
+  | "passed";
 
 interface UseFormValidationOptions {
-  /** Function that validates the data and returns error count */
-  validate: () => ValidationResult;
-  /** Called when validation status changes (for persisting to context) */
-  onStatusChange?: (status: boolean | null) => void;
+  /** Count of AJV errors with name === "required" */
+  missingRequired: number;
+  /** Count of AJV errors with name !== "required" */
+  otherErrors: number;
+  /** True when the form has no user-provided values */
+  isEmpty: boolean;
+  /** Called with true when validation passes, null otherwise */
+  onStatusChange?: (passed: boolean | null) => void;
 }
 
 interface UseFormValidationReturn {
-  /** Whether RJSF should show the error list at top */
+  /** Derived badge state — drives label, color, icon in ValidationButton */
+  badgeState: BadgeState;
+  missingRequired: number;
+  otherErrors: number;
+  /** Whether the top error list is currently displayed */
   showErrorList: boolean;
-  /** Validation status: null = not yet run, true = passed, false = failed */
-  validationPassed: boolean | null;
   /** Ref for the RJSF Form component */
   formRef: React.RefObject<any>;
-  /** Run validation — shows errors or checkmark */
-  runValidation: () => void;
-  /** Reset validation state (call on form change) */
-  resetValidation: () => void;
+  /** Click handler for the badge — toggles error list when relevant */
+  handleClick: () => void;
+}
+
+function deriveBadgeState(
+  isEmpty: boolean,
+  missingRequired: number,
+  otherErrors: number
+): BadgeState {
+  if (missingRequired === 0 && otherErrors === 0) return "passed";
+  if (isEmpty) return "empty";
+  if (missingRequired > 0 && otherErrors > 0) return "missing-and-errors";
+  if (missingRequired > 0) return "missing-only";
+  return "errors-only";
 }
 
 /**
- * Hook for form validation with visual feedback.
+ * Hook for passive validation status badge with click-to-show error list.
  *
- * - "Validate Metadata" button calls runValidation()
- * - If all valid: sets validationPassed = true (shows checkmark)
- * - If errors: triggers RJSF error list display
- * - Any form edit calls resetValidation() to clear the checkmark
+ * The badge label is derived every render from the three input counts,
+ * so it always reflects the current form state without any stored state.
+ * Clicking the badge only toggles the grouped error list; it never
+ * changes what the badge says.
+ *
+ * Source of truth: the page runs `validate*()` (AJV) memoized on form data,
+ * then filters the result by `err.name === "required"` for the split.
  */
 export function useFormValidation({
-  validate,
+  missingRequired,
+  otherErrors,
+  isEmpty,
   onStatusChange
 }: UseFormValidationOptions): UseFormValidationReturn {
   const [showErrorList, setShowErrorList] = useState(false);
-  const [validationPassed, setValidationPassed] = useState<boolean | null>(null);
-
   const formRef = useRef<any>(null);
 
-  const runValidation = useCallback(() => {
-    const result = validate();
+  const badgeState = deriveBadgeState(isEmpty, missingRequired, otherErrors);
 
-    if (result.errorCount === 0) {
+  // Auto-close the error list once everything passes so the user isn't
+  // stuck looking at an empty error list after fixing the last issue.
+  useEffect(() => {
+    if (badgeState === "passed" && showErrorList) {
       setShowErrorList(false);
-      setValidationPassed(true);
-      onStatusChange?.(true);
-    } else {
-      setValidationPassed(false);
-      onStatusChange?.(false);
-      setShowErrorList(true);
-
-      // Trigger RJSF validation to populate the error list and inline errors
-      formRef.current?.submit();
     }
-  }, [validate, onStatusChange]);
+  }, [badgeState, showErrorList]);
 
-  const resetValidation = useCallback(() => {
-    setValidationPassed(null);
-    setShowErrorList(false);
-    onStatusChange?.(null);
-  }, [onStatusChange]);
+  // Sync passing state to the app-level validation status (drives overview
+  // checkmarks). Anything other than "passed" resets to null.
+  useEffect(() => {
+    if (!onStatusChange) return;
+    onStatusChange(badgeState === "passed" ? true : null);
+  }, [badgeState, onStatusChange]);
+
+  const handleClick = useCallback(() => {
+    // No-op when there's nothing to show
+    if (badgeState === "empty" || badgeState === "passed") return;
+
+    setShowErrorList((prev) => {
+      const next = !prev;
+      // Trigger RJSF validation so inline field errors update to match
+      // the new filter state. validateForm() re-runs transformErrors with
+      // the new showErrorList value. Defer to next tick so the state
+      // update has propagated.
+      setTimeout(() => {
+        formRef.current?.validateForm?.();
+      }, 0);
+      return next;
+    });
+  }, [badgeState]);
 
   return {
+    badgeState,
+    missingRequired,
+    otherErrors,
     showErrorList,
-    validationPassed,
     formRef,
-    runValidation,
-    resetValidation
+    handleClick
   };
 }

@@ -46,7 +46,7 @@ import {
   cleanupConditionalFields,
   type ConditionalFieldPair
 } from "@/utils/conditionalFields";
-import { stripEmptyArrays } from "@/utils/formDataCleanup";
+import { stripEmptyArrays, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -149,8 +149,24 @@ export default function DatasetPage() {
     [state.activeDatasetId, setDatasetValidation]
   );
 
+  // AJV validation result, memoized on form data. Handles the polymorphic
+  // variable workaround internally via validateDataset().
+  const validationResult = useMemo(
+    () => validateDataset(formData, { hasExperiments }),
+    [formData, hasExperiments]
+  );
+  const missingRequired = useMemo(
+    () =>
+      validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult]
+  );
+  const otherErrors = validationResult.errors.length - missingRequired;
+  const isEmpty = useMemo(() => isFormEmpty(formData), [formData]);
+
   const validation = useFormValidation({
-    validate: () => validateDataset(formData, { hasExperiments }),
+    missingRequired,
+    otherErrors,
+    isEmpty,
     onStatusChange: onValidationStatusChange
   });
 
@@ -178,7 +194,12 @@ export default function DatasetPage() {
   //    validation due to polymorphism workaround — see oae-form-99i)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
-      let transformed = transformFormErrors(errors);
+      // Hide required-field errors from inline display unless the user has
+      // explicitly clicked the badge to reveal the full error list.
+      const preFiltered = validation.showErrorList
+        ? errors
+        : errors.filter((e) => e.name !== "required");
+      let transformed = transformFormErrors(preFiltered);
       if (!hasExperiments) {
         transformed = transformed.filter(
           (e) =>
@@ -206,7 +227,7 @@ export default function DatasetPage() {
 
       return transformed;
     };
-  }, [hasExperiments]);
+  }, [hasExperiments, validation.showErrorList]);
 
   useEffect(() => {
     setActiveTab("dataset");
@@ -215,7 +236,6 @@ export default function DatasetPage() {
   const handleFormChange = useCallback((e: any) => {
     if (!state.activeDatasetId || isInitialLoad) return;
 
-    validation.resetValidation();
     let newData = e.formData;
 
     // Check if dataset_type changed
@@ -265,8 +285,10 @@ export default function DatasetPage() {
             <Group align="center" gap="md">
               <Title order={2}>Dataset Metadata: {currentDataset.name}</Title>
               <ValidationButton
-                validationPassed={validation.validationPassed}
-                onClick={validation.runValidation}
+                badgeState={validation.badgeState}
+                missingRequired={validation.missingRequired}
+                otherErrors={validation.otherErrors}
+                onClick={validation.handleClick}
               />
             </Group>
             <Text c="dimmed">
@@ -285,6 +307,7 @@ export default function DatasetPage() {
             transformErrors={customTransformErrors}
             omitExtraData={false}
             liveOmit={false}
+            liveValidate="onBlur"
             noHtml5Validate
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
