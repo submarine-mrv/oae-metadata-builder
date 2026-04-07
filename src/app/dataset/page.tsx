@@ -307,7 +307,7 @@ export default function DatasetPage() {
             transformErrors={customTransformErrors}
             omitExtraData={false}
             liveOmit={false}
-            liveValidate="onBlur"
+            liveValidate
             noHtml5Validate
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },

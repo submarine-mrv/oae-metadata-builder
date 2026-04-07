@@ -195,7 +195,7 @@ export default function ProjectPage() {
             validator={validator}
             customValidate={customValidate}
             transformErrors={filteredTransformErrors}
-            liveValidate="onBlur"
+            liveValidate
             noHtml5Validate
             omitExtraData={false}
             liveOmit={false}
