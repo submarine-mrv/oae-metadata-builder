@@ -55,7 +55,7 @@ import {
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { stripEmptyArrays, isFormEmpty } from "@/utils/formDataCleanup";
+import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -218,7 +218,7 @@ export default function ExperimentPage() {
       // This prevents orphaned fields from rendering as "additional properties"
       newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
       newData = cleanupNestedConditionalFields(newData, MODEL_NESTED_CONDITIONAL_FIELDS);
-      newData = stripEmptyArrays(newData);
+      newData = cleanFormData(newData);
 
       setFormData(newData);
       if (activeExperimentId) {

@@ -23,7 +23,7 @@ export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
 
-import { stripEmptyArrays } from "@/utils/formDataCleanup";
+import { cleanFormData } from "@/utils/formDataCleanup";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -186,7 +186,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateProjectData = useCallback((data: ProjectFormData) => {
     setState((prev) => {
-      data = stripEmptyArrays(data);
+      data = cleanFormData(data);
       const newProjectId = data.project_id;
       const oldProjectId = prev.projectData.project_id;
 
@@ -255,7 +255,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           exp.id === id
             ? {
                 ...exp,
-                formData: stripEmptyArrays({ ...exp.formData, ...data }) as ExperimentFormData,
+                formData: cleanFormData({ ...exp.formData, ...data }) as ExperimentFormData,
                 experiment_types: data.experiment_types || exp.experiment_types,
                 name: data.name || exp.name,
                 updatedAt: Date.now()
@@ -403,7 +403,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           ds.id === id
             ? {
                 ...ds,
-                formData: stripEmptyArrays(data),
+                formData: cleanFormData(data),
                 name: (data.name as string) || ds.name,
                 updatedAt: Date.now()
               }

@@ -46,7 +46,7 @@ import {
   cleanupConditionalFields,
   type ConditionalFieldPair
 } from "@/utils/conditionalFields";
-import { stripEmptyArrays, isFormEmpty } from "@/utils/formDataCleanup";
+import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -253,7 +253,7 @@ export default function DatasetPage() {
     if (isModelOutputType(newData.dataset_type)) {
       newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
     }
-    newData = stripEmptyArrays(newData);
+    newData = cleanFormData(newData);
 
     // Update local state first (form sees cleaned data immediately),
     // then sync to context
