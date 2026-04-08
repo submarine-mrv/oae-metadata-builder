@@ -51,6 +51,7 @@ const modelUiSchema = {
     "start_datetime",
     "end_datetime",
     "spatial_coverage",
+    "experiment_leads",
     // Model-specific fields
     "model_components",
     "grid_details",
@@ -58,7 +59,6 @@ const modelUiSchema = {
     "time_stepping_scheme",
     "model_configuration",
     // Common tail
-    "experiment_leads",
     "public_comments",
     "*"
   ],

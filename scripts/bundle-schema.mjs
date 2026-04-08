@@ -317,6 +317,7 @@ for (const config of nvsDecorations) {
 // Inline enum $ref array items as oneOf with labels for multi-select rendering
 decorated = inlineEnumArrayItems(decorated, [
   { defName: "ModelOutputDataset", fieldPath: "properties.model_output_variables" },
+  { defName: "ModelOutputDataset", fieldPath: "properties.simulation_type" },
   // experiment_types is multivalued — inline on every experiment class so RJSF
   // can render labeled multi-select options (items.$ref → items.oneOf)
   { defName: "Experiment", fieldPath: "properties.experiment_types" },

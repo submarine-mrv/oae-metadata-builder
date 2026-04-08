@@ -40,6 +40,7 @@ const fieldExperimentUiSchema = {
     "end_datetime",
     "spatial_coverage",
     "vertical_coverage",
+    "experiment_leads",
     // Intervention fields (ignored when schema doesn't include them)
     "alkalinity_feedstock_processing",
     "alkalinity_feedstock_processing_custom",
@@ -63,7 +64,6 @@ const fieldExperimentUiSchema = {
     "dosing_description",
     "dosing_regimen",
     // Common tail
-    "experiment_leads",
     "public_comments",
     "permits",
     "meteorological_and_tidal_data",

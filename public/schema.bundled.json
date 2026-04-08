@@ -5114,11 +5114,25 @@
         "simulation_type": {
           "description": "The type(s) of model simulation (e.g., counterfactual, perturbation, or both).",
           "items": {
-            "$ref": "#/$defs/SimulationType"
+            "oneOf": [
+              {
+                "const": "counterfactual",
+                "title": "Counterfactual"
+              },
+              {
+                "const": "perturbation",
+                "title": "Perturbation"
+              },
+              {
+                "const": "other",
+                "title": "Other"
+              }
+            ]
           },
           "minItems": 1,
           "title": "Simulation Type",
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "start_datetime": {
           "description": "Start date and time of the simulation in UTC ISO-8601.",
