@@ -42,7 +42,12 @@ import {
   IconAdjustments,
   IconShieldCheck,
   IconFileDescription,
-  IconCalculator
+  IconCalculator,
+  IconDroplet,
+  IconTemperature,
+  IconGauge,
+  IconCloud,
+  IconWind
 } from "@tabler/icons-react";
 
 // Icon type from tabler icons
@@ -100,7 +105,8 @@ export const VARIABLE_SCHEMA_MAP = {
   },
   co2: {
     measured: {
-      discrete: "DiscreteCO2Variable"
+      discrete: "DiscreteCO2Variable",
+      continuous: "ContinuousCO2Variable"
     },
     calculated: "CalculatedVariable",
     placeholderOverrides: {
@@ -239,7 +245,12 @@ type SectionKey =
   | "calibration"
   | "calculation"
   | "qc"
-  | "additional";
+  | "additional"
+  | "equilibrator"
+  | "equilibrator_temp_sensor"
+  | "equilibrator_pressure_sensor"
+  | "atmospheric_pressure_sensor"
+  | "marine_air";
 
 type FieldEntry = string | FieldConfig;
 
@@ -422,6 +433,38 @@ const BASE: HierarchyLayer = {
         placeholderText: "Instrument accuracy"
       }
     ],
+    // Shared calibration fields from the base Calibration class, inherited by
+    // every measured variable's analyzing_instrument.calibration. Type-specific
+    // layers (PH, TA_DIC, CO2, etc.) insert additional calibration fields using
+    // `{ after: ... }` anchors relative to these. For variable types without an
+    // analyzing_instrument (CalculatedVariable, NonMeasuredVariable), these
+    // fields are filtered out at runtime by fieldExistsInSchema().
+    calibration: [
+      {
+        path: "analyzing_instrument.calibration.technique_description",
+        span: 6,
+        placeholderText: "Details of the calibration technique"
+      },
+      {
+        path: "analyzing_instrument.calibration.calibration_location",
+        span: 6
+      },
+      {
+        path: "analyzing_instrument.calibration.frequency",
+        span: 6,
+        placeholderText: "How often calibrated"
+      },
+      {
+        path: "analyzing_instrument.calibration.last_calibration_date",
+        span: 6,
+        placeholderText: "YYYY-MM-DD"
+      },
+      {
+        path: "analyzing_instrument.calibration.method_reference",
+        placeholderText: "Citation for calibration method"
+      },
+      "analyzing_instrument.calibration.calibration_certificates"
+    ],
     qc: [
       {
         path: "qc_steps_taken",
@@ -459,40 +502,6 @@ const BASE: HierarchyLayer = {
         inputType: "textarea",
         placeholderText: "Any additional information about this variable"
       }
-    ]
-  }
-};
-
-/** DiscreteMeasuredVariable — shared calibration fields (top + bottom) */
-const DISCRETE: HierarchyLayer = {
-  name: "DiscreteMeasuredVariable",
-  sections: {
-    calibration: [
-      {
-        path: "analyzing_instrument.calibration.technique_description",
-        span: 6,
-        placeholderText: "Details of the calibration technique"
-      },
-      {
-        path: "analyzing_instrument.calibration.calibration_location",
-        span: 6
-      },
-      // Bottom fields (frequency, last_calibration_date, etc.) follow type-specific inserts
-      {
-        path: "analyzing_instrument.calibration.frequency",
-        span: 6,
-        placeholderText: "How often calibrated"
-      },
-      {
-        path: "analyzing_instrument.calibration.last_calibration_date",
-        span: 6,
-        placeholderText: "YYYY-MM-DD"
-      },
-      {
-        path: "analyzing_instrument.calibration.method_reference",
-        placeholderText: "Citation for calibration method"
-      },
-      "analyzing_instrument.calibration.calibration_certificates"
     ]
   }
 };
@@ -739,6 +748,226 @@ const CO2: HierarchyLayer = {
   }
 };
 
+/** ContinuousCO2Variable — continuous-specific fields */
+const CO2_CONTINUOUS: HierarchyLayer = {
+  name: "ContinuousCO2Variable",
+  sections: {
+    sampling: [
+      {
+        path: "seawater_intake_location",
+        span: 6,
+        placeholderText: "Whereabouts of the seawater intake"
+      },
+      {
+        path: "seawater_intake_depth",
+        span: 6,
+        placeholderText: "Water depth of the seawater intake"
+      },
+      {
+        path: "drying_method",
+        placeholderText:
+          "Method used to dry gas from equilibrator before CO2 sensor"
+      }
+    ],
+    analysis: [
+      {
+        path: "pco2_reported_temperature",
+        span: 6,
+        placeholderText:
+          "e.g., in-situ temperature, temperature of analysis, etc."
+      },
+      {
+        path: "temperature_correction_method",
+        span: 6,
+        placeholderText: "How the temperature effect was corrected"
+      }
+    ],
+    instrument: [
+      {
+        path: "analyzing_instrument.measurement_frequency",
+        span: 6,
+        placeholderText: "e.g., every 140 seconds except during calibration"
+      }
+    ],
+    calibration: {
+      fields: [
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.number_of_nonzero_standards",
+          span: 6,
+          placeholderText: "Number of non-zero standards"
+        },
+        {
+          path: "analyzing_instrument.calibration.standard_gas_info.traceability_to_wmo_standards",
+          span: 6,
+          placeholderText: "Traceability to WMO standards"
+        }
+      ],
+      position: {
+        after:
+          "analyzing_instrument.calibration.standard_gas_info.uncertainty"
+      }
+    },
+    equilibrator: [
+      { path: "equilibrator.equilibrator_type", span: 6 },
+      {
+        path: "equilibrator.volume",
+        span: 6,
+        placeholderText: "Total volume in liters"
+      },
+      {
+        path: "equilibrator.vented",
+        span: 6,
+        inputType: "boolean_select"
+      },
+      {
+        path: "equilibrator.water_flow_rate",
+        span: 6,
+        placeholderText: "Flow rate in L/min"
+      },
+      {
+        path: "equilibrator.headspace_gas_flow_rate",
+        span: 6,
+        placeholderText: "Flow rate in L/min"
+      }
+    ],
+    equilibrator_temp_sensor: [
+      {
+        path: "equilibrator_temperature_sensor.location",
+        placeholderText:
+          "e.g., Inserted into equilibrator ~5 cm below water level"
+      },
+      {
+        path: "equilibrator_temperature_sensor.manufacturer",
+        span: 6,
+        placeholderText: "e.g., Hart"
+      },
+      {
+        path: "equilibrator_temperature_sensor.model",
+        span: 6,
+        placeholderText: "e.g., 1523"
+      },
+      {
+        path: "equilibrator_temperature_sensor.serial_number",
+        span: 6
+      },
+      {
+        path: "equilibrator_temperature_sensor.accuracy",
+        span: 6,
+        placeholderText: "In degrees Celsius"
+      },
+      {
+        path: "equilibrator_temperature_sensor.precision",
+        span: 6,
+        placeholderText: "In degrees Celsius"
+      },
+      {
+        path: "equilibrator_temperature_sensor.calibration",
+        placeholderText: "e.g., Factory calibration"
+      },
+      {
+        path: "equilibrator_temperature_sensor.comments",
+        inputType: "textarea",
+        placeholderText: "e.g., Resolution is taken as Precision"
+      }
+    ],
+    equilibrator_pressure_sensor: [
+      {
+        path: "equilibrator_pressure_sensor.location",
+        placeholderText: "e.g., Attached to equilibrator headspace"
+      },
+      {
+        path: "equilibrator_pressure_sensor.manufacturer",
+        span: 6,
+        placeholderText: "e.g., Setra"
+      },
+      {
+        path: "equilibrator_pressure_sensor.model",
+        span: 6,
+        placeholderText: "e.g., 270"
+      },
+      { path: "equilibrator_pressure_sensor.serial_number", span: 6 },
+      {
+        path: "equilibrator_pressure_sensor.accuracy",
+        span: 6,
+        placeholderText: "In hPa"
+      },
+      {
+        path: "equilibrator_pressure_sensor.precision",
+        span: 6,
+        placeholderText: "In hPa"
+      },
+      {
+        path: "equilibrator_pressure_sensor.calibration",
+        placeholderText: "e.g., Factory calibration"
+      },
+      {
+        path: "equilibrator_pressure_sensor.comments",
+        inputType: "textarea",
+        placeholderText:
+          "e.g., Manufacturer's resolution is taken as Precision"
+      }
+    ],
+    atmospheric_pressure_sensor: [
+      {
+        path: "atmospheric_pressure_sensor.location",
+        placeholderText:
+          "e.g., At the base of the radar mast, 48 m above sea level"
+      },
+      {
+        path: "atmospheric_pressure_sensor.manufacturer",
+        span: 6,
+        placeholderText: "e.g., RM Young"
+      },
+      {
+        path: "atmospheric_pressure_sensor.model",
+        span: 6,
+        placeholderText: "e.g., 61202V"
+      },
+      { path: "atmospheric_pressure_sensor.serial_number", span: 6 },
+      {
+        path: "atmospheric_pressure_sensor.accuracy",
+        span: 6,
+        placeholderText: "In hPa"
+      },
+      {
+        path: "atmospheric_pressure_sensor.precision",
+        span: 6,
+        placeholderText: "In hPa"
+      },
+      {
+        path: "atmospheric_pressure_sensor.calibration",
+        placeholderText: "e.g., Factory calibration"
+      },
+      {
+        path: "atmospheric_pressure_sensor.comments",
+        inputType: "textarea",
+        placeholderText:
+          "e.g., Manufacturer's resolution is taken as Precision"
+      }
+    ],
+    marine_air: [
+      {
+        path: "marine_air_measurement.measured",
+        span: 6,
+        inputType: "boolean_select"
+      },
+      {
+        path: "marine_air_measurement.measurement_interval",
+        span: 6,
+        placeholderText: "e.g., 5 readings in a group every 5 hours"
+      },
+      {
+        path: "marine_air_measurement.location_and_height",
+        placeholderText: "Location and height of the marine air intake"
+      },
+      {
+        path: "marine_air_measurement.drying_method",
+        placeholderText: "Method used to dry the gas stream"
+      }
+    ]
+  }
+};
+
 /** HPLCVariable */
 const HPLC: HierarchyLayer = {
   name: "HPLCVariable",
@@ -765,24 +994,29 @@ const HPLC: HierarchyLayer = {
  * Uses Record<string, ...> rather than a strict union type for maintainability;
  * the VARIABLE_TYPE_LAYERS test validates every VARIABLE_SCHEMA_MAP key is present.
  *
- * Continuous types omit the DISCRETE layer, so type-specific layers with
- * `{ after }` calibration anchors will fall back to append. This is fine because
- * fieldExistsInSchema() in VariableModal.tsx filters fields at runtime.
+ * The BASE layer includes the shared `analyzing_instrument.*` and calibration
+ * fields inherited from the protocol's AnalyzingInstrument/Calibration base
+ * classes. For variable types without an analyzing_instrument (CalculatedVariable,
+ * NonMeasuredVariable) those fields are filtered out at runtime by
+ * fieldExistsInSchema() in VariableModal.tsx. Type-specific layers (PH, TA_DIC,
+ * CO2, etc.) insert additional calibration fields using `{ after }` anchors
+ * relative to BASE's shared calibration fields.
  */
 export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   // Discrete
-  DiscretePHVariable: [BASE, DISCRETE, PH],
-  DiscreteTAVariable: [BASE, DISCRETE, TA_DIC],
-  DiscreteDICVariable: [BASE, DISCRETE, TA_DIC],
-  DiscreteSedimentVariable: [BASE, DISCRETE, SEDIMENT],
-  DiscreteCO2Variable: [BASE, DISCRETE, CO2],
-  HPLCVariable: [BASE, DISCRETE, HPLC],
-  DiscreteMeasuredVariable: [BASE, DISCRETE],
+  DiscretePHVariable: [BASE, PH],
+  DiscreteTAVariable: [BASE, TA_DIC],
+  DiscreteDICVariable: [BASE, TA_DIC],
+  DiscreteSedimentVariable: [BASE, SEDIMENT],
+  DiscreteCO2Variable: [BASE, CO2],
+  HPLCVariable: [BASE, HPLC],
+  DiscreteMeasuredVariable: [BASE],
   // Continuous
   ContinuousPHVariable: [BASE, CONTINUOUS, PH],
   ContinuousTAVariable: [BASE, CONTINUOUS, TA_DIC],
   ContinuousDICVariable: [BASE, CONTINUOUS, TA_DIC],
   ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
+  ContinuousCO2Variable: [BASE, CONTINUOUS, CO2, CO2_CONTINUOUS],
   ContinuousMeasuredVariable: [BASE, CONTINUOUS],
   // Other
   CalculatedVariable: [BASE, CALCULATED],
@@ -805,6 +1039,23 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   { key: "analysis", label: "Analysis", icon: IconMicroscope },
   { key: "instrument", label: "Analyzing Instrument", icon: IconTool },
   { key: "calibration", label: "Calibration", icon: IconAdjustments },
+  { key: "equilibrator", label: "Equilibrator", icon: IconDroplet },
+  {
+    key: "equilibrator_temp_sensor",
+    label: "Equil. Temperature Sensor",
+    icon: IconTemperature
+  },
+  {
+    key: "equilibrator_pressure_sensor",
+    label: "Equil. Pressure Sensor",
+    icon: IconGauge
+  },
+  {
+    key: "atmospheric_pressure_sensor",
+    label: "Atmospheric Pressure Sensor",
+    icon: IconCloud
+  },
+  { key: "marine_air", label: "CO₂ in Marine Air", icon: IconWind },
   { key: "calculation", label: "Calculation Details", icon: IconCalculator },
   { key: "qc", label: "Quality Control", icon: IconShieldCheck },
   {
