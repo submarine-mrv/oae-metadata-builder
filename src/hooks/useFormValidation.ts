@@ -100,15 +100,16 @@ export function useFormValidation({
 
   // After `showErrorList` changes, trigger RJSF re-validation so the
   // transformErrors callback re-runs with the new filter and inline
-  // errors update to match. Skip the initial mount — we only want to
-  // fire this on actual transitions. Guarded by `mounted` so a
-  // late-scheduled call cannot fire after unmount.
-  const isFirstRun = useRef(true);
+  // errors update to match. We track the previous value explicitly
+  // (rather than using a "first run" flag) so React Strict Mode's
+  // double-mount doesn't cause an unintended initial validation pass.
+  // Guarded by `mounted` so a late-scheduled call cannot fire after
+  // unmount.
+  const prevShowErrorList = useRef(showErrorList);
   useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      return;
-    }
+    if (prevShowErrorList.current === showErrorList) return;
+    prevShowErrorList.current = showErrorList;
+
     let mounted = true;
     // Defer one microtask so the render with the new showErrorList
     // has committed before we ask RJSF to revalidate.

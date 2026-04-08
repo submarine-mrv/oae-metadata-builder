@@ -98,7 +98,7 @@ const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
 ];
 
 export default function ExperimentPage() {
-  const { state, updateExperiment, setActiveTab, setExperimentValidation } =
+  const { state, replaceExperimentFormData, setActiveTab, setExperimentValidation } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
@@ -227,10 +227,13 @@ export default function ExperimentPage() {
 
       setFormData(newData);
       if (activeExperimentId) {
-        updateExperiment(activeExperimentId, newData);
+        // Full replacement (not merge) so cleared fields actually take
+        // effect — updateExperiment merges into existing formData which
+        // would silently re-introduce removed keys.
+        replaceExperimentFormData(activeExperimentId, newData);
       }
     },
-    [isInitialLoad, formData, activeExperimentId, updateExperiment]
+    [isInitialLoad, formData, activeExperimentId, replaceExperimentFormData]
   );
 
   if (!experiment) {
