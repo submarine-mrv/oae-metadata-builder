@@ -144,7 +144,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
           touched && dateTime && !validateDateTime(dateTime)
             ? `Invalid datetime format (use ${DATETIME_FORMAT})`
             : rawErrors && rawErrors.length > 0
-              ? "Required"
+              ? rawErrors[0]
               : undefined
         }
         rightSection={

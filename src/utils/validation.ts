@@ -13,6 +13,10 @@ import {
 } from "./schemaViews";
 import { validateDatasetWithVariables } from "./datasetValidation";
 import { getExperimentSchemaType } from "./experimentFields";
+import {
+  experimentCustomValidate,
+  projectCustomValidate
+} from "./customValidators";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -34,7 +38,13 @@ export interface ValidationResult {
 export function validateProject(projectData: ProjectFormData): ValidationResult {
   try {
     const schema = getProjectSchema();
-    const result = validator.validateFormData(projectData, schema);
+    // Pass the same customValidate the form uses so badge counts include
+    // cross-field rules (vertical coverage, temporal ordering).
+    const result = validator.validateFormData(
+      projectData,
+      schema,
+      projectCustomValidate
+    );
 
     return {
       isValid: result.errors.length === 0,
@@ -74,7 +84,13 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
       schema = getInSituExperimentSchema();
     }
 
-    const result = validator.validateFormData(experimentData, schema);
+    // Pass the same customValidate the form uses so badge counts include
+    // cross-field rules (vertical coverage).
+    const result = validator.validateFormData(
+      experimentData,
+      schema,
+      experimentCustomValidate
+    );
 
     return {
       isValid: result.errors.length === 0,

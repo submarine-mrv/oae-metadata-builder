@@ -171,6 +171,12 @@ export default function DatasetPage() {
     onStatusChange: onValidationStatusChange
   });
 
+  // Reset error-list visibility when switching active dataset so the
+  // new one doesn't inherit the previous one's open/closed state.
+  useEffect(() => {
+    validation.closeErrorList();
+  }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Ref for formData so transformErrors can access latest data without
   // being recreated on every keystroke
   const formDataRef = useRef(formData);

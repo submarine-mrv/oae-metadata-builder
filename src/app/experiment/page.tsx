@@ -56,6 +56,7 @@ import {
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
+import { experimentCustomValidate } from "@/utils/customValidators";
 import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -158,6 +159,9 @@ export default function ExperimentPage() {
   useEffect(() => {
     // Reset initial load flag when switching experiments
     setIsInitialLoad(true);
+    // Reset error-list visibility so the new entity doesn't inherit
+    // the previous one's open/closed state.
+    validation.closeErrorList();
 
     if (experiment) {
       // Use experiment's formData directly - project_id is managed by linking system
@@ -229,45 +233,6 @@ export default function ExperimentPage() {
     [isInitialLoad, formData, activeExperimentId, updateExperiment]
   );
 
-  const customValidate = (data: any, errors: any) => {
-    // Validate vertical coverage depths
-    const vc = data?.vertical_coverage;
-    if (vc) {
-      const minDepth = vc.min_depth_in_m;
-      const maxDepth = vc.max_depth_in_m;
-
-      if (typeof maxDepth === "number" && maxDepth > 0) {
-        errors?.vertical_coverage?.max_depth_in_m?.addError(
-          "Maximum depth must be 0 or negative (below sea surface)."
-        );
-      }
-
-      if (
-        typeof minDepth === "number" &&
-        typeof maxDepth === "number" &&
-        minDepth < maxDepth
-      ) {
-        errors?.vertical_coverage?.min_depth_in_m?.addError(
-          "Minimum depth must be greater than or equal to maximum depth."
-        );
-      }
-
-      const minHeight = vc.min_height_in_m;
-      const maxHeight = vc.max_height_in_m;
-      if (
-        typeof minHeight === "number" &&
-        typeof maxHeight === "number" &&
-        minHeight > maxHeight
-      ) {
-        errors?.vertical_coverage?.min_height_in_m?.addError(
-          "Minimum height must be less than or equal to maximum height."
-        );
-      }
-    }
-
-    return errors;
-  };
-
   if (!experiment) {
     return (
       <EmptyEntityPage
@@ -310,7 +275,7 @@ export default function ExperimentPage() {
             formData={formData}
             onChange={handleFormChange}
             validator={validator}
-            customValidate={customValidate}
+            customValidate={experimentCustomValidate}
             transformErrors={filteredTransformErrors}
             liveValidate
             noHtml5Validate

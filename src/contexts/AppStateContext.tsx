@@ -164,7 +164,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const createProject = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      hasProject: true
+      hasProject: true,
+      // New project starts unvalidated.
+      validationStatus: { ...prev.validationStatus, project: null }
     }));
   }, []);
 
@@ -179,7 +181,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         hasProject: false,
         projectData: {},
         experiments: newExperiments,
-        datasets: newDatasets
+        datasets: newDatasets,
+        // Project is gone — clear its validation status. Linked entities
+        // had their project_id stripped above, which makes them invalid,
+        // so clear their validation status too.
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       };
     });
   }, []);
@@ -256,7 +262,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             ? {
                 ...exp,
                 formData: cleanFormData({ ...exp.formData, ...data }) as ExperimentFormData,
-                experiment_types: data.experiment_types || exp.experiment_types,
+                // Use key-presence semantics: cleanFormData strips empty
+                // arrays so `data.experiment_types` may be undefined when
+                // the user explicitly cleared all types. Falling back via
+                // `||` would silently retain the old value.
+                experiment_types:
+                  "experiment_types" in data
+                    ? data.experiment_types
+                    : exp.experiment_types,
                 name: data.name || exp.name,
                 updatedAt: Date.now()
               }
@@ -677,7 +690,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           datasets: newDatasets,
           nextExperimentId: nextExpId,
           nextDatasetId: nextDsId,
-          activeTab: "overview" as const
+          activeTab: "overview" as const,
+          // Imported entities are unvalidated. We reset all of validation
+          // status because import can replace project data and add/replace
+          // experiments and datasets — any previously-green checkmark
+          // could now be inaccurate.
+          validationStatus: { project: null, experiments: {}, datasets: {} }
         };
       });
     },
@@ -750,7 +768,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         experiments: saved.experiments,
         datasets: saved.datasets,
         nextExperimentId: saved.nextExperimentId,
-        nextDatasetId: saved.nextDatasetId
+        nextDatasetId: saved.nextDatasetId,
+        // Restored sessions don't carry validation status — start fresh
+        // so the user can re-validate after seeing the loaded data.
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       }));
     },
     []

@@ -37,6 +37,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateProject } from "@/utils/validation";
+import { projectCustomValidate } from "@/utils/customValidators";
 import { isFormEmpty } from "@/utils/formDataCleanup";
 import { useFormValidation } from "@/hooks/useFormValidation";
 
@@ -103,61 +104,6 @@ export default function ProjectPage() {
     );
   }
 
-  const customValidate = (data: any, errors: any) => {
-    // Schema already marks temporal_coverage as required — AJV produces
-    // the "required" error on its own. We only add the cross-field
-    // end ≥ start check which isn't expressible in JSON Schema.
-    // TODO: consider an AJV custom keyword for this; `new Date()` is brittle.
-    const t = data?.temporal_coverage as string | undefined;
-    if (t) {
-      const [start, end] = t.split("/");
-      if (start && end && end !== "..") {
-        const s = +new Date(start),
-          e = +new Date(end);
-        if (Number.isFinite(s) && Number.isFinite(e) && e < s) {
-          errors?.temporal_coverage?.addError("End date must be ≥ start date.");
-        }
-      }
-    }
-
-    // Validate vertical coverage depths
-    const vc = data?.vertical_coverage;
-    if (vc) {
-      const minDepth = vc.min_depth_in_m;
-      const maxDepth = vc.max_depth_in_m;
-
-      if (typeof maxDepth === "number" && maxDepth > 0) {
-        errors?.vertical_coverage?.max_depth_in_m?.addError(
-          "Maximum depth must be 0 or negative (below sea surface)."
-        );
-      }
-
-      if (
-        typeof minDepth === "number" &&
-        typeof maxDepth === "number" &&
-        minDepth < maxDepth
-      ) {
-        errors?.vertical_coverage?.min_depth_in_m?.addError(
-          "Minimum depth must be greater than or equal to maximum depth."
-        );
-      }
-
-      const minHeight = vc.min_height_in_m;
-      const maxHeight = vc.max_height_in_m;
-      if (
-        typeof minHeight === "number" &&
-        typeof maxHeight === "number" &&
-        minHeight > maxHeight
-      ) {
-        errors?.vertical_coverage?.min_height_in_m?.addError(
-          "Minimum height must be less than or equal to maximum height."
-        );
-      }
-    }
-
-    return errors;
-  };
-
   return (
     <AppLayout noScroll>
       <div
@@ -194,7 +140,7 @@ export default function ProjectPage() {
               updateProjectData(e.formData);
             }}
             validator={validator}
-            customValidate={customValidate}
+            customValidate={projectCustomValidate}
             transformErrors={filteredTransformErrors}
             liveValidate
             noHtml5Validate
