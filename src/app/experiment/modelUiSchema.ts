@@ -54,7 +54,8 @@ const modelUiSchema = {
     // Model-specific fields
     "model_components",
     "grid_details",
-    "input_details",
+    "spin_up_protocol",
+    "time_stepping_scheme",
     "model_configuration",
     // Common tail
     "experiment_leads",
@@ -139,7 +140,8 @@ const modelUiSchema = {
         "region",
         "horizontal_resolution_range",
         "vertical_resolution_range",
-        "spatial_coverage"
+        "spatial_coverage",
+        "input_details"
       ],
       grid_name: {
         "ui:span": 6,
@@ -192,32 +194,38 @@ const modelUiSchema = {
         "ui:span": 12,
         "ui:field": "SpatialCoverageMiniMap",
         "ui:title": "Grid Spatial Coverage"
+      },
+      input_details: {
+        "ui:span": 12,
+        "ui:style": nestedItemStyle,
+        "ui:order": [
+          "initial_conditions",
+          "boundary_conditions",
+          "atmospheric_forcing",
+          "tidal_forcing",
+          "bathymetry",
+          "river_sediment_flux_details",
+          "processing_of_input_data",
+          "processing_code"
+        ],
+        initial_conditions: namedLinkArray("Add Initial Condition Source"),
+        boundary_conditions: namedLinkArray("Add Boundary Condition Source"),
+        atmospheric_forcing: namedLinkArray("Add Atmospheric Forcing Source"),
+        tidal_forcing: namedLinkArray("Add Tidal Forcing Source"),
+        bathymetry: namedLinkArray("Add Bathymetry Source"),
+        river_sediment_flux_details: namedLinkArray(
+          "Add River/Sediment Flux Source"
+        ),
+        processing_code: namedLinkArray("Add Processing Code"),
+        processing_of_input_data: textAreaWidget
       }
     }
   },
 
-  input_details: {
-    "ui:style": nestedItemStyle,
-    "ui:order": [
-      "initial_conditions",
-      "boundary_conditions",
-      "atmospheric_forcing",
-      "tidal_forcing",
-      "bathymetry",
-      "river_sediment_flux_details",
-      "processing_of_input_data",
-      "processing_code"
-    ],
-    initial_conditions: namedLinkArray("Add Initial Condition Source"),
-    boundary_conditions: namedLinkArray("Add Boundary Condition Source"),
-    atmospheric_forcing: namedLinkArray("Add Atmospheric Forcing Source"),
-    tidal_forcing: namedLinkArray("Add Tidal Forcing Source"),
-    bathymetry: namedLinkArray("Add Bathymetry Source"),
-    river_sediment_flux_details: namedLinkArray(
-      "Add River/Sediment Flux Source"
-    ),
-    processing_code: namedLinkArray("Add Processing Code"),
-    processing_of_input_data: textAreaWidget
+  spin_up_protocol: textAreaWidget,
+  time_stepping_scheme: {
+    ...halfWidthStyle,
+    "ui:placeholder": "e.g., leapfrog, Runge-Kutta"
   },
 
   model_configuration: {

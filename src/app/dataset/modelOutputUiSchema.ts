@@ -27,8 +27,6 @@ const modelOutputUiSchema = {
     "end_datetime",
     "model_output_variables",
     "output_frequency",
-    "time_stepping_scheme",
-    "spin_up_protocol",
     "hardware_configuration",
     "filenames",
     "data_submitter",
@@ -91,11 +89,6 @@ const modelOutputUiSchema = {
     ...halfWidthStyle,
     "ui:placeholder": "e.g., daily, monthly, hourly"
   },
-  time_stepping_scheme: {
-    ...halfWidthStyle,
-    "ui:placeholder": "e.g., leapfrog, Runge-Kutta"
-  },
-  spin_up_protocol: textAreaWidget,
   hardware_configuration: {
     "ui:style": nestedItemStyle,
     "ui:order": [

@@ -4654,11 +4654,6 @@
             "null"
           ]
         },
-        "input_details": {
-          "$ref": "#/$defs/ModelInputDetails",
-          "description": "Details about input data sources used to drive the model.",
-          "title": "Input Details"
-        },
         "model_components": {
           "description": "Components of the model (e.g., physics, biogeochemistry).",
           "items": {
@@ -4701,10 +4696,20 @@
           "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
           "title": "Spatial Coverage"
         },
+        "spin_up_protocol": {
+          "description": "Description of the model spin-up process.",
+          "title": "Spin-up Protocol",
+          "type": "string"
+        },
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
           "title": "Start Date and Time (UTC)",
+          "type": "string"
+        },
+        "time_stepping_scheme": {
+          "description": "Time-stepping method and time step used in the simulation.",
+          "title": "Time-stepping Scheme",
           "type": "string"
         }
       },
@@ -4829,6 +4834,11 @@
           "description": "Description of horizontal resolution (e.g., '3.3 km', '1/12 degree').",
           "title": "Horizontal Resolution Range",
           "type": "string"
+        },
+        "input_details": {
+          "$ref": "#/$defs/ModelInputDetails",
+          "description": "Details about input data sources used to drive the model on this grid.",
+          "title": "Input Details"
         },
         "n_nodes": {
           "description": "Number of nodes in the grid (for unstructured grids).",
@@ -4972,9 +4982,7 @@
       "description": "A model simulation output dataset. Contains fields specific to computational model output including simulation configuration, output variables, and hardware information.",
       "if": {
         "properties": {
-          "simulation_type": {
-            "const": "perturbation"
-          }
+          "simulation_type": {}
         },
         "required": [
           "simulation_type"
@@ -5104,24 +5112,18 @@
           "type": "string"
         },
         "simulation_type": {
-          "$ref": "#/$defs/SimulationType",
-          "description": "Whether this is a counterfactual (control/baseline) or perturbation simulation.",
-          "title": "Simulation Type"
-        },
-        "spin_up_protocol": {
-          "description": "Description of the model spin-up process.",
-          "title": "Spin-up Protocol",
-          "type": "string"
+          "description": "The type(s) of model simulation (e.g., counterfactual, perturbation, or both).",
+          "items": {
+            "$ref": "#/$defs/SimulationType"
+          },
+          "minItems": 1,
+          "title": "Simulation Type",
+          "type": "array"
         },
         "start_datetime": {
           "description": "Start date and time of the simulation in UTC ISO-8601.",
           "format": "date-time",
           "title": "Start Date and Time",
-          "type": "string"
-        },
-        "time_stepping_scheme": {
-          "description": "Time-stepping method and time step used in the simulation.",
-          "title": "Time-stepping Scheme",
           "type": "string"
         }
       },
@@ -6634,7 +6636,8 @@
       "description": "Type of model simulation dataset",
       "enum": [
         "counterfactual",
-        "perturbation"
+        "perturbation",
+        "other"
       ],
       "title": "SimulationType",
       "type": "string"
@@ -7081,5 +7084,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "499819d0bf2c78172895b2bc5d6d28477a26e0b2"
+  "x-protocol-git-hash": "fbd6a6f2afa95a399cfd43efb9e63a682123cbfe"
 }

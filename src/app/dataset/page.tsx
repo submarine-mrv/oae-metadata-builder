@@ -59,11 +59,14 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 // Conditional field pairs for model output dataset forms
+// simulation_type is now multivalued — mcdr_forcing_description should appear
+// when "perturbation" is one of the selected values
 const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
   {
     triggerField: "simulation_type",
     triggerValue: "perturbation",
-    customField: "mcdr_forcing_description"
+    customField: "mcdr_forcing_description",
+    matchMode: "array-contains"
   }
 ];
 

@@ -64,9 +64,10 @@ const TRACER_FIELDS = [
 // Model-specific fields
 const MODEL_FIELDS = [
   "grid_details",
-  "input_details",
   "model_components",
-  "model_configuration"
+  "model_configuration",
+  "spin_up_protocol",
+  "time_stepping_scheme"
 ];
 
 /**
