@@ -24,6 +24,7 @@ const VARIABLE_COMBOS = [
   { variableType: "pH", expectedPill: "pH", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousPHVariable" },
   { variableType: "Total Alkalinity (TA)", expectedPill: "Total Alkalinity", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousTAVariable" },
   { variableType: "Dissolved Inorganic Carbon (DIC)", expectedPill: "DIC", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousDICVariable" },
+  { variableType: "xCO₂/pCO₂/fCO₂", expectedPill: "CO₂", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousCO2Variable" },
   { variableType: "Sediment", expectedPill: "Sediment", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousSedimentVariable" },
   // Specific types — calculated (no sampling)
   { variableType: "pH", expectedPill: "pH", genesis: "calculated", sampling: null, expectedClass: "CalculatedVariable" },
