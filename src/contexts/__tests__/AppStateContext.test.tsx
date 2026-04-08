@@ -1321,4 +1321,125 @@ describe('AppStateContext', () => {
       expect(dataset?.formData.experiment_id).toBe('EXP-UNMATCHED');
     });
   });
+
+  describe('validationStatus invalidation on ID propagation', () => {
+    it('clears linked experiments and datasets validation when project_id changes', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Set up: create project, experiment, and dataset; mark all valid
+      act(() => {
+        result.current.createProject();
+        result.current.updateProjectData({ project_id: 'P1' });
+      });
+      let expId!: number;
+      let dsId!: number;
+      act(() => {
+        expId = result.current.addExperiment('E1');
+        dsId = result.current.addDataset('D1');
+      });
+      act(() => {
+        result.current.setProjectValidation(true);
+        result.current.setExperimentValidation(expId, true);
+        result.current.setDatasetValidation(dsId, true);
+      });
+
+      // Sanity: all three are currently "passed"
+      expect(result.current.state.validationStatus.project).toBe(true);
+      expect(result.current.state.validationStatus.experiments[expId]).toBe(true);
+      expect(result.current.state.validationStatus.datasets[dsId]).toBe(true);
+
+      // Change project_id — this triggers propagation to the linked
+      // experiment and dataset, so their validation is now stale.
+      act(() => {
+        result.current.updateProjectData({ project_id: 'P2' });
+      });
+
+      // Experiment and dataset validation should be cleared.
+      // (Project validation is left alone — the hook on the page owns it.)
+      expect(result.current.state.validationStatus.experiments).toEqual({});
+      expect(result.current.state.validationStatus.datasets).toEqual({});
+    });
+
+    it('clears linked datasets validation when experiment_id changes', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      act(() => {
+        result.current.createProject();
+        result.current.addExperiment('E1');
+        result.current.addDataset('D1');
+      });
+      // Read IDs from state rather than from the return values — the
+      // addExperiment/addDataset returns work in isolation but when
+      // multiple state updates are batched inside a single act the ref
+      // capture pattern has returned 0 in practice.
+      const expId = result.current.state.experiments[0].id;
+      const dsId = result.current.state.datasets[0].id;
+
+      // Link the dataset to the experiment, then give the experiment an
+      // initial experiment_id so propagation runs against something
+      // concrete.
+      act(() => {
+        result.current.updateDatasetLinking(dsId, {
+          linkedExperimentInternalId: expId
+        });
+      });
+      act(() => {
+        result.current.updateExperiment(expId, { experiment_id: 'EXP-A' });
+      });
+      act(() => {
+        result.current.setDatasetValidation(dsId, true);
+      });
+      expect(result.current.state.validationStatus.datasets[dsId]).toBe(true);
+
+      // Changing the experiment_id propagates to the linked dataset,
+      // which should null the dataset's validation.
+      act(() => {
+        result.current.updateExperiment(expId, { experiment_id: 'EXP-B' });
+      });
+      expect(result.current.state.validationStatus.datasets[dsId]).toBeNull();
+    });
+
+    it('does NOT clear datasets that are not linked to the changed experiment', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      act(() => {
+        result.current.createProject();
+        result.current.addExperiment('EA');
+        result.current.addDataset('DA');
+        result.current.addDataset('Dother');
+      });
+      // Read IDs from state rather than return values — see note above.
+      const expAId = result.current.state.experiments[0].id;
+      const dsAId = result.current.state.datasets[0].id;
+      const dsOtherId = result.current.state.datasets[1].id;
+
+      act(() => {
+        result.current.updateDatasetLinking(dsAId, {
+          linkedExperimentInternalId: expAId
+        });
+      });
+      act(() => {
+        // dsOtherId intentionally not linked
+        result.current.updateExperiment(expAId, { experiment_id: 'EXP-A' });
+      });
+      act(() => {
+        result.current.setDatasetValidation(dsAId, true);
+        result.current.setDatasetValidation(dsOtherId, true);
+      });
+
+      act(() => {
+        result.current.updateExperiment(expAId, { experiment_id: 'EXP-A-NEW' });
+      });
+
+      expect(result.current.state.validationStatus.datasets[dsAId]).toBeNull();
+      // Unrelated dataset is still valid
+      expect(result.current.state.validationStatus.datasets[dsOtherId]).toBe(true);
+    });
+  });
 });
