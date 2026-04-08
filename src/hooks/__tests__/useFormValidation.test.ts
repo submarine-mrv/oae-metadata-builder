@@ -40,6 +40,20 @@ describe("useFormValidation", () => {
       expect(result.current.badgeState).toBe("empty");
     });
 
+    it("does NOT return 'empty' when there are non-required errors", () => {
+      // Regression test for roborev job 173: an empty form with
+      // non-required errors should still be clickable, otherwise the
+      // user has no way to open the error list.
+      const { result } = renderHook(() =>
+        useFormValidation({
+          missingRequired: 3,
+          otherErrors: 1,
+          isEmpty: true
+        })
+      );
+      expect(result.current.badgeState).toBe("missing-and-errors");
+    });
+
     it("returns 'missing-only' when only required errors and not empty", () => {
       const { result } = renderHook(() =>
         useFormValidation({

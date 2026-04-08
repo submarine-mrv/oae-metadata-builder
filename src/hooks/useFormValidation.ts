@@ -39,7 +39,11 @@ function deriveBadgeState(
   otherErrors: number
 ): BadgeState {
   if (missingRequired === 0 && otherErrors === 0) return "passed";
-  if (isEmpty) return "empty";
+  // "empty" only applies when the only thing wrong is unfilled required
+  // fields. If there are non-required errors too (format, cross-field,
+  // etc.) the badge must stay clickable so the user can open the error
+  // list — the "empty" state renders as non-clickable.
+  if (isEmpty && otherErrors === 0) return "empty";
   if (missingRequired > 0 && otherErrors > 0) return "missing-and-errors";
   if (missingRequired > 0) return "missing-only";
   return "errors-only";
