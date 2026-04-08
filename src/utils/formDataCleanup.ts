@@ -10,15 +10,20 @@
  * initial blank state).
  */
 export function cleanFormData<T extends Record<string, unknown>>(data: T): T {
-  return (cleanRecursive(data) ?? {}) as T;
+  // The top-level form data object is always returned — even if empty —
+  // so the caller always gets a usable object reference. Nested objects
+  // that become empty after cleanup are dropped (return undefined) so
+  // their parent key gets stripped entirely, matching the "not present"
+  // semantics that AJV's `required` check relies on.
+  return (cleanRecursive(data, /* isRoot */ true) ?? {}) as T;
 }
 
-function cleanRecursive(value: unknown): unknown {
+function cleanRecursive(value: unknown, isRoot = false): unknown {
   if (value === null || value === undefined) return undefined;
 
   if (Array.isArray(value)) {
     const cleanedItems = value
-      .map(cleanRecursive)
+      .map((item) => cleanRecursive(item))
       .filter((item) => item !== undefined);
     return cleanedItems.length === 0 ? undefined : cleanedItems;
   }
@@ -30,6 +35,11 @@ function cleanRecursive(value: unknown): unknown {
       if (cleanedValue !== undefined) {
         cleaned[key] = cleanedValue;
       }
+    }
+    // Drop fully-cleared nested objects so their key is stripped from
+    // the parent. Root-level form data is always kept, even if empty.
+    if (!isRoot && Object.keys(cleaned).length === 0) {
+      return undefined;
     }
     return cleaned;
   }

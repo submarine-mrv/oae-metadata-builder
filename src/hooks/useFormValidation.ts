@@ -88,21 +88,37 @@ export function useFormValidation({
     if (showErrorList) return;
 
     setShowErrorList(true);
-    // Trigger RJSF validation so inline field errors populate. The
-    // transformErrors closure re-runs with the new showErrorList value.
-    setTimeout(() => {
-      formRef.current?.validateForm?.();
-    }, 0);
+    // The effect below re-runs validateForm after the state update,
+    // which re-runs transformErrors with the new showErrorList value.
   }, [badgeState, showErrorList]);
 
   const closeErrorList = useCallback(() => {
     setShowErrorList(false);
-    // Re-run validation so transformErrors filters out required errors
-    // again, clearing inline red borders for required fields.
-    setTimeout(() => {
-      formRef.current?.validateForm?.();
-    }, 0);
+    // Same mechanism as handleClick — the effect below handles
+    // re-running validation after the state change.
   }, []);
+
+  // After `showErrorList` changes, trigger RJSF re-validation so the
+  // transformErrors callback re-runs with the new filter and inline
+  // errors update to match. Skip the initial mount — we only want to
+  // fire this on actual transitions. Guarded by `mounted` so a
+  // late-scheduled call cannot fire after unmount.
+  const isFirstRun = useRef(true);
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    let mounted = true;
+    // Defer one microtask so the render with the new showErrorList
+    // has committed before we ask RJSF to revalidate.
+    Promise.resolve().then(() => {
+      if (mounted) formRef.current?.validateForm?.();
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [showErrorList]);
 
   return {
     badgeState,
