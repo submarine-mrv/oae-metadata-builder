@@ -5,7 +5,8 @@ import {
   TextInput,
   Textarea,
   Select,
-  Checkbox
+  Checkbox,
+  NumberInput
 } from "@mantine/core";
 import {
   getFieldMetadata,
@@ -167,6 +168,33 @@ function renderInput(
         label={label}
         checked={Boolean(currentValue)}
         onChange={(e) => handleChange(e.currentTarget.checked)}
+      />
+    );
+  }
+
+  // Numeric fields -> NumberInput
+  if (type === "number" || type === "integer") {
+    const numValue =
+      typeof currentValue === "number"
+        ? currentValue
+        : typeof currentValue === "string" && currentValue !== ""
+        ? Number(currentValue)
+        : "";
+    return (
+      <NumberInput
+        label={label}
+        placeholder={getPlaceholder()}
+        value={numValue}
+        onChange={(value) =>
+          handleChange(
+            typeof value === "number"
+              ? value
+              : value === "" || value === null
+              ? undefined
+              : Number(value)
+          )
+        }
+        allowDecimal={type === "number"}
       />
     );
   }
