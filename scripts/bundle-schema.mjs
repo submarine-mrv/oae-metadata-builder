@@ -330,6 +330,20 @@ decorated = inlineEnumArrayItems(decorated, [
 
 decorated = fixConditionalFields(decorated);
 
+// Patch ModelOutputDataset.if to actually constrain simulation_type to contain
+// "perturbation". The LinkML-generated if/then block has an empty constraint
+// because LinkML's has_member rule doesn't translate to JSON Schema's contains.
+// See: submarine-mrv/oae-data-protocol#25
+if (decorated.$defs?.ModelOutputDataset?.if?.properties?.simulation_type) {
+  decorated.$defs.ModelOutputDataset.if.properties.simulation_type = {
+    type: "array",
+    contains: { const: "perturbation" }
+  };
+  console.log(
+    `✓ Patched ModelOutputDataset.if to require simulation_type contains "perturbation"`
+  );
+}
+
 // Add x-protocol-git-hash field to root schema if git hash is provided
 if (protocolGitHash) {
   decorated["x-protocol-git-hash"] = protocolGitHash;

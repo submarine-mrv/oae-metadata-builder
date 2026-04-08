@@ -4982,7 +4982,12 @@
       "description": "A model simulation output dataset. Contains fields specific to computational model output including simulation configuration, output variables, and hardware information.",
       "if": {
         "properties": {
-          "simulation_type": {}
+          "simulation_type": {
+            "type": "array",
+            "contains": {
+              "const": "perturbation"
+            }
+          }
         },
         "required": [
           "simulation_type"
