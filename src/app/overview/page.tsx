@@ -39,6 +39,7 @@ export default function OverviewPage() {
     deleteExperiment,
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
+    getDatasetCompletionPercentage,
     addDataset,
     setActiveDataset,
     deleteDataset
@@ -442,6 +443,7 @@ export default function OverviewPage() {
                   const variableCount =
                     (dataset.formData.variables?.length as number) || 0;
                   const linkedExperiment = getLinkedExperiment(dataset);
+                  const completion = getDatasetCompletionPercentage(dataset.id);
                   return (
                     <Card
                       key={dataset.id}
@@ -525,6 +527,24 @@ export default function OverviewPage() {
                           {variableCount} variable
                           {variableCount !== 1 ? "s" : ""} defined
                         </Text>
+
+                        <Stack gap="xs">
+                          <Group justify="space-between">
+                            <Text size="xs">Progress</Text>
+                            <Badge
+                              size="xs"
+                              color={getCompletionColor(completion)}
+                            >
+                              {completion}%
+                            </Badge>
+                          </Group>
+                          <Progress
+                            value={completion}
+                            size="md"
+                            radius="md"
+                            color={getCompletionColor(completion)}
+                          />
+                        </Stack>
 
                         <Text size="xs" c="dimmed">
                           Last updated:{" "}

@@ -1,174 +1,238 @@
-// completionCalculator.test.ts - Tests for completion calculation utility
+// completionCalculator.test.ts - Tests for schema-driven completion
 
 import { describe, it, expect } from "vitest";
 import {
-  calculateFormCompletion,
-  calculateProjectCompletion
+  computeCompletion,
+  countMissingRequiredFields,
+  countTotalRequiredFields
 } from "../completionCalculator";
+import type { RJSFSchema } from "@rjsf/utils";
 
-describe("completionCalculator", () => {
-  describe("calculateProjectCompletion", () => {
-    it("should return 0 for empty data", () => {
-      expect(calculateProjectCompletion({})).toBe(0);
-      expect(calculateProjectCompletion(null)).toBe(0);
-    });
+// A tiny fake schema just for testing the walker — no dependency on the
+// actual bundled OAE schema.
+const SIMPLE_SCHEMA: RJSFSchema = {
+  type: "object",
+  required: ["name", "email", "tags"],
+  properties: {
+    name: { type: "string" },
+    email: { type: "string" },
+    tags: { type: "array", items: { type: "string" } },
+    optional_note: { type: "string" }
+  }
+};
 
-    it("should calculate percentage correctly", () => {
-      const projectData = {
-        project_id: "TEST-001",
-        description: "Test description",
-        mcdr_pathway: "ocean_alkalinity_enhancement",
-        sea_names: ["North Atlantic Ocean"],
-        spatial_coverage: { geo: { box: "0 0 10 10" } },
-        temporal_coverage: "2024-01-01/2024-12-31"
-      };
+const NESTED_SCHEMA: RJSFSchema = {
+  type: "object",
+  required: ["title", "contact"],
+  properties: {
+    title: { type: "string" },
+    contact: {
+      type: "object",
+      required: ["name", "email"],
+      properties: {
+        name: { type: "string" },
+        email: { type: "string" },
+        phone: { type: "string" }
+      }
+    }
+  }
+};
 
-      const result = calculateProjectCompletion(projectData);
-      expect(result).toBe(100);
-    });
-
-    it("should handle partially filled data", () => {
-      const projectData = {
-        project_id: "TEST-001",
-        description: "Test description",
-        mcdr_pathway: "ocean_alkalinity_enhancement"
-        // Missing 3 required fields
-      };
-
-      const result = calculateProjectCompletion(projectData);
-      expect(result).toBe(50); // 3 out of 6 fields filled
-    });
-
-    it("should ignore empty strings", () => {
-      const projectData = {
-        project_id: "",
-        description: "   ", // whitespace only
-        mcdr_pathway: "ocean_alkalinity_enhancement"
-      };
-
-      const result = calculateProjectCompletion(projectData);
-      expect(result).toBe(17); // Only 1 out of 6 fields filled
-    });
-
-    it("should count non-empty arrays", () => {
-      const projectData = {
-        project_id: "TEST-001",
-        description: "Test",
-        mcdr_pathway: "test",
-        sea_names: ["Ocean 1", "Ocean 2"], // Non-empty array counts
-        spatial_coverage: {},
-        temporal_coverage: ""
-      };
-
-      const result = calculateProjectCompletion(projectData);
-      expect(result).toBe(67); // 4 out of 6 fields filled
-    });
+describe("countTotalRequiredFields / countMissingRequiredFields", () => {
+  it("counts top-level required fields", () => {
+    expect(countTotalRequiredFields({}, SIMPLE_SCHEMA)).toBe(3);
+    expect(countMissingRequiredFields({}, SIMPLE_SCHEMA)).toBe(3);
   });
 
-  describe("calculateFormCompletion", () => {
-    it("should return 0 for empty data", () => {
-      expect(calculateFormCompletion({}, "intervention")).toBe(0);
+  it("missing goes to 0 when all required fields are filled", () => {
+    const data = { name: "Alice", email: "a@b.com", tags: ["x"] };
+    expect(countTotalRequiredFields(data, SIMPLE_SCHEMA)).toBe(3);
+    expect(countMissingRequiredFields(data, SIMPLE_SCHEMA)).toBe(0);
+  });
+
+  it("empty string counts as missing", () => {
+    const data = { name: "", email: "a@b.com", tags: ["x"] };
+    expect(countMissingRequiredFields(data, SIMPLE_SCHEMA)).toBe(1);
+  });
+
+  it("empty array counts as missing", () => {
+    const data = { name: "Alice", email: "a@b.com", tags: [] };
+    expect(countMissingRequiredFields(data, SIMPLE_SCHEMA)).toBe(1);
+  });
+
+  it("skipFields exclude fields from both total and missing", () => {
+    const data = { name: "Alice" };
+    expect(
+      countTotalRequiredFields(data, SIMPLE_SCHEMA, ["email", "tags"])
+    ).toBe(1);
+    expect(
+      countMissingRequiredFields(data, SIMPLE_SCHEMA, ["email", "tags"])
+    ).toBe(0);
+  });
+
+  it("recurses into a present required object", () => {
+    const data = { title: "T", contact: { name: "Alice" } };
+    // title (1) + contact.name (1) + contact.email (1) = 3 total
+    expect(countTotalRequiredFields(data, NESTED_SCHEMA)).toBe(3);
+    // contact.email is missing = 1
+    expect(countMissingRequiredFields(data, NESTED_SCHEMA)).toBe(1);
+  });
+
+  it("counts an absent required object as 1 missing (not its inner count)", () => {
+    const data = { title: "T" };
+    // title (1) + contact (1 missing parent) = 2 total
+    expect(countTotalRequiredFields(data, NESTED_SCHEMA)).toBe(2);
+    expect(countMissingRequiredFields(data, NESTED_SCHEMA)).toBe(1);
+  });
+
+  it("primitive array: non-empty counts as filled regardless of length", () => {
+    const data = { name: "A", email: "a@b", tags: ["x", "y", "z"] };
+    // tags still contributes 1 total (not 3)
+    expect(countTotalRequiredFields(data, SIMPLE_SCHEMA)).toBe(3);
+    expect(countMissingRequiredFields(data, SIMPLE_SCHEMA)).toBe(0);
+  });
+
+  it("object array: recurses into each item and sums inner required fields", () => {
+    const schema: RJSFSchema = {
+      type: "object",
+      required: ["leads"],
+      properties: {
+        leads: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["name", "email"],
+            properties: {
+              name: { type: "string" },
+              email: { type: "string" }
+            }
+          }
+        }
+      }
+    };
+    // Two shells = 4 total, 4 missing
+    expect(countTotalRequiredFields({ leads: [{}, {}] }, schema)).toBe(4);
+    expect(countMissingRequiredFields({ leads: [{}, {}] }, schema)).toBe(4);
+
+    // One complete, one half = 4 total, 1 missing
+    const data = {
+      leads: [{ name: "Alice", email: "a@b" }, { name: "Bob" }]
+    };
+    expect(countTotalRequiredFields(data, schema)).toBe(4);
+    expect(countMissingRequiredFields(data, schema)).toBe(1);
+
+    // Empty array = 1 total, 1 missing
+    expect(countTotalRequiredFields({ leads: [] }, schema)).toBe(1);
+    expect(countMissingRequiredFields({ leads: [] }, schema)).toBe(1);
+  });
+
+  it("returns 0 for an empty schema with no required fields", () => {
+    expect(countTotalRequiredFields({}, { type: "object" })).toBe(0);
+    expect(countMissingRequiredFields({}, { type: "object" })).toBe(0);
+  });
+});
+
+describe("computeCompletion", () => {
+  it("returns 100% for a fully filled form with no errors", () => {
+    const data = { name: "Alice", email: "a@b.com", tags: ["x"] };
+    const result = computeCompletion(data, SIMPLE_SCHEMA, []);
+    expect(result).toEqual({ total: 3, filled: 3, percentage: 100 });
+  });
+
+  it("reflects missing required fields in the percentage", () => {
+    const data = { name: "Alice" };
+    const result = computeCompletion(data, SIMPLE_SCHEMA, []);
+    // 1 of 3 filled
+    expect(result.total).toBe(3);
+    expect(result.filled).toBe(1);
+    expect(result.percentage).toBe(33);
+  });
+
+  it("subtracts non-required errors from filled", () => {
+    // All required filled, but 1 format error on the side
+    const data = { name: "Alice", email: "not-an-email", tags: ["x"] };
+    const errors = [
+      {
+        name: "format",
+        property: ".email",
+        message: "must match format \"email\"",
+        params: {},
+        stack: ".email must match format \"email\"",
+        schemaPath: "#/properties/email/format"
+      }
+    ];
+    const result = computeCompletion(data, SIMPLE_SCHEMA, errors);
+    // 3 total - 0 missing - 1 error = 2 filled
+    expect(result.total).toBe(3);
+    expect(result.filled).toBe(2);
+    expect(result.percentage).toBe(67);
+  });
+
+  it("ignores 'required' errors (already counted via the schema walk)", () => {
+    const data = { name: "Alice" };
+    const errors = [
+      {
+        name: "required",
+        property: ".email",
+        message: "Field is required",
+        params: { missingProperty: "email" },
+        stack: ".email required",
+        schemaPath: "#/required"
+      }
+    ];
+    const result = computeCompletion(data, SIMPLE_SCHEMA, errors);
+    // 3 total, 2 missing (email, tags), 0 other errors → 1 filled → 33%
+    expect(result.percentage).toBe(33);
+  });
+
+  it("does not go below 0% when errors exceed filled", () => {
+    const data = { name: "Alice", email: "x", tags: ["x"] };
+    const manyErrors = Array.from({ length: 10 }, (_, i) => ({
+      name: "format",
+      property: `.x${i}`,
+      message: "bad",
+      params: {},
+      stack: "",
+      schemaPath: ""
+    }));
+    const result = computeCompletion(data, SIMPLE_SCHEMA, manyErrors);
+    expect(result.filled).toBe(0);
+    expect(result.percentage).toBe(0);
+  });
+
+  it("returns 100% when the schema has no required fields", () => {
+    const result = computeCompletion(
+      {},
+      { type: "object", properties: {} },
+      []
+    );
+    expect(result.total).toBe(0);
+    expect(result.percentage).toBe(100);
+  });
+
+  it("supports skipFields (e.g. variables on datasets)", () => {
+    const data = { name: "Alice" };
+    const result = computeCompletion(data, SIMPLE_SCHEMA, [], ["tags"]);
+    // Only name and email count; name filled, email missing
+    expect(result.total).toBe(2);
+    expect(result.filled).toBe(1);
+    expect(result.percentage).toBe(50);
+  });
+
+  it("adds extra totals (used by datasets for per-variable counts)", () => {
+    const data = { name: "Alice", email: "a@b.com", tags: ["x"] };
+    const result = computeCompletion(data, SIMPLE_SCHEMA, [], undefined, {
+      total: 5,
+      missing: 2
     });
+    // 3 schema + 5 extra = 8 total; 0 + 2 = 2 missing
+    expect(result.total).toBe(8);
+    expect(result.filled).toBe(6);
+    expect(result.percentage).toBe(75);
+  });
 
-    it("should calculate base experiment completion", () => {
-      const experimentData = {
-        experiment_id: "EXP-001",
-        experiment_types: "baseline",
-        description: "Test experiment",
-        spatial_coverage: { geo: { box: "0 0 10 10" } },
-        vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        experiment_leads: [{ name: "Dr. Test" }],
-        start_datetime: "2024-01-01 00:00:00",
-        end_datetime: "2024-12-31 23:59:59"
-      };
-
-      const result = calculateFormCompletion(experimentData, "baseline");
-      expect(result).toBe(100);
-    });
-
-    it("should calculate intervention experiment completion", () => {
-      const experimentData = {
-        // Base fields
-        experiment_id: "EXP-001",
-        experiment_types: "intervention",
-        description: "Test intervention",
-        spatial_coverage: { geo: { box: "0 0 10 10" } },
-        vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        experiment_leads: [{ name: "Dr. Test" }],
-        start_datetime: "2024-01-01 00:00:00",
-        end_datetime: "2024-12-31 23:59:59",
-        // Intervention-specific fields
-        alkalinity_feedstock_processing: "grinding",
-        alkalinity_feedstock_form: "powder",
-        alkalinity_feedstock: "olivine",
-        alkalinity_feedstock_description: "Test feedstock",
-        equilibration: "pre-equilibrated",
-        dosing_location: { geo: { point: { latitude: 0, longitude: 0 } } },
-        dosing_dispersal_hydrologic_location: "surface",
-        dosing_delivery_type: "continuous",
-        alkalinity_dosing_effluent_density: 1000,
-        dosing_depth: { min_depth_in_m: 0, max_depth_in_m: -10 },
-        dosing_description: "Test dosing",
-        dosing_regimen: "Daily",
-        dosing_data: { some: "data" }
-      };
-
-      const result = calculateFormCompletion(experimentData, "intervention");
-      expect(result).toBe(100);
-    });
-
-    it("should handle tracer study type", () => {
-      const experimentData = {
-        experiment_id: "EXP-001",
-        experiment_types: "tracer_study",
-        description: "Test tracer",
-        spatial_coverage: { geo: { box: "0 0 10 10" } },
-        vertical_coverage: { min_depth_in_m: 0, max_depth_in_m: -100 },
-        experiment_leads: [{ name: "Dr. Test" }],
-        start_datetime: "2024-01-01 00:00:00",
-        end_datetime: "2024-12-31 23:59:59",
-        tracer_concentration: 100,
-        tracer_details: "Test tracer",
-        tracer_form: "liquid",
-        dosing_delivery_type: "continuous",
-        dosing_depth: { min_depth_in_m: 0 },
-        dosing_description: "Test",
-        dosing_dispersal_hydrologic_location: "surface",
-        dosing_location: { geo: { point: { latitude: 0, longitude: 0 } } },
-        dosing_regimen: "Daily"
-      };
-
-      const result = calculateFormCompletion(experimentData, "tracer_study");
-      expect(result).toBe(100);
-    });
-
-    it("should handle intervention_with_tracer type", () => {
-      // This type should require both intervention and tracer fields
-      const experimentData = {
-        experiment_id: "EXP-001",
-        experiment_types: "intervention_with_tracer"
-        // Missing all other fields
-      };
-
-      const result = calculateFormCompletion(
-        experimentData,
-        "intervention_with_tracer"
-      );
-      expect(result).toBeLessThan(10); // Very low completion
-    });
-
-    it("should count numbers as filled and use base fields when no type specified", () => {
-      const data = {
-        experiment_id: "test-123",
-        experiment_types: "baseline",
-        description: "Test experiment",
-        vertical_coverage: { min_depth_in_m: 0 }, // Number zero should count
-        empty_string: ""
-      };
-
-      const result = calculateFormCompletion(data);
-      // 4 out of 7 base fields filled (experiment_id, experiment_types, description, vertical_coverage)
-      expect(result).toBe(57);
-    });
+  it("handles null schema gracefully", () => {
+    const result = computeCompletion({}, undefined, []);
+    expect(result).toEqual({ total: 0, filled: 0, percentage: 0 });
   });
 });

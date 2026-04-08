@@ -1,10 +1,17 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback } from "react";
 import {
-  calculateFormCompletion,
-  calculateProjectCompletion
+  computeCompletion,
+  countIncompleteVariables
 } from "@/utils/completionCalculator";
-import { getExperimentSchemaType } from "@/utils/experimentFields";
+import {
+  validateProject,
+  validateExperiment,
+  validateDataset,
+  getExperimentSchemaForData,
+  getDatasetSchemaForData
+} from "@/utils/validation";
+import { getProjectSchema } from "@/utils/schemaViews";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -139,6 +146,7 @@ interface AppStateContextType {
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
+  getDatasetCompletionPercentage: (id: number) => number;
   importAllData: (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => void;
   /** Import selected data, merging with existing (replaces matching items, adds new ones) */
   importSelectedData: (
@@ -458,20 +466,67 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getProjectCompletionPercentage = useCallback(() => {
-    return calculateProjectCompletion(state.projectData);
+    // Empty form data → 0% (don't claim the project is valid when the
+    // user hasn't started). `computeCompletion` returns 100% for schemas
+    // with no required fields, which isn't what we want at the Overview
+    // level for unstarted work.
+    if (!state.projectData || Object.keys(state.projectData).length === 0) {
+      return 0;
+    }
+    const schema = getProjectSchema();
+    const { errors } = validateProject(state.projectData);
+    return computeCompletion(state.projectData, schema, errors).percentage;
   }, [state.projectData]);
 
   const getExperimentCompletionPercentage = useCallback(
     (id: number) => {
       const experiment = state.experiments.find((exp) => exp.id === id);
       if (!experiment) return 0;
-
-      return calculateFormCompletion(
-        experiment.formData,
-        getExperimentSchemaType(experiment.experiment_types ?? [])
-      );
+      if (
+        !experiment.formData ||
+        Object.keys(experiment.formData).length === 0
+      ) {
+        return 0;
+      }
+      const schema = getExperimentSchemaForData(experiment.formData);
+      const { errors } = validateExperiment(experiment.formData);
+      return computeCompletion(experiment.formData, schema, errors, [
+        "project_id"
+      ]).percentage;
     },
     [state.experiments]
+  );
+
+  const getDatasetCompletionPercentage = useCallback(
+    (id: number) => {
+      const dataset = state.datasets.find((ds) => ds.id === id);
+      if (!dataset) return 0;
+      if (!dataset.formData || Object.keys(dataset.formData).length === 0) {
+        return 0;
+      }
+      const schema = getDatasetSchemaForData(dataset.formData);
+      const hasExperiments = state.experiments.length > 0;
+      const { errors } = validateDataset(dataset.formData, { hasExperiments });
+
+      // Variables are skipped in the schema walk (they use the polymorphic
+      // per-schema_class workaround). Count them as additional required
+      // items: each variable is 1 total, and every variable with missing
+      // required fields counts as 1 missing. This keeps the percentage
+      // responsive as users fill in their variables.
+      const variables =
+        (dataset.formData.variables as unknown[] | undefined) ?? [];
+      const varsTotal = variables.length;
+      const varsMissing = countIncompleteVariables(dataset.formData, schema);
+
+      return computeCompletion(
+        dataset.formData,
+        schema,
+        errors,
+        ["variables", "project_id", "experiment_id"],
+        { total: varsTotal, missing: varsMissing }
+      ).percentage;
+    },
+    [state.datasets, state.experiments]
   );
 
   // =============================================================================
@@ -944,6 +999,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getExperiment,
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
+    getDatasetCompletionPercentage,
     importAllData,
     importSelectedData,
     setTriggerValidation,
