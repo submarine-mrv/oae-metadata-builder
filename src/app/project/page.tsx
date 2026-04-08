@@ -28,6 +28,7 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -197,6 +198,7 @@ export default function ProjectPage() {
             transformErrors={filteredTransformErrors}
             liveValidate
             noHtml5Validate
+            formContext={{ onCloseErrorList: validation.closeErrorList }}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
@@ -214,6 +216,7 @@ export default function ProjectPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              FieldTemplate: CustomFieldTemplate,
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,

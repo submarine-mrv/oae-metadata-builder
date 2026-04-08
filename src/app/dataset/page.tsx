@@ -27,6 +27,7 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -309,6 +310,7 @@ export default function DatasetPage() {
             liveOmit={false}
             liveValidate
             noHtml5Validate
+            formContext={{ onCloseErrorList: validation.closeErrorList }}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",
@@ -328,6 +330,7 @@ export default function DatasetPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              FieldTemplate: CustomFieldTemplate,
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,

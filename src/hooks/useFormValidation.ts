@@ -27,8 +27,10 @@ interface UseFormValidationReturn {
   showErrorList: boolean;
   /** Ref for the RJSF Form component */
   formRef: React.RefObject<any>;
-  /** Click handler for the badge — toggles error list when relevant */
+  /** Click handler for the badge — opens the error list (no-op when open) */
   handleClick: () => void;
+  /** Close handler for the X button inside the error list */
+  closeErrorList: () => void;
 }
 
 function deriveBadgeState(
@@ -81,21 +83,26 @@ export function useFormValidation({
   }, [badgeState, onStatusChange]);
 
   const handleClick = useCallback(() => {
-    // No-op when there's nothing to show
+    // No-op when there's nothing to show or list is already open
     if (badgeState === "empty" || badgeState === "passed") return;
+    if (showErrorList) return;
 
-    setShowErrorList((prev) => {
-      const next = !prev;
-      // Trigger RJSF validation so inline field errors update to match
-      // the new filter state. validateForm() re-runs transformErrors with
-      // the new showErrorList value. Defer to next tick so the state
-      // update has propagated.
-      setTimeout(() => {
-        formRef.current?.validateForm?.();
-      }, 0);
-      return next;
-    });
-  }, [badgeState]);
+    setShowErrorList(true);
+    // Trigger RJSF validation so inline field errors populate. The
+    // transformErrors closure re-runs with the new showErrorList value.
+    setTimeout(() => {
+      formRef.current?.validateForm?.();
+    }, 0);
+  }, [badgeState, showErrorList]);
+
+  const closeErrorList = useCallback(() => {
+    setShowErrorList(false);
+    // Re-run validation so transformErrors filters out required errors
+    // again, clearing inline red borders for required fields.
+    setTimeout(() => {
+      formRef.current?.validateForm?.();
+    }, 0);
+  }, []);
 
   return {
     badgeState,
@@ -103,6 +110,7 @@ export function useFormValidation({
     otherErrors,
     showErrorList,
     formRef,
-    handleClick
+    handleClick,
+    closeErrorList
   };
 }

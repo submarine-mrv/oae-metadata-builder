@@ -24,6 +24,7 @@ import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
 import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
@@ -313,6 +314,7 @@ export default function ExperimentPage() {
             transformErrors={filteredTransformErrors}
             liveValidate
             noHtml5Validate
+            formContext={{ onCloseErrorList: validation.closeErrorList }}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
@@ -331,6 +333,7 @@ export default function ExperimentPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              FieldTemplate: CustomFieldTemplate,
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,

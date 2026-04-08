@@ -74,7 +74,8 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
   label,
   placeholder,
   schema,
-  uiSchema
+  uiSchema,
+  rawErrors
 }) => {
   const [dateTime, setDateTime] = React.useState(parseFromIso(value as string));
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -142,7 +143,9 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
         error={
           touched && dateTime && !validateDateTime(dateTime)
             ? `Invalid datetime format (use ${DATETIME_FORMAT})`
-            : undefined
+            : rawErrors && rawErrors.length > 0
+              ? "Required"
+              : undefined
         }
         rightSection={
           <DateTimePickerPopover

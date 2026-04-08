@@ -26,7 +26,9 @@ export default function CustomArrayFieldTemplate<
     uiSchema,
     title,
     registry,
+    rawErrors,
   } = props;
+  const hasErrors = rawErrors && rawErrors.length > 0;
 
   const uiOptions = getUiOptions<T, S, F>(uiSchema);
   const ArrayFieldDescriptionTemplate = getTemplate<'ArrayFieldDescriptionTemplate', T, S, F>(
@@ -56,7 +58,15 @@ export default function CustomArrayFieldTemplate<
   );
 
   return (
-    <Fieldset legend={legend} className={className} id={fieldPathId.$id} style={{ backgroundColor: 'transparent' }}>
+    <Fieldset
+      legend={legend}
+      className={className}
+      id={fieldPathId.$id}
+      style={{
+        backgroundColor: 'transparent',
+        ...(hasErrors ? { borderColor: 'var(--mantine-color-red-5)' } : {}),
+      }}
+    >
       {(uiOptions.description || schema.description) && (
         <ArrayFieldDescriptionTemplate
           description={uiOptions.description || schema.description}

@@ -28,6 +28,31 @@ export function transformFormErrors(
   errors: RJSFValidationError[]
 ): RJSFValidationError[] {
   return errors.map((e) => {
+    // Normalize ALL "required" error messages.
+    //
+    // RJSF interpolates a field title into the message via a fragile
+    // schemaPath/uiSchema lookup. With $ref'd nested classes that share
+    // property names (e.g. multiple `name` fields across Person, Experiment,
+    // Funding, Organization, etc.) the lookup can pick the wrong title
+    // (showing "Experiment Name" for a Person's name field, etc.).
+    //
+    // The inline error appears directly under a labeled field, so the
+    // message doesn't need to repeat the title. The top error list
+    // (CustomErrorList) prepends a contextual path like
+    // "Project Leads → 0 → Name:". A clean generic message is best for both.
+    if (e.name === "required") {
+      // Preserve special-case rewrites that come later in the chain
+      // (experiment_id, spatial coverage) by NOT overriding them here —
+      // those branches return early below.
+      const isSpatialCov = isSpatialCoverageError(e);
+      const isExperimentId =
+        e.params?.missingProperty === "experiment_id" ||
+        e.property === ".experiment_id";
+      if (!isSpatialCov && !isExperimentId) {
+        e = { ...e, message: "Field is required" };
+      }
+    }
+
     // Improve temporal coverage pattern error message
     if (e.property === ".temporal_coverage" && e.name === "pattern") {
       return {
@@ -62,6 +87,14 @@ export function transformFormErrors(
       return {
         ...e,
         message: "Please enter a valid email address"
+      };
+    }
+
+    // Improve phone pattern error message
+    if (e.name === "pattern" && e.property?.endsWith(".phone")) {
+      return {
+        ...e,
+        message: "Invalid phone number"
       };
     }
 

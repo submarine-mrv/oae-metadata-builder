@@ -21,8 +21,13 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   onBlur,
   onFocus,
   label,
-  options
+  options,
+  rawErrors
 }) => {
+  // Surface RJSF-supplied errors (e.g. "required" after the user clicks the
+  // validation badge) on both date inputs. Internal format errors take
+  // precedence so the user sees the most specific message first.
+  const externalError = rawErrors && rawErrors.length > 0 ? "Required" : undefined;
   // Check if end date is required via ui:options
   const endDateRequired = options?.endDateRequired === true;
 
@@ -52,7 +57,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={required}
-            error={interval.startError}
+            error={interval.startError || externalError}
             rightSection={
               <DatePickerPopover
                 opened={interval.startPickerOpen}
@@ -76,7 +81,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={endDateRequired}
-            error={interval.endError}
+            error={interval.endError || (endDateRequired ? externalError : undefined)}
             rightSection={
               <DatePickerPopover
                 opened={interval.endPickerOpen}
