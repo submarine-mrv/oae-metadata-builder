@@ -59,11 +59,26 @@ export default function SchemaField({
   const currentValue = getNestedValue(formData, fieldPath);
   const schemaConst = metadata?.schema?.const;
 
-  // Keep a ref to latest formData so const-field effects don't use stale snapshots
+  // ---------------------------------------------------------------------------
+  // Const-field hydration
+  //
+  // Several variable-type schemas pin fields to a single value via LinkML's
+  // `equals_string` (which generates JSON Schema `const`). Examples:
+  //   - variable_type = "co2" on DiscreteCO2Variable / ContinuousCO2Variable
+  //   - genesis = "measured" on all measured variable classes
+  //   - instrument_type = "gas_analyzer" on CO2GasDetector
+  //
+  // The UI must write these const values into formData so they show up on
+  // export and satisfy schema validation. Users never type them — they're
+  // derived entirely from the variable type / instrument selection.
+  //
+  // We keep a ref to the latest formData so that when multiple const fields
+  // initialize in the same render pass, each effect writes against the
+  // up-to-date snapshot instead of a stale closure (last-write-wins bug).
+  // ---------------------------------------------------------------------------
   const formDataRef = React.useRef(formData);
   formDataRef.current = formData;
 
-  // Auto-set const value in form data
   React.useEffect(() => {
     if (schemaConst !== undefined) {
       const latest = formDataRef.current;

@@ -507,7 +507,23 @@ export default function VariableModal({
                             return elements;
                           };
 
-                          // Const fields always render via SchemaField (disabled text)
+                          // --------------------------------------------------
+                          // Const field intercept
+                          //
+                          // Some fields are configured in the layer with a
+                          // specialized inputType (e.g. "enum_with_other"
+                          // for instrument_type in the BASE layer) but the
+                          // concrete schema for a specific variable class
+                          // pins them to a single value via JSON Schema
+                          // `const`. Example: CO2GasDetector pins
+                          // instrument_type to "gas_analyzer".
+                          //
+                          // In that case the dropdown/gate widgets would
+                          // render the usual editable UI ("Select an
+                          // option") which is wrong. We short-circuit to
+                          // SchemaField which renders const fields as a
+                          // disabled TextInput showing the pinned value.
+                          // --------------------------------------------------
                           if (
                             field.inputType === "enum_with_other" ||
                             field.inputType === "boolean_select" ||

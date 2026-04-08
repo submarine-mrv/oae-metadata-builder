@@ -162,11 +162,13 @@ describe("getAccordionConfig", () => {
     expect(getAccordionConfig("NonexistentVariable")).toEqual([]);
   });
 
-  it("excludes sections with no fields (CalculatedVariable has no calibration)", () => {
+  it("CalculatedVariable has calculation section", () => {
     const sections = getAccordionConfig("CalculatedVariable");
     const keys = sections.map((s) => s.key);
-    expect(keys).not.toContain("calibration");
     expect(keys).toContain("calculation");
+    // Note: CalculatedVariable's layer stack still includes BASE's calibration
+    // fields, but at render time VariableModal filters them out via
+    // fieldExistsInSchema() since CalculatedVariable has no analyzing_instrument.
   });
 
   it("preserves calibration field ordering for pH: shared top → dye → shared bottom", () => {
@@ -230,13 +232,15 @@ describe("getAccordionConfig", () => {
     );
   });
 
-  it("NonMeasuredVariable has no calibration, instrument, or calculation sections", () => {
+  it("NonMeasuredVariable has no calculation section", () => {
     const sections = getAccordionConfig("NonMeasuredVariable");
     const keys = sections.map((s) => s.key);
-    expect(keys).not.toContain("calibration");
     expect(keys).not.toContain("calculation");
-    // NonMeasuredVariable has BASE which includes instrument fields
+    // NonMeasuredVariable has BASE which includes instrument + calibration fields.
+    // At render time these are filtered out via fieldExistsInSchema() since
+    // NonMeasuredVariable has no analyzing_instrument.
     expect(keys).toContain("instrument");
+    expect(keys).toContain("calibration");
   });
 });
 
@@ -345,8 +349,11 @@ describe("VARIABLE_TYPE_LAYERS", () => {
   it("NonMeasuredVariable has only BASE layer fields", () => {
     const layers = VARIABLE_TYPE_LAYERS["NonMeasuredVariable"];
     expect(layers).toHaveLength(1);
-    // No calibration, instrument, or calculation sections
-    expect(buildSectionFields("calibration", layers)).toEqual([]);
+    // BASE now includes calibration fields (inherited from base Calibration
+    // class in the protocol), so they appear in the layer output for every
+    // type. VariableModal filters them out at render time for types without
+    // an analyzing_instrument via fieldExistsInSchema(). No type-specific
+    // layers contribute calculation fields.
     expect(buildSectionFields("calculation", layers)).toEqual([]);
   });
 });

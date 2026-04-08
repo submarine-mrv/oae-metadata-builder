@@ -433,6 +433,38 @@ const BASE: HierarchyLayer = {
         placeholderText: "Instrument accuracy"
       }
     ],
+    // Shared calibration fields from the base Calibration class, inherited by
+    // every measured variable's analyzing_instrument.calibration. Type-specific
+    // layers (PH, TA_DIC, CO2, etc.) insert additional calibration fields using
+    // `{ after: ... }` anchors relative to these. For variable types without an
+    // analyzing_instrument (CalculatedVariable, NonMeasuredVariable), these
+    // fields are filtered out at runtime by fieldExistsInSchema().
+    calibration: [
+      {
+        path: "analyzing_instrument.calibration.technique_description",
+        span: 6,
+        placeholderText: "Details of the calibration technique"
+      },
+      {
+        path: "analyzing_instrument.calibration.calibration_location",
+        span: 6
+      },
+      {
+        path: "analyzing_instrument.calibration.frequency",
+        span: 6,
+        placeholderText: "How often calibrated"
+      },
+      {
+        path: "analyzing_instrument.calibration.last_calibration_date",
+        span: 6,
+        placeholderText: "YYYY-MM-DD"
+      },
+      {
+        path: "analyzing_instrument.calibration.method_reference",
+        placeholderText: "Citation for calibration method"
+      },
+      "analyzing_instrument.calibration.calibration_certificates"
+    ],
     qc: [
       {
         path: "qc_steps_taken",
@@ -470,40 +502,6 @@ const BASE: HierarchyLayer = {
         inputType: "textarea",
         placeholderText: "Any additional information about this variable"
       }
-    ]
-  }
-};
-
-/** Shared calibration fields from base Calibration class (all measured variable types) */
-const CALIBRATION: HierarchyLayer = {
-  name: "Calibration",
-  sections: {
-    calibration: [
-      {
-        path: "analyzing_instrument.calibration.technique_description",
-        span: 6,
-        placeholderText: "Details of the calibration technique"
-      },
-      {
-        path: "analyzing_instrument.calibration.calibration_location",
-        span: 6
-      },
-      // Bottom fields (frequency, last_calibration_date, etc.) follow type-specific inserts
-      {
-        path: "analyzing_instrument.calibration.frequency",
-        span: 6,
-        placeholderText: "How often calibrated"
-      },
-      {
-        path: "analyzing_instrument.calibration.last_calibration_date",
-        span: 6,
-        placeholderText: "YYYY-MM-DD"
-      },
-      {
-        path: "analyzing_instrument.calibration.method_reference",
-        placeholderText: "Citation for calibration method"
-      },
-      "analyzing_instrument.calibration.calibration_certificates"
     ]
   }
 };
@@ -996,27 +994,30 @@ const HPLC: HierarchyLayer = {
  * Uses Record<string, ...> rather than a strict union type for maintainability;
  * the VARIABLE_TYPE_LAYERS test validates every VARIABLE_SCHEMA_MAP key is present.
  *
- * The CALIBRATION layer provides shared calibration fields from the base Calibration
- * class. Type-specific layers with `{ after }` calibration anchors insert relative
- * to these shared fields. fieldExistsInSchema() in VariableModal.tsx filters fields
- * at runtime based on the actual schema for each variable type.
+ * The BASE layer includes the shared `analyzing_instrument.*` and calibration
+ * fields inherited from the protocol's AnalyzingInstrument/Calibration base
+ * classes. For variable types without an analyzing_instrument (CalculatedVariable,
+ * NonMeasuredVariable) those fields are filtered out at runtime by
+ * fieldExistsInSchema() in VariableModal.tsx. Type-specific layers (PH, TA_DIC,
+ * CO2, etc.) insert additional calibration fields using `{ after }` anchors
+ * relative to BASE's shared calibration fields.
  */
 export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   // Discrete
-  DiscretePHVariable: [BASE, CALIBRATION, PH],
-  DiscreteTAVariable: [BASE, CALIBRATION, TA_DIC],
-  DiscreteDICVariable: [BASE, CALIBRATION, TA_DIC],
-  DiscreteSedimentVariable: [BASE, CALIBRATION, SEDIMENT],
-  DiscreteCO2Variable: [BASE, CALIBRATION, CO2],
-  ContinuousCO2Variable: [BASE, CALIBRATION, CONTINUOUS, CO2, CO2_CONTINUOUS],
-  HPLCVariable: [BASE, CALIBRATION, HPLC],
-  DiscreteMeasuredVariable: [BASE, CALIBRATION],
+  DiscretePHVariable: [BASE, PH],
+  DiscreteTAVariable: [BASE, TA_DIC],
+  DiscreteDICVariable: [BASE, TA_DIC],
+  DiscreteSedimentVariable: [BASE, SEDIMENT],
+  DiscreteCO2Variable: [BASE, CO2],
+  HPLCVariable: [BASE, HPLC],
+  DiscreteMeasuredVariable: [BASE],
   // Continuous
-  ContinuousPHVariable: [BASE, CALIBRATION, CONTINUOUS, PH],
-  ContinuousTAVariable: [BASE, CALIBRATION, CONTINUOUS, TA_DIC],
-  ContinuousDICVariable: [BASE, CALIBRATION, CONTINUOUS, TA_DIC],
-  ContinuousSedimentVariable: [BASE, CALIBRATION, CONTINUOUS, SEDIMENT],
-  ContinuousMeasuredVariable: [BASE, CALIBRATION, CONTINUOUS],
+  ContinuousPHVariable: [BASE, CONTINUOUS, PH],
+  ContinuousTAVariable: [BASE, CONTINUOUS, TA_DIC],
+  ContinuousDICVariable: [BASE, CONTINUOUS, TA_DIC],
+  ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
+  ContinuousCO2Variable: [BASE, CONTINUOUS, CO2, CO2_CONTINUOUS],
+  ContinuousMeasuredVariable: [BASE, CONTINUOUS],
   // Other
   CalculatedVariable: [BASE, CALCULATED],
   NonMeasuredVariable: [BASE]
