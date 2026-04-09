@@ -141,6 +141,10 @@ interface AppStateContextType {
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
   getDatasetCompletionPercentage: (id: number) => number;
+  /** Live status (percentage + validity) — one AJV run per call. */
+  getProjectStatus: () => { percentage: number; isValid: boolean; isEmpty: boolean };
+  getExperimentStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
+  getDatasetStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
   importAllData: (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => void;
   /** Import selected data, merging with existing (replaces matching items, adds new ones) */
   importSelectedData: (
@@ -459,42 +463,59 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [state.experiments]
   );
 
-  const getProjectCompletionPercentage = useCallback(() => {
-    if (!state.projectData || Object.keys(state.projectData).length === 0) {
-      return 0;
-    }
-    const { errors } = validateProject(state.projectData);
-    return computeCompletion(state.projectData, errors).percentage;
+  // Full live status — single AJV run, returns percentage + validity.
+  // The legacy getXCompletionPercentage wrappers below delegate here so
+  // there's exactly one code path for progress/validity derivation.
+  const getProjectStatus = useCallback(() => {
+    const data = state.projectData;
+    const isEmpty = !data || Object.keys(data).length === 0;
+    if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
+    const { errors } = validateProject(data);
+    const { percentage } = computeCompletion(data, errors);
+    return { percentage, isValid: errors.length === 0, isEmpty: false };
   }, [state.projectData]);
 
-  const getExperimentCompletionPercentage = useCallback(
+  const getExperimentStatus = useCallback(
     (id: number) => {
       const experiment = state.experiments.find((exp) => exp.id === id);
-      if (!experiment) return 0;
-      if (
-        !experiment.formData ||
-        Object.keys(experiment.formData).length === 0
-      ) {
-        return 0;
-      }
-      const { errors } = validateExperiment(experiment.formData);
-      return computeCompletion(experiment.formData, errors).percentage;
+      if (!experiment)
+        return { percentage: 0, isValid: false, isEmpty: true };
+      const data = experiment.formData;
+      const isEmpty = !data || Object.keys(data).length === 0;
+      if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
+      const { errors } = validateExperiment(data);
+      const { percentage } = computeCompletion(data, errors);
+      return { percentage, isValid: errors.length === 0, isEmpty: false };
     },
     [state.experiments]
   );
 
-  const getDatasetCompletionPercentage = useCallback(
+  const getDatasetStatus = useCallback(
     (id: number) => {
       const dataset = state.datasets.find((ds) => ds.id === id);
-      if (!dataset) return 0;
-      if (!dataset.formData || Object.keys(dataset.formData).length === 0) {
-        return 0;
-      }
+      if (!dataset) return { percentage: 0, isValid: false, isEmpty: true };
+      const data = dataset.formData;
+      const isEmpty = !data || Object.keys(data).length === 0;
+      if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
       const hasExperiments = state.experiments.length > 0;
-      const { errors } = validateDataset(dataset.formData, { hasExperiments });
-      return computeCompletion(dataset.formData, errors).percentage;
+      const { errors } = validateDataset(data, { hasExperiments });
+      const { percentage } = computeCompletion(data, errors);
+      return { percentage, isValid: errors.length === 0, isEmpty: false };
     },
     [state.datasets, state.experiments]
+  );
+
+  const getProjectCompletionPercentage = useCallback(
+    () => getProjectStatus().percentage,
+    [getProjectStatus]
+  );
+  const getExperimentCompletionPercentage = useCallback(
+    (id: number) => getExperimentStatus(id).percentage,
+    [getExperimentStatus]
+  );
+  const getDatasetCompletionPercentage = useCallback(
+    (id: number) => getDatasetStatus(id).percentage,
+    [getDatasetStatus]
   );
 
   // =============================================================================
@@ -968,6 +989,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
     getDatasetCompletionPercentage,
+    getProjectStatus,
+    getExperimentStatus,
+    getDatasetStatus,
     importAllData,
     importSelectedData,
     setTriggerValidation,

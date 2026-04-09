@@ -37,9 +37,9 @@ export default function OverviewPage() {
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
-    getProjectCompletionPercentage,
-    getExperimentCompletionPercentage,
-    getDatasetCompletionPercentage,
+    getProjectStatus,
+    getExperimentStatus,
+    getDatasetStatus,
     addDataset,
     setActiveDataset,
     deleteDataset
@@ -50,7 +50,8 @@ export default function OverviewPage() {
     setActiveTab("overview");
   }, [setActiveTab]);
 
-  const projectCompletion = getProjectCompletionPercentage();
+  const projectStatus = getProjectStatus();
+  const projectCompletion = projectStatus.percentage;
 
   const handleCreateProject = () => {
     createProject();
@@ -246,12 +247,17 @@ export default function OverviewPage() {
                         style={{ flexShrink: 0, marginTop: 2 }}
                       />
                       <div style={{ minWidth: 0 }}>
-                        <Text fw={600}>
-                          Project Metadata
-                          {state.validationStatus.project === true && (
-                            <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
+                        <Group gap={6} wrap="nowrap" align="center">
+                          <Text fw={600}>Project Metadata</Text>
+                          {projectStatus.isValid && (
+                            <IconCircleCheck
+                              size={18}
+                              color="var(--mantine-color-green-6)"
+                              aria-label="Validation passed"
+                              style={{ flexShrink: 0 }}
+                            />
                           )}
-                        </Text>
+                        </Group>
                         <Text
                           size="sm"
                           c="dimmed"
@@ -319,9 +325,8 @@ export default function OverviewPage() {
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                 {state.experiments.map((experiment) => {
-                  const completion = getExperimentCompletionPercentage(
-                    experiment.id
-                  );
+                  const status = getExperimentStatus(experiment.id);
+                  const completion = status.percentage;
                   return (
                     <Card
                       key={experiment.id}
@@ -359,10 +364,15 @@ export default function OverviewPage() {
                               }}
                             >
                               {experiment.name}
-                              {state.validationStatus.experiments[experiment.id] === true && (
-                                <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
-                              )}
                             </Text>
+                            {status.isValid && (
+                              <IconCircleCheck
+                                size={18}
+                                color="var(--mantine-color-green-6)"
+                                aria-label="Validation passed"
+                                style={{ flexShrink: 0, marginTop: 2 }}
+                              />
+                            )}
                           </Group>
                           <Button
                             variant="subtle"
@@ -443,7 +453,8 @@ export default function OverviewPage() {
                   const variableCount =
                     (dataset.formData.variables?.length as number) || 0;
                   const linkedExperiment = getLinkedExperiment(dataset);
-                  const completion = getDatasetCompletionPercentage(dataset.id);
+                  const status = getDatasetStatus(dataset.id);
+                  const completion = status.percentage;
                   return (
                     <Card
                       key={dataset.id}
@@ -481,10 +492,15 @@ export default function OverviewPage() {
                               }}
                             >
                               {dataset.name}
-                              {state.validationStatus.datasets[dataset.id] === true && (
-                                <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ display: "inline", verticalAlign: "middle", marginLeft: 4 }} />
-                              )}
                             </Text>
+                            {status.isValid && (
+                              <IconCircleCheck
+                                size={18}
+                                color="var(--mantine-color-green-6)"
+                                aria-label="Validation passed"
+                                style={{ flexShrink: 0, marginTop: 2 }}
+                              />
+                            )}
                           </Group>
                           <Button
                             variant="subtle"
