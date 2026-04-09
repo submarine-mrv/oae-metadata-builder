@@ -202,6 +202,30 @@ describe("computeCompletion", () => {
     expect(result.percentage).toBe(0);
   });
 
+  it("primitive array with an invalid item loses its filled credit", () => {
+    // tags is stored as a single filled path /tags, but AJV reports the
+    // error on /tags/0. The ancestor walk must strip /tags from filled
+    // so the invalid item doesn't keep its credit.
+    const data = { tags: ["bad"] };
+    const result = computeCompletion(data, [err(".tags[0]", "format")]);
+    expect(result.filled).toBe(0);
+    expect(result.total).toBe(1);
+    expect(result.percentage).toBe(0);
+  });
+
+  it("nested object error does not strip sibling filled leaves", () => {
+    // Error at .data_submitter.email must not remove .data_submitter.name
+    // from filled via the ancestor walk.
+    const data = { data_submitter: { name: "X", email: "bad" } };
+    const result = computeCompletion(data, [
+      err(".data_submitter.email", "format")
+    ]);
+    // filled: /data_submitter/name. errors: /data_submitter/email.
+    expect(result.filled).toBe(1);
+    expect(result.total).toBe(2);
+    expect(result.percentage).toBe(50);
+  });
+
   it("empty array of primitives + required error → 0%", () => {
     const result = computeCompletion({ tags: [] }, [err(".tags")]);
     expect(result.filled).toBe(0);

@@ -214,8 +214,21 @@ export function computeCompletion(
   }
 
   // Disjoint: a filled leaf that also has an error belongs to `errors`, not
-  // `filled` (no partial credit for invalid values).
-  for (const path of errors) filled.delete(path);
+  // `filled` (no partial credit for invalid values). We also strip ancestor
+  // paths from `filled`, which handles the primitive-array collapse case:
+  // `{tags: ["bad"]}` stores `/tags` in filled, but AJV reports the error
+  // on `/tags/0`. Without the ancestor walk the invalid item would keep
+  // its "filled" credit.
+  for (const path of errors) {
+    filled.delete(path);
+    let ancestor = path;
+    while (true) {
+      const slash = ancestor.lastIndexOf("/");
+      if (slash <= 0) break;
+      ancestor = ancestor.slice(0, slash);
+      filled.delete(ancestor);
+    }
+  }
 
   const filledCount = filled.size;
   const errorCount = errors.size;
