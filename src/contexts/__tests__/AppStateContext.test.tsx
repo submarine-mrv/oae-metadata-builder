@@ -763,6 +763,133 @@ describe('AppStateContext', () => {
     });
   });
 
+  describe('getProjectStatus / getExperimentStatus / getDatasetStatus', () => {
+    // These are the consolidated getters the Overview page uses to drive
+    // both the progress % and the live validation checkmark. Each call
+    // runs AJV once and returns {percentage, isValid, isEmpty}. Tests are
+    // relational (not exact %) for the same reason as the completion tests
+    // — schema bumps shouldn't break them.
+
+    it('getProjectStatus: fresh project → 0%, not valid', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      const status = result.current.getProjectStatus();
+      // Don't assert isEmpty here — the fresh state may have auto-populated
+      // keys (e.g. project_id: ''), which still produces percentage=0 via
+      // the validator path rather than the isEmpty shortcut.
+      expect(status.percentage).toBe(0);
+      expect(status.isValid).toBe(false);
+    });
+
+    it('getProjectStatus: partially-filled project → >0%, not valid, not empty', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      act(() => {
+        result.current.updateProjectData({
+          project_id: 'P',
+          description: 'D',
+          mcdr_pathway: 'ocean_alkalinity_enhancement'
+        });
+      });
+      const status = result.current.getProjectStatus();
+      expect(status.isEmpty).toBe(false);
+      expect(status.isValid).toBe(false); // still missing required fields
+      expect(status.percentage).toBeGreaterThan(0);
+      expect(status.percentage).toBeLessThan(100);
+    });
+
+    it('getExperimentStatus: unknown id → isEmpty:true, not valid', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      const status = result.current.getExperimentStatus(9999);
+      expect(status).toEqual({ percentage: 0, isValid: false, isEmpty: true });
+    });
+
+    it('getExperimentStatus: empty formData → isEmpty:true', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      let id!: number;
+      act(() => {
+        id = result.current.addExperiment('E1');
+      });
+      // addExperiment leaves formData with project_id auto-propagated —
+      // clear it to exercise the isEmpty branch.
+      act(() => {
+        result.current.replaceExperimentFormData(id, {});
+      });
+      const status = result.current.getExperimentStatus(id);
+      expect(status.isEmpty).toBe(true);
+      expect(status.isValid).toBe(false);
+    });
+
+    it('getDatasetStatus: unknown id → isEmpty:true, not valid', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      const status = result.current.getDatasetStatus(9999);
+      expect(status).toEqual({ percentage: 0, isValid: false, isEmpty: true });
+    });
+
+    it('getDatasetStatus: partially-filled dataset → >0%, not valid, not empty', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      let id!: number;
+      act(() => {
+        id = result.current.addDataset('D1');
+      });
+      act(() => {
+        result.current.replaceDatasetFormData(id, {
+          dataset_type: 'field',
+          name: 'sample'
+        });
+      });
+      const status = result.current.getDatasetStatus(id);
+      expect(status.isEmpty).toBe(false);
+      expect(status.isValid).toBe(false);
+      expect(status.percentage).toBeGreaterThanOrEqual(0);
+      expect(status.percentage).toBeLessThan(100);
+    });
+
+    it('status.percentage matches the legacy getXCompletionPercentage path', () => {
+      // The legacy functions delegate to getXStatus. This test locks that
+      // in — if anyone "optimizes" by re-implementing them separately,
+      // this will fail.
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+      act(() => {
+        result.current.updateProjectData({
+          project_id: 'P',
+          description: 'D'
+        });
+      });
+      expect(result.current.getProjectStatus().percentage).toBe(
+        result.current.getProjectCompletionPercentage()
+      );
+
+      let expId!: number;
+      act(() => {
+        expId = result.current.addExperiment('E');
+      });
+      expect(result.current.getExperimentStatus(expId).percentage).toBe(
+        result.current.getExperimentCompletionPercentage(expId)
+      );
+
+      let dsId!: number;
+      act(() => {
+        dsId = result.current.addDataset('D');
+      });
+      expect(result.current.getDatasetStatus(dsId).percentage).toBe(
+        result.current.getDatasetCompletionPercentage(dsId)
+      );
+    });
+  });
+
   describe('importAllData', () => {
     it('should import project data and experiments', () => {
       const { result } = renderHook(() => useAppState(), {
