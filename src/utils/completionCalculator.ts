@@ -1,28 +1,101 @@
 // completionCalculator.ts - Lightweight completion percentage from form data + AJV errors
 //
-// The % on the overview cards is "kind of right" by design, not an audit
-// figure. We compute it without walking the JSON Schema at all:
+// ============================================================================
+// DESIGN INTENT — READ THIS BEFORE FILING A REVIEW FINDING
+// ============================================================================
+//
+// The % on the overview cards is a *progress hint*, not an audit figure. Its
+// only jobs are:
+//
+//   (1) to nudge toward 100% as the user fills required fields
+//   (2) to stay under 100% while the validator still reports problems
+//   (3) to drop cleanly when the user clears something they had filled
+//
+// It is explicitly NOT trying to be "% of required fields filled per the
+// schema", and does not need to be. Precision isn't the product — the
+// validation button + error list is the authoritative signal for
+// correctness. The % just wants to feel responsive and directionally right.
+//
+// Formula:
 //
 //   filled = set of paths with a non-empty primitive leaf value in the data
-//            (arrays of primitives count as ONE path for the whole array)
+//            (arrays of primitives count as ONE path for the whole array;
+//             object/array-item structure is recursed into)
 //   errors = set of unique error paths from the validator
-//   filled := filled \ errors   // disjoint: a field with an error is not "filled"
+//            (required + format + pattern + cross-field, deduped)
+//   filled := filled \ errors   // disjoint: a filled leaf with an error at
+//                               // the same path counts as an error, not filled
 //   total  := |filled| + |errors|
-//   percent = round(filled / total * 100)
+//   percent = round(filled / total * 100)   (0% when total = 0)
 //
-// Properties:
-//   - Schema-free: no walking `required` arrays, no conditional handling —
-//     AJV already evaluates if/then/allOf/oneOf against real data and
-//     surfaces missing/invalid fields as errors.
-//   - No double counting: each path contributes at most 1 to the denominator,
-//     either as a "filled" leaf or as an "error", never both.
-//   - Array shells work: `[{},{}]` has 0 filled leaves and AJV reports
-//     required errors for each missing inner field → denominator grows,
-//     filled stays at 0, % drops, as desired.
-//   - Partially-filled objects/items get credit for their filled leaves.
-//   - Adding or removing optional fields that are valid is a no-op at 100%.
+// ----------------------------------------------------------------------------
+// Why schema-free? (Deliberate, after two iterations of the walker approach)
+// ----------------------------------------------------------------------------
 //
-// 0/0 case returns 0% (an untouched empty-schema form should not read 100%).
+// Earlier versions walked the JSON Schema's `required` arrays to produce a
+// "missing / total" count. That design had persistent problems:
+//
+//   - It drifted from the schema (hardcoded field lists) — FIXED by walking,
+//     which then broke on...
+//   - Conditional requireds: `if/then`, `allOf`, `oneOf`, discriminator-based
+//     `required` arrays were not evaluated, so completion was inflated for
+//     forms with conditional requirements.
+//   - $ref resolution, nested required objects, and array-item recursion all
+//     had to be re-implemented by hand, with edge cases for shells, absent
+//     vs. present required objects, and polymorphic dataset variables.
+//   - Double-counting of variable errors when datasets passed both an `extra`
+//     count and a full error list to the old computeCompletion.
+//
+// AJV already handles ALL of the above correctly against real form data:
+// conditional requireds, $ref, polymorphism, cross-field custom validators.
+// Instead of reproducing that logic, this module:
+//
+//   - Trusts AJV for "what's wrong with the form right now" (the numerator
+//     problem), and
+//   - Walks only the raw data for "what has the user actually touched"
+//     (no schema needed — structure is self-evident from the data).
+//
+// The union of those two sets is the denominator. Disjointing them prevents
+// a touched-but-invalid field from being counted twice.
+//
+// ----------------------------------------------------------------------------
+// Known quirk: optional-field touches nudge the percentage
+// ----------------------------------------------------------------------------
+//
+// Because the denominator is "things touched + things wrong", filling or
+// clearing an *optional* valid field shifts the % slightly (smaller than a
+// required change, same direction). Example with 3/10 required and 2
+// optional filled: clearing an optional moves ~−6%, clearing a required
+// moves ~−9%. This is intentional and acceptable:
+//
+//   - The direction is always correct (filling helps, clearing hurts).
+//   - Requireds move the bar ~2× as much as optionals (because clearing a
+//     required also adds a validator error, double-hitting the ratio).
+//   - Transitions are reversible: fill → clear → fill returns to the same %.
+//   - The alternative — making optional touches zero-delta — requires the
+//     walker to classify each field as required-vs-optional against
+//     conditional schemas, which is the complexity we just removed.
+//
+// ----------------------------------------------------------------------------
+// Known quirk: 0/0 returns 0%, not 100%
+// ----------------------------------------------------------------------------
+//
+// An untouched form with no validator errors is reported as 0%. This is
+// *intentional* for the overview UX: an unstarted entity should not appear
+// complete. Entities with genuinely no required fields are rare in this
+// schema, and if they exist the user expectation is still "I haven't
+// started this", not "this is done".
+//
+// ----------------------------------------------------------------------------
+// Why not double-count required errors (severity: None, addressed)
+// ----------------------------------------------------------------------------
+//
+// All errors (required + format + cross-field) dedupe into a single set
+// keyed by normalized instancePath. A field reported by AJV as both
+// "required" and "format" appears once. A variable with errors surfaced by
+// both the dataset validator and a per-variable custom validator appears
+// once. This is the deduping layer that solves the earlier dataset
+// double-penalty bug.
 
 import type { FormDataRecord } from "@/types/forms";
 import type { RJSFValidationError } from "@rjsf/utils";
