@@ -6,13 +6,14 @@ import {
 	IconInfoCircle,
 } from "@tabler/icons-react";
 import { Box, Group, Text } from "@mantine/core";
+import type { ReactNode } from "react";
 
 type CalloutVariant = "who" | "important" | "tip";
 
 interface CalloutBoxProps {
 	variant: CalloutVariant;
 	title?: string;
-	children: React.ReactNode;
+	children: ReactNode;
 	className?: string;
 }
 
@@ -82,7 +83,11 @@ export default function CalloutBox({
 							{title}
 						</Text>
 					)}
-					<Text size="sm" style={{ color: styles.textColor, lineHeight: 1.6 }}>
+					<Text
+						component="div"
+						size="sm"
+						style={{ color: styles.textColor, lineHeight: 1.6 }}
+					>
 						{children}
 					</Text>
 				</Box>

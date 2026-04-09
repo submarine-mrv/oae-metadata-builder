@@ -1,11 +1,12 @@
 "use client";
+import type { ReactNode } from "react";
 import { Paper, Box, Title, Text, Flex } from "@mantine/core";
 
 interface StepCardProps {
 	stepNumber: string;
 	title: string;
 	description: string;
-	children?: React.ReactNode;
+	children?: ReactNode;
 }
 
 export default function StepCard({

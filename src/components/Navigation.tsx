@@ -7,7 +7,6 @@ import {
 	Switch,
 	SegmentedControl,
 	ActionIcon,
-	Tooltip,
 	Text,
 	Image,
 	Box,
@@ -164,7 +163,6 @@ export default function Navigation() {
 								{ value: "project", label: "Project" },
 								{ value: "experiment", label: "Experiments" },
 								{ value: "dataset", label: "Datasets" },
-								{ value: "how-to", label: "How to Use" },
 							]}
 							size="md"
 							radius="md"
@@ -228,17 +226,17 @@ export default function Navigation() {
 									</>
 								)}
 								<Menu.Item
+									leftSection={<IconHelp size={16} />}
+									onClick={() => router.push("/how-to")}
+								>
+									How-to Guide
+								</Menu.Item>
+								<Menu.Item
 									leftSection={<IconInfoCircle size={16} />}
 									onClick={() => router.push("/about")}
 								>
 									About
 								</Menu.Item>
-								{/*<Menu.Item*/}
-								{/*  leftSection={<IconHelp size={16} />}*/}
-								{/*  onClick={() => router.push("/how-to")}*/}
-								{/*>*/}
-								{/*  How-to Guide*/}
-								{/*</Menu.Item>*/}
 								{/* JSON Preview toggle — desktop only (sidebar is hidden on mobile) */}
 								{!isMobile && (
 									<>
@@ -278,7 +276,6 @@ export default function Navigation() {
 							{ value: "project", label: "Project" },
 							{ value: "experiment", label: "Experiments" },
 							{ value: "dataset", label: "Datasets" },
-							{ value: "how-to", label: "How to Use" },
 						]}
 						size="xs"
 						radius="md"

@@ -51,3 +51,5 @@ CLAUDE.md
 test-results/
 playwright-report/
 .roborev.toml
+
+.vscode
