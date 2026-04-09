@@ -39,7 +39,8 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     value: value as string | undefined,
     onChange,
     onBlur,
-    onFocus
+    onFocus,
+    hasError: !!externalError
   });
 
   return (
