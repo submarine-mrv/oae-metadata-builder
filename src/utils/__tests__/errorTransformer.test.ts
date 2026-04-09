@@ -48,18 +48,24 @@ describe("transformFormErrors", () => {
     });
   });
 
-  it("should not transform unrelated errors", () => {
+  it("should normalize generic required errors to 'Field is required'", () => {
+    // RJSF's title interpolation for required errors is unreliable with
+    // $ref'd nested classes that share property names. We normalize all
+    // required errors to a generic clean message; the field label or
+    // top-list path provides context.
     const errors = [
       {
         property: ".project_id",
         name: "required",
-        message: "is a required property"
+        message: "must have required property 'project_id'"
       }
     ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
 
-    expect(result[0]).toEqual(errors[0]);
+    expect(result[0].message).toBe("Field is required");
+    expect(result[0].name).toBe("required");
+    expect(result[0].property).toBe(".project_id");
   });
 
   it("should handle empty error array", () => {
@@ -89,6 +95,7 @@ describe("transformFormErrors", () => {
     expect(result).toHaveLength(3);
     expect(result[0].message).toBe(MESSAGES.validation.temporalCoveragePattern);
     expect(result[1].message).toBe(MESSAGES.validation.spatialCoverage);
-    expect(result[2]).toEqual(errors[2]);
+    // Generic required errors get normalized to "Field is required"
+    expect(result[2].message).toBe("Field is required");
   });
 });

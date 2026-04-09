@@ -74,11 +74,17 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
   label,
   placeholder,
   schema,
-  uiSchema
+  uiSchema,
+  rawErrors
 }) => {
   const [dateTime, setDateTime] = React.useState(parseFromIso(value as string));
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [touched, setTouched] = React.useState(false);
+  // "Late to blame, eager to forgive":
+  //   - No error showing → keystrokes update local state only; emit on blur.
+  //   - Error showing → keystrokes emit live so the correction clears the
+  //     error as soon as the value becomes valid.
+  const hasError = !!(rawErrors && rawErrors.length > 0);
 
   const description = uiSchema?.["ui:description"] || schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
@@ -90,6 +96,9 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
 
   const handleChange = (newValue: string) => {
     setDateTime(newValue);
+    if (hasError) {
+      onChange(parseToIso(newValue));
+    }
   };
 
   const handleBlur = () => {
@@ -142,7 +151,9 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
         error={
           touched && dateTime && !validateDateTime(dateTime)
             ? `Invalid datetime format (use ${DATETIME_FORMAT})`
-            : undefined
+            : rawErrors && rawErrors.length > 0
+              ? rawErrors[0]
+              : undefined
         }
         rightSection={
           <DateTimePickerPopover

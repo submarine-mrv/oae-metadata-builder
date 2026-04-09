@@ -1,14 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Container,
   Title,
   Text,
   Stack,
-  Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -30,16 +28,18 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
+import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateProject } from "@/utils/validation";
-import { exportProject } from "@/utils/exportImport";
-import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { projectCustomValidate } from "@/utils/customValidators";
+import { isFormEmpty } from "@/utils/formDataCleanup";
+import { useFormValidation } from "@/hooks/useFormValidation";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -53,14 +53,43 @@ export default function ProjectPage() {
   const {
     state,
     updateProjectData,
-    setActiveTab
+    setActiveTab,
+    setProjectValidation
   } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
-  const download = useSingleItemDownload({
-    validate: () => validateProject(state.projectData),
-    export: () => exportProject(state.projectData)
+  // Source of truth for badge counts: run AJV via validateProject, memoized
+  // on form data. Filter by err.name to split missing-required from others.
+  const validationResult = useMemo(
+    () => validateProject(state.projectData),
+    [state.projectData]
+  );
+  const missingRequired = useMemo(
+    () => validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult]
+  );
+  const otherErrors = validationResult.errors.length - missingRequired;
+  const isEmpty = useMemo(() => isFormEmpty(state.projectData), [state.projectData]);
+
+  const validation = useFormValidation({
+    missingRequired,
+    otherErrors,
+    isEmpty,
+    onStatusChange: setProjectValidation
   });
+
+  // Hide required-field errors from inline display unless the user has
+  // explicitly clicked the badge to reveal the full error list. Required
+  // fields are obvious from the asterisks — non-required errors (format,
+  // pattern, cross-field) still surface immediately on blur.
+  const filteredTransformErrors = useMemo(() => {
+    return (errors: any[]) => {
+      const filtered = validation.showErrorList
+        ? errors
+        : errors.filter((e) => e.name !== "required");
+      return transformFormErrors(filtered);
+    };
+  }, [validation.showErrorList]);
 
   useEffect(() => {
     setActiveTab("project");
@@ -75,62 +104,10 @@ export default function ProjectPage() {
     );
   }
 
-  const customValidate = (data: any, errors: any) => {
-    const t = data?.temporal_coverage as string | undefined;
-    if (!t) errors?.temporal_coverage?.addError("Start date is required.");
-    else {
-      const [start, end] = t.split("/");
-      if (start && end && end !== "..") {
-        const s = +new Date(start),
-          e = +new Date(end);
-        if (Number.isFinite(s) && Number.isFinite(e) && e < s) {
-          errors?.temporal_coverage?.addError("End date must be ≥ start date.");
-        }
-      }
-    }
-
-    // Validate vertical coverage depths
-    const vc = data?.vertical_coverage;
-    if (vc) {
-      const minDepth = vc.min_depth_in_m;
-      const maxDepth = vc.max_depth_in_m;
-
-      if (typeof maxDepth === "number" && maxDepth > 0) {
-        errors?.vertical_coverage?.max_depth_in_m?.addError(
-          "Maximum depth must be 0 or negative (below sea surface)."
-        );
-      }
-
-      if (
-        typeof minDepth === "number" &&
-        typeof maxDepth === "number" &&
-        minDepth < maxDepth
-      ) {
-        errors?.vertical_coverage?.min_depth_in_m?.addError(
-          "Minimum depth must be greater than or equal to maximum depth."
-        );
-      }
-
-      const minHeight = vc.min_height_in_m;
-      const maxHeight = vc.max_height_in_m;
-      if (
-        typeof minHeight === "number" &&
-        typeof maxHeight === "number" &&
-        minHeight > maxHeight
-      ) {
-        errors?.vertical_coverage?.min_height_in_m?.addError(
-          "Minimum height must be less than or equal to maximum height."
-        );
-      }
-    }
-
-    return errors;
-  };
-
   return (
     <AppLayout noScroll>
       <div
-        ref={download.scrollContainerRef}
+
         style={{
           flex: 1,
           overflow: "auto"
@@ -138,8 +115,14 @@ export default function ProjectPage() {
       >
         <Container size="md" py="lg">
           <Stack gap="sm">
-            <Group justify="space-between" align="center">
+            <Group align="center" gap="md">
               <Title order={2}>Project Metadata</Title>
+              <ValidationButton
+                badgeState={validation.badgeState}
+                missingRequired={validation.missingRequired}
+                otherErrors={validation.otherErrors}
+                onClick={validation.handleClick}
+              />
             </Group>
             <Text c="dimmed">
               Create standardized metadata for your Ocean Alkalinity
@@ -149,14 +132,19 @@ export default function ProjectPage() {
           </Stack>
 
           <Form
-            ref={download.formRef}
+            ref={validation.formRef}
             schema={schema}
             uiSchema={uiSchema}
             formData={state.projectData}
-            onChange={(e) => updateProjectData(e.formData)}
+            onChange={(e) => {
+              updateProjectData(e.formData);
+            }}
             validator={validator}
-            customValidate={customValidate}
-            transformErrors={transformFormErrors}
+            customValidate={projectCustomValidate}
+            transformErrors={filteredTransformErrors}
+            liveValidate
+            noHtml5Validate
+            formContext={{ onCloseErrorList: validation.closeErrorList }}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
@@ -174,6 +162,7 @@ export default function ProjectPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              FieldTemplate: CustomFieldTemplate,
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
@@ -190,32 +179,12 @@ export default function ProjectPage() {
               SpatialCoverageMiniMap: SpatialCoverageField,
               ExternalProjectField: ExternalProjectField
             }}
-            showErrorList={download.showErrorList ? "top" : false}
+            showErrorList={validation.showErrorList ? "top" : false}
           />
-
-          {/* Download button - bypasses RJSF validation */}
-          <Group justify="flex-end" mt="xl">
-            <Button
-              leftSection={<IconDownload size={18} />}
-              onClick={download.handleDownloadClick}
-            >
-              Download Project Metadata
-            </Button>
-          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={state.projectData} />
-
-      <SingleItemDownloadModal
-        opened={download.showModal}
-        onClose={download.closeModal}
-        onDownload={download.handleDownload}
-        title="Download Project Metadata"
-        errorCount={download.errorCount}
-        onGoBack={download.handleGoBack}
-        onExitTransitionEnd={download.handleModalExitComplete}
-      />
     </AppLayout>
   );
 }

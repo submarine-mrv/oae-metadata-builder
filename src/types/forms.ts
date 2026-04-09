@@ -142,6 +142,12 @@ export interface DatasetState {
 /**
  * Main application state
  */
+export interface ValidationStatus {
+  project: boolean | null;
+  experiments: Record<number, boolean | null>;
+  datasets: Record<number, boolean | null>;
+}
+
 export interface AppFormState {
   hasProject: boolean;
   projectData: ProjectFormData;
@@ -154,6 +160,7 @@ export interface AppFormState {
   nextDatasetId: number;
   triggerValidation: boolean;
   showJsonPreview: boolean;
+  validationStatus: ValidationStatus;
 }
 
 // =============================================================================

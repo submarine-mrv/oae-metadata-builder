@@ -8,8 +8,14 @@ export const textAreaWidget = {
   "ui:descriptionModal": true
 };
 
+// Border parts are exported individually so other components (e.g. the
+// CustomFieldTemplate that turns this border red on validation errors)
+// can recreate the same shorthand without drifting if width/style change.
+export const NESTED_ITEM_BORDER_WIDTH = "1px";
+export const NESTED_ITEM_BORDER_STYLE = "solid";
+
 export const nestedItemStyle = {
-  border: "1px solid var(--brand-twilight)",
+  border: `${NESTED_ITEM_BORDER_WIDTH} ${NESTED_ITEM_BORDER_STYLE} var(--brand-twilight)`,
   borderRadius: "5px",
   padding: "16px",
   margin: "8px 0",

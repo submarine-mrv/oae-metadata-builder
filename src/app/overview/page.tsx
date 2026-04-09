@@ -20,7 +20,8 @@ import {
   IconFlask,
   IconDatabase,
   IconTrash,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconCircleCheck
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -36,8 +37,9 @@ export default function OverviewPage() {
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
-    getProjectCompletionPercentage,
-    getExperimentCompletionPercentage,
+    getProjectStatus,
+    getExperimentStatus,
+    getDatasetStatus,
     addDataset,
     setActiveDataset,
     deleteDataset
@@ -48,7 +50,8 @@ export default function OverviewPage() {
     setActiveTab("overview");
   }, [setActiveTab]);
 
-  const projectCompletion = getProjectCompletionPercentage();
+  const projectStatus = getProjectStatus();
+  const projectCompletion = projectStatus.percentage;
 
   const handleCreateProject = () => {
     createProject();
@@ -244,7 +247,17 @@ export default function OverviewPage() {
                         style={{ flexShrink: 0, marginTop: 2 }}
                       />
                       <div style={{ minWidth: 0 }}>
-                        <Text fw={600}>Project Metadata</Text>
+                        <Group gap={6} wrap="nowrap" align="center">
+                          <Text fw={600}>Project Metadata</Text>
+                          {projectStatus.isValid && (
+                            <IconCircleCheck
+                              size={18}
+                              color="var(--mantine-color-green-6)"
+                              aria-label="Validation passed"
+                              style={{ flexShrink: 0 }}
+                            />
+                          )}
+                        </Group>
                         <Text
                           size="sm"
                           c="dimmed"
@@ -312,9 +325,8 @@ export default function OverviewPage() {
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                 {state.experiments.map((experiment) => {
-                  const completion = getExperimentCompletionPercentage(
-                    experiment.id
-                  );
+                  const status = getExperimentStatus(experiment.id);
+                  const completion = status.percentage;
                   return (
                     <Card
                       key={experiment.id}
@@ -353,6 +365,14 @@ export default function OverviewPage() {
                             >
                               {experiment.name}
                             </Text>
+                            {status.isValid && (
+                              <IconCircleCheck
+                                size={18}
+                                color="var(--mantine-color-green-6)"
+                                aria-label="Validation passed"
+                                style={{ flexShrink: 0, marginTop: 2 }}
+                              />
+                            )}
                           </Group>
                           <Button
                             variant="subtle"
@@ -433,6 +453,8 @@ export default function OverviewPage() {
                   const variableCount =
                     (dataset.formData.variables?.length as number) || 0;
                   const linkedExperiment = getLinkedExperiment(dataset);
+                  const status = getDatasetStatus(dataset.id);
+                  const completion = status.percentage;
                   return (
                     <Card
                       key={dataset.id}
@@ -471,6 +493,14 @@ export default function OverviewPage() {
                             >
                               {dataset.name}
                             </Text>
+                            {status.isValid && (
+                              <IconCircleCheck
+                                size={18}
+                                color="var(--mantine-color-green-6)"
+                                aria-label="Validation passed"
+                                style={{ flexShrink: 0, marginTop: 2 }}
+                              />
+                            )}
                           </Group>
                           <Button
                             variant="subtle"
@@ -513,6 +543,24 @@ export default function OverviewPage() {
                           {variableCount} variable
                           {variableCount !== 1 ? "s" : ""} defined
                         </Text>
+
+                        <Stack gap="xs">
+                          <Group justify="space-between">
+                            <Text size="xs">Progress</Text>
+                            <Badge
+                              size="xs"
+                              color={getCompletionColor(completion)}
+                            >
+                              {completion}%
+                            </Badge>
+                          </Group>
+                          <Progress
+                            value={completion}
+                            size="md"
+                            radius="md"
+                            color={getCompletionColor(completion)}
+                          />
+                        </Stack>
 
                         <Text size="xs" c="dimmed">
                           Last updated:{" "}

@@ -5,10 +5,8 @@ import {
   Title,
   Text,
   Stack,
-  Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -29,10 +27,11 @@ import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
+import ValidationButton from "@/components/ValidationButton";
 import FilenamesField from "@/components/FilenamesField";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -42,13 +41,13 @@ import {
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { validateDataset } from "@/utils/validation";
-import { exportSingleDataset } from "@/utils/exportImport";
-import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { useFormValidation } from "@/hooks/useFormValidation";
 import { cleanDatasetFormDataForType } from "@/utils/datasetFields";
 import {
   cleanupConditionalFields,
   type ConditionalFieldPair
 } from "@/utils/conditionalFields";
+import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -114,7 +113,7 @@ function isModelOutputType(datasetType: string | undefined): boolean {
 }
 
 export default function DatasetPage() {
-  const { state, replaceDatasetFormData, getDataset, setActiveTab } =
+  const { state, replaceDatasetFormData, getDataset, setActiveTab, setDatasetValidation } =
     useAppState();
 
   // Dynamic schema/uiSchema switching based on dataset_type
@@ -142,12 +141,41 @@ export default function DatasetPage() {
     }
   }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Use the download hook
   const hasExperiments = state.experiments.length > 0;
-  const download = useSingleItemDownload({
-    validate: () => validateDataset(formData, { hasExperiments }),
-    export: () => exportSingleDataset(state.projectData, formData)
+
+  const onValidationStatusChange = useCallback(
+    (status: boolean | null) => {
+      if (state.activeDatasetId) setDatasetValidation(state.activeDatasetId, status);
+    },
+    [state.activeDatasetId, setDatasetValidation]
+  );
+
+  // AJV validation result, memoized on form data. Handles the polymorphic
+  // variable workaround internally via validateDataset().
+  const validationResult = useMemo(
+    () => validateDataset(formData, { hasExperiments }),
+    [formData, hasExperiments]
+  );
+  const missingRequired = useMemo(
+    () =>
+      validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult]
+  );
+  const otherErrors = validationResult.errors.length - missingRequired;
+  const isEmpty = useMemo(() => isFormEmpty(formData), [formData]);
+
+  const validation = useFormValidation({
+    missingRequired,
+    otherErrors,
+    isEmpty,
+    onStatusChange: onValidationStatusChange
   });
+
+  // Reset error-list visibility when switching active dataset so the
+  // new one doesn't inherit the previous one's open/closed state.
+  useEffect(() => {
+    validation.closeErrorList();
+  }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ref for formData so transformErrors can access latest data without
   // being recreated on every keystroke
@@ -173,7 +201,12 @@ export default function DatasetPage() {
   //    validation due to polymorphism workaround — see oae-form-99i)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
-      let transformed = transformFormErrors(errors);
+      // Hide required-field errors from inline display unless the user has
+      // explicitly clicked the badge to reveal the full error list.
+      const preFiltered = validation.showErrorList
+        ? errors
+        : errors.filter((e) => e.name !== "required");
+      let transformed = transformFormErrors(preFiltered);
       if (!hasExperiments) {
         transformed = transformed.filter(
           (e) =>
@@ -201,7 +234,7 @@ export default function DatasetPage() {
 
       return transformed;
     };
-  }, [hasExperiments]);
+  }, [hasExperiments, validation.showErrorList]);
 
   useEffect(() => {
     setActiveTab("dataset");
@@ -227,6 +260,7 @@ export default function DatasetPage() {
     if (isModelOutputType(newData.dataset_type)) {
       newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
     }
+    newData = cleanFormData(newData);
 
     // Update local state first (form sees cleaned data immediately),
     // then sync to context
@@ -247,7 +281,7 @@ export default function DatasetPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={download.scrollContainerRef}
+
         style={{
           flex: 1,
           overflow: "auto"
@@ -255,8 +289,14 @@ export default function DatasetPage() {
       >
         <Container size="md" py="lg">
           <Stack gap="sm">
-            <Group justify="space-between" align="center">
+            <Group align="center" gap="md">
               <Title order={2}>Dataset Metadata: {currentDataset.name}</Title>
+              <ValidationButton
+                badgeState={validation.badgeState}
+                missingRequired={validation.missingRequired}
+                otherErrors={validation.otherErrors}
+                onClick={validation.handleClick}
+              />
             </Group>
             <Text c="dimmed">
               Define metadata for your dataset including data files, platform
@@ -265,7 +305,7 @@ export default function DatasetPage() {
           </Stack>
 
           <Form
-            ref={download.formRef}
+            ref={validation.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}
             formData={formData}
@@ -274,7 +314,9 @@ export default function DatasetPage() {
             transformErrors={customTransformErrors}
             omitExtraData={false}
             liveOmit={false}
-            noHtml5Validate={false}
+            liveValidate
+            noHtml5Validate
+            formContext={{ onCloseErrorList: validation.closeErrorList }}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",
@@ -294,6 +336,7 @@ export default function DatasetPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              FieldTemplate: CustomFieldTemplate,
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
@@ -306,32 +349,12 @@ export default function DatasetPage() {
                 SubmitButton: HiddenSubmitButton
               }
             }}
-            showErrorList={download.showErrorList ? "top" : false}
+            showErrorList={validation.showErrorList ? "top" : false}
           />
-
-          {/* Download button - bypasses RJSF validation */}
-          <Group justify="flex-end" mt="xl">
-            <Button
-              leftSection={<IconDownload size={18} />}
-              onClick={download.handleDownloadClick}
-            >
-              Download Dataset Metadata
-            </Button>
-          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={formData} />
-
-      <SingleItemDownloadModal
-        opened={download.showModal}
-        onClose={download.closeModal}
-        onDownload={download.handleDownload}
-        title="Download Dataset Metadata"
-        errorCount={download.errorCount}
-        onGoBack={download.handleGoBack}
-        onExitTransitionEnd={download.handleModalExitComplete}
-      />
     </AppLayout>
   );
 }

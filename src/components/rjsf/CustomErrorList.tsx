@@ -6,6 +6,7 @@ import {
   StrictRJSFSchema
 } from "@rjsf/utils";
 import {
+  ActionIcon,
   Paper,
   Title,
   Text,
@@ -18,7 +19,8 @@ import {
 import {
   IconAlertCircle,
   IconChevronDown,
-  IconChevronUp
+  IconChevronUp,
+  IconX
 } from "@tabler/icons-react";
 import { useState } from "react";
 
@@ -44,17 +46,12 @@ function formatPropertyPath(property: string | undefined): string {
 }
 
 /**
- * Format an error into a user-friendly message with context
+ * Format an error into a user-friendly message with context.
+ * Messages are already normalized by transformFormErrors before reaching here.
  */
 function formatError(error: RJSFValidationError): string {
   const path = formatPropertyPath(error.property);
-  let message = error.message || "Field is invalid";
-
-  // Clean up redundant "must have required property 'X'" messages
-  if (message.startsWith("must have required property")) {
-    message = "Field is required";
-  }
-
+  const message = error.message || "Field is invalid";
   if (path) {
     return `${path} ${message}`;
   }
@@ -66,7 +63,7 @@ export default function CustomErrorList<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any
->({ errors }: ErrorListProps<T, S, F>) {
+>({ errors, registry }: ErrorListProps<T, S, F>) {
   const [showDevView, setShowDevView] = useState(false);
 
   if (!errors || errors.length === 0) {
@@ -75,6 +72,10 @@ export default function CustomErrorList<
 
   const errorCount = errors.length;
   const errorText = errorCount === 1 ? "error" : "errors";
+
+  // Read the close handler from formContext (set by the page)
+  const onClose = (registry?.formContext as { onCloseErrorList?: () => void } | undefined)
+    ?.onCloseErrorList;
 
   return (
     <Paper
@@ -89,7 +90,8 @@ export default function CustomErrorList<
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
+            gap: "8px"
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -98,21 +100,34 @@ export default function CustomErrorList<
               {errorCount} {errorText} found
             </Title>
           </div>
-          <Button
-            variant="subtle"
-            size="xs"
-            color="gray"
-            leftSection={
-              showDevView ? (
-                <IconChevronUp size={14} />
-              ) : (
-                <IconChevronDown size={14} />
-              )
-            }
-            onClick={() => setShowDevView(!showDevView)}
-          >
-            View Raw Errors
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <Button
+              variant="subtle"
+              size="xs"
+              color="gray"
+              leftSection={
+                showDevView ? (
+                  <IconChevronUp size={14} />
+                ) : (
+                  <IconChevronDown size={14} />
+                )
+              }
+              onClick={() => setShowDevView(!showDevView)}
+            >
+              View Raw Errors
+            </Button>
+            {onClose && (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="md"
+                onClick={onClose}
+                aria-label="Close error list"
+              >
+                <IconX size={16} />
+              </ActionIcon>
+            )}
+          </div>
         </div>
 
         <List size="sm" c="red" spacing="xs">

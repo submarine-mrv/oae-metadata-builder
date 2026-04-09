@@ -1,14 +1,12 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Container,
   Title,
   Text,
   Stack,
-  Button,
   Group
 } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import Form from "@rjsf/mantine";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
@@ -26,6 +24,7 @@ import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
 import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
 import PlaceholderField from "@/components/rjsf/PlaceholderField";
@@ -36,11 +35,10 @@ import StringListField from "@/components/rjsf/StringListField";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import SingleItemDownloadModal from "@/components/SingleItemDownloadModal";
+import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
 import { validateExperiment } from "@/utils/validation";
-import { exportSingleExperiment } from "@/utils/exportImport";
-import { useSingleItemDownload } from "@/hooks/useSingleItemDownload";
+import { useFormValidation } from "@/hooks/useFormValidation";
 import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
 import modelUiSchema from "./modelUiSchema";
 import { cleanFormDataForType, getExperimentSchemaType, enforceModelExclusivity } from "@/utils/experimentFields";
@@ -58,6 +56,8 @@ import {
   getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
 import { transformFormErrors } from "@/utils/errorTransformer";
+import { experimentCustomValidate } from "@/utils/customValidators";
+import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -98,7 +98,7 @@ const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
 ];
 
 export default function ExperimentPage() {
-  const { state, updateExperiment, setActiveTab } =
+  const { state, replaceExperimentFormData, setActiveTab, setExperimentValidation } =
     useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
@@ -108,12 +108,44 @@ export default function ExperimentPage() {
 
   const activeExperimentId = state.activeExperimentId;
 
-  // Use the download hook - note: formData is used in callbacks
-  // so we use arrow functions to capture current formData
-  const download = useSingleItemDownload({
-    validate: () => validateExperiment(formData),
-    export: () => exportSingleExperiment(state.projectData, formData)
+  const onValidationStatusChange = useCallback(
+    (status: boolean | null) => {
+      if (activeExperimentId) setExperimentValidation(activeExperimentId, status);
+    },
+    [activeExperimentId, setExperimentValidation]
+  );
+
+  // AJV validation result, memoized on form data. Split by err.name.
+  const validationResult = useMemo(
+    () => validateExperiment(formData),
+    [formData]
+  );
+  const missingRequired = useMemo(
+    () => validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult]
+  );
+  const otherErrors = validationResult.errors.length - missingRequired;
+  const isEmpty = useMemo(() => isFormEmpty(formData), [formData]);
+
+  const validation = useFormValidation({
+    missingRequired,
+    otherErrors,
+    isEmpty,
+    onStatusChange: onValidationStatusChange
   });
+
+  // Hide required-field errors from inline display unless the user has
+  // explicitly clicked the badge to reveal the full error list. Required
+  // fields are obvious from the asterisks — non-required errors (format,
+  // pattern, cross-field) still surface immediately on blur.
+  const filteredTransformErrors = useMemo(() => {
+    return (errors: any[]) => {
+      const filtered = validation.showErrorList
+        ? errors
+        : errors.filter((e) => e.name !== "required");
+      return transformFormErrors(filtered);
+    };
+  }, [validation.showErrorList]);
 
   const experiment = activeExperimentId
     ? state.experiments.find((exp) => exp.id === activeExperimentId)
@@ -127,6 +159,9 @@ export default function ExperimentPage() {
   useEffect(() => {
     // Reset initial load flag when switching experiments
     setIsInitialLoad(true);
+    // Reset error-list visibility so the new entity doesn't inherit
+    // the previous one's open/closed state.
+    validation.closeErrorList();
 
     if (experiment) {
       // Use experiment's formData directly - project_id is managed by linking system
@@ -188,53 +223,18 @@ export default function ExperimentPage() {
       // This prevents orphaned fields from rendering as "additional properties"
       newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
       newData = cleanupNestedConditionalFields(newData, MODEL_NESTED_CONDITIONAL_FIELDS);
+      newData = cleanFormData(newData);
 
       setFormData(newData);
       if (activeExperimentId) {
-        updateExperiment(activeExperimentId, newData);
+        // Full replacement (not merge) so cleared fields actually take
+        // effect — updateExperiment merges into existing formData which
+        // would silently re-introduce removed keys.
+        replaceExperimentFormData(activeExperimentId, newData);
       }
     },
-    [isInitialLoad, formData, activeExperimentId, updateExperiment]
+    [isInitialLoad, formData, activeExperimentId, replaceExperimentFormData]
   );
-
-  const customValidate = (data: any, errors: any) => {
-    // Validate vertical coverage depths
-    const vc = data?.vertical_coverage;
-    if (vc) {
-      const minDepth = vc.min_depth_in_m;
-      const maxDepth = vc.max_depth_in_m;
-
-      if (typeof maxDepth === "number" && maxDepth > 0) {
-        errors?.vertical_coverage?.max_depth_in_m?.addError(
-          "Maximum depth must be 0 or negative (below sea surface)."
-        );
-      }
-
-      if (
-        typeof minDepth === "number" &&
-        typeof maxDepth === "number" &&
-        minDepth < maxDepth
-      ) {
-        errors?.vertical_coverage?.min_depth_in_m?.addError(
-          "Minimum depth must be greater than or equal to maximum depth."
-        );
-      }
-
-      const minHeight = vc.min_height_in_m;
-      const maxHeight = vc.max_height_in_m;
-      if (
-        typeof minHeight === "number" &&
-        typeof maxHeight === "number" &&
-        minHeight > maxHeight
-      ) {
-        errors?.vertical_coverage?.min_height_in_m?.addError(
-          "Minimum height must be less than or equal to maximum height."
-        );
-      }
-    }
-
-    return errors;
-  };
 
   if (!experiment) {
     return (
@@ -248,7 +248,7 @@ export default function ExperimentPage() {
   return (
     <AppLayout noScroll>
       <div
-        ref={download.scrollContainerRef}
+
         style={{
           flex: 1,
           overflow: "auto"
@@ -258,6 +258,12 @@ export default function ExperimentPage() {
           <Stack gap="sm" mb="md">
             <Group align="center" gap="md">
               <Title order={2}>{experiment.name || "Experiment"}</Title>
+              <ValidationButton
+                badgeState={validation.badgeState}
+                missingRequired={validation.missingRequired}
+                otherErrors={validation.otherErrors}
+                onClick={validation.handleClick}
+              />
             </Group>
             <Text c="dimmed">
               Edit experiment metadata. Fields marked with an asterisk (*) are
@@ -266,14 +272,17 @@ export default function ExperimentPage() {
           </Stack>
 
           <Form
-            ref={download.formRef}
+            ref={validation.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}
             formData={formData}
             onChange={handleFormChange}
             validator={validator}
-            customValidate={customValidate}
-            transformErrors={transformFormErrors}
+            customValidate={experimentCustomValidate}
+            transformErrors={filteredTransformErrors}
+            liveValidate
+            noHtml5Validate
+            formContext={{ onCloseErrorList: validation.closeErrorList }}
             omitExtraData={false}
             liveOmit={false}
             experimental_defaultFormStateBehavior={{
@@ -292,6 +301,7 @@ export default function ExperimentPage() {
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
+              FieldTemplate: CustomFieldTemplate,
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
@@ -311,32 +321,12 @@ export default function ExperimentPage() {
               DosingConcentrationField: DosingConcentrationField,
               StringListField: StringListField
             }}
-            showErrorList={download.showErrorList ? "top" : false}
+            showErrorList={validation.showErrorList ? "top" : false}
           />
-
-          {/* Download button - bypasses RJSF validation */}
-          <Group justify="flex-end" mt="xl">
-            <Button
-              leftSection={<IconDownload size={18} />}
-              onClick={download.handleDownloadClick}
-            >
-              Download Experiment Metadata
-            </Button>
-          </Group>
         </Container>
       </div>
 
       <JsonPreviewSidebar data={formData} />
-
-      <SingleItemDownloadModal
-        opened={download.showModal}
-        onClose={download.closeModal}
-        onDownload={download.handleDownload}
-        title="Download Experiment Metadata"
-        errorCount={download.errorCount}
-        onGoBack={download.handleGoBack}
-        onExitTransitionEnd={download.handleModalExitComplete}
-      />
     </AppLayout>
   );
 }

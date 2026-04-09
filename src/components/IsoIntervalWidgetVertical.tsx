@@ -21,14 +21,16 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
   onChange,
   onBlur,
   onFocus,
-  label
+  label,
+  rawErrors
 }) => {
   const interval = useIsoInterval({
     id,
     value: value as string | undefined,
     onChange,
     onBlur,
-    onFocus
+    onFocus,
+    hasError: !!(rawErrors && rawErrors.length > 0)
   });
 
   return (

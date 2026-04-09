@@ -13,11 +13,14 @@ import {
 } from "./schemaViews";
 import { validateDatasetWithVariables } from "./datasetValidation";
 import { getExperimentSchemaType } from "./experimentFields";
+import {
+  experimentCustomValidate,
+  projectCustomValidate
+} from "./customValidators";
 import type {
   ProjectFormData,
   ExperimentFormData,
-  DatasetFormData,
-  ExperimentState
+  DatasetFormData
 } from "@/types/forms";
 
 // Create validator with Draft 2019-09 support
@@ -29,13 +32,53 @@ export interface ValidationResult {
   errorCount: number;
 }
 
+// =============================================================================
+// Schema Selection Helpers
+// =============================================================================
+// Exported so the completion calculator uses the same schema the validator
+// sees — keeps them in sync automatically.
+
+/**
+ * Returns the experiment schema that matches the given form data's
+ * experiment_types selection.
+ */
+export function getExperimentSchemaForData(
+  experimentData: ExperimentFormData
+): ReturnType<typeof getInSituExperimentSchema> {
+  const schemaType = getExperimentSchemaType(experimentData.experiment_types ?? []);
+  if (schemaType === "intervention") return getInterventionSchema();
+  if (schemaType === "tracer_study") return getTracerSchema();
+  if (schemaType === "intervention_with_tracer")
+    return getInterventionWithTracerSchema();
+  if (schemaType === "model") return getModelSchema();
+  return getInSituExperimentSchema();
+}
+
+/**
+ * Returns the dataset schema that matches the given form data's
+ * dataset_type selection.
+ */
+export function getDatasetSchemaForData(
+  datasetData: DatasetFormData
+): ReturnType<typeof getFieldDatasetSchema> {
+  return datasetData.dataset_type === "model_output"
+    ? getModelOutputDatasetSchema()
+    : getFieldDatasetSchema();
+}
+
 /**
  * Validates project data against the project schema
  */
 export function validateProject(projectData: ProjectFormData): ValidationResult {
   try {
     const schema = getProjectSchema();
-    const result = validator.validateFormData(projectData, schema);
+    // Pass the same customValidate the form uses so badge counts include
+    // cross-field rules (vertical coverage, temporal ordering).
+    const result = validator.validateFormData(
+      projectData,
+      schema,
+      projectCustomValidate
+    );
 
     return {
       isValid: result.errors.length === 0,
@@ -58,24 +101,15 @@ export function validateProject(projectData: ProjectFormData): ValidationResult 
  */
 export function validateExperiment(experimentData: ExperimentFormData): ValidationResult {
   try {
-    // Select the appropriate schema based on experiment_types (now multivalued)
-    // See docs/experiment-type-multi-select.md for the decision table
-    const schemaType = getExperimentSchemaType(experimentData.experiment_types ?? []);
-    let schema;
+    const schema = getExperimentSchemaForData(experimentData);
 
-    if (schemaType === "intervention") {
-      schema = getInterventionSchema();
-    } else if (schemaType === "tracer_study") {
-      schema = getTracerSchema();
-    } else if (schemaType === "intervention_with_tracer") {
-      schema = getInterventionWithTracerSchema();
-    } else if (schemaType === "model") {
-      schema = getModelSchema();
-    } else {
-      schema = getInSituExperimentSchema();
-    }
-
-    const result = validator.validateFormData(experimentData, schema);
+    // Pass the same customValidate the form uses so badge counts include
+    // cross-field rules (vertical coverage).
+    const result = validator.validateFormData(
+      experimentData,
+      schema,
+      experimentCustomValidate
+    );
 
     return {
       isValid: result.errors.length === 0,
@@ -116,10 +150,7 @@ export function validateDataset(
   options?: ValidateDatasetOptions
 ): ValidationResult {
   try {
-    const datasetType = datasetData.dataset_type;
-    const schema = datasetType === "model_output"
-      ? getModelOutputDatasetSchema()
-      : getFieldDatasetSchema();
+    const schema = getDatasetSchemaForData(datasetData);
     const result = validateDatasetWithVariables(datasetData, schema);
 
     let errors = result.datasetErrors;
@@ -183,38 +214,3 @@ export function validateDataset(
   }
 }
 
-/**
- * Validates all data (project + experiments) before export
- * Returns validation results for both project and experiments
- */
-export function validateAllData(
-  projectData: ProjectFormData,
-  experiments: Array<Pick<ExperimentState, "id" | "name" | "formData">>
-): {
-  projectValidation: ValidationResult;
-  experimentValidations: Map<number, ValidationResult>;
-  isAllValid: boolean;
-} {
-  // Validate project
-  const projectValidation = validateProject(projectData);
-
-  // Validate all experiments
-  const experimentValidations = new Map<number, ValidationResult>();
-
-  for (const exp of experiments) {
-    const validation = validateExperiment(exp.formData);
-    experimentValidations.set(exp.id, validation);
-  }
-
-  // Check if everything is valid
-  const allExperimentsValid = Array.from(experimentValidations.values()).every(
-    (v) => v.isValid
-  );
-  const isAllValid = projectValidation.isValid && allExperimentsValid;
-
-  return {
-    projectValidation,
-    experimentValidations,
-    isAllValid
-  };
-}

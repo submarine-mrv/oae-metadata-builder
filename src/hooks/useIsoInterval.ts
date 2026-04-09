@@ -13,6 +13,11 @@ interface UseIsoIntervalProps {
   onChange: (value: string | undefined) => void;
   onBlur?: (id: string, value: string) => void;
   onFocus?: (id: string, value: string) => void;
+  /** True when the parent form is currently showing a validation error
+   *  for this field. While true, keystrokes emit live so corrections
+   *  clear the error immediately. While false, keystrokes are buffered
+   *  locally and only emit on blur, preventing mid-typing error flashes. */
+  hasError?: boolean;
 }
 
 interface UseIsoIntervalReturn {
@@ -43,7 +48,8 @@ export function useIsoInterval({
   value,
   onChange,
   onBlur,
-  onFocus
+  onFocus,
+  hasError = false
 }: UseIsoIntervalProps): UseIsoIntervalReturn {
   const { start, end } = React.useMemo(
     () => parseInterval(value),
@@ -56,7 +62,6 @@ export function useIsoInterval({
   const [endPickerOpen, setEndPickerOpen] = React.useState(false);
   const [startTouched, setStartTouched] = React.useState(false);
   const [endTouched, setEndTouched] = React.useState(false);
-
   React.useEffect(() => {
     setStartDate(start);
     setEndDate(end);
@@ -67,31 +72,39 @@ export function useIsoInterval({
     [onChange]
   );
 
+  // "Late to blame, eager to forgive":
+  //   - No error showing → keystrokes update local state only; emit on blur.
+  //     Prevents red borders from flashing mid-typing.
+  //   - Error showing → keystrokes emit live so the parent re-validates
+  //     and the error clears the moment the input becomes valid.
+  //   - Once valid again, we're back to the quiet mode (hasError=false).
   const handleStartChange = React.useCallback(
-    (value: string) => {
-      setStartDate(value);
-      emit(value, endDate);
+    (v: string) => {
+      setStartDate(v);
+      if (hasError) emit(v, endDate);
     },
-    [emit, endDate]
+    [hasError, emit, endDate]
   );
 
   const handleEndChange = React.useCallback(
-    (value: string) => {
-      setEndDate(value);
-      emit(startDate, value);
+    (v: string) => {
+      setEndDate(v);
+      if (hasError) emit(startDate, v);
     },
-    [emit, startDate]
+    [hasError, emit, startDate]
   );
 
   const handleStartBlur = React.useCallback(() => {
     setStartTouched(true);
+    emit(startDate, endDate);
     onBlur?.(id, startDate);
-  }, [id, startDate, onBlur]);
+  }, [id, startDate, endDate, emit, onBlur]);
 
   const handleEndBlur = React.useCallback(() => {
     setEndTouched(true);
+    emit(startDate, endDate);
     onBlur?.(id, endDate);
-  }, [id, endDate, onBlur]);
+  }, [id, startDate, endDate, emit, onBlur]);
 
   const handleStartFocus = React.useCallback(() => {
     onFocus?.(id, startDate);

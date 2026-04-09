@@ -1,10 +1,11 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback } from "react";
+import { computeCompletion } from "@/utils/completionCalculator";
 import {
-  calculateFormCompletion,
-  calculateProjectCompletion
-} from "@/utils/completionCalculator";
-import { getExperimentSchemaType } from "@/utils/experimentFields";
+  validateProject,
+  validateExperiment,
+  validateDataset
+} from "@/utils/validation";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -12,7 +13,8 @@ import type {
   DatasetFormData,
   DatasetState,
   AppFormState,
-  DatasetLinkingMetadata
+  DatasetLinkingMetadata,
+  ValidationStatus
 } from "@/types/forms";
 import type { DatasetExperimentLinking } from "@/hooks/useImportPreview";
 
@@ -21,6 +23,8 @@ export type ExperimentData = ExperimentState;
 export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
+
+import { cleanFormData } from "@/utils/formDataCleanup";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -88,6 +92,33 @@ function propagateExperimentIdToDatasets(
   });
 }
 
+/**
+ * Null the validationStatus entries for datasets linked to the given
+ * experiment. Used when experiment_id propagates and the linked datasets'
+ * formData changes under them — their previous "passed" validation is
+ * no longer accurate but the hook can't fix it because those datasets
+ * aren't the active entity on this page.
+ */
+function invalidateLinkedDatasetValidation(
+  validationStatus: AppFormState["validationStatus"],
+  datasets: DatasetState[],
+  experimentInternalId: number
+): AppFormState["validationStatus"] {
+  const nextDatasets: Record<number, boolean | null> = {
+    ...validationStatus.datasets
+  };
+  let changed = false;
+  for (const ds of datasets) {
+    if (ds.linking?.linkedExperimentInternalId === experimentInternalId) {
+      if (nextDatasets[ds.id] !== null) {
+        nextDatasets[ds.id] = null;
+        changed = true;
+      }
+    }
+  }
+  return changed ? { ...validationStatus, datasets: nextDatasets } : validationStatus;
+}
+
 interface AppStateContextType {
   state: AppState;
   createProject: () => void;
@@ -95,12 +126,25 @@ interface AppStateContextType {
   updateProjectData: (data: ProjectFormData) => void;
   addExperiment: (name?: string) => number;
   updateExperiment: (id: number, data: Partial<ExperimentFormData> & { name?: string; experiment_types?: string[] }) => void;
+  /**
+   * Full replacement of an experiment's formData. Use this from the
+   * experiment form page where the incoming payload is authoritative —
+   * unlike `updateExperiment` which merges into existing formData and
+   * therefore cannot distinguish "user cleared this field" from "user
+   * didn't touch this field" once `cleanFormData` has stripped the key.
+   */
+  replaceExperimentFormData: (id: number, data: ExperimentFormData) => void;
   deleteExperiment: (id: number) => void;
   setActiveTab: (tab: "overview" | "project" | "experiment" | "dataset") => void;
   setActiveExperiment: (id: number | null) => void;
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
+  getDatasetCompletionPercentage: (id: number) => number;
+  /** Live status (percentage + validity) — one AJV run per call. */
+  getProjectStatus: () => { percentage: number; isValid: boolean; isEmpty: boolean };
+  getExperimentStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
+  getDatasetStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
   importAllData: (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[]) => void;
   /** Import selected data, merging with existing (replaces matching items, adds new ones) */
   importSelectedData: (
@@ -123,6 +167,10 @@ interface AppStateContextType {
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
+  // Validation status
+  setProjectValidation: (status: boolean | null) => void;
+  setExperimentValidation: (id: number, status: boolean | null) => void;
+  setDatasetValidation: (id: number, status: boolean | null) => void;
   // Session persistence
   restoreFullState: (saved: {
     hasProject: boolean;
@@ -150,13 +198,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     nextExperimentId: 1,
     nextDatasetId: 1,
     triggerValidation: false,
-    showJsonPreview: false
+    showJsonPreview: false,
+    validationStatus: { project: null, experiments: {}, datasets: {} }
   });
 
   const createProject = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      hasProject: true
+      hasProject: true,
+      // New project starts unvalidated.
+      validationStatus: { ...prev.validationStatus, project: null }
     }));
   }, []);
 
@@ -171,13 +222,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         hasProject: false,
         projectData: {},
         experiments: newExperiments,
-        datasets: newDatasets
+        datasets: newDatasets,
+        // Project is gone — clear its validation status. Linked entities
+        // had their project_id stripped above, which makes them invalid,
+        // so clear their validation status too.
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       };
     });
   }, []);
 
   const updateProjectData = useCallback((data: ProjectFormData) => {
     setState((prev) => {
+      data = cleanFormData(data);
       const newProjectId = data.project_id;
       const oldProjectId = prev.projectData.project_id;
 
@@ -190,11 +246,28 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ? propagateProjectIdToDatasets(prev.datasets, newProjectId)
         : prev.datasets;
 
+      // Note: we intentionally do NOT reset validationStatus.project here.
+      // The hook's badgeState-transition effect owns project status syncing.
+      // If the edit doesn't change the badge state (e.g. still "passed"),
+      // the previous status is still accurate. If it does change, the hook
+      // fires onStatusChange to update it.
+      //
+      // HOWEVER: when project_id changes, linked experiments and datasets
+      // have their project_id overwritten in their formData. Their
+      // validation status is now stale because their data changed under
+      // them, and the hook can't help because they aren't the active
+      // entity on this page. Null their validation status so the overview
+      // cards no longer show a false-green checkmark.
+      const validationStatus = experimentsNeedUpdate
+        ? { ...prev.validationStatus, experiments: {}, datasets: {} }
+        : prev.validationStatus;
+
       return {
         ...prev,
         projectData: data,
         experiments: newExperiments,
-        datasets: newDatasets
+        datasets: newDatasets,
+        validationStatus
       };
     });
   }, []);
@@ -245,8 +318,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           exp.id === id
             ? {
                 ...exp,
-                formData: { ...exp.formData, ...data } as ExperimentFormData,
-                experiment_types: data.experiment_types || exp.experiment_types,
+                formData: cleanFormData({ ...exp.formData, ...data }) as ExperimentFormData,
+                // Use key-presence semantics: cleanFormData strips empty
+                // arrays so `data.experiment_types` may be undefined when
+                // the user explicitly cleared all types. Falling back via
+                // `||` would silently retain the old value.
+                experiment_types:
+                  "experiment_types" in data
+                    ? data.experiment_types
+                    : exp.experiment_types,
                 name: data.name || exp.name,
                 updatedAt: Date.now()
               }
@@ -262,10 +342,88 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           ? propagateExperimentIdToDatasets(prev.datasets, id, (newExpId as string) || undefined)
           : prev.datasets;
 
+        // Note: we intentionally do NOT reset validationStatus.experiments[id]
+        // here — see updateProjectData for the reasoning.
+        //
+        // But: if experiment_id propagated to linked datasets, their
+        // data changed under them — null their validation status so the
+        // overview cards don't show a false-green checkmark.
+        const validationStatus = expIdChanged
+          ? invalidateLinkedDatasetValidation(
+              prev.validationStatus,
+              prev.datasets,
+              id
+            )
+          : prev.validationStatus;
+
         return {
           ...prev,
           experiments: newExperiments,
-          datasets: newDatasets
+          datasets: newDatasets,
+          validationStatus
+        };
+      });
+    },
+    []
+  );
+
+  /**
+   * Full replacement of an experiment's formData. The incoming `data` is
+   * authoritative — any keys absent from `data` are treated as cleared,
+   * not as "unchanged". Use this from the experiment form page where the
+   * page always has the complete current form state.
+   */
+  const replaceExperimentFormData = useCallback(
+    (id: number, data: ExperimentFormData) => {
+      setState((prev) => {
+        const cleaned = cleanFormData(data);
+        const existingExp = prev.experiments.find((exp) => exp.id === id);
+        const oldExpId = existingExp?.formData?.experiment_id;
+        const newExpId = cleaned.experiment_id;
+
+        const newExperiments = prev.experiments.map((exp) =>
+          exp.id === id
+            ? {
+                ...exp,
+                formData: cleaned as ExperimentFormData,
+                // Derive top-level experiment_types from the cleaned
+                // formData so a cleared array actually takes effect.
+                experiment_types: cleaned.experiment_types as
+                  | string[]
+                  | undefined,
+                name: (cleaned.name as string) || exp.name,
+                updatedAt: Date.now()
+              }
+            : exp
+        );
+
+        // If experiment_id changed (including clear), propagate to
+        // linked datasets — mirrors updateExperiment's behavior.
+        const expIdChanged = newExpId !== oldExpId;
+        const newDatasets = expIdChanged
+          ? propagateExperimentIdToDatasets(
+              prev.datasets,
+              id,
+              (newExpId as string) || undefined
+            )
+          : prev.datasets;
+
+        // Same stale-validation protection as updateExperiment: if
+        // experiment_id propagated to linked datasets, null their
+        // validation status.
+        const validationStatus = expIdChanged
+          ? invalidateLinkedDatasetValidation(
+              prev.validationStatus,
+              prev.datasets,
+              id
+            )
+          : prev.validationStatus;
+
+        return {
+          ...prev,
+          experiments: newExperiments,
+          datasets: newDatasets,
+          validationStatus
         };
       });
     },
@@ -305,21 +463,61 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [state.experiments]
   );
 
-  const getProjectCompletionPercentage = useCallback(() => {
-    return calculateProjectCompletion(state.projectData);
+  // Full live status — single AJV run, returns percentage + validity.
+  // The legacy getXCompletionPercentage wrappers below delegate here so
+  // there's exactly one code path for progress/validity derivation.
+  const getProjectStatus = useCallback(() => {
+    const data = state.projectData;
+    const isEmpty = !data || Object.keys(data).length === 0;
+    if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
+    // Trust the validator's isValid (covers its exception path where
+    // it returns {isValid: false, errors: []}).
+    const { errors, isValid } = validateProject(data);
+    const { percentage } = computeCompletion(data, errors);
+    return { percentage, isValid, isEmpty: false };
   }, [state.projectData]);
 
-  const getExperimentCompletionPercentage = useCallback(
+  const getExperimentStatus = useCallback(
     (id: number) => {
       const experiment = state.experiments.find((exp) => exp.id === id);
-      if (!experiment) return 0;
-
-      return calculateFormCompletion(
-        experiment.formData,
-        getExperimentSchemaType(experiment.experiment_types ?? [])
-      );
+      if (!experiment)
+        return { percentage: 0, isValid: false, isEmpty: true };
+      const data = experiment.formData;
+      const isEmpty = !data || Object.keys(data).length === 0;
+      if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
+      const { errors, isValid } = validateExperiment(data);
+      const { percentage } = computeCompletion(data, errors);
+      return { percentage, isValid, isEmpty: false };
     },
     [state.experiments]
+  );
+
+  const getDatasetStatus = useCallback(
+    (id: number) => {
+      const dataset = state.datasets.find((ds) => ds.id === id);
+      if (!dataset) return { percentage: 0, isValid: false, isEmpty: true };
+      const data = dataset.formData;
+      const isEmpty = !data || Object.keys(data).length === 0;
+      if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
+      const hasExperiments = state.experiments.length > 0;
+      const { errors, isValid } = validateDataset(data, { hasExperiments });
+      const { percentage } = computeCompletion(data, errors);
+      return { percentage, isValid, isEmpty: false };
+    },
+    [state.datasets, state.experiments]
+  );
+
+  const getProjectCompletionPercentage = useCallback(
+    () => getProjectStatus().percentage,
+    [getProjectStatus]
+  );
+  const getExperimentCompletionPercentage = useCallback(
+    (id: number) => getExperimentStatus(id).percentage,
+    [getExperimentStatus]
+  );
+  const getDatasetCompletionPercentage = useCallback(
+    (id: number) => getDatasetStatus(id).percentage,
+    [getDatasetStatus]
   );
 
   // =============================================================================
@@ -389,12 +587,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           ds.id === id
             ? {
                 ...ds,
-                formData: data,
+                formData: cleanFormData(data),
                 name: (data.name as string) || ds.name,
                 updatedAt: Date.now()
               }
             : ds
         )
+        // Note: we intentionally do NOT reset validationStatus.datasets[id]
+        // here — see updateProjectData for the reasoning.
       }));
     },
     []
@@ -478,28 +678,38 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // Import all data (project + experiments + datasets) from imported file
   const importAllData = useCallback(
     (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[] = []) => {
+      // Normalize incoming data at the boundary. Imported JSON may contain
+      // nulls for optional fields, empty arrays for cleared lists, etc. —
+      // all of which the edit path already strips via cleanFormData. We
+      // apply the same normalization here so form state in memory always
+      // satisfies the same invariant regardless of whether it came from
+      // a user edit or an imported file.
+      const cleanedProjectData = cleanFormData(projectData);
+
       // Reassign experiment IDs to avoid conflicts
       const nextExpId = state.nextExperimentId;
       const experimentsWithNewIds = experiments.map((exp, index) => ({
         ...exp,
-        id: nextExpId + index
+        id: nextExpId + index,
+        formData: cleanFormData(exp.formData) as ExperimentFormData
       }));
 
       // Reassign dataset IDs to avoid conflicts
       const nextDsId = state.nextDatasetId;
       const datasetsWithNewIds = datasets.map((ds, index) => ({
         ...ds,
-        id: nextDsId + index
+        id: nextDsId + index,
+        formData: cleanFormData(ds.formData) as DatasetFormData
       }));
 
       // Project has content if it has any keys with non-empty values
-      const hasProjectData = Object.values(projectData).some((v) =>
+      const hasProjectData = Object.values(cleanedProjectData).some((v) =>
         typeof v === "string" ? v.trim() !== "" : v !== undefined && v !== null
       );
 
       setState((prev) => ({
         hasProject: hasProjectData,
-        projectData,
+        projectData: cleanedProjectData,
         experiments: experimentsWithNewIds,
         datasets: datasetsWithNewIds,
         activeTab: "overview",
@@ -508,7 +718,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         nextExperimentId: nextExpId + experiments.length,
         nextDatasetId: nextDsId + datasets.length,
         triggerValidation: false,
-        showJsonPreview: prev.showJsonPreview
+        showJsonPreview: prev.showJsonPreview,
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       }));
     },
     [state.nextExperimentId, state.nextDatasetId]
@@ -529,9 +740,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }>
     ) => {
       setState((prev) => {
+        // Normalize incoming data at the boundary — see importAllData
+        // for the rationale.
+        const cleanedProjectData = projectData
+          ? (cleanFormData(projectData) as ProjectFormData)
+          : null;
+
         // Handle project - simply replace if provided
-        const newProjectData = projectData
-          ? { ...prev.projectData, ...projectData }
+        const newProjectData = cleanedProjectData
+          ? { ...prev.projectData, ...cleanedProjectData }
           : prev.projectData;
 
         // Handle experiments - replace matching or add new
@@ -540,7 +757,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const newExperiments = [...prev.experiments];
         let nextExpId = prev.nextExperimentId;
 
-        experiments.forEach((expData, index) => {
+        experiments.forEach((rawExpData, index) => {
+          const expData = cleanFormData(rawExpData) as ExperimentFormData;
           const expId = expData.experiment_id as string | undefined;
           const expName = (expData.name as string) || expId;
           const importKey = `experiment-${index}`;
@@ -584,7 +802,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const newDatasets = [...prev.datasets];
         let nextDsId = prev.nextDatasetId;
 
-        for (const { formData: dsData, experimentLinking } of datasets) {
+        for (const { formData: rawDsData, experimentLinking } of datasets) {
+          // Normalize incoming dataset data at the boundary.
+          const dsData = cleanFormData(rawDsData) as DatasetFormData;
           const dsName = dsData.name as string | undefined;
 
           // Resolve experiment linking to internal ID
@@ -658,7 +878,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           datasets: newDatasets,
           nextExperimentId: nextExpId,
           nextDatasetId: nextDsId,
-          activeTab: "overview" as const
+          activeTab: "overview" as const,
+          // Imported entities are unvalidated. We reset all of validation
+          // status because import can replace project data and add/replace
+          // experiments and datasets — any previously-green checkmark
+          // could now be inaccurate.
+          validationStatus: { project: null, experiments: {}, datasets: {} }
         };
       });
     },
@@ -686,6 +911,34 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // Validation status setters
+  const setProjectValidation = useCallback((status: boolean | null) => {
+    setState((prev) => ({
+      ...prev,
+      validationStatus: { ...prev.validationStatus, project: status }
+    }));
+  }, []);
+
+  const setExperimentValidation = useCallback((id: number, status: boolean | null) => {
+    setState((prev) => ({
+      ...prev,
+      validationStatus: {
+        ...prev.validationStatus,
+        experiments: { ...prev.validationStatus.experiments, [id]: status }
+      }
+    }));
+  }, []);
+
+  const setDatasetValidation = useCallback((id: number, status: boolean | null) => {
+    setState((prev) => ({
+      ...prev,
+      validationStatus: {
+        ...prev.validationStatus,
+        datasets: { ...prev.validationStatus.datasets, [id]: status }
+      }
+    }));
+  }, []);
+
   // Restore full state from session persistence (preserves IDs and linking)
   const restoreFullState = useCallback(
     (saved: {
@@ -696,14 +949,28 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       nextExperimentId: number;
       nextDatasetId: number;
     }) => {
+      // Normalize restored data at the boundary — a session may have
+      // been saved before cleanFormData was applied, or under an older
+      // app version. Keeps the "form state is always clean" invariant.
+      const cleanedExperiments = saved.experiments.map((exp) => ({
+        ...exp,
+        formData: cleanFormData(exp.formData) as ExperimentFormData
+      }));
+      const cleanedDatasets = saved.datasets.map((ds) => ({
+        ...ds,
+        formData: cleanFormData(ds.formData) as DatasetFormData
+      }));
       setState((prev) => ({
         ...prev,
         hasProject: saved.hasProject,
-        projectData: saved.projectData,
-        experiments: saved.experiments,
-        datasets: saved.datasets,
+        projectData: cleanFormData(saved.projectData) as ProjectFormData,
+        experiments: cleanedExperiments,
+        datasets: cleanedDatasets,
         nextExperimentId: saved.nextExperimentId,
-        nextDatasetId: saved.nextDatasetId
+        nextDatasetId: saved.nextDatasetId,
+        // Restored sessions don't carry validation status — start fresh
+        // so the user can re-validate after seeing the loaded data.
+        validationStatus: { project: null, experiments: {}, datasets: {} }
       }));
     },
     []
@@ -716,12 +983,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     updateProjectData,
     addExperiment,
     updateExperiment,
+    replaceExperimentFormData,
     deleteExperiment,
     setActiveTab,
     setActiveExperiment,
     getExperiment,
     getProjectCompletionPercentage,
     getExperimentCompletionPercentage,
+    getDatasetCompletionPercentage,
+    getProjectStatus,
+    getExperimentStatus,
+    getDatasetStatus,
     importAllData,
     importSelectedData,
     setTriggerValidation,
@@ -736,6 +1008,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getDataset,
     // ID Linking methods
     updateDatasetLinking,
+    // Validation status
+    setProjectValidation,
+    setExperimentValidation,
+    setDatasetValidation,
     // Session persistence
     restoreFullState
   };

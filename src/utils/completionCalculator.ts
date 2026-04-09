@@ -1,171 +1,112 @@
-// completionCalculator.ts - Calculate form completion percentages and missing field counts
+// completionCalculator.ts - Lightweight completion percentage from form data + AJV errors
+//
+// ============================================================================
+// DESIGN INTENT — READ THIS BEFORE FILING A REVIEW FINDING
+// ============================================================================
+//
+// The % on the overview cards is a *progress hint*, not an audit figure. Its
+// only jobs are:
+//
+//   (1) to nudge toward 100% as the user fills required fields
+//   (2) to stay under 100% while the validator still reports problems
+//   (3) to drop cleanly when the user clears something they had filled
+//
+// It is explicitly NOT trying to be "% of required fields filled per the
+// schema", and does not need to be. Precision isn't the product — the
+// validation button + error list is the authoritative signal for
+// correctness. The % just wants to feel responsive and directionally right.
+//
+// Formula:
+//
+//   filled = set of paths with a non-empty primitive leaf value in the data
+//            (arrays of primitives count as ONE path for the whole array;
+//             object/array-item structure is recursed into)
+//   errors = set of unique error paths from the validator
+//            (required + format + pattern + cross-field, deduped)
+//   filled := filled \ errors   // disjoint: a filled leaf with an error at
+//                               // the same path counts as an error, not filled
+//   total  := |filled| + |errors|
+//   percent = round(filled / total * 100)   (0% when total = 0)
+//
+// ----------------------------------------------------------------------------
+// Why schema-free? (Deliberate, after two iterations of the walker approach)
+// ----------------------------------------------------------------------------
+//
+// Earlier versions walked the JSON Schema's `required` arrays to produce a
+// "missing / total" count. That design had persistent problems:
+//
+//   - It drifted from the schema (hardcoded field lists) — FIXED by walking,
+//     which then broke on...
+//   - Conditional requireds: `if/then`, `allOf`, `oneOf`, discriminator-based
+//     `required` arrays were not evaluated, so completion was inflated for
+//     forms with conditional requirements.
+//   - $ref resolution, nested required objects, and array-item recursion all
+//     had to be re-implemented by hand, with edge cases for shells, absent
+//     vs. present required objects, and polymorphic dataset variables.
+//   - Double-counting of variable errors when datasets passed both an `extra`
+//     count and a full error list to the old computeCompletion.
+//
+// AJV already handles ALL of the above correctly against real form data:
+// conditional requireds, $ref, polymorphism, cross-field custom validators.
+// Instead of reproducing that logic, this module:
+//
+//   - Trusts AJV for "what's wrong with the form right now" (the numerator
+//     problem), and
+//   - Walks only the raw data for "what has the user actually touched"
+//     (no schema needed — structure is self-evident from the data).
+//
+// The union of those two sets is the denominator. Disjointing them prevents
+// a touched-but-invalid field from being counted twice.
+//
+// ----------------------------------------------------------------------------
+// Known quirk: optional-field touches nudge the percentage
+// ----------------------------------------------------------------------------
+//
+// Because the denominator is "things touched + things wrong", filling or
+// clearing an *optional* valid field shifts the % slightly (smaller than a
+// required change, same direction). Example with 3/10 required and 2
+// optional filled: clearing an optional moves ~−6%, clearing a required
+// moves ~−9%. This is intentional and acceptable:
+//
+//   - The direction is always correct (filling helps, clearing hurts).
+//   - Requireds move the bar ~2× as much as optionals (because clearing a
+//     required also adds a validator error, double-hitting the ratio).
+//   - Transitions are reversible: fill → clear → fill returns to the same %.
+//   - The alternative — making optional touches zero-delta — requires the
+//     walker to classify each field as required-vs-optional against
+//     conditional schemas, which is the complexity we just removed.
+//
+// ----------------------------------------------------------------------------
+// Known quirk: 0/0 returns 0%, not 100%
+// ----------------------------------------------------------------------------
+//
+// An untouched form with no validator errors is reported as 0%. This is
+// *intentional* for the overview UX: an unstarted entity should not appear
+// complete. Entities with genuinely no required fields are rare in this
+// schema, and if they exist the user expectation is still "I haven't
+// started this", not "this is done".
+//
+// ----------------------------------------------------------------------------
+// Why not double-count required errors (severity: None, addressed)
+// ----------------------------------------------------------------------------
+//
+// All errors (required + format + cross-field) dedupe into a single set
+// keyed by normalized instancePath. A field reported by AJV as both
+// "required" and "format" appears once. A variable with errors surfaced by
+// both the dataset validator and a per-variable custom validator appears
+// once. This is the deduping layer that solves the earlier dataset
+// double-penalty bug.
 
-import type {
-  FormDataRecord,
-  ProjectFormData,
-  ExperimentFormData,
-  DatasetFormData,
-  VariableFormData
-} from "@/types/forms";
-import type { RJSFSchema } from "@rjsf/utils";
-import {
-  getAccordionConfig,
-  normalizeFieldConfig
-} from "@/components/VariableModal/variableModalConfig";
-import {
-  resolveRef,
-  fieldExistsInSchema,
-  isFieldRequired,
-  getNestedValue,
-  type JSONSchema
-} from "@/components/schemaUtils";
-
-// Define required fields for different form types
-const REQUIRED_FIELDS_MAP = {
-  project: [
-    "project_id",
-    "description",
-    "mcdr_pathway",
-    "sea_names",
-    "spatial_coverage",
-    "temporal_coverage"
-  ],
-  experiment_base: [
-    "experiment_id",
-    "experiment_types",
-    "description",
-    "spatial_coverage",
-    "vertical_coverage",
-    "experiment_leads",
-    "start_datetime"
-  ],
-  intervention: [
-    "alkalinity_feedstock_processing",
-    "alkalinity_feedstock_form",
-    "alkalinity_feedstock",
-    "alkalinity_feedstock_description",
-    "equilibration",
-    "dosing_location",
-    "dosing_dispersal_hydrologic_location",
-    "dosing_delivery_type",
-    "alkalinity_dosing_effluent_density",
-    "dosing_depth",
-    "dosing_description",
-    "dosing_regimen",
-    "dosing_data"
-  ],
-  tracer: [
-    "tracer_concentration",
-    "tracer_details",
-    "tracer_form",
-    "dosing_delivery_type",
-    "dosing_depth",
-    "dosing_description",
-    "dosing_dispersal_hydrologic_location",
-    "dosing_location",
-    "dosing_regimen"
-  ]
-};
-
-/**
- * Get required fields for a given experiment type
- * @param experimentType - Type of experiment
- * @returns Array of required field names
- */
-function getRequiredFieldsForType(experimentType?: string): string[] {
-  const baseFields = REQUIRED_FIELDS_MAP.experiment_base;
-
-  switch (experimentType) {
-    case "intervention":
-      return [...baseFields, ...REQUIRED_FIELDS_MAP.intervention];
-    case "tracer_study":
-      return [...baseFields, ...REQUIRED_FIELDS_MAP.tracer];
-    case "intervention_with_tracer":
-      return [
-        ...baseFields,
-        ...REQUIRED_FIELDS_MAP.intervention,
-        ...REQUIRED_FIELDS_MAP.tracer
-      ];
-    default:
-      return baseFields;
-  }
-}
-
-/**
- * Calculate completion percentage for form data
- * @param formData - Form data object
- * @param experimentType - Optional experiment type for type-specific fields
- * @returns Completion percentage (0-100)
- */
-export function calculateFormCompletion(
-  formData: ExperimentFormData | FormDataRecord | null | undefined,
-  experimentType?: string
-): number {
-  if (!formData || Object.keys(formData).length === 0) return 0;
-
-  const requiredFields = getRequiredFieldsForType(experimentType);
-
-  let filledFields = 0;
-
-  requiredFields.forEach((field) => {
-    const value = formData[field];
-    if (value !== undefined && value !== null && value !== "") {
-      if (Array.isArray(value) && value.length > 0) {
-        filledFields++;
-      } else if (typeof value === "object" && Object.keys(value).length > 0) {
-        filledFields++;
-      } else if (typeof value === "string" && value.trim() !== "") {
-        filledFields++;
-      } else if (typeof value === "number") {
-        filledFields++;
-      }
-    }
-  });
-
-  return Math.round((filledFields / requiredFields.length) * 100);
-}
-
-/**
- * Calculate project completion percentage
- * @param projectData - Project form data
- * @returns Completion percentage (0-100)
- */
-export function calculateProjectCompletion(
-  projectData: ProjectFormData | FormDataRecord | null | undefined
-): number {
-  if (!projectData || Object.keys(projectData).length === 0) return 0;
-
-  const requiredFields = REQUIRED_FIELDS_MAP.project;
-  let filledFields = 0;
-
-  requiredFields.forEach((field) => {
-    const value = projectData[field];
-    if (value !== undefined && value !== null && value !== "") {
-      if (Array.isArray(value) && value.length > 0) {
-        filledFields++;
-      } else if (typeof value === "object" && Object.keys(value).length > 0) {
-        filledFields++;
-      } else if (typeof value === "string" && value.trim() !== "") {
-        filledFields++;
-      } else if (typeof value === "number") {
-        filledFields++;
-      }
-    }
-  });
-
-  return Math.round((filledFields / requiredFields.length) * 100);
-}
+import type { FormDataRecord } from "@/types/forms";
+import type { RJSFValidationError } from "@rjsf/utils";
 
 // =============================================================================
-// Schema-Driven Missing Field Count Functions (for Download Modal)
+// Filled-leaf collection
 // =============================================================================
 
-/**
- * Check if a primitive field value is considered "filled"
- * For objects, we check recursively via countMissingRequiredFieldsRecursive
- */
+/** True if a primitive value counts as "filled" for completion purposes. */
 function isPrimitiveFilled(value: unknown): boolean {
-  if (value === undefined || value === null || value === "") return false;
+  if (value === undefined || value === null) return false;
   if (typeof value === "string") return value.trim() !== "";
   if (typeof value === "number") return true;
   if (typeof value === "boolean") return true;
@@ -173,238 +114,129 @@ function isPrimitiveFilled(value: unknown): boolean {
 }
 
 /**
- * Check if an array field is considered "filled"
- */
-function isArrayFilled(value: unknown): boolean {
-  if (!Array.isArray(value)) return false;
-  return value.length > 0;
-}
-
-/**
- * Resolve a property schema, handling $ref if present
- */
-function resolvePropertySchema(
-  propSchema: JSONSchema | undefined,
-  rootSchema: JSONSchema
-): JSONSchema | undefined {
-  if (!propSchema) return undefined;
-
-  // Handle $ref
-  if (propSchema.$ref) {
-    const resolved = resolveRef(propSchema, rootSchema);
-    return resolved || undefined;
-  }
-
-  return propSchema;
-}
-
-/**
- * Get the schema type, handling type arrays like ["string", "null"]
- */
-function getSchemaType(schema: JSONSchema): string | undefined {
-  if (!schema.type) return undefined;
-  if (Array.isArray(schema.type)) {
-    // Return the first non-null type
-    return schema.type.find((t) => t !== "null");
-  }
-  return schema.type as string;
-}
-
-/**
- * Recursively count missing required fields in form data based on schema.
- * This walks through nested objects and checks their required fields too.
+ * Walk form data and collect the set of paths (in AJV instancePath form)
+ * that have a non-empty primitive leaf value.
  *
- * @param data - The form data to check
- * @param schema - The schema for this data (already resolved, not a $ref)
- * @param rootSchema - The root schema containing $defs
- * @param skipFields - Optional set of field names to skip (e.g., "variables" handled separately)
+ *   - Primitive leaf → path added if `isPrimitiveFilled`.
+ *   - Array of primitives → the array's own path added once if non-empty
+ *     (users aren't rewarded for length; having at least one entry satisfies
+ *     the structural "atleast one" meaning of a required array).
+ *   - Array of objects → recurse into each item with `[i]` path segment.
+ *   - Object → recurse into each property with `.key` path segment.
  */
-function countMissingRequiredFieldsRecursive(
-  data: FormDataRecord | null | undefined,
-  schema: JSONSchema,
-  rootSchema: JSONSchema,
-  skipFields?: Set<string>
-): number {
-  let missing = 0;
+function collectFilledLeafPaths(
+  data: unknown,
+  path: string,
+  out: Set<string>
+): void {
+  if (data === undefined || data === null) return;
 
-  const requiredFields = schema.required || [];
-  const properties = schema.properties || {};
-
-  for (const fieldName of requiredFields) {
-    // Skip fields we're handling separately
-    if (skipFields?.has(fieldName)) continue;
-
-    const propSchema = resolvePropertySchema(
-      properties[fieldName] as JSONSchema | undefined,
-      rootSchema
+  if (Array.isArray(data)) {
+    if (data.length === 0) return;
+    // Decide "array of primitives" by the first non-null item. Mixed arrays
+    // are rare in these schemas; the first item is a good proxy.
+    const firstObjectIdx = data.findIndex(
+      (item) => item !== null && typeof item === "object"
     );
-    const value = data?.[fieldName];
-
-    if (!propSchema) {
-      // No schema for this field, just check if value exists
-      if (!isPrimitiveFilled(value)) {
-        missing++;
+    if (firstObjectIdx === -1) {
+      // All primitives — count the whole array as one filled path if any
+      // individual entry is primitive-filled.
+      if (data.some((item) => isPrimitiveFilled(item))) {
+        out.add(path);
       }
-      continue;
+      return;
     }
-
-    const schemaType = getSchemaType(propSchema);
-
-    if (schemaType === "array") {
-      // For arrays, just check if non-empty
-      if (!isArrayFilled(value)) {
-        missing++;
-      }
-      // Note: We don't recursively check array items here
-      // Variables are handled separately via countIncompleteVariables
-    } else if (schemaType === "object" || propSchema.properties) {
-      // For objects, check if the object exists and has required fields filled
-      if (value === undefined || value === null) {
-        // Object is completely missing - count as 1 missing field
-        // (the parent required field itself)
-        missing++;
-      } else if (typeof value === "object" && !Array.isArray(value)) {
-        // Object exists - recursively check its required fields
-        missing += countMissingRequiredFieldsRecursive(
-          value as FormDataRecord,
-          propSchema,
-          rootSchema
-        );
-      }
-    } else {
-      // Primitive type - check if filled
-      if (!isPrimitiveFilled(value)) {
-        missing++;
-      }
-    }
+    // Has at least one object item → recurse into each item.
+    data.forEach((item, i) => {
+      collectFilledLeafPaths(item, `${path}/${i}`, out);
+    });
+    return;
   }
 
-  return missing;
+  if (typeof data === "object") {
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      collectFilledLeafPaths(value, `${path}/${key}`, out);
+    }
+    return;
+  }
+
+  if (isPrimitiveFilled(data)) out.add(path);
+}
+
+// =============================================================================
+// Error path normalization
+// =============================================================================
+
+/**
+ * Normalize an RJSF/AJV error into a single instancePath-shaped string so
+ * we can dedupe with the filled-leaf paths. RJSF errors expose the path as
+ * `.foo.bar[0].baz` in the `property` field; we convert that into AJV's
+ * `/foo/bar/0/baz` form.
+ */
+function errorPath(err: RJSFValidationError): string {
+  const prop = err.property ?? "";
+  // Strip leading dot, convert [n] → /n, convert . → /
+  return prop
+    .replace(/^\./, "")
+    .replace(/\[(\d+)\]/g, "/$1")
+    .split(".")
+    .join("/")
+    .replace(/^/, "/");
+}
+
+// =============================================================================
+// Public API
+// =============================================================================
+
+export interface CompletionResult {
+  total: number;
+  filled: number;
+  percentage: number;
 }
 
 /**
- * Count missing required fields for any form data using its schema.
- * Recursively checks nested objects.
+ * Compute completion % from form data + validation errors alone.
  *
- * @param data - The form data to check
- * @param schema - The schema for this data (from getDatasetSchema, getProjectSchema, etc.)
- * @param skipFields - Optional array of field names to skip (e.g., ["variables"])
+ * No schema access: the denominator is derived from "how many things has
+ * the user actually touched" + "how many problems does the validator see",
+ * with dedupe so a touched-but-invalid field only counts once.
  */
-export function countMissingRequiredFields(
+export function computeCompletion(
   data: FormDataRecord | null | undefined,
-  schema: RJSFSchema | JSONSchema,
-  skipFields?: string[]
-): number {
-  if (!schema) return 0;
+  validationErrors: RJSFValidationError[]
+): CompletionResult {
+  const filled = new Set<string>();
+  if (data) collectFilledLeafPaths(data, "", filled);
 
-  const skipSet = skipFields ? new Set(skipFields) : undefined;
+  const errors = new Set<string>();
+  for (const err of validationErrors) {
+    errors.add(errorPath(err));
+  }
 
-  return countMissingRequiredFieldsRecursive(
-    data,
-    schema as JSONSchema,
-    schema as JSONSchema,
-    skipSet
-  );
-}
-
-/**
- * Count missing required fields for dataset data (excluding variables)
- * Variables are counted separately via countIncompleteVariables
- * Also excludes project_id and experiment_id which are auto-managed
- */
-export function countMissingDatasetFields(
-  datasetData: DatasetFormData | FormDataRecord | null | undefined,
-  schema: RJSFSchema | JSONSchema
-): number {
-  return countMissingRequiredFields(datasetData, schema, [
-    "variables",
-    "project_id",
-    "experiment_id"
-  ]);
-}
-
-/**
- * Count missing required fields for project data
- */
-export function countMissingProjectFields(
-  projectData: ProjectFormData | FormDataRecord | null | undefined,
-  schema: RJSFSchema | JSONSchema
-): number {
-  return countMissingRequiredFields(projectData, schema);
-}
-
-/**
- * Count missing required fields for experiment data
- * Excludes project_id which is auto-managed
- */
-export function countMissingExperimentFields(
-  experimentData: ExperimentFormData | FormDataRecord | null | undefined,
-  schema: RJSFSchema | JSONSchema
-): number {
-  return countMissingRequiredFields(experimentData, schema, ["project_id"]);
-}
-
-/**
- * Count missing required fields for a single variable using its schema
- */
-export function countMissingVariableFields(
-  variable: VariableFormData | FormDataRecord,
-  rootSchema: RJSFSchema | JSONSchema
-): number {
-  const schemaKey = variable.schema_class as string | undefined;
-
-  if (!schemaKey || !(rootSchema as JSONSchema).$defs) return 1; // No type = incomplete
-
-  const schemaDef = (rootSchema as JSONSchema).$defs![schemaKey];
-  if (!schemaDef) return 1; // Unknown schema_class = incomplete
-
-  const variableSchema = resolveRef(schemaDef, rootSchema as JSONSchema);
-  if (!variableSchema) return 0;
-
-  // Count missing required fields across all accordion sections
-  let missingCount = 0;
-
-  for (const section of getAccordionConfig(schemaKey)) {
-    for (const fieldEntry of section.fields) {
-      const field = normalizeFieldConfig(fieldEntry);
-
-      // Skip fields that don't exist in this schema
-      if (!fieldExistsInSchema(field.path, variableSchema, rootSchema as JSONSchema)) {
-        continue;
-      }
-
-      // Check if field is required
-      if (!isFieldRequired(field.path, variableSchema, rootSchema as JSONSchema)) {
-        continue;
-      }
-
-      // Check if field is missing
-      const value = getNestedValue(variable, field.path);
-      if (value === undefined || value === null || value === "") {
-        missingCount++;
-      }
+  // Disjoint: a filled leaf that also has an error belongs to `errors`, not
+  // `filled` (no partial credit for invalid values). We also strip ancestor
+  // paths from `filled`, which handles the primitive-array collapse case:
+  // `{tags: ["bad"]}` stores `/tags` in filled, but AJV reports the error
+  // on `/tags/0`. Without the ancestor walk the invalid item would keep
+  // its "filled" credit.
+  for (const path of errors) {
+    filled.delete(path);
+    let ancestor = path;
+    while (true) {
+      const slash = ancestor.lastIndexOf("/");
+      if (slash <= 0) break;
+      ancestor = ancestor.slice(0, slash);
+      filled.delete(ancestor);
     }
   }
 
-  return missingCount;
+  const filledCount = filled.size;
+  const errorCount = errors.size;
+  const total = filledCount + errorCount;
+
+  if (total === 0) return { total: 0, filled: 0, percentage: 0 };
+
+  const percentage = Math.round((filledCount / total) * 100);
+  return { total, filled: filledCount, percentage };
 }
 
-/**
- * Count variables with incomplete required fields
- */
-export function countIncompleteVariables(
-  datasetData: DatasetFormData | FormDataRecord | null | undefined,
-  rootSchema: RJSFSchema | JSONSchema
-): number {
-  if (!datasetData) return 0;
-  const variables = datasetData.variables as VariableFormData[] | undefined;
-  if (!variables || !Array.isArray(variables)) return 0;
-
-  let incomplete = 0;
-  for (const variable of variables) {
-    if (countMissingVariableFields(variable, rootSchema) > 0) {
-      incomplete++;
-    }
-  }
-  return incomplete;
-}

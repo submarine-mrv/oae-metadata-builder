@@ -21,8 +21,16 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   onBlur,
   onFocus,
   label,
-  options
+  options,
+  rawErrors
 }) => {
+  // Surface RJSF-supplied errors on both date inputs. We display the
+  // actual first message (which has been normalized by transformFormErrors
+  // upstream — required errors become "Field is required", others retain
+  // their specific text). Internal format errors take precedence so the
+  // user sees the most specific message first.
+  const externalError =
+    rawErrors && rawErrors.length > 0 ? rawErrors[0] : undefined;
   // Check if end date is required via ui:options
   const endDateRequired = options?.endDateRequired === true;
 
@@ -31,7 +39,8 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     value: value as string | undefined,
     onChange,
     onBlur,
-    onFocus
+    onFocus,
+    hasError: !!externalError
   });
 
   return (
@@ -52,7 +61,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={required}
-            error={interval.startError}
+            error={interval.startError || externalError}
             rightSection={
               <DatePickerPopover
                 opened={interval.startPickerOpen}
@@ -76,7 +85,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={endDateRequired}
-            error={interval.endError}
+            error={interval.endError || (endDateRequired ? externalError : undefined)}
             rightSection={
               <DatePickerPopover
                 opened={interval.endPickerOpen}
