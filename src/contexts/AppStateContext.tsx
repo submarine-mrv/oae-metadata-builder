@@ -470,9 +470,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     const data = state.projectData;
     const isEmpty = !data || Object.keys(data).length === 0;
     if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
-    const { errors } = validateProject(data);
+    // Trust the validator's isValid (covers its exception path where
+    // it returns {isValid: false, errors: []}).
+    const { errors, isValid } = validateProject(data);
     const { percentage } = computeCompletion(data, errors);
-    return { percentage, isValid: errors.length === 0, isEmpty: false };
+    return { percentage, isValid, isEmpty: false };
   }, [state.projectData]);
 
   const getExperimentStatus = useCallback(
@@ -483,9 +485,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const data = experiment.formData;
       const isEmpty = !data || Object.keys(data).length === 0;
       if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
-      const { errors } = validateExperiment(data);
+      const { errors, isValid } = validateExperiment(data);
       const { percentage } = computeCompletion(data, errors);
-      return { percentage, isValid: errors.length === 0, isEmpty: false };
+      return { percentage, isValid, isEmpty: false };
     },
     [state.experiments]
   );
@@ -498,9 +500,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const isEmpty = !data || Object.keys(data).length === 0;
       if (isEmpty) return { percentage: 0, isValid: false, isEmpty: true };
       const hasExperiments = state.experiments.length > 0;
-      const { errors } = validateDataset(data, { hasExperiments });
+      const { errors, isValid } = validateDataset(data, { hasExperiments });
       const { percentage } = computeCompletion(data, errors);
-      return { percentage, isValid: errors.length === 0, isEmpty: false };
+      return { percentage, isValid, isEmpty: false };
     },
     [state.datasets, state.experiments]
   );
