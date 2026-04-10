@@ -18,6 +18,7 @@ const datasetUiSchema = {
   },
   "ui:order": [
     "name",
+    "data_accessibility",
     "experiment_id",
     "description",
     "temporal_coverage",
@@ -37,6 +38,11 @@ const datasetUiSchema = {
   name: {
     "ui:placeholder":
       "Brief descriptive sentence summarizing the dataset content",
+    "ui:descriptionModal": true
+  },
+  data_accessibility: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
     "ui:descriptionModal": true
   },
   description: textAreaWidget,

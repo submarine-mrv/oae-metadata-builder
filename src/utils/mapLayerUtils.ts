@@ -247,9 +247,9 @@ export function fitBoundsWithAntimeridian(
 }
 
 /**
- * Parse a bounding box string "W S E N" into coordinate values
+ * Parse a bounding box string "S W N E" (minLat minLon maxLat maxLon per SOSO) into coordinate values
  *
- * @param boundsString - Space-separated bounds string
+ * @param boundsString - Space-separated bounds string in SOSO format: "minLat minLon maxLat maxLon"
  * @returns Parsed coordinates or null if invalid
  */
 export function parseBoundsString(
@@ -262,19 +262,19 @@ export function parseBoundsString(
     return null;
   }
 
-  const [west, south, east, north] = parts;
+  const [south, west, north, east] = parts;
   return { west, south, east, north };
 }
 
 /**
- * Format coordinates into a bounding box string "W S E N"
+ * Format coordinates into a bounding box string "S W N E" (minLat minLon maxLat maxLon per SOSO)
  *
  * @param west - Western longitude
  * @param south - Southern latitude
  * @param east - Eastern longitude
  * @param north - Northern latitude
  * @param precision - Decimal places (default: 6)
- * @returns Formatted bounds string
+ * @returns Formatted bounds string in SOSO format: "minLat minLon maxLat maxLon"
  */
 export function formatBoundsString(
   west: number,
@@ -283,5 +283,5 @@ export function formatBoundsString(
   north: number,
   precision = 6
 ): string {
-  return `${west.toFixed(precision)} ${south.toFixed(precision)} ${east.toFixed(precision)} ${north.toFixed(precision)}`;
+  return `${south.toFixed(precision)} ${west.toFixed(precision)} ${north.toFixed(precision)} ${east.toFixed(precision)}`;
 }
