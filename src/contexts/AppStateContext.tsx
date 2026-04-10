@@ -25,6 +25,7 @@ export type DatasetData = DatasetState;
 export type AppState = AppFormState;
 
 import { cleanFormData } from "@/utils/formDataCleanup";
+import { migrateFormData } from "@/utils/migrations";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -952,18 +953,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       // Normalize restored data at the boundary — a session may have
       // been saved before cleanFormData was applied, or under an older
       // app version. Keeps the "form state is always clean" invariant.
+      // Also migrate legacy bounding box format (W S E N → S W N E).
       const cleanedExperiments = saved.experiments.map((exp) => ({
         ...exp,
-        formData: cleanFormData(exp.formData) as ExperimentFormData
+        formData: cleanFormData(migrateFormData(exp.formData)) as ExperimentFormData
       }));
       const cleanedDatasets = saved.datasets.map((ds) => ({
         ...ds,
-        formData: cleanFormData(ds.formData) as DatasetFormData
+        formData: cleanFormData(migrateFormData(ds.formData)) as DatasetFormData
       }));
       setState((prev) => ({
         ...prev,
         hasProject: saved.hasProject,
-        projectData: cleanFormData(saved.projectData) as ProjectFormData,
+        projectData: cleanFormData(migrateFormData(saved.projectData)) as ProjectFormData,
         experiments: cleanedExperiments,
         datasets: cleanedDatasets,
         nextExperimentId: saved.nextExperimentId,

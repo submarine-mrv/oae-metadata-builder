@@ -140,6 +140,67 @@ export function resolveBoxFromClicks(
 }
 
 /**
+ * Detect and fix legacy "W S E N" (lon-first) bounding box strings.
+ * The current format is SOSO "S W N E" (lat-first: minLat minLon maxLat maxLon).
+ *
+ * Detection: in SOSO format, positions 0 and 2 are latitudes (must be ±90).
+ * If either exceeds ±90, the string must be legacy lon-first — swap to lat-first.
+ *
+ * Ambiguous case (all four values within ±90): cannot distinguish formats,
+ * but the map will still render without crashing — just potentially in the wrong spot.
+ */
+export function migrateLegacyBoxString(box: string): string {
+  const trimmed = box.trim();
+  if (!trimmed) return trimmed;
+
+  const parts = trimmed.split(/\s+/).map(Number);
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) {
+    return trimmed; // malformed — leave as-is for validation to catch
+  }
+
+  const [a, b, c, d] = parts;
+
+  // In SOSO format: a=south(lat), b=west(lon), c=north(lat), d=east(lon)
+  // If a or c exceed ±90, they must be longitudes → legacy W S E N format
+  const positionsAreLats = Math.abs(a) <= MAX_LATITUDE && Math.abs(c) <= MAX_LATITUDE;
+
+  if (!positionsAreLats) {
+    // Legacy "W S E N" → convert to "S W N E"
+    // a=west, b=south, c=east, d=north → south west north east = b a d c
+    return `${b} ${a} ${d} ${c}`;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Recursively walk form data and migrate any spatial_coverage.geo.box strings
+ * from legacy "W S E N" format to SOSO "S W N E" format.
+ */
+export function migrateFormDataBoxStrings(formData: Record<string, any>): Record<string, any> {
+  if (!formData || typeof formData !== "object") return formData;
+
+  const box = formData?.spatial_coverage?.geo?.box;
+  if (typeof box === "string" && box.trim()) {
+    const migrated = migrateLegacyBoxString(box);
+    if (migrated !== box) {
+      return {
+        ...formData,
+        spatial_coverage: {
+          ...formData.spatial_coverage,
+          geo: {
+            ...formData.spatial_coverage.geo,
+            box: migrated
+          }
+        }
+      };
+    }
+  }
+
+  return formData;
+}
+
+/**
  * Validates latitude coordinate range
  * @param lat - Latitude value
  * @returns true if valid, false otherwise

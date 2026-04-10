@@ -6,7 +6,9 @@ import {
   validateSpatialBounds,
   resolveBoxFromClicks,
   isValidLatitude,
-  isValidLongitude
+  isValidLongitude,
+  migrateLegacyBoxString,
+  migrateFormDataBoxStrings
 } from "../spatialUtils";
 import {
   parseBoundsString,
@@ -378,5 +380,96 @@ describe("isValidLongitude", () => {
   it("rejects values outside [-180, 180]", () => {
     expect(isValidLongitude(181)).toBe(false);
     expect(isValidLongitude(-181)).toBe(false);
+  });
+});
+
+// ── migrateLegacyBoxString ──────────────────────────────────────────
+
+describe("migrateLegacyBoxString", () => {
+  it("detects legacy W S E N format and converts to S W N E", () => {
+    // Old: W=-125 S=32 E=-114 N=42 → position 0 is -125, |−125| > 90 → legacy
+    expect(migrateLegacyBoxString("-125 32 -114 42")).toBe("32 -125 42 -114");
+  });
+
+  it("leaves valid SOSO format unchanged", () => {
+    // SOSO: S=32 W=-125 N=42 E=-114 → positions 0,2 are 32,42 (within ±90)
+    expect(migrateLegacyBoxString("32 -125 42 -114")).toBe("32 -125 42 -114");
+  });
+
+  it("detects legacy format with position 2 exceeding ±90", () => {
+    // Old: W=10 S=20 E=170 N=30 → position 2 is 170, |170| > 90 → legacy
+    expect(migrateLegacyBoxString("10 20 170 30")).toBe("20 10 30 170");
+  });
+
+  it("handles ambiguous case (all values within ±90) — keeps as-is", () => {
+    // Could be either format; both are valid lat range. Keep as-is (assumed SOSO).
+    expect(migrateLegacyBoxString("10 20 30 40")).toBe("10 20 30 40");
+  });
+
+  it("leaves empty strings unchanged", () => {
+    expect(migrateLegacyBoxString("")).toBe("");
+    expect(migrateLegacyBoxString("   ")).toBe("");
+  });
+
+  it("leaves malformed strings unchanged", () => {
+    expect(migrateLegacyBoxString("1 2 3")).toBe("1 2 3");
+    expect(migrateLegacyBoxString("a b c d")).toBe("a b c d");
+  });
+
+  it("cannot distinguish ambiguous Tufts Cove legacy vs SOSO (all values within ±90)", () => {
+    // Legacy W S E N: "-63.678757 44.588164 -63.484064 44.729404"
+    // SOSO  S W N E: "44.588164 -63.678757 44.729404 -63.484064"
+    // Both have all values within ±90, so the heuristic can't tell them apart.
+    // Both pass through unchanged — the legacy one will render in the wrong spot
+    // but won't crash. A future version-based migration will handle this.
+    const legacy = "-63.678757 44.588164 -63.484064 44.729404";
+    const soso   = "44.588164 -63.678757 44.729404 -63.484064";
+    expect(migrateLegacyBoxString(legacy)).toBe(legacy); // can't detect, unchanged
+    expect(migrateLegacyBoxString(soso)).toBe(soso);     // already correct, unchanged
+  });
+
+  it("handles Pacific Northwest example (clearly legacy)", () => {
+    // Old: W=-124.5 S=36.8 E=-121.9 N=38.2 → position 0 is -124.5, |−124.5| > 90
+    expect(migrateLegacyBoxString("-124.5 36.8 -121.9 38.2"))
+      .toBe("36.8 -124.5 38.2 -121.9");
+  });
+});
+
+// ── migrateFormDataBoxStrings ───────────────────────────────────────
+
+describe("migrateFormDataBoxStrings", () => {
+  it("migrates legacy box in spatial_coverage.geo.box", () => {
+    const data = {
+      name: "Test Project",
+      spatial_coverage: { geo: { box: "-125 32 -114 42" } }
+    };
+    const result = migrateFormDataBoxStrings(data);
+    expect(result.spatial_coverage.geo.box).toBe("32 -125 42 -114");
+    // Original should not be mutated
+    expect(data.spatial_coverage.geo.box).toBe("-125 32 -114 42");
+  });
+
+  it("leaves SOSO format unchanged", () => {
+    const data = {
+      spatial_coverage: { geo: { box: "32 -125 42 -114" } }
+    };
+    expect(migrateFormDataBoxStrings(data)).toBe(data); // same reference
+  });
+
+  it("handles missing spatial_coverage gracefully", () => {
+    const data = { name: "No spatial" };
+    expect(migrateFormDataBoxStrings(data)).toBe(data);
+  });
+
+  it("handles null/empty box", () => {
+    expect(migrateFormDataBoxStrings({ spatial_coverage: { geo: { box: "" } } }))
+      .toEqual({ spatial_coverage: { geo: { box: "" } } });
+    expect(migrateFormDataBoxStrings({ spatial_coverage: { geo: { box: null } } }))
+      .toEqual({ spatial_coverage: { geo: { box: null } } });
+  });
+
+  it("handles null/undefined input", () => {
+    expect(migrateFormDataBoxStrings(null as any)).toBe(null);
+    expect(migrateFormDataBoxStrings(undefined as any)).toBe(undefined);
   });
 });
