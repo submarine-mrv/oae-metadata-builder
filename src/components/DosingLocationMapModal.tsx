@@ -446,10 +446,11 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         if (bounds) {
           const { west, south, east, north } = bounds;
           addBoundingBox(map, west, south, east, north);
+          const fitEast = adjustEastForAntimeridian(west, east);
           map.fitBounds(
             [
               [west, south],
-              [east, north]
+              [fitEast, north]
             ],
             { padding: 50 }
           );
