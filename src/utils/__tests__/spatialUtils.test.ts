@@ -416,14 +416,16 @@ describe("migrateLegacyBoxString", () => {
     expect(migrateLegacyBoxString("a b c d")).toBe("a b c d");
   });
 
-  it("handles real-world Tufts Cove example", () => {
-    // Old format from cached data: W=-63.678757 S=44.588164 E=-63.484064 N=44.729404
-    // Position 0: |-63.678757| < 90 — ambiguous! But position 2: |-63.484064| < 90 too
-    // This is the ambiguous case — all within ±90. Stays as-is.
-    // However the SOSO version is: "44.588164 -63.678757 44.729404 -63.484064"
-    // Since both are < 90, cannot auto-detect. Stays as-is.
-    expect(migrateLegacyBoxString("44.588164 -63.678757 44.729404 -63.484064"))
-      .toBe("44.588164 -63.678757 44.729404 -63.484064");
+  it("cannot distinguish ambiguous Tufts Cove legacy vs SOSO (all values within ±90)", () => {
+    // Legacy W S E N: "-63.678757 44.588164 -63.484064 44.729404"
+    // SOSO  S W N E: "44.588164 -63.678757 44.729404 -63.484064"
+    // Both have all values within ±90, so the heuristic can't tell them apart.
+    // Both pass through unchanged — the legacy one will render in the wrong spot
+    // but won't crash. A future version-based migration will handle this.
+    const legacy = "-63.678757 44.588164 -63.484064 44.729404";
+    const soso   = "44.588164 -63.678757 44.729404 -63.484064";
+    expect(migrateLegacyBoxString(legacy)).toBe(legacy); // can't detect, unchanged
+    expect(migrateLegacyBoxString(soso)).toBe(soso);     // already correct, unchanged
   });
 
   it("handles Pacific Northwest example (clearly legacy)", () => {
