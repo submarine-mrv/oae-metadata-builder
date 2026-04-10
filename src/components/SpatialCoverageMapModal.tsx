@@ -229,7 +229,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         // Add final bounding box
         addBoundingBox(map, west, south, east, north);
 
-        // Format as "W S E N"
+        // Format as SOSO bounds string (minLat minLon maxLat maxLon)
         const boundsString = formatBoundsString(west, south, east, north);
         setCurrentBounds(boundsString);
 

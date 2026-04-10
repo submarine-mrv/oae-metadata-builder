@@ -90,35 +90,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     return "";
   });
 
-  // Box mode state - individual coordinate states
-  const [north, setNorth] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[3]);
-    }
-    return "";
-  });
-  const [south, setSouth] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[1]);
-    }
-    return "";
-  });
-  const [west, setWest] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[0]);
-    }
-    return "";
-  });
-  const [east, setEast] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[2]);
-    }
-    return "";
-  });
+  // Box mode state - parse initial box string via shared helper
+  const initialBox = geoData?.box && typeof geoData.box === "string"
+    ? parseBoundsString(geoData.box)
+    : null;
+  const [north, setNorth] = useState<number | string>(initialBox?.north ?? "");
+  const [south, setSouth] = useState<number | string>(initialBox?.south ?? "");
+  const [west, setWest] = useState<number | string>(initialBox?.west ?? "");
+  const [east, setEast] = useState<number | string>(initialBox?.east ?? "");
 
   const [localFileLocation, setLocalFileLocation] = useState(fileLocation);
 

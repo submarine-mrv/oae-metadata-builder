@@ -19,13 +19,13 @@ import {
   DEFAULT_MINI_MAP_ZOOM
 } from "@/config/maps";
 
-// parse "W S E N" string from nested object
+// parse SOSO bounds string (minLat minLon maxLat maxLon) from nested GeoShape object
 function readBox(formData: any): string {
   const v = formData?.geo?.box;
   return typeof v === "string" ? v : "";
 }
 
-// write nested object from "W S E N" string
+// write nested GeoShape object from SOSO bounds string
 function writeBox(s: string): any {
   const trimmed = s.trim();
   if (!trimmed) return undefined; // Return undefined instead of null to avoid empty objects

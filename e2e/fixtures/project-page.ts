@@ -38,7 +38,7 @@ export class ProjectPage extends BasePage {
    * Check if spatial coverage has a value set
    */
   async hasSpatialCoverageValue(): Promise<boolean> {
-    // Look for coordinate text (format: "W S E N" like "-180 -90 180 90")
+    // Look for coordinate text (SOSO format: "minLat minLon maxLat maxLon" like "36.8 -124.5 38.2 -121.9")
     const coordText = this.page.locator("text=/^-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?$/");
     return await coordText.isVisible();
   }

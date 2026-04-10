@@ -58,7 +58,7 @@ export function prepareBoundsForRendering(
 
 /**
  * Validates spatial bounds according to WKT conventions
- * @param boxString - Bounding box string in "W S E N" format
+ * @param boxString - Bounding box string in SOSO format: "minLat minLon maxLat maxLon"
  * @returns Error message if invalid, null if valid
  */
 export function validateSpatialBounds(boxString: string): string | null {
