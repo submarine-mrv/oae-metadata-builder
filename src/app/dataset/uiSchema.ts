@@ -8,7 +8,7 @@ import {
   halfWidthStyle
 } from "../uiSchemaConstants";
 
-const enumNames = generateEnumNames(schema, ["DatasetType", "DataProductType"]);
+const enumNames = generateEnumNames(schema, ["DatasetType", "DataProductType", "DataAccessibility"]);
 
 // UI schema configuration for dataset form
 const datasetUiSchema = {
@@ -43,6 +43,7 @@ const datasetUiSchema = {
   data_accessibility: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
+    "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true
   },
   description: textAreaWidget,
