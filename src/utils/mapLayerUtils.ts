@@ -252,7 +252,7 @@ export function fitBoundsWithAntimeridian(
  * @param boundsString - Space-separated bounds string
  * @returns Parsed coordinates or null if invalid
  */
-export function parseBoundsString(
+export function parseWSENBoundsString(
   boundsString: string
 ): { west: number; south: number; east: number; north: number } | null {
   if (!boundsString?.trim()) return null;
@@ -276,7 +276,7 @@ export function parseBoundsString(
  * @param precision - Decimal places (default: 6)
  * @returns Formatted bounds string
  */
-export function formatBoundsString(
+export function formatWSENBoundsString(
   west: number,
   south: number,
   east: number,

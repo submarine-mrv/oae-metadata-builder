@@ -20,7 +20,7 @@ import {
   addBoundingBox,
   removeBoundingBox,
   fitBoundsWithAntimeridian,
-  formatBoundsString
+  formatWSENBoundsString
 } from "@/utils/mapLayerUtils";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
@@ -112,7 +112,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         typeof newEast === "number" &&
         typeof newNorth === "number"
       ) {
-        const boundsString = formatBoundsString(newWest, newSouth, newEast, newNorth);
+        const boundsString = formatWSENBoundsString(newWest, newSouth, newEast, newNorth);
         setCurrentBounds(boundsString);
 
         // Update map if it's loaded and coordinates are valid
@@ -231,7 +231,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         addBoundingBox(map, west, south, east, north);
 
         // Format as "W S E N"
-        const boundsString = formatBoundsString(west, south, east, north);
+        const boundsString = formatWSENBoundsString(west, south, east, north);
         setCurrentBounds(boundsString);
 
         // Update individual coordinate states

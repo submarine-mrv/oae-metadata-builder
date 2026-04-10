@@ -10,7 +10,7 @@ import {
   addBoundingBox,
   removeBoundingBox,
   fitBoundsWithAntimeridian,
-  parseBoundsString
+  parseWSENBoundsString
 } from "@/utils/mapLayerUtils";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
@@ -93,7 +93,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       setMiniMapLoaded(true);
 
       // Add bounding box if we have coordinates
-      const bounds = parseBoundsString(value);
+      const bounds = parseWSENBoundsString(value);
       if (bounds) {
         const { west, south, east, north } = bounds;
         addBoundingBox(map, west, south, east, north);
@@ -121,7 +121,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     if (!mapInstanceRef.current || !miniMapLoaded) return;
 
     const map = mapInstanceRef.current;
-    const bounds = parseBoundsString(value);
+    const bounds = parseWSENBoundsString(value);
 
     if (bounds) {
       const { west, south, east, north } = bounds;
