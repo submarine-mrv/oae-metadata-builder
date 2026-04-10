@@ -1851,6 +1851,16 @@
       "title": "ContinuousTAVariable",
       "type": "object"
     },
+    "DataAccessibility": {
+      "description": "Level of access to a dataset.",
+      "enum": [
+        "open_access",
+        "conditional_access",
+        "scheduled_access"
+      ],
+      "title": "DataAccessibility",
+      "type": "string"
+    },
     "DataProductType": {
       "description": "",
       "enum": [
@@ -1869,6 +1879,11 @@
           "description": "Author list in the format of Lastname1, Firstname1 Middlename1; Lastname2, Firstname2 Middlename2; ...",
           "title": "Author List (for citation)",
           "type": "string"
+        },
+        "data_accessibility": {
+          "$ref": "#/$defs/DataAccessibility",
+          "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
+          "title": "Data Accessibility"
         },
         "data_submitter": {
           "$ref": "#/$defs/Person",
@@ -1930,7 +1945,8 @@
         "experiment_id",
         "filenames",
         "dataset_type",
-        "data_submitter"
+        "data_submitter",
+        "data_accessibility"
       ],
       "title": "Dataset",
       "type": "object"
@@ -1957,6 +1973,7 @@
         "model_output",
         "socioeconomic",
         "net_tow",
+        "underway",
         "other"
       ],
       "title": "DatasetType",
@@ -3225,7 +3242,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of observed data in experiment, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "start_datetime": {
@@ -3287,7 +3304,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities) provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities), expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "temporal_coverage": {
@@ -3345,6 +3362,11 @@
             "array",
             "null"
           ]
+        },
+        "data_accessibility": {
+          "$ref": "#/$defs/DataAccessibility",
+          "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
+          "title": "Data Accessibility"
         },
         "data_product_type": {
           "$ref": "#/$defs/DataProductType",
@@ -3485,7 +3507,8 @@
         "experiment_id",
         "filenames",
         "dataset_type",
-        "data_submitter"
+        "data_submitter",
+        "data_accessibility"
       ],
       "title": "FieldDataset",
       "type": "object"
@@ -3574,7 +3597,7 @@
       "description": "The geographic shape of a place. A GeoShape can be described using several properties whose values are based on latitude/longitude pairs. Either whitespace or commas can be used to separate latitude and longitude; whitespace should be used when writing a list of several such points. (imported from schema.org)",
       "properties": {
         "box": {
-          "description": "A box defined by two latitude-longitude points, southwest and northeast.",
+          "description": "A bounding box defined by two corner points — the southwest (lower-left) corner followed by the northeast (upper-right) corner. Per science-on-schema.org, each point is written as `<latitude> <longitude>` in decimal degrees (WGS 84), with all four values space-separated: `\"<minLat> <minLon> <maxLat> <maxLon>\"`. Example: `\"39.3280 120.1633 40.445 123.7878\"`. See https://github.com/ESIPFed/science-on-schema.org/blob/main/guides/Dataset.md#spatial-coverage",
           "type": "string"
         },
         "line": {
@@ -3919,7 +3942,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of observed data in experiment, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "start_datetime": {
@@ -4172,7 +4195,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of observed data in experiment, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "start_datetime": {
@@ -4462,7 +4485,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of observed data in experiment, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "start_datetime": {
@@ -4654,11 +4677,6 @@
             "null"
           ]
         },
-        "input_details": {
-          "$ref": "#/$defs/ModelInputDetails",
-          "description": "Details about input data sources used to drive the model.",
-          "title": "Input Details"
-        },
         "model_components": {
           "description": "Components of the model (e.g., physics, biogeochemistry).",
           "items": {
@@ -4698,13 +4716,23 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of observed data in experiment, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
+        },
+        "spin_up_protocol": {
+          "description": "Description of the model spin-up process.",
+          "title": "Spin-up Protocol",
+          "type": "string"
         },
         "start_datetime": {
           "description": "Start date and time of experiment in UTC ISO-8601",
           "format": "date-time",
           "title": "Start Date and Time (UTC)",
+          "type": "string"
+        },
+        "time_stepping_scheme": {
+          "description": "Time-stepping method and time step used in the simulation.",
+          "title": "Time-stepping Scheme",
           "type": "string"
         }
       },
@@ -4830,6 +4858,11 @@
           "title": "Horizontal Resolution Range",
           "type": "string"
         },
+        "input_details": {
+          "$ref": "#/$defs/ModelInputDetails",
+          "description": "Details about input data sources used to drive the model on this grid.",
+          "title": "Input Details"
+        },
         "n_nodes": {
           "description": "Number of nodes in the grid (for unstructured grids).",
           "title": "N nodes",
@@ -4857,7 +4890,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Bounding box for this grid, provided as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude.",
+          "description": "Bounding box for this grid, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "vertical_coordinate_type": {
@@ -4972,9 +5005,7 @@
       "description": "A model simulation output dataset. Contains fields specific to computational model output including simulation configuration, output variables, and hardware information.",
       "if": {
         "properties": {
-          "simulation_type": {
-            "const": "perturbation"
-          }
+          "simulation_type": {}
         },
         "required": [
           "simulation_type"
@@ -4985,6 +5016,11 @@
           "description": "Author list in the format of Lastname1, Firstname1 Middlename1; Lastname2, Firstname2 Middlename2; ...",
           "title": "Author List (for citation)",
           "type": "string"
+        },
+        "data_accessibility": {
+          "$ref": "#/$defs/DataAccessibility",
+          "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
+          "title": "Data Accessibility"
         },
         "data_submitter": {
           "$ref": "#/$defs/Person",
@@ -5104,24 +5140,18 @@
           "type": "string"
         },
         "simulation_type": {
-          "$ref": "#/$defs/SimulationType",
-          "description": "Whether this is a counterfactual (control/baseline) or perturbation simulation.",
-          "title": "Simulation Type"
-        },
-        "spin_up_protocol": {
-          "description": "Description of the model spin-up process.",
-          "title": "Spin-up Protocol",
-          "type": "string"
+          "description": "The type(s) of model simulation (e.g., counterfactual, perturbation, or both).",
+          "items": {
+            "$ref": "#/$defs/SimulationType"
+          },
+          "minItems": 1,
+          "title": "Simulation Type",
+          "type": "array"
         },
         "start_datetime": {
           "description": "Start date and time of the simulation in UTC ISO-8601.",
           "format": "date-time",
           "title": "Start Date and Time",
-          "type": "string"
-        },
-        "time_stepping_scheme": {
-          "description": "Time-stepping method and time step used in the simulation.",
-          "title": "Time-stepping Scheme",
           "type": "string"
         }
       },
@@ -5135,7 +5165,8 @@
         "experiment_id",
         "filenames",
         "dataset_type",
-        "data_submitter"
+        "data_submitter",
+        "data_accessibility"
       ],
       "then": {
         "properties": {
@@ -6406,7 +6437,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities) provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of project site (e.g., boundary domain of observations or relevant activities), expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "temporal_coverage": {
@@ -6634,7 +6665,8 @@
       "description": "Type of model simulation dataset",
       "enum": [
         "counterfactual",
-        "perturbation"
+        "perturbation",
+        "other"
       ],
       "title": "SimulationType",
       "type": "string"
@@ -6893,7 +6925,7 @@
         },
         "spatial_coverage": {
           "$ref": "#/$defs/SpatialCoverage",
-          "description": "Latitude/longitude bounds of observed data in experiment, provided in decimal degrees as westernmost longitude, southernmost latitude, easternmost longitude, northernmost latitude. [S, W, N, E]",
+          "description": "Latitude/longitude bounds of observed data in experiment, expressed as a schema.org GeoShape bounding box.",
           "title": "Spatial Coverage"
         },
         "start_datetime": {
@@ -7081,5 +7113,5 @@
   "type": "object",
   "version": "0.1.0",
   "x-protocol-version": "0.0.0-prerelease",
-  "x-protocol-git-hash": "499819d0bf2c78172895b2bc5d6d28477a26e0b2"
+  "x-protocol-git-hash": "9a8b983c10fa094f1d451ace382c8626ecc85c9e"
 }
