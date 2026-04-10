@@ -36,8 +36,6 @@ const MODEL_SIMULATION_FIELDS = [
   "mcdr_forcing_description",
   "model_output_variables",
   "output_frequency",
-  "spin_up_protocol",
-  "time_stepping_scheme",
   "hardware_configuration",
   "start_datetime",
   "end_datetime"
