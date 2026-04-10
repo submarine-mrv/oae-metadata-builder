@@ -14,6 +14,7 @@ import {
 import { IconMap, IconEdit } from "@tabler/icons-react";
 import DosingLocationMapModal from "./DosingLocationMapModal";
 import { parseBoundsString } from "@/utils/mapLayerUtils";
+import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -280,6 +281,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         const bounds = parseBoundsString(box);
         if (bounds) {
           const { west, south, east, north } = bounds;
+          const renderEast = adjustEastForAntimeridian(west, east);
           map.addSource("dosing-bbox", {
             type: "geojson",
             data: {
@@ -289,8 +291,8 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
                 coordinates: [
                   [
                     [west, north],
-                    [east, north],
-                    [east, south],
+                    [renderEast, north],
+                    [renderEast, south],
                     [west, south],
                     [west, north]
                   ]
@@ -313,7 +315,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
           map.fitBounds(
             [
               [west, south],
-              [east, north]
+              [renderEast, north]
             ],
             { padding: 20, duration: 0 }
           );

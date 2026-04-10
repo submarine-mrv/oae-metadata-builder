@@ -15,6 +15,11 @@ import {
 import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
 import { parseBoundsString, formatBoundsString } from "@/utils/mapLayerUtils";
+import {
+  normalizeLongitude,
+  adjustEastForAntimeridian,
+  DEGREES_IN_CIRCLE
+} from "@/utils/spatialUtils";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -246,6 +251,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         map.removeSource("dosing-bbox");
       }
 
+      // Adjust east for antimeridian crossing (west > east)
+      const renderEast = adjustEastForAntimeridian(w, e);
+
       // Add bounding box as GeoJSON
       map.addSource("dosing-bbox", {
         type: "geojson",
@@ -256,8 +264,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
             coordinates: [
               [
                 [w, n],
-                [e, n],
-                [e, s],
+                [renderEast, n],
+                [renderEast, s],
                 [w, s],
                 [w, n]
               ]
@@ -315,10 +323,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           newEast,
           newNorth
         );
+        const fitEast = adjustEastForAntimeridian(
+          newWest as number,
+          newEast as number
+        );
         mapInstanceRef.current.fitBounds(
           [
             [newWest, newSouth],
-            [newEast, newNorth]
+            [fitEast, newNorth]
           ],
           {
             padding: 20,
@@ -388,8 +400,22 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-        const w = Math.min(startPt.lng, lng);
-        const e = Math.max(startPt.lng, lng);
+
+        // Normalize coordinates and detect antimeridian crossing
+        const lng1 = normalizeLongitude(startPt.lng);
+        const lng2 = normalizeLongitude(lng);
+        const directDistance = Math.abs(lng2 - lng1);
+        const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
+        const crossesAntimeridian = wrapDistance < directDistance;
+
+        let w, e;
+        if (crossesAntimeridian) {
+          w = Math.max(lng1, lng2);
+          e = Math.min(lng1, lng2);
+        } else {
+          w = Math.min(lng1, lng2);
+          e = Math.max(lng1, lng2);
+        }
         const s = Math.min(startPt.lat, lat);
         const n = Math.max(startPt.lat, lat);
 
