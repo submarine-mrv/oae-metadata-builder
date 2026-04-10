@@ -1,5 +1,6 @@
 import { getProtocolMetadata } from "./schemaViews";
 import { normalizeVariableFields } from "@/components/VariableModal/variableModalConfig";
+import { migrateFormData } from "@/utils/migrations";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -229,7 +230,16 @@ export async function importMetadata(file: File): Promise<ImportResult> {
           : [];
 
         // Remove experiments from project data (in case of old format)
-        const { experiments: _, ...projectData } = projectDataRaw;
+        // Migrate legacy bounding box format (W S E N → S W N E)
+        const { experiments: _, ...projectData } = migrateFormData(projectDataRaw);
+
+        // Migrate legacy bounding box format (W S E N → S W N E)
+        experimentsData = experimentsData.map(
+          (exp: ExperimentFormData) => migrateFormData(exp) as ExperimentFormData
+        );
+        const migratedDatasets = datasetsData.map(
+          (ds: DatasetFormData) => migrateFormData(ds) as DatasetFormData
+        );
 
         // Convert experiment data to ExperimentState format
         const experiments: ExperimentState[] = experimentsData.map(
@@ -247,7 +257,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         );
 
         // Convert dataset data to DatasetState format
-        const datasets: DatasetState[] = datasetsData.map(
+        const datasets: DatasetState[] = migratedDatasets.map(
           (dsData: DatasetFormData, index: number) => {
             // Normalize variable fields on import (fix inconsistencies)
             const rawVars = Array.isArray(dsData.variables) ? dsData.variables : [];
