@@ -22,6 +22,8 @@ export interface ConditionalFieldPair {
   triggerValue: unknown;
   /** The conditional field name that appears when condition is met (e.g., "alkalinity_feedstock_custom") */
   customField: string;
+  /** How to match: "exact" (default) checks equality, "array-contains" checks if array includes triggerValue */
+  matchMode?: "exact" | "array-contains";
 }
 
 /**
@@ -94,17 +96,33 @@ export function cleanupNestedConditionalFields<T extends FormDataRecord>(
   return cleanedData;
 }
 
+/**
+ * Checks whether a conditional trigger condition is met.
+ * - "exact" (default): currentValue === triggerValue
+ * - "array-contains": Array.isArray(currentValue) && currentValue.includes(triggerValue)
+ */
+function isConditionMet(
+  currentValue: unknown,
+  triggerValue: unknown,
+  matchMode: "exact" | "array-contains" = "exact"
+): boolean {
+  if (matchMode === "array-contains") {
+    return Array.isArray(currentValue) && currentValue.includes(triggerValue);
+  }
+  return currentValue === triggerValue;
+}
+
 export function cleanupConditionalFields<T extends FormDataRecord>(
   formData: T,
   conditionalPairs: ConditionalFieldPair[]
 ): T {
   let cleanedData = { ...formData } as T;
 
-  conditionalPairs.forEach(({ triggerField, triggerValue, customField }) => {
+  conditionalPairs.forEach(({ triggerField, triggerValue, customField, matchMode }) => {
     const currentValue = cleanedData[triggerField];
 
     // If trigger condition is not met and custom field exists, remove it
-    if (currentValue !== triggerValue && customField in cleanedData) {
+    if (!isConditionMet(currentValue, triggerValue, matchMode) && customField in cleanedData) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [customField]: _removed, ...rest } = cleanedData;
       cleanedData = rest as T;
