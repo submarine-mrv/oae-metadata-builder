@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Container,
   Title,
@@ -104,7 +104,7 @@ export default function ExperimentPage() {
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const isInitialLoadRef = useRef(true);
 
   const activeExperimentId = state.activeExperimentId;
 
@@ -157,8 +157,9 @@ export default function ExperimentPage() {
 
   // Load experiment data when experiment ID changes
   useEffect(() => {
-    // Reset initial load flag when switching experiments
-    setIsInitialLoad(true);
+    // Reset initial load flag when switching experiments — ref updates
+    // synchronously, so there's no window where the guard is stale.
+    isInitialLoadRef.current = true;
     // Reset error-list visibility so the new entity doesn't inherit
     // the previous one's open/closed state.
     validation.closeErrorList();
@@ -166,8 +167,10 @@ export default function ExperimentPage() {
     if (experiment) {
       // Use experiment's formData directly - project_id is managed by linking system
       setFormData(experiment.formData);
-      // Mark that initial data has been loaded (after a tick to let form mount)
-      setTimeout(() => setIsInitialLoad(false), 0);
+      // Allow onChange processing after the form has rendered with the loaded data.
+      // requestAnimationFrame fires after the browser paints the current frame,
+      // ensuring RJSF has rendered with our formData before we start processing changes.
+      requestAnimationFrame(() => { isInitialLoadRef.current = false; });
     }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -191,7 +194,7 @@ export default function ExperimentPage() {
     (e: any) => {
       // Don't save to global state until initial data is loaded
       // This prevents RJSF's onChange on mount from overwriting real data with empty data
-      if (isInitialLoad) {
+      if (isInitialLoadRef.current) {
         return;
       }
 
@@ -233,7 +236,7 @@ export default function ExperimentPage() {
         replaceExperimentFormData(activeExperimentId, newData);
       }
     },
-    [isInitialLoad, formData, activeExperimentId, replaceExperimentFormData]
+    [formData, activeExperimentId, replaceExperimentFormData]
   );
 
   if (!experiment) {

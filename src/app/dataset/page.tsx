@@ -127,7 +127,7 @@ export default function DatasetPage() {
   // on type switch (updateDataset uses merge semantics which would re-add
   // fields that cleanup removed)
   const [formData, setFormData] = useState<any>({});
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const isInitialLoadRef = useRef(true);
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
@@ -136,11 +136,11 @@ export default function DatasetPage() {
 
   // Load dataset data when active dataset changes
   useEffect(() => {
-    setIsInitialLoad(true);
+    isInitialLoadRef.current = true;
 
     if (currentDataset) {
       setFormData(currentDataset.formData);
-      setTimeout(() => setIsInitialLoad(false), 0);
+      requestAnimationFrame(() => { isInitialLoadRef.current = false; });
     }
   }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -244,7 +244,7 @@ export default function DatasetPage() {
   }, [setActiveTab]);
 
   const handleFormChange = useCallback((e: any) => {
-    if (!state.activeDatasetId || isInitialLoad) return;
+    if (!state.activeDatasetId || isInitialLoadRef.current) return;
 
     let newData = e.formData;
 
@@ -269,7 +269,7 @@ export default function DatasetPage() {
     // then sync to context
     setFormData(newData);
     replaceDatasetFormData(state.activeDatasetId, newData);
-  }, [isInitialLoad, formData, state.activeDatasetId, replaceDatasetFormData]);
+  }, [formData, state.activeDatasetId, replaceDatasetFormData]);
 
   // Show message if no dataset is selected
   if (!currentDataset) {

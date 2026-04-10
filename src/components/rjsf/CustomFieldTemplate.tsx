@@ -86,6 +86,7 @@ export default function CustomFieldTemplate<
     registry,
     children,
     rawErrors,
+    fieldPathId: _fieldPathId,
     ...otherProps
   } = props;
 
