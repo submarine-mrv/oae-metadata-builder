@@ -12,9 +12,8 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
-  normalizeLongitude,
-  DEGREES_IN_CIRCLE,
-  isValidLatitude
+  isValidLatitude,
+  resolveBoxFromClicks
 } from "@/utils/spatialUtils";
 import {
   addBoundingBox,
@@ -195,30 +194,10 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-
-        // Normalize coordinates to -180 to 180 range
-        const lng1 = normalizeLongitude(startPt.lng);
-        const lng2 = normalizeLongitude(lng);
-
-        // Determine if we're crossing the antimeridian by checking shortest path
-        const directDistance = Math.abs(lng2 - lng1);
-        const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
-        const crossesAntimeridian = wrapDistance < directDistance;
-
-        let west, east;
-        if (crossesAntimeridian) {
-          // Crossing antimeridian: W should be larger value (closer to +180)
-          // E should be smaller value (closer to -180)
-          west = Math.max(lng1, lng2);
-          east = Math.min(lng1, lng2);
-        } else {
-          // Not crossing: normal min/max
-          west = Math.min(lng1, lng2);
-          east = Math.max(lng1, lng2);
-        }
-
-        const south = Math.min(startPt.lat, lat);
-        const north = Math.max(startPt.lat, lat);
+        const { west, south, east, north } = resolveBoxFromClicks(
+          startPt,
+          { lng, lat }
+        );
 
         // Validate coordinates are within valid ranges
         if (!isValidLatitude(south) || !isValidLatitude(north)) {

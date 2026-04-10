@@ -16,9 +16,8 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
 import { parseBoundsString, formatBoundsString } from "@/utils/mapLayerUtils";
 import {
-  normalizeLongitude,
   adjustEastForAntimeridian,
-  DEGREES_IN_CIRCLE
+  resolveBoxFromClicks
 } from "@/utils/spatialUtils";
 
 type DosingMode = "point" | "line" | "box";
@@ -400,24 +399,10 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-
-        // Normalize coordinates and detect antimeridian crossing
-        const lng1 = normalizeLongitude(startPt.lng);
-        const lng2 = normalizeLongitude(lng);
-        const directDistance = Math.abs(lng2 - lng1);
-        const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
-        const crossesAntimeridian = wrapDistance < directDistance;
-
-        let w, e;
-        if (crossesAntimeridian) {
-          w = Math.max(lng1, lng2);
-          e = Math.min(lng1, lng2);
-        } else {
-          w = Math.min(lng1, lng2);
-          e = Math.max(lng1, lng2);
-        }
-        const s = Math.min(startPt.lat, lat);
-        const n = Math.max(startPt.lat, lat);
+        const { west: w, south: s, east: e, north: n } = resolveBoxFromClicks(
+          startPt,
+          { lng, lat }
+        );
 
         // Add final bounding box
         addBoundingBox(map, w, s, e, n);

@@ -109,6 +109,37 @@ export function validateSpatialBounds(boxString: string): string | null {
 }
 
 /**
+ * Resolves two clicked points into a bounding box, handling antimeridian crossing.
+ * Click order does not matter — the result is always { west, south, east, north }
+ * where west is the westernmost edge. For antimeridian-crossing boxes, west > east.
+ */
+export function resolveBoxFromClicks(
+  click1: { lng: number; lat: number },
+  click2: { lng: number; lat: number }
+): { west: number; south: number; east: number; north: number } {
+  const lng1 = normalizeLongitude(click1.lng);
+  const lng2 = normalizeLongitude(click2.lng);
+
+  const directDistance = Math.abs(lng2 - lng1);
+  const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
+  const crossesAntimeridian = wrapDistance < directDistance;
+
+  let west, east;
+  if (crossesAntimeridian) {
+    west = Math.max(lng1, lng2);
+    east = Math.min(lng1, lng2);
+  } else {
+    west = Math.min(lng1, lng2);
+    east = Math.max(lng1, lng2);
+  }
+
+  const south = Math.min(click1.lat, click2.lat);
+  const north = Math.max(click1.lat, click2.lat);
+
+  return { west, south, east, north };
+}
+
+/**
  * Validates latitude coordinate range
  * @param lat - Latitude value
  * @returns true if valid, false otherwise
