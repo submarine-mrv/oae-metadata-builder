@@ -453,12 +453,13 @@ describe("migrateFormDataBoxStrings", () => {
     const data = {
       spatial_coverage: { geo: { box: "32 -125 42 -114" } }
     };
-    expect(migrateFormDataBoxStrings(data)).toBe(data); // same reference
+    const result = migrateFormDataBoxStrings(data);
+    expect(result.spatial_coverage.geo.box).toBe("32 -125 42 -114");
   });
 
   it("handles missing spatial_coverage gracefully", () => {
     const data = { name: "No spatial" };
-    expect(migrateFormDataBoxStrings(data)).toBe(data);
+    expect(migrateFormDataBoxStrings(data)).toEqual(data);
   });
 
   it("handles null/empty box", () => {
@@ -471,5 +472,49 @@ describe("migrateFormDataBoxStrings", () => {
   it("handles null/undefined input", () => {
     expect(migrateFormDataBoxStrings(null as any)).toBe(null);
     expect(migrateFormDataBoxStrings(undefined as any)).toBe(undefined);
+  });
+
+  it("migrates nested spatial_coverage inside arrays (e.g., grid_details)", () => {
+    const data = {
+      name: "Test Experiment",
+      grid_details: [
+        {
+          grid_name: "Grid 1",
+          spatial_coverage: { geo: { box: "-124.565552 47.254494 -122.390259 48.207705" } }
+        },
+        {
+          grid_name: "Grid 2",
+          spatial_coverage: { geo: { box: "32 -125 42 -114" } } // already SOSO
+        }
+      ]
+    };
+    const result = migrateFormDataBoxStrings(data);
+    expect(result.grid_details[0].spatial_coverage.geo.box)
+      .toBe("47.254494 -124.565552 48.207705 -122.390259");
+    expect(result.grid_details[1].spatial_coverage.geo.box)
+      .toBe("32 -125 42 -114"); // unchanged
+  });
+
+  it("migrates deeply nested spatial_coverage in objects", () => {
+    const data = {
+      interventions: {
+        tracer: {
+          spatial_coverage: { geo: { box: "-170 -10 170 10" } }
+        }
+      }
+    };
+    const result = migrateFormDataBoxStrings(data);
+    expect(result.interventions.tracer.spatial_coverage.geo.box)
+      .toBe("-10 -170 10 170");
+  });
+
+  it("preserves values when no migration needed", () => {
+    const data = {
+      grid_details: [
+        { spatial_coverage: { geo: { box: "32 -125 42 -114" } } }
+      ]
+    };
+    const result = migrateFormDataBoxStrings(data);
+    expect(result.grid_details[0].spatial_coverage.geo.box).toBe("32 -125 42 -114");
   });
 });
