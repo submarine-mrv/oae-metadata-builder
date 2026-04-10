@@ -176,28 +176,28 @@ export function migrateLegacyBoxString(box: string): string {
 /**
  * Recursively walk form data and migrate any spatial_coverage.geo.box strings
  * from legacy "W S E N" format to SOSO "S W N E" format.
+ * Handles nested objects and arrays (e.g., grid_details[].spatial_coverage).
  */
 export function migrateFormDataBoxStrings(formData: Record<string, any>): Record<string, any> {
   if (!formData || typeof formData !== "object") return formData;
 
-  const box = formData?.spatial_coverage?.geo?.box;
-  if (typeof box === "string" && box.trim()) {
-    const migrated = migrateLegacyBoxString(box);
-    if (migrated !== box) {
-      return {
-        ...formData,
-        spatial_coverage: {
-          ...formData.spatial_coverage,
-          geo: {
-            ...formData.spatial_coverage.geo,
-            box: migrated
-          }
-        }
-      };
+  const result: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(formData)) {
+    if (key === "spatial_coverage" && typeof value?.geo?.box === "string") {
+      result[key] = { ...value, geo: { ...value.geo, box: migrateLegacyBoxString(value.geo.box) } };
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        item && typeof item === "object" ? migrateFormDataBoxStrings(item) : item
+      );
+    } else if (value && typeof value === "object") {
+      result[key] = migrateFormDataBoxStrings(value);
+    } else {
+      result[key] = value;
     }
   }
 
-  return formData;
+  return result;
 }
 
 /**
