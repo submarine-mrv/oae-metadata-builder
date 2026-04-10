@@ -12,15 +12,15 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
-  normalizeLongitude,
-  DEGREES_IN_CIRCLE,
-  isValidLatitude
+  isValidLatitude,
+  resolveBoxFromClicks
 } from "@/utils/spatialUtils";
 import {
   addBoundingBox,
   removeBoundingBox,
   fitBoundsWithAntimeridian,
-  formatBoundsString
+  formatBoundsString,
+  parseBoundsString
 } from "@/utils/mapLayerUtils";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
@@ -66,17 +66,15 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   // Load MapLibre using the shared hook (don't auto-load, only when modal opens)
   const { isLoaded: mapLibreLoaded, loadMapLibre } = useMapLibreLoader(false);
 
-  // Parse bounds string "W S E N" into individual coordinates
+  // Parse bounds string into individual coordinate state
   const parseBounds = useCallback((boundsString: string) => {
-    const parts = boundsString.trim().split(/\s+/).map(Number);
-    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
-      const [w, s, e, n] = parts;
-      setWest(w);
-      setSouth(s);
-      setEast(e);
-      setNorth(n);
-      // Check for latitude error
-      setHasLatitudeError(n <= s);
+    const bounds = parseBoundsString(boundsString);
+    if (bounds) {
+      setWest(bounds.west);
+      setSouth(bounds.south);
+      setEast(bounds.east);
+      setNorth(bounds.north);
+      setHasLatitudeError(bounds.north <= bounds.south);
     } else {
       setWest("");
       setSouth("");
@@ -142,9 +140,9 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
 
       // Add initial bounds if provided
       if (initialBounds.trim()) {
-        const parts = initialBounds.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [west, south, east, north] = parts;
+        const bounds = parseBoundsString(initialBounds);
+        if (bounds) {
+          const { west, south, east, north } = bounds;
           addBoundingBox(map, west, south, east, north);
           fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 50 });
           setCurrentBounds(initialBounds);
@@ -196,30 +194,10 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-
-        // Normalize coordinates to -180 to 180 range
-        const lng1 = normalizeLongitude(startPt.lng);
-        const lng2 = normalizeLongitude(lng);
-
-        // Determine if we're crossing the antimeridian by checking shortest path
-        const directDistance = Math.abs(lng2 - lng1);
-        const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
-        const crossesAntimeridian = wrapDistance < directDistance;
-
-        let west, east;
-        if (crossesAntimeridian) {
-          // Crossing antimeridian: W should be larger value (closer to +180)
-          // E should be smaller value (closer to -180)
-          west = Math.max(lng1, lng2);
-          east = Math.min(lng1, lng2);
-        } else {
-          // Not crossing: normal min/max
-          west = Math.min(lng1, lng2);
-          east = Math.max(lng1, lng2);
-        }
-
-        const south = Math.min(startPt.lat, lat);
-        const north = Math.max(startPt.lat, lat);
+        const { west, south, east, north } = resolveBoxFromClicks(
+          startPt,
+          { lng, lat }
+        );
 
         // Validate coordinates are within valid ranges
         if (!isValidLatitude(south) || !isValidLatitude(north)) {
@@ -230,7 +208,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         // Add final bounding box
         addBoundingBox(map, west, south, east, north);
 
-        // Format as "W S E N"
+        // Format as SOSO bounds string (minLat minLon maxLat maxLon)
         const boundsString = formatBoundsString(west, south, east, north);
         setCurrentBounds(boundsString);
 

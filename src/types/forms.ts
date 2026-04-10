@@ -241,7 +241,7 @@ export interface ValidationResult {
 // =============================================================================
 
 /**
- * Geographic bounding box as "W S E N" string
+ * Geographic bounding box as SOSO string: "minLat minLon maxLat maxLon"
  */
 export type BoundingBoxString = string;
 

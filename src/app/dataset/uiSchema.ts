@@ -8,7 +8,7 @@ import {
   halfWidthStyle
 } from "../uiSchemaConstants";
 
-const enumNames = generateEnumNames(schema, ["DatasetType", "DataProductType"]);
+const enumNames = generateEnumNames(schema, ["DatasetType", "DataProductType", "DataAccessibility", "ResearcherIDType"]);
 
 // UI schema configuration for dataset form
 const datasetUiSchema = {
@@ -18,6 +18,7 @@ const datasetUiSchema = {
   },
   "ui:order": [
     "name",
+    "data_accessibility",
     "experiment_id",
     "description",
     "temporal_coverage",
@@ -37,6 +38,12 @@ const datasetUiSchema = {
   name: {
     "ui:placeholder":
       "Brief descriptive sentence summarizing the dataset content",
+    "ui:descriptionModal": true
+  },
+  data_accessibility: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true
   },
   description: textAreaWidget,
@@ -119,7 +126,8 @@ const datasetUiSchema = {
       "ui:placeholder": "https://orcid.org/0000-0000-0000-0000"
     },
     identifier_type: {
-      "ui:widget": "CustomSelectWidget"
+      "ui:widget": "CustomSelectWidget",
+      "ui:enumNames": enumNames.ResearcherIDType
     },
     role: {
       "ui:placeholder": "e.g., Data Submitter, Principal Investigator"

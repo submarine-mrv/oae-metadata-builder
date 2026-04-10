@@ -9,7 +9,7 @@ import {
   halfWidthStyle
 } from "../uiSchemaConstants";
 
-const enumNames = generateEnumNames(schema, ["DatasetType", "SimulationType"]);
+const enumNames = generateEnumNames(schema, ["DatasetType", "SimulationType", "ResearcherIDType"]);
 
 const modelOutputUiSchema = {
   "ui:title": "",
@@ -145,7 +145,8 @@ const modelOutputUiSchema = {
       "ui:placeholder": "https://orcid.org/0000-0000-0000-0000"
     },
     identifier_type: {
-      "ui:widget": "CustomSelectWidget"
+      "ui:widget": "CustomSelectWidget",
+      "ui:enumNames": enumNames.ResearcherIDType
     },
     role: {
       "ui:placeholder": "e.g., Data Submitter, Principal Investigator"

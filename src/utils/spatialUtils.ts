@@ -58,7 +58,7 @@ export function prepareBoundsForRendering(
 
 /**
  * Validates spatial bounds according to WKT conventions
- * @param boxString - Bounding box string in "W S E N" format
+ * @param boxString - Bounding box string in SOSO format: "minLat minLon maxLat maxLon"
  * @returns Error message if invalid, null if valid
  */
 export function validateSpatialBounds(boxString: string): string | null {
@@ -67,14 +67,14 @@ export function validateSpatialBounds(boxString: string): string | null {
 
   const parts = trimmed.split(/\s+/);
   if (parts.length !== 4) {
-    return "Must contain exactly 4 numbers: W S E N";
+    return "Must contain exactly 4 numbers: minLat minLon maxLat maxLon";
   }
 
-  const [west, south, east, north] = parts.map(Number);
+  const [south, west, north, east] = parts.map(Number);
 
   // Check if all parts are valid numbers
   if (
-    parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))
+    parts.some((part, i) => !Number.isFinite([south, west, north, east][i]))
   ) {
     return "All values must be valid numbers";
   }
@@ -106,6 +106,37 @@ export function validateSpatialBounds(boxString: string): string | null {
   }
 
   return null; // valid
+}
+
+/**
+ * Resolves two clicked points into a bounding box, handling antimeridian crossing.
+ * Click order does not matter — the result is always { west, south, east, north }
+ * where west is the westernmost edge. For antimeridian-crossing boxes, west > east.
+ */
+export function resolveBoxFromClicks(
+  click1: { lng: number; lat: number },
+  click2: { lng: number; lat: number }
+): { west: number; south: number; east: number; north: number } {
+  const lng1 = normalizeLongitude(click1.lng);
+  const lng2 = normalizeLongitude(click2.lng);
+
+  const directDistance = Math.abs(lng2 - lng1);
+  const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
+  const crossesAntimeridian = wrapDistance < directDistance;
+
+  let west, east;
+  if (crossesAntimeridian) {
+    west = Math.max(lng1, lng2);
+    east = Math.min(lng1, lng2);
+  } else {
+    west = Math.min(lng1, lng2);
+    east = Math.max(lng1, lng2);
+  }
+
+  const south = Math.min(click1.lat, click2.lat);
+  const north = Math.max(click1.lat, click2.lat);
+
+  return { west, south, east, north };
 }
 
 /**

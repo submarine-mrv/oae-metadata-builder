@@ -14,6 +14,11 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
+import { parseBoundsString, formatBoundsString } from "@/utils/mapLayerUtils";
+import {
+  adjustEastForAntimeridian,
+  resolveBoxFromClicks
+} from "@/utils/spatialUtils";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -89,35 +94,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     return "";
   });
 
-  // Box mode state - individual coordinate states
-  const [north, setNorth] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[3]);
-    }
-    return "";
-  });
-  const [south, setSouth] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[1]);
-    }
-    return "";
-  });
-  const [west, setWest] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[0]);
-    }
-    return "";
-  });
-  const [east, setEast] = useState<number | string>(() => {
-    if (geoData?.box && typeof geoData.box === "string") {
-      const parts = geoData.box.trim().split(/\s+/);
-      if (parts.length === 4) return parseFloat(parts[2]);
-    }
-    return "";
-  });
+  // Box mode state - parse initial box string via shared helper
+  const initialBox = geoData?.box && typeof geoData.box === "string"
+    ? parseBoundsString(geoData.box)
+    : null;
+  const [north, setNorth] = useState<number | string>(initialBox?.north ?? "");
+  const [south, setSouth] = useState<number | string>(initialBox?.south ?? "");
+  const [west, setWest] = useState<number | string>(initialBox?.west ?? "");
+  const [east, setEast] = useState<number | string>(initialBox?.east ?? "");
 
   const [localFileLocation, setLocalFileLocation] = useState(fileLocation);
 
@@ -266,6 +250,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         map.removeSource("dosing-bbox");
       }
 
+      // Adjust east for antimeridian crossing (west > east)
+      const renderEast = adjustEastForAntimeridian(w, e);
+
       // Add bounding box as GeoJSON
       map.addSource("dosing-bbox", {
         type: "geojson",
@@ -276,8 +263,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
             coordinates: [
               [
                 [w, n],
-                [e, n],
-                [e, s],
+                [renderEast, n],
+                [renderEast, s],
                 [w, s],
                 [w, n]
               ]
@@ -335,10 +322,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           newEast,
           newNorth
         );
+        const fitEast = adjustEastForAntimeridian(
+          newWest as number,
+          newEast as number
+        );
         mapInstanceRef.current.fitBounds(
           [
             [newWest, newSouth],
-            [newEast, newNorth]
+            [fitEast, newNorth]
           ],
           {
             padding: 20,
@@ -408,10 +399,10 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-        const w = Math.min(startPt.lng, lng);
-        const e = Math.max(startPt.lng, lng);
-        const s = Math.min(startPt.lat, lat);
-        const n = Math.max(startPt.lat, lat);
+        const { west: w, south: s, east: e, north: n } = resolveBoxFromClicks(
+          startPt,
+          { lng, lat }
+        );
 
         // Add final bounding box
         addBoundingBox(map, w, s, e, n);
@@ -451,14 +442,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
       // Load existing box data if in box mode
       if (localMode === "box" && geoData?.box) {
-        const parts = geoData.box.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [w, s, e, n] = parts;
-          addBoundingBox(map, w, s, e, n);
+        const bounds = parseBoundsString(geoData.box);
+        if (bounds) {
+          const { west, south, east, north } = bounds;
+          addBoundingBox(map, west, south, east, north);
           map.fitBounds(
             [
-              [w, s],
-              [e, n]
+              [west, south],
+              [east, north]
             ],
             { padding: 50 }
           );
@@ -633,8 +624,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       typeof east === "number" &&
       typeof north === "number"
     ) {
-      // Format: "west south east north"
-      const boxString = `${west} ${south} ${east} ${north}`;
+      const boxString = formatBoundsString(west, south, east, north);
       newGeoData = {
         box: boxString
       };

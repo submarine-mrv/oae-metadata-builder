@@ -7,14 +7,14 @@ import { IconMap } from "@tabler/icons-react";
 import SpatialCoverageMapModal from "../SpatialCoverageMapModal";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
 
-// parse "W S E N" string from nested object
+// parse SOSO bounds string (minLat minLon maxLat maxLon) from nested GeoShape object
 function readBox(formData: any): string {
   // schema path: spatial_coverage -> Place -> { geo: GeoShape | null } -> { box: string | null }
   const v = formData?.geo?.box;
   return typeof v === "string" ? v : "";
 }
 
-// write nested object from "W S E N" string
+// write nested GeoShape object from SOSO bounds string
 function writeBox(s: string): any {
   const trimmed = s.trim();
   if (!trimmed) return null; // satisfies anyOf null
@@ -55,7 +55,7 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
 
   const placeholder =
     uiSchema?.["ui:options"]?.placeholder ??
-    "W S E N  (lon/lat, decimal degrees)";
+    "minLat minLon maxLat maxLon  (decimal degrees)";
 
   const maxWidth = uiSchema?.["ui:options"]?.maxWidth ?? 420;
 
@@ -119,8 +119,8 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
         />
 
         <Text size="xs" c="dimmed" mt={4}>
-          Enter four numbers: <code>W S E N</code> (longitude/latitude; e.g.
-          <code> -124.5 36.8 -121.9 38.2</code>). Leave blank to set{" "}
+          Enter four numbers: <code>minLat minLon maxLat maxLon</code> (e.g.
+          <code> 36.8 -124.5 38.2 -121.9</code>). Leave blank to set{" "}
           <code>null</code>.
         </Text>
       </div>
