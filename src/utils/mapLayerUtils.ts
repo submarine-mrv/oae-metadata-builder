@@ -247,9 +247,10 @@ export function fitBoundsWithAntimeridian(
 }
 
 /**
- * Parse a bounding box string "S W N E" (minLat minLon maxLat maxLon per SOSO) into coordinate values
+ * Parse a bounding box string "S W N E" (minLat minLon maxLat maxLon) into coordinate values.
+ * Per science-on-schema.org: https://github.com/ESIPFed/science-on-schema.org/blob/main/guides/Dataset.md#spatial-coverage
  *
- * @param boundsString - Space-separated bounds string in SOSO format: "minLat minLon maxLat maxLon"
+ * @param boundsString - Space-separated bounds string: "minLat minLon maxLat maxLon"
  * @returns Parsed coordinates or null if invalid
  */
 export function parseBoundsString(
@@ -267,14 +268,15 @@ export function parseBoundsString(
 }
 
 /**
- * Format coordinates into a bounding box string "S W N E" (minLat minLon maxLat maxLon per SOSO)
+ * Format coordinates into a bounding box string "S W N E" (minLat minLon maxLat maxLon).
+ * Per science-on-schema.org: https://github.com/ESIPFed/science-on-schema.org/blob/main/guides/Dataset.md#spatial-coverage
  *
  * @param west - Western longitude
  * @param south - Southern latitude
  * @param east - Eastern longitude
  * @param north - Northern latitude
  * @param precision - Decimal places (default: 6)
- * @returns Formatted bounds string in SOSO format: "minLat minLon maxLat maxLon"
+ * @returns Formatted bounds string: "minLat minLon maxLat maxLon"
  */
 export function formatBoundsString(
   west: number,

@@ -20,7 +20,8 @@ import {
   addBoundingBox,
   removeBoundingBox,
   fitBoundsWithAntimeridian,
-  formatBoundsString
+  formatBoundsString,
+  parseBoundsString
 } from "@/utils/mapLayerUtils";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
@@ -66,17 +67,15 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   // Load MapLibre using the shared hook (don't auto-load, only when modal opens)
   const { isLoaded: mapLibreLoaded, loadMapLibre } = useMapLibreLoader(false);
 
-  // Parse bounds string "W S E N" into individual coordinates
+  // Parse bounds string into individual coordinate state
   const parseBounds = useCallback((boundsString: string) => {
-    const parts = boundsString.trim().split(/\s+/).map(Number);
-    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
-      const [w, s, e, n] = parts;
-      setWest(w);
-      setSouth(s);
-      setEast(e);
-      setNorth(n);
-      // Check for latitude error
-      setHasLatitudeError(n <= s);
+    const bounds = parseBoundsString(boundsString);
+    if (bounds) {
+      setWest(bounds.west);
+      setSouth(bounds.south);
+      setEast(bounds.east);
+      setNorth(bounds.north);
+      setHasLatitudeError(bounds.north <= bounds.south);
     } else {
       setWest("");
       setSouth("");
@@ -142,9 +141,9 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
 
       // Add initial bounds if provided
       if (initialBounds.trim()) {
-        const parts = initialBounds.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [west, south, east, north] = parts;
+        const bounds = parseBoundsString(initialBounds);
+        if (bounds) {
+          const { west, south, east, north } = bounds;
           addBoundingBox(map, west, south, east, north);
           fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 50 });
           setCurrentBounds(initialBounds);

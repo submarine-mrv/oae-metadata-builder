@@ -67,14 +67,14 @@ export function validateSpatialBounds(boxString: string): string | null {
 
   const parts = trimmed.split(/\s+/);
   if (parts.length !== 4) {
-    return "Must contain exactly 4 numbers: W S E N";
+    return "Must contain exactly 4 numbers: minLat minLon maxLat maxLon";
   }
 
-  const [west, south, east, north] = parts.map(Number);
+  const [south, west, north, east] = parts.map(Number);
 
   // Check if all parts are valid numbers
   if (
-    parts.some((part, i) => !Number.isFinite([west, south, east, north][i]))
+    parts.some((part, i) => !Number.isFinite([south, west, north, east][i]))
   ) {
     return "All values must be valid numbers";
   }

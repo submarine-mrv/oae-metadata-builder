@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
+import { parseBoundsString, formatBoundsString } from "@/utils/mapLayerUtils";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -451,14 +452,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
       // Load existing box data if in box mode
       if (localMode === "box" && geoData?.box) {
-        const parts = geoData.box.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [w, s, e, n] = parts;
-          addBoundingBox(map, w, s, e, n);
+        const bounds = parseBoundsString(geoData.box);
+        if (bounds) {
+          const { west, south, east, north } = bounds;
+          addBoundingBox(map, west, south, east, north);
           map.fitBounds(
             [
-              [w, s],
-              [e, n]
+              [west, south],
+              [east, north]
             ],
             { padding: 50 }
           );
@@ -633,8 +634,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       typeof east === "number" &&
       typeof north === "number"
     ) {
-      // Format: "west south east north"
-      const boxString = `${west} ${south} ${east} ${north}`;
+      const boxString = formatBoundsString(west, south, east, north);
       newGeoData = {
         box: boxString
       };

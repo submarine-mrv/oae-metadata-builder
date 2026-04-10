@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import { IconMap, IconEdit } from "@tabler/icons-react";
 import DosingLocationMapModal from "./DosingLocationMapModal";
+import { parseBoundsString } from "@/utils/mapLayerUtils";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -276,9 +277,9 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
     } else if (selectedMode === "box") {
       const box = formData?.geo?.box;
       if (typeof box === "string" && box.trim()) {
-        const parts = box.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          const [west, south, east, north] = parts;
+        const bounds = parseBoundsString(box);
+        if (bounds) {
+          const { west, south, east, north } = bounds;
           map.addSource("dosing-bbox", {
             type: "geojson",
             data: {
