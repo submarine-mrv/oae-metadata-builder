@@ -167,10 +167,10 @@ export default function ExperimentPage() {
     if (experiment) {
       // Use experiment's formData directly - project_id is managed by linking system
       setFormData(experiment.formData);
-      // Allow onChange processing after the form has rendered with the loaded data.
-      // requestAnimationFrame fires after the browser paints the current frame,
-      // ensuring RJSF has rendered with our formData before we start processing changes.
-      requestAnimationFrame(() => { isInitialLoadRef.current = false; });
+      // Keep the guard up through RJSF's reconciliation onChange (which fires
+      // in a React effect after the render triggered by setFormData), then drop it.
+      const timerId = setTimeout(() => { isInitialLoadRef.current = false; }, 0);
+      return () => clearTimeout(timerId);
     }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
