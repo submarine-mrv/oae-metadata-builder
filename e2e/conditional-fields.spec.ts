@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import * as path from "path";
 import { ExperimentPage } from "./fixtures/experiment-page";
 
 test.describe("Conditional Dropdown Fields", () => {
@@ -157,4 +158,94 @@ test.describe("Conditional Dropdown Fields", () => {
 
   // Note: JSON Preview tests are skipped as the toggle isn't currently exposed in the UI
   // These can be added once the JSON Preview toggle is available in the hamburger menu
+});
+
+test.describe("Import preserves conditional field values", () => {
+  const fixturePath = path.resolve(__dirname, "fixtures/conditional-import.json");
+
+  test("alkalinity feedstock and processing custom values survive import", async ({ page }) => {
+    // Import the fixture file
+    await page.goto("/overview");
+    await page.waitForLoadState("networkidle");
+
+    // Dismiss session restore modal if it appears
+    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
+    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await startFresh.click();
+      await page.waitForTimeout(300);
+    }
+
+    // Open hamburger menu and trigger import
+    await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
+    await page.waitForTimeout(300);
+
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.getByText("Import").click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(fixturePath);
+    await page.waitForTimeout(1000);
+
+    // Import preview modal — click Import
+    const importButton = page.getByRole("button", { name: /Import \d+ item/i });
+    await expect(importButton).toBeVisible({ timeout: 3000 });
+    await importButton.click();
+    await page.waitForTimeout(500);
+    await page.waitForURL("**/overview");
+    await page.waitForLoadState("networkidle");
+
+    // Navigate to the first experiment (intervention with feedstock customs)
+    await page.getByText("Conditional Fields Test").click();
+    await page.waitForURL("**/experiment");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(500);
+
+    // Verify alkalinity_feedstock_custom survived import
+    const feedstockCustom = page.getByLabel("Alkalinity Feedstock (Custom)");
+    await expect(feedstockCustom).toBeVisible({ timeout: 5000 });
+    await expect(feedstockCustom).toHaveValue("Magnesium Oxide");
+
+    // Verify alkalinity_feedstock_processing_custom survived import
+    const processingCustom = page.getByLabel("Alkalinity Feedstock Processing (Custom)");
+    await expect(processingCustom).toBeVisible({ timeout: 5000 });
+    await expect(processingCustom).toHaveValue("Electrochemical Processing");
+  });
+
+  test("tracer form custom value survives import", async ({ page }) => {
+    // Import the fixture file
+    await page.goto("/overview");
+    await page.waitForLoadState("networkidle");
+
+    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
+    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await startFresh.click();
+      await page.waitForTimeout(300);
+    }
+
+    await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
+    await page.waitForTimeout(300);
+
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.getByText("Import").click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(fixturePath);
+    await page.waitForTimeout(1000);
+
+    const importButton = page.getByRole("button", { name: /Import \d+ item/i });
+    await expect(importButton).toBeVisible({ timeout: 3000 });
+    await importButton.click();
+    await page.waitForTimeout(500);
+    await page.waitForURL("**/overview");
+    await page.waitForLoadState("networkidle");
+
+    // Navigate to the second experiment (tracer study with tracer_form_custom)
+    await page.getByText("Tracer Conditional Test").click();
+    await page.waitForURL("**/experiment");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(500);
+
+    // Verify tracer_form_custom survived import
+    const tracerCustom = page.getByLabel("Tracer Form (Custom)");
+    await expect(tracerCustom).toBeVisible({ timeout: 5000 });
+    await expect(tracerCustom).toHaveValue("Custom Tracer Compound");
+  });
 });
