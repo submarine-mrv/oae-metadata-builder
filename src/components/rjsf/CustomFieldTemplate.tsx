@@ -86,7 +86,7 @@ export default function CustomFieldTemplate<
     registry,
     children,
     rawErrors,
-    fieldPathId: _fieldPathId,
+    fieldPathId: _fieldPathId, // Added in RJSF 6.4 — destructure to keep out of ...otherProps DOM spread
     ...otherProps
   } = props;
 

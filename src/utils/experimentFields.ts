@@ -34,10 +34,12 @@ const IN_SITU_FIELDS = [
 const INTERVENTION_FIELDS = [
   "alkalinity_dosing_effluent_density",
   "alkalinity_feedstock",
+  "alkalinity_feedstock_custom",
   "alkalinity_feedstock_co2_removal_potential",
   "alkalinity_feedstock_description",
   "alkalinity_feedstock_form",
   "alkalinity_feedstock_processing",
+  "alkalinity_feedstock_processing_custom",
   "equilibration",
   "dosing_delivery_type",
   "dosing_depth",

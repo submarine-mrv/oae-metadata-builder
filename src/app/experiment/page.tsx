@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Container,
   Title,
@@ -104,7 +104,6 @@ export default function ExperimentPage() {
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const isInitialLoadRef = useRef(true);
 
   const activeExperimentId = state.activeExperimentId;
 
@@ -157,20 +156,12 @@ export default function ExperimentPage() {
 
   // Load experiment data when experiment ID changes
   useEffect(() => {
-    // Reset initial load flag when switching experiments — ref updates
-    // synchronously, so there's no window where the guard is stale.
-    isInitialLoadRef.current = true;
     // Reset error-list visibility so the new entity doesn't inherit
     // the previous one's open/closed state.
     validation.closeErrorList();
 
     if (experiment) {
-      // Use experiment's formData directly - project_id is managed by linking system
       setFormData(experiment.formData);
-      // Keep the guard up through RJSF's reconciliation onChange (which fires
-      // in a React effect after the render triggered by setFormData), then drop it.
-      const timerId = setTimeout(() => { isInitialLoadRef.current = false; }, 0);
-      return () => clearTimeout(timerId);
     }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -192,11 +183,7 @@ export default function ExperimentPage() {
 
   const handleFormChange = useCallback(
     (e: any) => {
-      // Don't save to global state until initial data is loaded
-      // This prevents RJSF's onChange on mount from overwriting real data with empty data
-      if (isInitialLoadRef.current) {
-        return;
-      }
+      if (!activeExperimentId) return;
 
       let newData = e.formData;
 

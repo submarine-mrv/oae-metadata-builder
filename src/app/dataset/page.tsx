@@ -127,7 +127,6 @@ export default function DatasetPage() {
   // on type switch (updateDataset uses merge semantics which would re-add
   // fields that cleanup removed)
   const [formData, setFormData] = useState<any>({});
-  const isInitialLoadRef = useRef(true);
 
   // Get current dataset
   const currentDataset = state.activeDatasetId
@@ -136,14 +135,8 @@ export default function DatasetPage() {
 
   // Load dataset data when active dataset changes
   useEffect(() => {
-    isInitialLoadRef.current = true;
-
     if (currentDataset) {
       setFormData(currentDataset.formData);
-      // Keep the guard up through RJSF's reconciliation onChange (which fires
-      // in a React effect after the render triggered by setFormData), then drop it.
-      const timerId = setTimeout(() => { isInitialLoadRef.current = false; }, 0);
-      return () => clearTimeout(timerId);
     }
   }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -247,7 +240,7 @@ export default function DatasetPage() {
   }, [setActiveTab]);
 
   const handleFormChange = useCallback((e: any) => {
-    if (!state.activeDatasetId || isInitialLoadRef.current) return;
+    if (!state.activeDatasetId) return;
 
     let newData = e.formData;
 
