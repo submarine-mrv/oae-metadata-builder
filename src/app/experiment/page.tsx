@@ -104,7 +104,6 @@ export default function ExperimentPage() {
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const activeExperimentId = state.activeExperimentId;
 
@@ -157,17 +156,12 @@ export default function ExperimentPage() {
 
   // Load experiment data when experiment ID changes
   useEffect(() => {
-    // Reset initial load flag when switching experiments
-    setIsInitialLoad(true);
     // Reset error-list visibility so the new entity doesn't inherit
     // the previous one's open/closed state.
     validation.closeErrorList();
 
     if (experiment) {
-      // Use experiment's formData directly - project_id is managed by linking system
       setFormData(experiment.formData);
-      // Mark that initial data has been loaded (after a tick to let form mount)
-      setTimeout(() => setIsInitialLoad(false), 0);
     }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -189,11 +183,7 @@ export default function ExperimentPage() {
 
   const handleFormChange = useCallback(
     (e: any) => {
-      // Don't save to global state until initial data is loaded
-      // This prevents RJSF's onChange on mount from overwriting real data with empty data
-      if (isInitialLoad) {
-        return;
-      }
+      if (!activeExperimentId) return;
 
       let newData = e.formData;
 
@@ -233,7 +223,7 @@ export default function ExperimentPage() {
         replaceExperimentFormData(activeExperimentId, newData);
       }
     },
-    [isInitialLoad, formData, activeExperimentId, replaceExperimentFormData]
+    [formData, activeExperimentId, replaceExperimentFormData]
   );
 
   if (!experiment) {

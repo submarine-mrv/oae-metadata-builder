@@ -1,0 +1,23 @@
+{
+  "project": {
+    "project_id": "test-dataset-conditional",
+    "title": "Dataset Conditional Field Test"
+  },
+  "experiments": [
+    {
+      "experiment_id": "exp-model-test",
+      "name": "Model Test Experiment",
+      "experiment_types": ["in_situ"]
+    }
+  ],
+  "datasets": [
+    {
+      "dataset_id": "ds-model-output",
+      "title": "Model Output With Forcing",
+      "experiment_id": "exp-model-test",
+      "dataset_type": "model_output",
+      "simulation_type": ["perturbation"],
+      "mcdr_forcing_description": "CO2 removal forcing applied to surface layer"
+    }
+  ]
+}

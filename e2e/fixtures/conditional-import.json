@@ -1,0 +1,24 @@
+{
+  "project": {
+    "project_id": "test-conditional-import"
+  },
+  "experiments": [
+    {
+      "experiment_id": "exp-conditional-fields",
+      "name": "Conditional Fields Test",
+      "experiment_types": ["intervention"],
+      "alkalinity_feedstock": "other",
+      "alkalinity_feedstock_custom": "Magnesium Oxide",
+      "alkalinity_feedstock_processing": "other",
+      "alkalinity_feedstock_processing_custom": "Electrochemical Processing"
+    },
+    {
+      "experiment_id": "exp-tracer-conditional",
+      "name": "Tracer Conditional Test",
+      "experiment_types": ["tracer_study"],
+      "tracer_form": "other",
+      "tracer_form_custom": "Custom Tracer Compound"
+    }
+  ],
+  "datasets": []
+}
