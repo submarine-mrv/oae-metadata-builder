@@ -7,7 +7,10 @@ import {
   getExperimentSchema,
   getInterventionSchema,
   getTracerSchema,
-  getInterventionWithTracerSchema
+  getInterventionWithTracerSchema,
+  getDatasetSchema,
+  getFieldDatasetSchema,
+  getModelOutputDatasetSchema
 } from '../schemaViews';
 
 describe('Schema Views', () => {
@@ -186,6 +189,54 @@ describe('Schema Views', () => {
 
       // Should have tracer fields
       expect(schema.properties!.tracer_form).toBeDefined();
+    });
+  });
+
+  describe('Conditional keys (if/then/else/allOf) are absent when undefined', () => {
+    // Regression guard: a previous version of createSchemaView assigned
+    // `if: def.if`, `then: def.then`, etc. unconditionally. When the def
+    // lacked these keys, the assignment still created own properties with
+    // `undefined` values, and `'if' in schema` returned true. RJSF's
+    // retrieveSchema/toPathSchema branch on `IF_KEY in schema` and then call
+    // validator.isValid(undefined, ...), which throws inside ajv-validator
+    // and gets swallowed as a console.warn on every render.
+    //
+    // For defs without conditionals, these keys must not be present at all.
+
+    it('omits if/then/else/allOf on Project (no conditionals)', () => {
+      const schema = getProjectSchema();
+      expect('if' in schema).toBe(false);
+      expect('then' in schema).toBe(false);
+      expect('else' in schema).toBe(false);
+      expect('allOf' in schema).toBe(false);
+    });
+
+    it('omits if/then/else/allOf on Experiment (no conditionals)', () => {
+      const schema = getExperimentSchema();
+      expect('if' in schema).toBe(false);
+      expect('then' in schema).toBe(false);
+      expect('else' in schema).toBe(false);
+      expect('allOf' in schema).toBe(false);
+    });
+
+    it('omits if/then/else on Dataset (no conditionals)', () => {
+      const schema = getDatasetSchema();
+      expect('if' in schema).toBe(false);
+      expect('then' in schema).toBe(false);
+      expect('else' in schema).toBe(false);
+    });
+
+    it('omits if/then/else on FieldDataset (no conditionals)', () => {
+      const schema = getFieldDatasetSchema();
+      expect('if' in schema).toBe(false);
+      expect('then' in schema).toBe(false);
+      expect('else' in schema).toBe(false);
+    });
+
+    it('preserves if/then on ModelOutputDataset (has conditionals)', () => {
+      const schema = getModelOutputDatasetSchema();
+      expect(schema.if).toBeDefined();
+      expect(schema.then).toBeDefined();
     });
   });
 

@@ -8,8 +8,6 @@
  * - Handle nested paths like "analyzing_instrument.calibration.dye_purified"
  */
 
-import { formatEnumTitle } from "@/utils/enumDecorator";
-
 // Type definitions for JSON Schema
 export interface JSONSchema {
   $ref?: string;
@@ -323,23 +321,3 @@ export function setNestedValue(
   return result;
 }
 
-/**
- * Gets enum options from a schema, resolving $refs if needed.
- * Returns array of { value, label } objects.
- * Uses formatEnumTitle from enumDecorator for consistent formatting with override support.
- */
-export function getEnumOptions(
-  fieldSchema: JSONSchema,
-  rootSchema: JSONSchema
-): { value: string; label: string }[] {
-  const resolved = resolveRef(fieldSchema, rootSchema);
-
-  if (resolved.enum) {
-    return resolved.enum.map((value) => ({
-      value: String(value),
-      label: formatEnumTitle(String(value)),
-    }));
-  }
-
-  return [];
-}

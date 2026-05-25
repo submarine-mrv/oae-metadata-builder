@@ -202,13 +202,11 @@ test.describe("Dataset Conditional Field Restore", () => {
     // setFormData, giving RJSF's onChange time to fire while guarded.
     await page.evaluate(() => {
       const origSetTimeout = window.setTimeout;
-      window.setTimeout = function (fn: TimerHandler, delay?: number, ...args: unknown[]) {
+      window.setTimeout = ((fn: TimerHandler, delay?: number, ...args: unknown[]) => {
         // Only slow down zero-delay timers (the isInitialLoad pattern)
-        if (delay === 0 || delay === undefined) {
-          return origSetTimeout.call(window, fn, 500, ...args);
-        }
-        return origSetTimeout.call(window, fn, delay, ...args);
-      } as typeof window.setTimeout;
+        const effectiveDelay = delay === 0 || delay === undefined ? 500 : delay;
+        return origSetTimeout(fn, effectiveDelay, ...args);
+      }) as unknown as typeof window.setTimeout;
     });
 
     // Navigate back — triggers the activeDatasetId useEffect with slow guard

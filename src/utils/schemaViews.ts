@@ -46,7 +46,12 @@ function createSchemaView(defName: string, schemaId: string, hasConditionalField
 
   // Cast to unknown first, then to RJSFSchema - needed because the JSON import
   // has very specific types that are structurally incompatible with JSONSchema7
-  return {
+  //
+  // Only copy allOf/if/then/else when they're actually defined on the def.
+  // Setting them to `undefined` still creates the property key, which makes
+  // RJSF's `'if' in schema` check succeed and pass `undefined` into
+  // resolveCondition → validator.isValid → crash on `schema.$id`.
+  const view: Record<string, unknown> = {
     ...baseSchema,
     $id: schemaId,
     title: def.title,
@@ -56,12 +61,13 @@ function createSchemaView(defName: string, schemaId: string, hasConditionalField
     // Only set additionalProperties: true for schemas with allOf/if/then conditionals.
     // This is required for conditional fields to render, but causes issues with
     // nested object properties being rendered as additional properties.
-    additionalProperties: hasConditionalFields ? true : def.additionalProperties,
-    allOf: def.allOf,
-    if: def.if,
-    then: def.then,
-    else: def.else
-  } as unknown as RJSFSchema;
+    additionalProperties: hasConditionalFields ? true : def.additionalProperties
+  };
+  if (def.allOf !== undefined) view.allOf = def.allOf;
+  if (def.if !== undefined) view.if = def.if;
+  if (def.then !== undefined) view.then = def.then;
+  if (def.else !== undefined) view.else = def.else;
+  return view as unknown as RJSFSchema;
 }
 
 /**
@@ -147,50 +153,4 @@ export function getFieldDatasetSchema() {
  */
 export function getModelOutputDatasetSchema() {
   return createSchemaView("ModelOutputDataset", "ModelOutputDatasetSchema", true);
-}
-
-// =============================================================================
-// Variable Schema Getters
-// =============================================================================
-
-/**
- * Variable type configuration with schema name and user-friendly label
- */
-export interface VariableTypeConfig {
-  schemaName: string;
-  label: string;
-}
-
-/**
- * All supported variable types with their user-friendly labels
- */
-export const VARIABLE_TYPES: VariableTypeConfig[] = [
-  { schemaName: "DICVariable", label: "Dissolved Inorganic Carbon (DIC)" },
-  { schemaName: "TAVariable", label: "Total Alkalinity (TA)" },
-  { schemaName: "PHVariable", label: "pH" },
-  { schemaName: "CO2ContinuousVariable", label: "pCO2/fCO2 (Continuous)" },
-  { schemaName: "CO2DiscreteVariable", label: "pCO2/fCO2 (Discrete)" },
-  { schemaName: "MeasuredVariable", label: "Other Measured Variable" },
-  { schemaName: "CalculatedVariable", label: "Calculated Variable" },
-  { schemaName: "HPLCVariable", label: "HPLC Pigments" },
-  { schemaName: "SedimentVariable", label: "Sediment" },
-  { schemaName: "PhysiologicalVariable", label: "Physiological Response" },
-  { schemaName: "SocioeconomicVariable", label: "Socioeconomic Data" },
-  { schemaName: "NonMeasuredVariable", label: "Non-Measured (External Data)" },
-  { schemaName: "GenericVariable", label: "Other" }
-];
-
-/**
- * Gets a variable schema by its type name (e.g., "DICVariable", "PHVariable")
- */
-export function getVariableSchema(variableType: string): RJSFSchema {
-  return createSchemaView(variableType, `${variableType}Schema`);
-}
-
-/**
- * Gets the user-friendly label for a variable type
- */
-export function getVariableTypeLabel(variableType: string): string {
-  const config = VARIABLE_TYPES.find((vt) => vt.schemaName === variableType);
-  return config?.label || variableType;
 }
