@@ -51,7 +51,13 @@ const ENUM_OVERRIDES: Record<string, string> = {
   // Model-related enums
   bgc_ecosystem: "BGC / Ecosystem",
   air_sea_co2_flux: "Air-Sea CO₂ Flux",
-  ph: "pH"
+  ph: "pH",
+
+  // TaxonomicCodeSystem
+  itis: "ITIS",
+  worms: "WoRMS",
+  col: "COL",
+  pbdb: "PBDB"
 };
 
 /**

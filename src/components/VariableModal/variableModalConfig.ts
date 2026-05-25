@@ -1067,10 +1067,7 @@ const SOCIOECONOMIC: HierarchyLayer = {
   name: "SocioeconomicVariable",
   sections: {
     study_details: [
-      {
-        path: "quantitative_or_qualitative",
-        span: 6
-      },
+      "quantitative_or_qualitative",
       {
         path: "social_study_type",
         span: 6,
