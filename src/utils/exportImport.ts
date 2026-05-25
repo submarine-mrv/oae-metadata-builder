@@ -88,20 +88,6 @@ export function exportMetadata(
 }
 
 /**
- * Helper function to download a blob as a file
- */
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-/**
  * Imports project, experiment, and dataset data from a JSON file in Container format.
  * Returns an object with project data, experiments array, and datasets array.
  *
