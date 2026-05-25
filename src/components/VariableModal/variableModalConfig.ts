@@ -47,7 +47,10 @@ import {
   IconTemperature,
   IconGauge,
   IconCloud,
-  IconWind
+  IconWind,
+  IconLeaf,
+  IconTestPipe,
+  IconUsers
 } from "@tabler/icons-react";
 
 // Icon type from tabler icons
@@ -118,7 +121,15 @@ export const VARIABLE_SCHEMA_MAP = {
       discrete: "HPLCVariable"
     }
   },
+  physiological: {
+    measured: {
+      discrete: "DiscretePhysiologicalVariable",
+      continuous: "ContinuousPhysiologicalVariable"
+    },
+    calculated: "CalculatedVariable"
+  },
   // String value = direct mapping (no genesis/sampling sub-levels)
+  socioeconomic: "SocioeconomicVariable",
   non_measured: "NonMeasuredVariable"
 } as const;
 
@@ -144,6 +155,7 @@ export const VARIABLE_TYPE_BEHAVIOR: Record<
   }
 > = {
   hplc: { fixedGenesis: "measured", fixedSampling: "discrete" },
+  socioeconomic: { directSchema: true },
   non_measured: { directSchema: true }
 };
 
@@ -187,7 +199,9 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "dic", label: "Dissolved Inorganic Carbon (DIC)" },
   { value: "sediment", label: "Sediment" },
   { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
-  { value: "hplc", label: "HPLC" }
+  { value: "hplc", label: "HPLC" },
+  { value: "physiological", label: "Physiological Response" },
+  { value: "socioeconomic", label: "Socioeconomic" }
 ] as const;
 
 // =============================================================================
@@ -243,7 +257,10 @@ type SectionKey =
   | "analysis"
   | "instrument"
   | "calibration"
+  | "biological"
+  | "experimental_design"
   | "calculation"
+  | "study_details"
   | "qc"
   | "additional"
   | "equilibrator"
@@ -983,6 +1000,92 @@ const HPLC: HierarchyLayer = {
   }
 };
 
+/** MeasuredPhysiologicalFields mixin */
+const PHYSIOLOGICAL: HierarchyLayer = {
+  name: "PhysiologicalVariable",
+  sections: {
+    biological: [
+      {
+        path: "biological_subject",
+        placeholderText: "e.g., Crassostrea gigas (Pacific oyster)"
+      },
+      {
+        path: "species_identification_code",
+        span: 6,
+        placeholderText: "e.g., AphiaID 140656"
+      },
+      {
+        path: "taxonomic_code_system",
+        span: 6
+      },
+      {
+        path: "life_stage",
+        span: 6,
+        inputType: "enum_with_other"
+      }
+    ],
+    experimental_design: [
+      {
+        path: "targeted_acidity_levels",
+        placeholderText: "e.g., 400, 800, 1200 uatm pCO2"
+      },
+      {
+        path: "manipulation_method",
+        placeholderText: "e.g., CO2 bubbling, acid addition"
+      },
+      {
+        path: "experiment_location",
+        span: 6,
+        placeholderText: "e.g., outdoor mesocosm facility"
+      },
+      {
+        path: "subject_collection_location",
+        span: 6,
+        placeholderText: "e.g., Mission Bay, San Diego, CA"
+      },
+      {
+        path: "treatment_start_datetime",
+        span: 6,
+        placeholderText: "YYYY-MM-DDTHH:MM:SS"
+      },
+      {
+        path: "treatment_end_datetime",
+        span: 6,
+        placeholderText: "YYYY-MM-DDTHH:MM:SS"
+      },
+      {
+        path: "additional_details",
+        inputType: "textarea",
+        placeholderText: "Any additional details about the experiment"
+      }
+    ]
+  }
+};
+
+/** SocioeconomicVariable-specific fields */
+const SOCIOECONOMIC: HierarchyLayer = {
+  name: "SocioeconomicVariable",
+  sections: {
+    study_details: [
+      {
+        path: "quantitative_or_qualitative",
+        span: 6
+      },
+      {
+        path: "social_study_type",
+        span: 6,
+        inputType: "enum_with_other"
+      },
+      {
+        path: "social_study_site_characterization",
+        inputType: "textarea",
+        placeholderText:
+          "e.g., 2023-2024, coastal communities in Maine, USA"
+      }
+    ]
+  }
+};
+
 // =============================================================================
 // Variable Type Layer Stacks
 // =============================================================================
@@ -1010,6 +1113,7 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   DiscreteSedimentVariable: [BASE, SEDIMENT],
   DiscreteCO2Variable: [BASE, CO2],
   HPLCVariable: [BASE, HPLC],
+  DiscretePhysiologicalVariable: [BASE, PHYSIOLOGICAL],
   DiscreteMeasuredVariable: [BASE],
   // Continuous
   ContinuousPHVariable: [BASE, CONTINUOUS, PH],
@@ -1017,9 +1121,11 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   ContinuousDICVariable: [BASE, CONTINUOUS, TA_DIC],
   ContinuousSedimentVariable: [BASE, CONTINUOUS, SEDIMENT],
   ContinuousCO2Variable: [BASE, CONTINUOUS, CO2, CO2_CONTINUOUS],
+  ContinuousPhysiologicalVariable: [BASE, CONTINUOUS, PHYSIOLOGICAL],
   ContinuousMeasuredVariable: [BASE, CONTINUOUS],
   // Other
   CalculatedVariable: [BASE, CALCULATED],
+  SocioeconomicVariable: [BASE, SOCIOECONOMIC],
   NonMeasuredVariable: [BASE]
 };
 
@@ -1039,6 +1145,13 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   { key: "analysis", label: "Analysis", icon: IconMicroscope },
   { key: "instrument", label: "Analyzing Instrument", icon: IconTool },
   { key: "calibration", label: "Calibration", icon: IconAdjustments },
+  { key: "biological", label: "Biological Subject", icon: IconLeaf },
+  {
+    key: "experimental_design",
+    label: "Experimental Design",
+    icon: IconTestPipe
+  },
+  { key: "study_details", label: "Study Details", icon: IconUsers },
   { key: "equilibrator", label: "Equilibrator", icon: IconDroplet },
   {
     key: "equilibrator_temp_sensor",
