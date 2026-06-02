@@ -49,7 +49,6 @@ import {
   IconCloud,
   IconWind,
   IconLeaf,
-  IconTestPipe,
   IconUsers
 } from "@tabler/icons-react";
 
@@ -258,7 +257,6 @@ type SectionKey =
   | "instrument"
   | "calibration"
   | "biological"
-  | "experimental_design"
   | "calculation"
   | "study_details"
   | "qc"
@@ -1023,41 +1021,6 @@ const PHYSIOLOGICAL: HierarchyLayer = {
         span: 6,
         inputType: "enum_with_other"
       }
-    ],
-    experimental_design: [
-      {
-        path: "targeted_acidity_levels",
-        placeholderText: "e.g., 400, 800, 1200 uatm pCO2"
-      },
-      {
-        path: "manipulation_method",
-        placeholderText: "e.g., CO2 bubbling, acid addition"
-      },
-      {
-        path: "experiment_location",
-        span: 6,
-        placeholderText: "e.g., outdoor mesocosm facility"
-      },
-      {
-        path: "subject_collection_location",
-        span: 6,
-        placeholderText: "e.g., Mission Bay, San Diego, CA"
-      },
-      {
-        path: "treatment_start_datetime",
-        span: 6,
-        placeholderText: "YYYY-MM-DDTHH:MM:SS"
-      },
-      {
-        path: "treatment_end_datetime",
-        span: 6,
-        placeholderText: "YYYY-MM-DDTHH:MM:SS"
-      },
-      {
-        path: "additional_details",
-        inputType: "textarea",
-        placeholderText: "Any additional details about the experiment"
-      }
     ]
   }
 };
@@ -1143,11 +1106,6 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   { key: "instrument", label: "Analyzing Instrument", icon: IconTool },
   { key: "calibration", label: "Calibration", icon: IconAdjustments },
   { key: "biological", label: "Biological Subject", icon: IconLeaf },
-  {
-    key: "experimental_design",
-    label: "Experimental Design",
-    icon: IconTestPipe
-  },
   { key: "study_details", label: "Study Details", icon: IconUsers },
   { key: "equilibrator", label: "Equilibrator", icon: IconDroplet },
   {

@@ -359,11 +359,10 @@ describe("VARIABLE_TYPE_LAYERS", () => {
     expect(buildSectionFields("calculation", layers)).toEqual([]);
   });
 
-  it("DiscretePhysiologicalVariable has biological and experimental_design sections", () => {
+  it("DiscretePhysiologicalVariable has a biological section", () => {
     const sections = getAccordionConfig("DiscretePhysiologicalVariable");
     const keys = sections.map((s) => s.key);
     expect(keys).toContain("biological");
-    expect(keys).toContain("experimental_design");
     const bioFields = buildSectionFields(
       "biological",
       VARIABLE_TYPE_LAYERS["DiscretePhysiologicalVariable"]
