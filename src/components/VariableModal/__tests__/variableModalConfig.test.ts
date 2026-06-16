@@ -286,6 +286,7 @@ describe("VARIABLE_TYPE_LAYERS", () => {
       "DiscreteSedimentVariable",
       "DiscreteCO2Variable",
       "HPLCVariable",
+      "DiscretePhysiologicalVariable",
       "DiscreteMeasuredVariable"
     ];
     for (const key of discreteKeys) {
@@ -306,6 +307,7 @@ describe("VARIABLE_TYPE_LAYERS", () => {
       "ContinuousTAVariable",
       "ContinuousDICVariable",
       "ContinuousSedimentVariable",
+      "ContinuousPhysiologicalVariable",
       "ContinuousMeasuredVariable",
       "ContinuousCO2Variable"
     ];
@@ -356,6 +358,36 @@ describe("VARIABLE_TYPE_LAYERS", () => {
     // layers contribute calculation fields.
     expect(buildSectionFields("calculation", layers)).toEqual([]);
   });
+
+  it("DiscretePhysiologicalVariable has a biological section", () => {
+    const sections = getAccordionConfig("DiscretePhysiologicalVariable");
+    const keys = sections.map((s) => s.key);
+    expect(keys).toContain("biological");
+    const bioFields = buildSectionFields(
+      "biological",
+      VARIABLE_TYPE_LAYERS["DiscretePhysiologicalVariable"]
+    );
+    const paths = bioFields.map((f) => (typeof f === "string" ? f : f.path));
+    expect(paths).toContain("biological_subject");
+  });
+
+  it("ContinuousPhysiologicalVariable includes CONTINUOUS layer", () => {
+    const analysisFields = buildSectionFields(
+      "analysis",
+      VARIABLE_TYPE_LAYERS["ContinuousPhysiologicalVariable"]
+    );
+    const paths = analysisFields.map((f) =>
+      typeof f === "string" ? f : f.path
+    );
+    expect(paths).toContain("raw_data_calculation_method");
+  });
+
+  it("SocioeconomicVariable has study_details section", () => {
+    const sections = getAccordionConfig("SocioeconomicVariable");
+    const keys = sections.map((s) => s.key);
+    expect(keys).toContain("study_details");
+    expect(keys).toContain("basic");
+  });
 });
 
 describe("getSchemaKey", () => {
@@ -371,6 +403,7 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("dic", "measured", "discrete")).toBe("DiscreteDICVariable");
     expect(getSchemaKey("sediment", "measured", "discrete")).toBe("DiscreteSedimentVariable");
     expect(getSchemaKey("co2", "measured", "discrete")).toBe("DiscreteCO2Variable");
+    expect(getSchemaKey("physiological", "measured", "discrete")).toBe("DiscretePhysiologicalVariable");
     expect(getSchemaKey("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
   });
 
@@ -391,6 +424,15 @@ describe("getSchemaKey", () => {
 
   it("returns HPLCVariable for hplc + measured + discrete", () => {
     expect(getSchemaKey("hplc", "measured", "discrete")).toBe("HPLCVariable");
+  });
+
+  it("returns physiological schema keys for measured continuous and calculated", () => {
+    expect(getSchemaKey("physiological", "measured", "continuous")).toBe("ContinuousPhysiologicalVariable");
+    expect(getSchemaKey("physiological", "calculated", undefined)).toBe("CalculatedVariable");
+  });
+
+  it("returns SocioeconomicVariable for socioeconomic (direct mapping)", () => {
+    expect(getSchemaKey("socioeconomic", undefined, undefined)).toBe("SocioeconomicVariable");
   });
 
   it("returns NonMeasuredVariable for non_measured (direct mapping, no genesis needed)", () => {

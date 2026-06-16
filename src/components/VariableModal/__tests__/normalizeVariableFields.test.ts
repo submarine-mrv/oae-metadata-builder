@@ -266,4 +266,59 @@ describe("normalizeVariableFields", () => {
     };
     expect(normalizeVariableFields(v)).toBe(v);
   });
+
+  it("normalizes DiscretePhysiologicalVariable correctly", () => {
+    const v = {
+      schema_class: "DiscretePhysiologicalVariable",
+      variable_type: "physiological",
+      genesis: "measured",
+      sampling: "discrete"
+    };
+    expect(normalizeVariableFields(v)).toEqual(v);
+  });
+
+  it("fixes variable_type for DiscretePhysiologicalVariable", () => {
+    const v = {
+      schema_class: "DiscretePhysiologicalVariable",
+      variable_type: "other",
+      genesis: "measured",
+      sampling: "discrete"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.variable_type).toBe("physiological");
+  });
+
+  it("normalizes SocioeconomicVariable and clears genesis/sampling", () => {
+    const v = {
+      schema_class: "SocioeconomicVariable",
+      variable_type: "socioeconomic",
+      genesis: "measured",
+      sampling: "discrete"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.variable_type).toBe("socioeconomic");
+    expect(result.genesis).toBeUndefined();
+    expect(result.sampling).toBeUndefined();
+  });
+
+  it("trusts physiological variable_type for CalculatedVariable", () => {
+    const v = {
+      schema_class: "CalculatedVariable",
+      variable_type: "physiological",
+      genesis: "calculated"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.variable_type).toBe("physiological");
+  });
+
+  it("derives schema_class for physiological + measured + discrete", () => {
+    const v = {
+      variable_type: "physiological",
+      genesis: "measured",
+      sampling: "discrete",
+      dataset_variable_name: "growth_rate"
+    };
+    const result = normalizeVariableFields(v);
+    expect(result.schema_class).toBe("DiscretePhysiologicalVariable");
+  });
 });
