@@ -136,6 +136,8 @@ interface AppStateContextType {
    */
   replaceExperimentFormData: (id: number, data: ExperimentFormData) => void;
   deleteExperiment: (id: number) => void;
+  /** Duplicate an experiment, appending " (Copy)" to its name. Returns the new ID. */
+  duplicateExperiment: (id: number) => number;
   setActiveTab: (tab: "overview" | "project" | "experiment" | "dataset") => void;
   setActiveExperiment: (id: number | null) => void;
   getExperiment: (id: number) => ExperimentData | undefined;
@@ -164,6 +166,8 @@ interface AppStateContextType {
   updateDataset: (id: number, data: Partial<DatasetFormData> & { name?: string }) => void;
   replaceDatasetFormData: (id: number, data: DatasetFormData) => void;
   deleteDataset: (id: number) => void;
+  /** Duplicate a dataset, appending " (Copy)" to its name. Returns the new ID. */
+  duplicateDataset: (id: number) => number;
   setActiveDataset: (id: number | null) => void;
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
@@ -440,6 +444,43 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const duplicateExperiment = useCallback((id: number): number => {
+    const idRef = { current: 0 };
+
+    setState((prev) => {
+      const original = prev.experiments.find((exp) => exp.id === id);
+      if (!original) return prev;
+
+      const newId = prev.nextExperimentId;
+      idRef.current = newId;
+      const newName = `${original.name} (Copy)`;
+
+      const duplicate: ExperimentData = {
+        ...structuredClone(original),
+        id: newId,
+        name: newName,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      // Keep the form's own name field in sync with the display name.
+      if (duplicate.formData.name !== undefined) {
+        duplicate.formData.name = newName;
+      }
+      // experiment_id is the user-set unique identifier — don't carry it
+      // over. The user must assign a new one to the copy. (newId above is
+      // the internal tracking ID, which is unrelated to experiment_id.)
+      delete duplicate.formData.experiment_id;
+
+      return {
+        ...prev,
+        experiments: [...prev.experiments, duplicate],
+        nextExperimentId: prev.nextExperimentId + 1
+      };
+    });
+
+    return idRef.current;
+  }, []);
+
   const setActiveTab = useCallback(
     (tab: "overview" | "project" | "experiment" | "dataset") => {
       setState((prev) => ({
@@ -608,6 +649,41 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       activeDatasetId:
         prev.activeDatasetId === id ? null : prev.activeDatasetId
     }));
+  }, []);
+
+  const duplicateDataset = useCallback((id: number): number => {
+    const idRef = { current: 0 };
+
+    setState((prev) => {
+      const original = prev.datasets.find((ds) => ds.id === id);
+      if (!original) return prev;
+
+      const newId = prev.nextDatasetId;
+      idRef.current = newId;
+      const newName = `${original.name} (Copy)`;
+
+      // structuredClone deep-copies formData and linking metadata so the
+      // copy stays linked to the same experiment without sharing references.
+      const duplicate: DatasetData = {
+        ...structuredClone(original),
+        id: newId,
+        name: newName,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      // Keep the form's own name field in sync with the display name.
+      if (duplicate.formData.name !== undefined) {
+        duplicate.formData.name = newName;
+      }
+
+      return {
+        ...prev,
+        datasets: [...prev.datasets, duplicate],
+        nextDatasetId: prev.nextDatasetId + 1
+      };
+    });
+
+    return idRef.current;
   }, []);
 
   const setActiveDataset = useCallback((id: number | null) => {
@@ -987,6 +1063,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     updateExperiment,
     replaceExperimentFormData,
     deleteExperiment,
+    duplicateExperiment,
     setActiveTab,
     setActiveExperiment,
     getExperiment,
@@ -1006,6 +1083,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     updateDataset,
     replaceDatasetFormData,
     deleteDataset,
+    duplicateDataset,
     setActiveDataset,
     getDataset,
     // ID Linking methods

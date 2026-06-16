@@ -8,6 +8,7 @@ import {
   Card,
   Group,
   Button,
+  ActionIcon,
   Progress,
   Badge,
   SimpleGrid,
@@ -20,6 +21,7 @@ import {
   IconFlask,
   IconDatabase,
   IconTrash,
+  IconCopy,
   IconAlertTriangle,
   IconCircleCheck
 } from "@tabler/icons-react";
@@ -37,12 +39,14 @@ export default function OverviewPage() {
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
+    duplicateExperiment,
     getProjectStatus,
     getExperimentStatus,
     getDatasetStatus,
     addDataset,
     setActiveDataset,
-    deleteDataset
+    deleteDataset,
+    duplicateDataset
   } = useAppState();
   const router = useRouter();
 
@@ -96,6 +100,11 @@ export default function OverviewPage() {
     }
   };
 
+  const handleDuplicateExperiment = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    duplicateExperiment(id);
+  };
+
   const handleCreateDataset = () => {
     const id = addDataset();
     setActiveDataset(id);
@@ -114,6 +123,11 @@ export default function OverviewPage() {
     if (confirm("Are you sure you want to delete this dataset?")) {
       deleteDataset(id);
     }
+  };
+
+  const handleDuplicateDataset = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    duplicateDataset(id);
   };
 
   // Helper to find linked experiment for a dataset
@@ -374,17 +388,32 @@ export default function OverviewPage() {
                               />
                             )}
                           </Group>
-                          <Button
-                            variant="subtle"
-                            color="red"
-                            size="xs"
-                            style={{ flexShrink: 0 }}
-                            onClick={(e) =>
-                              handleDeleteExperiment(experiment.id, e)
-                            }
-                          >
-                            <IconTrash size={16} />
-                          </Button>
+                          <Group gap={2} wrap="nowrap" style={{ flexShrink: 0 }}>
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              size="md"
+                              title="Duplicate experiment"
+                              aria-label="Duplicate experiment"
+                              onClick={(e) =>
+                                handleDuplicateExperiment(experiment.id, e)
+                              }
+                            >
+                              <IconCopy size={16} />
+                            </ActionIcon>
+                            <ActionIcon
+                              variant="subtle"
+                              color="red"
+                              size="md"
+                              title="Delete experiment"
+                              aria-label="Delete experiment"
+                              onClick={(e) =>
+                                handleDeleteExperiment(experiment.id, e)
+                              }
+                            >
+                              <IconTrash size={16} />
+                            </ActionIcon>
+                          </Group>
                         </Group>
 
                         {experiment.experiment_types && experiment.experiment_types.length > 0 && (
@@ -502,15 +531,30 @@ export default function OverviewPage() {
                               />
                             )}
                           </Group>
-                          <Button
-                            variant="subtle"
-                            color="red"
-                            size="xs"
-                            style={{ flexShrink: 0 }}
-                            onClick={(e) => handleDeleteDataset(dataset.id, e)}
-                          >
-                            <IconTrash size={16} />
-                          </Button>
+                          <Group gap={2} wrap="nowrap" style={{ flexShrink: 0 }}>
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              size="md"
+                              title="Duplicate dataset"
+                              aria-label="Duplicate dataset"
+                              onClick={(e) =>
+                                handleDuplicateDataset(dataset.id, e)
+                              }
+                            >
+                              <IconCopy size={16} />
+                            </ActionIcon>
+                            <ActionIcon
+                              variant="subtle"
+                              color="red"
+                              size="md"
+                              title="Delete dataset"
+                              aria-label="Delete dataset"
+                              onClick={(e) => handleDeleteDataset(dataset.id, e)}
+                            >
+                              <IconTrash size={16} />
+                            </ActionIcon>
+                          </Group>
                         </Group>
                         {linkedExperiment && (
                           <Group gap="xs" wrap="nowrap" align="flex-start">

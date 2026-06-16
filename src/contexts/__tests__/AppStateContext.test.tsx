@@ -495,6 +495,152 @@ describe('AppStateContext', () => {
     });
   });
 
+  describe('duplicateExperiment', () => {
+    it('should add a copy with " (Copy)" appended to the name', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addExperiment('My Experiment');
+      });
+
+      act(() => {
+        result.current.duplicateExperiment(originalId!);
+      });
+
+      expect(result.current.state.experiments).toHaveLength(2);
+      expect(result.current.state.experiments[1].name).toBe(
+        'My Experiment (Copy)'
+      );
+    });
+
+    it('should assign a new auto-incrementing ID and increment nextExperimentId', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addExperiment('Exp');
+      });
+
+      const nextIdBefore = result.current.state.nextExperimentId;
+
+      act(() => {
+        result.current.duplicateExperiment(originalId!);
+      });
+
+      const copy = result.current.state.experiments[1];
+      expect(copy.id).toBe(nextIdBefore);
+      expect(copy.id).not.toBe(originalId!);
+      expect(result.current.state.nextExperimentId).toBe(nextIdBefore + 1);
+    });
+
+    it('should deep-copy formData without sharing references', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addExperiment('Exp');
+      });
+      act(() => {
+        result.current.updateExperiment(originalId!, {
+          experiment_id: 'EXP-001',
+          description: 'A description',
+          experiment_types: ['intervention']
+        });
+      });
+
+      act(() => {
+        result.current.duplicateExperiment(originalId!);
+      });
+
+      const original = result.current.state.experiments.find(
+        (e) => e.id === originalId!
+      )!;
+      const copy = result.current.state.experiments[1];
+
+      expect(copy.formData.description).toBe('A description');
+      expect(copy.experiment_types).toEqual(['intervention']);
+      // Mutating the copy must not affect the original (no shared refs).
+      expect(copy.formData).not.toBe(original.formData);
+      expect(copy.experiment_types).not.toBe(original.experiment_types);
+    });
+
+    it('should clear the user-set experiment_id on the copy', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addExperiment('Exp');
+      });
+      act(() => {
+        result.current.updateExperiment(originalId!, {
+          experiment_id: 'EXP-001'
+        });
+      });
+
+      act(() => {
+        result.current.duplicateExperiment(originalId!);
+      });
+
+      // Original keeps its experiment_id; the copy must not carry it over
+      // so the user is forced to assign a new unique value.
+      const original = result.current.state.experiments.find(
+        (e) => e.id === originalId!
+      )!;
+      const copy = result.current.state.experiments[1];
+      expect(original.formData.experiment_id).toBe('EXP-001');
+      expect(copy.formData.experiment_id).toBeUndefined();
+    });
+
+    it('should not change the active experiment', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addExperiment('Exp');
+      });
+
+      expect(result.current.state.activeExperimentId).toBe(originalId!);
+
+      act(() => {
+        result.current.duplicateExperiment(originalId!);
+      });
+
+      // Duplicating from the overview should not steal active focus.
+      expect(result.current.state.activeExperimentId).toBe(originalId!);
+    });
+
+    it('should do nothing when duplicating a non-existent experiment', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      act(() => {
+        result.current.addExperiment('Exp');
+      });
+
+      const beforeLength = result.current.state.experiments.length;
+      const nextIdBefore = result.current.state.nextExperimentId;
+
+      act(() => {
+        result.current.duplicateExperiment(999);
+      });
+
+      expect(result.current.state.experiments).toHaveLength(beforeLength);
+      expect(result.current.state.nextExperimentId).toBe(nextIdBefore);
+    });
+  });
+
   describe('setActiveTab', () => {
     it('should set active tab', () => {
       const { result } = renderHook(() => useAppState(), {
@@ -1153,6 +1299,135 @@ describe('AppStateContext', () => {
       expect(formData.name).toBe('Test Dataset');
       expect(formData).not.toHaveProperty('model_name');
       expect(formData).not.toHaveProperty('simulation_type');
+    });
+  });
+
+  describe('duplicateDataset', () => {
+    it('should add a copy with " (Copy)" appended to the name', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addDataset('My Dataset');
+      });
+
+      act(() => {
+        result.current.duplicateDataset(originalId!);
+      });
+
+      expect(result.current.state.datasets).toHaveLength(2);
+      expect(result.current.state.datasets[1].name).toBe('My Dataset (Copy)');
+    });
+
+    it('should assign a new auto-incrementing ID and increment nextDatasetId', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addDataset('DS');
+      });
+
+      const nextIdBefore = result.current.state.nextDatasetId;
+
+      act(() => {
+        result.current.duplicateDataset(originalId!);
+      });
+
+      const copy = result.current.state.datasets[1];
+      expect(copy.id).toBe(nextIdBefore);
+      expect(copy.id).not.toBe(originalId!);
+      expect(result.current.state.nextDatasetId).toBe(nextIdBefore + 1);
+    });
+
+    it('should deep-copy formData and linking without sharing references', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      // Create an experiment to link the dataset to. (Derive IDs from
+      // state rather than the call return — the functional setState return
+      // is only reliable for the first update in a render pass.)
+      act(() => {
+        result.current.addExperiment('Linked Exp');
+      });
+      const expId = result.current.state.experiments[0].id;
+      act(() => {
+        result.current.updateExperiment(expId, { experiment_id: 'EXP-001' });
+      });
+
+      act(() => {
+        result.current.addDataset('DS');
+      });
+      const originalId = result.current.state.datasets[0].id;
+      act(() => {
+        result.current.updateDataset(originalId, { dataset_type: 'field' });
+      });
+      act(() => {
+        result.current.updateDatasetLinking(originalId, {
+          linkedExperimentInternalId: expId
+        });
+      });
+
+      act(() => {
+        result.current.duplicateDataset(originalId);
+      });
+
+      const original = result.current.state.datasets.find(
+        (d) => d.id === originalId
+      )!;
+      const copy = result.current.state.datasets[1];
+
+      expect(copy.formData.dataset_type).toBe('field');
+      // The copy stays linked to the same experiment (experiment_id here is
+      // the parent link, not the dataset's own identifier).
+      expect(copy.linking?.linkedExperimentInternalId).toBe(expId!);
+      expect(copy.formData.experiment_id).toBe('EXP-001');
+      // No shared references between original and copy.
+      expect(copy.formData).not.toBe(original.formData);
+      expect(copy.linking).not.toBe(original.linking);
+    });
+
+    it('should not change the active dataset', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      let originalId: number;
+      act(() => {
+        originalId = result.current.addDataset('DS');
+      });
+
+      expect(result.current.state.activeDatasetId).toBe(originalId!);
+
+      act(() => {
+        result.current.duplicateDataset(originalId!);
+      });
+
+      expect(result.current.state.activeDatasetId).toBe(originalId!);
+    });
+
+    it('should do nothing when duplicating a non-existent dataset', () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider
+      });
+
+      act(() => {
+        result.current.addDataset('DS');
+      });
+
+      const beforeLength = result.current.state.datasets.length;
+      const nextIdBefore = result.current.state.nextDatasetId;
+
+      act(() => {
+        result.current.duplicateDataset(999);
+      });
+
+      expect(result.current.state.datasets).toHaveLength(beforeLength);
+      expect(result.current.state.nextDatasetId).toBe(nextIdBefore);
     });
   });
 
