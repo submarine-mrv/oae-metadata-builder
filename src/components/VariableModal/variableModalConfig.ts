@@ -6,7 +6,12 @@
  * - VARIABLE_TYPE_OPTIONS: User-facing dropdown options
  * - getAccordionConfig(): Builds per-type accordion sections from layer stacks
  * - VARIABLE_TYPE_LAYERS: Maps schema keys to their hierarchy layer stacks
- * - normalizeVariableFields(): Fixes inconsistencies on import/load
+ * - normalizeVariableFields(): Fixes inconsistencies on import/load (also used by exportImport.ts)
+ * - stripExtraVariableFields(): AJV-based schema-driven field stripping (also used by exportImport.ts, datasetValidation.ts)
+ *
+ * Note: normalizeVariableFields and stripExtraVariableFields are shared utilities used
+ * beyond the modal — by the import pipeline and dataset validator. A future refactor
+ * could move them to src/utils/variableUtils.ts once variable TypeScript types exist.
  *
  * Field organization uses a hierarchy-aware layer system that mirrors LinkML classes:
  * - Each HierarchyLayer corresponds to a level in the LinkML class tree
