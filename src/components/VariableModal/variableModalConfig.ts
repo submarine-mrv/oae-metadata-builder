@@ -1406,12 +1406,26 @@ const stripValidatorCache = new WeakMap<
   Map<string, ReturnType<typeof stripAjv.compile>>
 >();
 
+// AJV's removeAdditional is skipped when any required keyword fails — which happens
+// whenever the user switches variable types and required fields from the new type are
+// missing. Dropping required throughout the schema makes removeAdditional unconditional.
+function dropRequired(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(dropRequired);
+  const { required: _required, ...rest } = value as Record<string, unknown>;
+  return Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, dropRequired(v)]));
+}
+
 /**
  * Strips fields from a variable that are not valid for its schema_class.
  *
  * Uses AJV's removeAdditional feature to recursively remove any properties
  * not present in the schema, including nested objects (e.g., calibration fields
  * that don't belong to the current instrument type).
+ *
+ * required keywords are removed from the compiled schema so that stripping works
+ * even when the variable is mid-transition (e.g., type switch left required fields
+ * from the new type unpopulated). Validation (not stripping) enforces required fields.
  *
  * Compiled validators are cached per (rootSchema, schema_class) pair — correct
  * across different schema objects and zero-overhead in the common single-schema case.
@@ -1440,7 +1454,8 @@ export function stripExtraVariableFields(
 
   let validate = classCache.get(schemaClass);
   if (!validate) {
-    validate = stripAjv.compile({ ...defs[schemaClass], $defs: defs });
+    const stripSchema = dropRequired({ ...defs[schemaClass], $defs: defs });
+    validate = stripAjv.compile(stripSchema as object);
     classCache.set(schemaClass, validate);
   }
 

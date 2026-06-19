@@ -93,6 +93,30 @@ describe("stripExtraVariableFields", () => {
     expect(twice).toEqual(once);
   });
 
+  it("strips extra fields even when required fields of the target schema are missing", () => {
+    // Simulates switching variable type: new schema has required fields the data doesn't have yet.
+    // AJV skips removeAdditional when required fails — dropRequired prevents that.
+    const schemaWithRequired = {
+      $defs: {
+        StrictVar: {
+          type: "object",
+          additionalProperties: false,
+          required: ["must_have"],
+          properties: {
+            schema_class: { type: "string" },
+            must_have: { type: "string" },
+            name: { type: "string" }
+          }
+        }
+      }
+    };
+    const v = { schema_class: "StrictVar", name: "keep", orphan: "strip" };
+    // 'must_have' is missing (required) — strip should still remove 'orphan'
+    const result = stripExtraVariableFields(v, schemaWithRequired);
+    expect(result).not.toHaveProperty("orphan");
+    expect(result).toHaveProperty("name", "keep");
+  });
+
   it("uses separate caches for different schema objects with the same class name", () => {
     const schemaA = {
       $defs: {
