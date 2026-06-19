@@ -1398,8 +1398,13 @@ export function getPlaceholderOverride(
 // Dedicated AJV instance for field stripping only — never used for user-facing validation
 const stripAjv = new Ajv2019({ removeAdditional: true, strict: false });
 
-// Cache compiled strip validators by schema_class — avoids recompiling on every call
-const stripValidatorCache = new Map<string, ReturnType<typeof stripAjv.compile>>();
+// WeakMap keyed by rootSchema object so validators are cache-correct when different
+// schemas are used (e.g., in tests). In production the app has one immutable bundled
+// schema, so the WeakMap always resolves to the same inner Map.
+const stripValidatorCache = new WeakMap<
+  object,
+  Map<string, ReturnType<typeof stripAjv.compile>>
+>();
 
 /**
  * Strips fields from a variable that are not valid for its schema_class.
@@ -1408,8 +1413,8 @@ const stripValidatorCache = new Map<string, ReturnType<typeof stripAjv.compile>>
  * not present in the schema, including nested objects (e.g., calibration fields
  * that don't belong to the current instrument type).
  *
- * Compiled validators are cached by schema_class so large imports don't
- * recompile the same schema for every variable of the same type.
+ * Compiled validators are cached per (rootSchema, schema_class) pair — correct
+ * across different schema objects and zero-overhead in the common single-schema case.
  *
  * @param variable - Variable data (must have a schema_class field)
  * @param rootSchema - The full bundled schema containing $defs
@@ -1427,10 +1432,16 @@ export function stripExtraVariableFields(
     | undefined;
   if (!defs?.[schemaClass]) return variable;
 
-  let validate = stripValidatorCache.get(schemaClass);
+  let classCache = stripValidatorCache.get(rootSchema as object);
+  if (!classCache) {
+    classCache = new Map();
+    stripValidatorCache.set(rootSchema as object, classCache);
+  }
+
+  let validate = classCache.get(schemaClass);
   if (!validate) {
     validate = stripAjv.compile({ ...defs[schemaClass], $defs: defs });
-    stripValidatorCache.set(schemaClass, validate);
+    classCache.set(schemaClass, validate);
   }
 
   // Deep clone — AJV mutates the data object in place
