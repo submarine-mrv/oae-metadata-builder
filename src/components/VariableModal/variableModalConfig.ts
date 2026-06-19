@@ -34,6 +34,8 @@
  */
 
 import type { ComponentType } from "react";
+import Ajv2019 from "ajv/dist/2019";
+import type { JSONSchema } from "@/components/schemaUtils";
 import {
   IconInfoCircle,
   IconFlask,
@@ -1386,4 +1388,48 @@ export function getPlaceholderOverride(
     | Record<string, string>
     | undefined;
   return overrides?.[fieldPath];
+}
+
+// Dedicated AJV instance for field stripping only — never used for user-facing validation
+const stripAjv = new Ajv2019({ removeAdditional: true, strict: false });
+
+// Cache compiled strip validators by schema_class — avoids recompiling on every call
+const stripValidatorCache = new Map<string, ReturnType<typeof stripAjv.compile>>();
+
+/**
+ * Strips fields from a variable that are not valid for its schema_class.
+ *
+ * Uses AJV's removeAdditional feature to recursively remove any properties
+ * not present in the schema, including nested objects (e.g., calibration fields
+ * that don't belong to the current instrument type).
+ *
+ * Compiled validators are cached by schema_class so large imports don't
+ * recompile the same schema for every variable of the same type.
+ *
+ * @param variable - Variable data (must have a schema_class field)
+ * @param rootSchema - The full bundled schema containing $defs
+ * @returns A new variable object with extra fields removed, or the original if schema_class is unknown
+ */
+export function stripExtraVariableFields(
+  variable: Record<string, unknown>,
+  rootSchema: JSONSchema
+): Record<string, unknown> {
+  const schemaClass = variable.schema_class as string | undefined;
+  if (!schemaClass) return variable;
+
+  const defs = (rootSchema as Record<string, unknown>)["$defs"] as
+    | Record<string, JSONSchema>
+    | undefined;
+  if (!defs?.[schemaClass]) return variable;
+
+  let validate = stripValidatorCache.get(schemaClass);
+  if (!validate) {
+    validate = stripAjv.compile({ ...defs[schemaClass], $defs: defs });
+    stripValidatorCache.set(schemaClass, validate);
+  }
+
+  // Deep clone — AJV mutates the data object in place
+  const copy = JSON.parse(JSON.stringify(variable)) as Record<string, unknown>;
+  validate(copy);
+  return copy;
 }

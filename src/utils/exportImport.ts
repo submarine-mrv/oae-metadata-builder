@@ -1,5 +1,9 @@
-import { getProtocolMetadata } from "./schemaViews";
-import { normalizeVariableFields } from "@/components/VariableModal/variableModalConfig";
+import { getProtocolMetadata, getBaseSchema } from "./schemaViews";
+import {
+  normalizeVariableFields,
+  stripExtraVariableFields
+} from "@/components/VariableModal/variableModalConfig";
+import type { JSONSchema } from "@/components/schemaUtils";
 import { migrateFormData } from "@/utils/migrations";
 import type {
   ProjectFormData,
@@ -158,7 +162,12 @@ export async function importMetadata(file: File): Promise<ImportResult> {
               ...dsData,
               variables: rawVars
                 .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
-                .map((v) => normalizeVariableFields(v) as typeof v)
+                .map((v) =>
+                  stripExtraVariableFields(
+                    normalizeVariableFields(v),
+                    getBaseSchema() as JSONSchema
+                  )
+                )
             };
             return {
               id: index + 1,

@@ -31,7 +31,8 @@ import {
   getSchemaKeyForUI,
   resolveVariableType,
   normalizeFieldConfig,
-  getPlaceholderOverride
+  getPlaceholderOverride,
+  stripExtraVariableFields
 } from "./variableModalConfig";
 import {
   fieldExistsInSchema,
@@ -290,11 +291,12 @@ export default function VariableModal({
       variableType || undefined,
       genesis || undefined
     );
-    onSave({
+    const rawVariable = {
       ...formData,
       schema_class: schemaKey,
       variable_type: effectiveType
-    });
+    };
+    onSave(stripExtraVariableFields(rawVariable, rootSchema));
   };
 
   // Handle accordion section click - auto-collapse others unless using chevron
