@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { stripExtraVariableFields } from "../variableModalConfig";
+import { getBaseSchema } from "@/utils/schemaViews";
+import type { JSONSchema } from "@/components/schemaUtils";
 
 // Minimal inline schema — no dependency on the bundled schema.
 // Two classes: SimpleVariable (flat) and NestedVariable (has a nested object).
@@ -151,5 +153,79 @@ describe("stripExtraVariableFields", () => {
     expect(resultA).not.toHaveProperty("field_b");
     expect(resultB).toHaveProperty("field_b");
     expect(resultB).not.toHaveProperty("field_a");
+  });
+});
+
+// Guards the exact nested data-loss path the consolidated strip exists to handle,
+// against the REAL bundled schema (not a synthetic one): type-specific calibration
+// fields must survive for their matching variable type, and orphaned fields left
+// behind by a variable-type switch must be removed.
+describe("stripExtraVariableFields — real bundled schema", () => {
+  const rootSchema = getBaseSchema() as unknown as JSONSchema;
+
+  const calibrationOf = (v: Record<string, unknown>) =>
+    ((v.analyzing_instrument as Record<string, unknown>)?.calibration ??
+      {}) as Record<string, unknown>;
+
+  it("preserves pH-specific calibration fields on a DiscretePHVariable", () => {
+    // DiscretePHVariable -> PHInstrument -> PHCalibration, which legitimately
+    // carries dye_type_and_manufacturer + ph_of_standards.
+    const phVar = {
+      schema_class: "DiscretePHVariable",
+      long_name: "pH (total scale)",
+      dataset_variable_name: "pH",
+      analyzing_instrument: {
+        calibration: {
+          dye_type_and_manufacturer: "m-cresol purple, Sigma-Aldrich",
+          ph_of_standards: "7.0, 10.0"
+        }
+      }
+    };
+
+    const result = stripExtraVariableFields(phVar, rootSchema);
+    const cal = calibrationOf(result);
+
+    expect(result.schema_class).toBe("DiscretePHVariable");
+    expect(result.long_name).toBe("pH (total scale)");
+    expect(cal.dye_type_and_manufacturer).toBe("m-cresol purple, Sigma-Aldrich");
+    expect(cal.ph_of_standards).toBe("7.0, 10.0");
+  });
+
+  it("drops orphaned pH calibration fields when schema_class is DiscreteCO2Variable, keeping CO2 fields", () => {
+    // Simulates switching a variable's type pH -> CO2 without re-clearing
+    // calibration: the pH dye field is now orphaned (not in DiscreteCO2Calibration),
+    // while standard_gas_info is valid for CO2.
+    const switchedVar = {
+      schema_class: "DiscreteCO2Variable",
+      long_name: "xCO2",
+      dataset_variable_name: "xCO2",
+      analyzing_instrument: {
+        calibration: {
+          dye_type_and_manufacturer: "leftover from pH",
+          standard_gas_info: { manufacturer: "NOAA" }
+        }
+      }
+    };
+
+    const result = stripExtraVariableFields(switchedVar, rootSchema);
+    const cal = calibrationOf(result);
+
+    expect(cal).not.toHaveProperty("dye_type_and_manufacturer");
+    expect(cal).toHaveProperty("standard_gas_info");
+    expect((cal.standard_gas_info as Record<string, unknown>).manufacturer).toBe(
+      "NOAA"
+    );
+  });
+
+  it("strips an unknown top-level field but keeps schema_class and known fields", () => {
+    const v = {
+      schema_class: "DiscretePHVariable",
+      long_name: "pH",
+      not_a_real_field: "remove me"
+    };
+    const result = stripExtraVariableFields(v, rootSchema);
+    expect(result).not.toHaveProperty("not_a_real_field");
+    expect(result.schema_class).toBe("DiscretePHVariable");
+    expect(result.long_name).toBe("pH");
   });
 });
