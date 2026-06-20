@@ -5,6 +5,7 @@ import {
 } from "@/components/VariableModal/variableModalConfig";
 import type { JSONSchema } from "@/components/schemaUtils";
 import { migrateFormData } from "@/utils/migrations";
+import { cleanVariableData } from "@/utils/formDataCleanup";
 import type {
   ProjectFormData,
   ExperimentFormData,
@@ -163,9 +164,11 @@ export async function importMetadata(file: File): Promise<ImportResult> {
               variables: rawVars
                 .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
                 .map((v) =>
-                  stripExtraVariableFields(
-                    normalizeVariableFields(v),
-                    getBaseSchema() as JSONSchema
+                  cleanVariableData(
+                    stripExtraVariableFields(
+                      normalizeVariableFields(v),
+                      getBaseSchema() as JSONSchema
+                    ) as Record<string, unknown>
                   )
                 )
             };

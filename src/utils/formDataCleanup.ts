@@ -8,6 +8,11 @@
  * Deleting the key restores the field to "not present", which lets AJV's
  * `required` check work correctly and keeps the data clean (matching the
  * initial blank state).
+ *
+ * NOTE: does NOT strip empty strings (""). Some auto-propagated dataset fields
+ * (e.g., project_id, experiment_id) are initialised as "" and must survive
+ * until the real value is propagated. Use cleanVariableData for variable
+ * objects where "" is never meaningful.
  */
 export function cleanFormData<T extends Record<string, unknown>>(data: T): T {
   // The top-level form data object is always returned — even if empty —
@@ -15,15 +20,28 @@ export function cleanFormData<T extends Record<string, unknown>>(data: T): T {
   // that become empty after cleanup are dropped (return undefined) so
   // their parent key gets stripped entirely, matching the "not present"
   // semantics that AJV's `required` check relies on.
-  return (cleanRecursive(data, /* isRoot */ true) ?? {}) as T;
+  return (cleanRecursive(data, false, /* isRoot */ true) ?? {}) as T;
 }
 
-function cleanRecursive(value: unknown, isRoot = false): unknown {
+/**
+ * Like cleanFormData but also strips empty strings ("").
+ *
+ * Safe to use for variable objects (in the variable modal and dataset
+ * validation path) where an empty string always means "not provided".
+ * Do NOT use for top-level dataset or experiment form data — those have
+ * auto-propagated string fields that legitimately start as "".
+ */
+export function cleanVariableData<T extends Record<string, unknown>>(data: T): T {
+  return (cleanRecursive(data, true, /* isRoot */ true) ?? {}) as T;
+}
+
+function cleanRecursive(value: unknown, stripEmptyStrings: boolean, isRoot = false): unknown {
   if (value === null || value === undefined) return undefined;
+  if (stripEmptyStrings && value === "") return undefined;
 
   if (Array.isArray(value)) {
     const cleanedItems = value
-      .map((item) => cleanRecursive(item))
+      .map((item) => cleanRecursive(item, stripEmptyStrings))
       .filter((item) => item !== undefined);
     return cleanedItems.length === 0 ? undefined : cleanedItems;
   }
@@ -31,7 +49,7 @@ function cleanRecursive(value: unknown, isRoot = false): unknown {
   if (typeof value === "object") {
     const cleaned: Record<string, unknown> = {};
     for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-      const cleanedValue = cleanRecursive(v);
+      const cleanedValue = cleanRecursive(v, stripEmptyStrings);
       if (cleanedValue !== undefined) {
         cleaned[key] = cleanedValue;
       }
