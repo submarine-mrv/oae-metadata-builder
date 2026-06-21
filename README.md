@@ -88,7 +88,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 The application uses two configuration layers:
 
 1. **JSON Schema** (`/src/schema/schema.bundled.json`) - Data structure, validation rules, field types
-2. **UI Schema** (`src/app/uiSchema.ts`) - Presentation layer, widget selection, field ordering, styling
+2. **UI Schema** (colocated per page, e.g. `src/pages/project/uiSchema.ts`; shared pieces in `src/uiSchemaConstants.ts`) - Presentation layer, widget selection, field ordering, styling
 
 ## Development
 
@@ -132,9 +132,9 @@ SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
 
 ### Customization
 
-- **Styling**: Modify `/src/app/globals.css` or component-level styles
-- **Validation**: Add custom validation in `/src/app/page.tsx`
-- **UI Layout**: Update `/src/app/uiSchema.ts` for field ordering and presentation
+- **Styling**: Modify `/src/globals.css` or component-level styles
+- **Validation**: Add custom validation in `/src/utils/customValidators.ts`
+- **UI Layout**: Update the page's `uiSchema.ts` (e.g. `/src/pages/project/uiSchema.ts`) for field ordering and presentation
 - **Components**: Add new widgets/fields in `/src/components/`
 
 ## Related Repositories
