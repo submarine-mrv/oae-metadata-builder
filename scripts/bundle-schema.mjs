@@ -3,7 +3,7 @@ import $RefParser from "@apidevtools/json-schema-ref-parser";
 import { readFile, writeFile } from "node:fs/promises";
 
 const INPUT = "./schemas/schema.json"; // LinkML output
-const OUTPUT = "./public/schema.bundled.json";
+const OUTPUT = "./src/schema/schema.bundled.json";
 
 // NVS vocabulary files (fetched via `make nvs-vocabs`)
 const NVS_DIR = "./schemas/nvs";

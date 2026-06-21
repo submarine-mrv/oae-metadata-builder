@@ -4,7 +4,6 @@
  * Used in ExternalProjectField for stacked layout.
  * For horizontal layout, use IsoIntervalWidget instead.
  */
-"use client";
 
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";

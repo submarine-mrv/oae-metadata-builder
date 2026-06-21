@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";

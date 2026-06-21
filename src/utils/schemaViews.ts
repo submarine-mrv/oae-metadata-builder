@@ -6,7 +6,7 @@
  * schema definition and preserve metadata like protocol version and git hash.
  */
 
-import baseSchema from "@/../public/schema.bundled.json";
+import baseSchema from "@/schema/schema.bundled.json";
 import type { RJSFSchema } from "@rjsf/utils";
 
 /**

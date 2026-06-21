@@ -1,4 +1,3 @@
-"use client";
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { computeCompletion } from "@/utils/completionCalculator";
 import {

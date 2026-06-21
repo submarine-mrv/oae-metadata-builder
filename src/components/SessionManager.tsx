@@ -1,6 +1,5 @@
-"use client";
 import React, { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
 import SessionRestoreModal from "@/components/SessionRestoreModal";
@@ -10,7 +9,7 @@ export default function SessionManager() {
     useAppState();
   const { savedSession, isRestoreModalOpen, restoreSession, discardSession } =
     useSessionPersistence(state, restoreFullState);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleRestore = useCallback(() => {
     restoreSession();
@@ -23,13 +22,13 @@ export default function SessionManager() {
         setActiveDataset(savedSession.datasets[0].id);
       }
     }
-    router.push("/overview");
+    navigate({ to: "/overview" });
   }, [
     restoreSession,
     savedSession,
     setActiveExperiment,
     setActiveDataset,
-    router
+    navigate
   ]);
 
   return (

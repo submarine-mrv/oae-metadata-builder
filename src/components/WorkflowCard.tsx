@@ -1,4 +1,3 @@
-"use client";
 import { IconCheck } from "@tabler/icons-react";
 import { Paper, Box, Title, Text, Badge, List } from "@mantine/core";
 import type { ReactNode } from "react";

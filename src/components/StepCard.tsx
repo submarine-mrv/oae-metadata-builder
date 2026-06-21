@@ -1,4 +1,3 @@
-"use client";
 import type { ReactNode } from "react";
 import { Paper, Box, Title, Text, Flex } from "@mantine/core";
 

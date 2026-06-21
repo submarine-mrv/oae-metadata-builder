@@ -1,0 +1,196 @@
+// uiSchema.ts
+
+// Generate formatted enum names from schema
+import schema from "@/schema/schema.bundled.json";
+import { generateEnumNames } from "@/utils/enumDecorator";
+import {
+  textAreaWidget,
+  nestedItemStyle,
+  halfWidthStyle
+} from "@/uiSchemaConstants";
+
+const enumNames = generateEnumNames(schema, [
+  "MCDRPathway",
+  "ResearcherIDType"
+]);
+
+// UI schema configuration for project form
+const projectUiSchema = {
+  "ui:title": "",
+  "ui:options": {
+    expandable: false
+  },
+  "ui:order": [
+    "research_project",
+    "project_id",
+    "description",
+    "mcdr_pathway",
+    "sea_names",
+    "spatial_coverage",
+    "temporal_coverage",
+    "project_leads",
+    "physical_site_description",
+    "social_context_site_description",
+    "social_research_conducted_to_date",
+    "colocated_operations",
+    "previous_or_ongoing_colocated_research",
+    "permits",
+    "funding",
+    "additional_details",
+    "*"
+  ],
+  project_id: {
+    ...halfWidthStyle,
+    "ui:widget": "LockableIdWidget",
+    "ui:placeholder": "Enter project ID",
+    "ui:descriptionModal": true,
+    "ui:options": {
+      lockOnBlur: true,
+      defaultLocked: false
+    }
+  },
+  temporal_coverage: {
+    ...halfWidthStyle,
+    "ui:widget": "IsoIntervalWidget",
+    "ui:title": ""
+  },
+  spatial_coverage: {
+    "ui:field": "SpatialCoverageMiniMap",
+    "ui:title": "Spatial Coverage"
+  },
+  project_leads: {
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Person"
+    },
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2
+      },
+      "ui:order": [
+        "name",
+        "email",
+        "role",
+        "phone",
+        "identifier_type",
+        "identifier",
+        "affiliation"
+      ],
+      name: {
+        "ui:placeholder": "Full name"
+      },
+      email: {
+        "ui:placeholder": "email@example.com"
+      },
+      phone: {
+        "ui:placeholder": "+1-555-555-5555"
+      },
+      role: {
+        "ui:placeholder": "e.g., Principal Investigator"
+      },
+      identifier_type: {
+        "ui:widget": "CustomSelectWidget",
+        "ui:options": {
+          enumNames: enumNames.ResearcherIDType
+        }
+      },
+      identifier: {
+        "ui:placeholder": "e.g., 0000-0000-0000-0000"
+      },
+      affiliation: {
+        "ui:order": ["name", "identifier", "country"],
+        name: {
+          "ui:title": "Organization Name",
+          "ui:placeholder": "Organization name"
+        },
+        identifier: {
+          "ui:title": "Organization Identifier",
+          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)"
+        },
+        country: {
+          "ui:placeholder": "e.g., US"
+        }
+      }
+    }
+  },
+  mcdr_pathway: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:enumNames": enumNames.MCDRPathway
+  },
+  sea_names: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget"
+  },
+  description: textAreaWidget,
+  physical_site_description: textAreaWidget,
+  social_context_site_description: textAreaWidget,
+  social_research_conducted_to_date: textAreaWidget,
+  previous_or_ongoing_colocated_research: {
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Co-located Research"
+    },
+    items: {
+      "ui:field": "ExternalProjectField",
+      "ui:style": nestedItemStyle
+    }
+  },
+  colocated_operations: {
+    "ui:widget": "textarea",
+    "ui:options": { rows: 3 }
+  },
+  research_project: {
+    ...halfWidthStyle,
+    "ui:title": "Research Project"
+  },
+  funding: {
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Funding Source"
+    },
+    items: {
+      "ui:title": "",
+      "ui:style": nestedItemStyle,
+      "ui:order": ["name", "identifier", "start_date", "end_date", "funder"],
+      "ui:options": {
+        gridCols: 2
+      },
+      name: {
+        "ui:title": "Grant or Project Name",
+        "ui:placeholder": "e.g., NSF Ocean Sciences Research Grant"
+      },
+      identifier: {
+        "ui:title": "Grant or Project Identifier",
+        "ui:placeholder": "e.g., Grant number or URL"
+      },
+      funder: {
+        "ui:style": { gridColumn: "1 / -1" },
+        "ui:title": "",
+        "ui:order": ["name", "identifier", "country"],
+        name: {
+          "ui:title": "Name of Funding Organization",
+          "ui:placeholder": "Organization name"
+        },
+        country: {
+          "ui:placeholder": "e.g., US"
+        },
+        identifier: {
+          "ui:title": "Identifier for Funding Organization",
+          "ui:descriptionModal": true,
+          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)"
+        }
+      }
+    }
+  },
+  additional_details: textAreaWidget,
+  experiments: {
+    "ui:widget": "hidden"
+  }
+};
+
+export default projectUiSchema;

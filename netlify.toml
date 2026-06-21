@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Pin the Node version so Netlify matches the repo toolchain (.mise.toml / CI).
+[build.environment]
+  NODE_VERSION = "26"
+
+# SPA fallback: client-side routes (e.g. /project) must serve index.html on refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

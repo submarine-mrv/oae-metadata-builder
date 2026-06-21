@@ -1,4 +1,3 @@
-"use client";
 import React, { useRef } from "react";
 import {
 	Group,
@@ -20,8 +19,7 @@ import {
 	IconFileImport,
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { importMetadata } from "@/utils/exportImport";
 import DownloadModal from "@/components/DownloadModal";
 import ImportPreviewModal from "@/components/ImportPreviewModal";
@@ -31,7 +29,7 @@ import { useImportPreview } from "@/hooks/useImportPreview";
 export default function Navigation() {
 	const { state, setActiveTab, importSelectedData, toggleJsonPreview } =
 		useAppState();
-	const router = useRouter();
+	const navigate = useNavigate();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const {
@@ -55,18 +53,18 @@ export default function Navigation() {
 	});
 
 	const handleNavigation = (value: string) => {
-		const paths: Record<string, string> = {
+		const paths = {
 			overview: "/overview",
 			project: "/project",
 			experiment: "/experiment",
 			dataset: "/dataset",
 			"how-to": "/how-to",
-		};
+		} as const;
 		if (value !== "how-to") {
 			const tab = value as "overview" | "project" | "experiment" | "dataset";
 			setActiveTab(tab);
 		}
-		router.push(paths[value]);
+		navigate({ to: paths[value as keyof typeof paths] });
 	};
 
 	const handleImportClick = () => {
@@ -109,10 +107,10 @@ export default function Navigation() {
 		// Pass datasets with their linking configuration
 		importSelectedData(selected.project, experimentFormData, selected.datasets);
 		importPreview.closePreview();
-		router.push("/overview");
+		navigate({ to: "/overview" });
 	};
 
-	const pathname = usePathname();
+	const pathname = useLocation({ select: (s) => s.pathname });
 	const pathToTab: Record<string, string> = {
 		"/overview": "overview",
 		"/project": "project",
@@ -138,7 +136,7 @@ export default function Navigation() {
 				>
 					{/* Logo and title - left aligned, links to Overview */}
 					<Link
-						href="/overview"
+						to="/overview"
 						onClick={() => setActiveTab("overview")}
 						style={{ textDecoration: "none" }}
 					>
@@ -227,13 +225,13 @@ export default function Navigation() {
 								)}
 								<Menu.Item
 									leftSection={<IconHelp size={16} />}
-									onClick={() => router.push("/how-to")}
+									onClick={() => navigate({ to: "/how-to" })}
 								>
 									How-to Guide
 								</Menu.Item>
 								<Menu.Item
 									leftSection={<IconInfoCircle size={16} />}
-									onClick={() => router.push("/about")}
+									onClick={() => navigate({ to: "/about" })}
 								>
 									About
 								</Menu.Item>

@@ -18,19 +18,19 @@ The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://gi
 
 ## Technology Stack
 
-- **Frontend Framework**: Next.js 15 with App Router
+- **Frontend Framework**: React 19 with Vite and TanStack Router (file-based routing)
 - **Form Engine**: React JSON Schema Forms (RJSF) with `@rjsf/mantine`
 - **UI Components**: Mantine v8 design system
 - **Icons**: Tabler Icons React
 - **Validation**: AJV JSON Schema validator
-- **Build Tool**: Turbopack for fast development
+- **Build Tool**: Vite
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm, yarn, pnpm, or bun
+- Node.js 26 (see `.mise.toml`)
+- npm
 
 ### Installation
 
@@ -50,10 +50,11 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Available Scripts
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run dev` - Start the Vite dev server (port 3000)
+- `npm run build` - Build for production (generates the route tree, type-checks with `tsc -b`, then `vite build`)
+- `npm run preview` - Preview the production build locally
+- `npm test` - Run unit tests (Vitest)
+- `npm run test:e2e` - Run end-to-end tests (Playwright)
 - `node scripts/bundle-schema.mjs` - Bundle JSON schema for human readable sea names labels
 
 ## Architecture
@@ -62,7 +63,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 1. Source schema from `submarine-mrv/oae-data-protocol`
 2. Schema bundling resolves references and adds controlled vocabulary labels
-3. Bundled schema served from `/public/schema.bundled.json`
+3. Bundled schema imported from `/src/schema/schema.bundled.json`
 4. Form generation driven by bundled schema + UI configuration
 
 ### Custom Components
@@ -87,8 +88,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 The application uses two configuration layers:
 
-1. **JSON Schema** (`/public/schema.bundled.json`) - Data structure, validation rules, field types
-2. **UI Schema** (`src/app/uiSchema.ts`) - Presentation layer, widget selection, field ordering, styling
+1. **JSON Schema** (`/src/schema/schema.bundled.json`) - Data structure, validation rules, field types
+2. **UI Schema** (colocated per page, e.g. `src/pages/project/uiSchema.ts`; shared pieces in `src/uiSchemaConstants.ts`) - Presentation layer, widget selection, field ordering, styling
 
 ## Development
 
@@ -132,9 +133,9 @@ SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
 
 ### Customization
 
-- **Styling**: Modify `/src/app/globals.css` or component-level styles
-- **Validation**: Add custom validation in `/src/app/page.tsx`
-- **UI Layout**: Update `/src/app/uiSchema.ts` for field ordering and presentation
+- **Styling**: Modify `/src/globals.css` or component-level styles
+- **Validation**: Add custom validation in `/src/utils/customValidators.ts`
+- **UI Layout**: Update the page's `uiSchema.ts` (e.g. `/src/pages/project/uiSchema.ts`) for field ordering and presentation
 - **Components**: Add new widgets/fields in `/src/components/`
 
 ## Related Repositories

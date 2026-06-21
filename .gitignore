@@ -16,9 +16,8 @@
 /playwright-report/
 /.playwright-mcp/
 
-# next.js
-/.next/
-/out/
+# vite
+/dist
 
 # production
 /build
@@ -41,11 +40,12 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# tanstack router (generated)
+src/routeTree.gen.ts
 
 .local/
 .idea/
-src/app/local-testing
 CLAUDE.md
 .claude/
 test-results/

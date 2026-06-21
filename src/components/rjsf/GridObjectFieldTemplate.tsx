@@ -1,4 +1,3 @@
-"use client";
 
 import { Box, Container, Group } from "@mantine/core";
 import {

@@ -11,13 +11,13 @@
 LinkML (oae-data-protocol)
   └─ just gen-all ─→ JSON Schema (Draft 2019-09)
        └─ make schema ─→ oae-form/schemas/schema.json   (verbatim copy, git-hash tracked)
-            └─ scripts/bundle-schema.mjs ─→ public/schema.bundled.json
+            └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json
                  ├─ AJV validation        (runtime authority)
                  ├─ RJSF rendering         (project / experiment / dataset forms)
                  └─ (planned) generated TS types
 ```
 
-`public/schema.bundled.json` is the one artifact that everything downstream reads. Rules:
+`src/schema/schema.bundled.json` is the one artifact that everything downstream reads. Rules:
 
 - **Never hand-duplicate the schema** in TypeScript (no parallel Zod/TypeBox model). LinkML is
   the upstream source of truth; the bundled JSON Schema is the runtime source of truth.

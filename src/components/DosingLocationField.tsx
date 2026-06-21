@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { FieldProps } from "@rjsf/utils";
