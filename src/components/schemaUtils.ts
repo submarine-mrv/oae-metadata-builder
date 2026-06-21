@@ -42,10 +42,7 @@ export interface FieldMetadata {
  * Resolves a $ref in a schema to its actual definition.
  * Handles references like "#/$defs/PHInstrument"
  */
-export function resolveRef(
-  schema: JSONSchema,
-  rootSchema: JSONSchema
-): JSONSchema {
+export function resolveRef(schema: JSONSchema, rootSchema: JSONSchema): JSONSchema {
   if (!schema.$ref) {
     return schema;
   }
@@ -90,7 +87,7 @@ export function resolveRef(
 export function getFieldSchema(
   fieldPath: string,
   variableSchema: JSONSchema,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): JSONSchema | null {
   const parts = fieldPath.split(".");
   let currentSchema = variableSchema;
@@ -138,7 +135,7 @@ export function getFieldSchema(
 
     // Get the property
     const properties = currentSchema.properties;
-    if (!properties || !properties[part]) {
+    if (!properties?.[part]) {
       return null;
     }
 
@@ -156,7 +153,7 @@ export function getFieldSchema(
 export function fieldExistsInSchema(
   fieldPath: string,
   variableSchema: JSONSchema,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): boolean {
   return getFieldSchema(fieldPath, variableSchema, rootSchema) !== null;
 }
@@ -165,10 +162,7 @@ export function fieldExistsInSchema(
  * Resolves a schema and merges allOf required arrays.
  * Used by isFieldRequired to correctly detect conditionally-required fields.
  */
-function resolveWithAllOf(
-  schema: JSONSchema,
-  rootSchema: JSONSchema
-): JSONSchema {
+function resolveWithAllOf(schema: JSONSchema, rootSchema: JSONSchema): JSONSchema {
   const resolved = resolveRef(schema, rootSchema);
   if (!resolved.allOf) return resolved;
 
@@ -196,7 +190,7 @@ function resolveWithAllOf(
 export function isFieldRequired(
   fieldPath: string,
   variableSchema: JSONSchema,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): boolean {
   const parts = fieldPath.split(".");
   const fieldName = parts[parts.length - 1];
@@ -225,7 +219,7 @@ export function isFieldRequired(
 export function getFieldMetadata(
   fieldPath: string,
   variableSchema: JSONSchema,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): FieldMetadata | null {
   const fieldSchema = getFieldSchema(fieldPath, variableSchema, rootSchema);
   if (!fieldSchema) {
@@ -264,10 +258,7 @@ export function getFieldMetadata(
 /**
  * Gets a nested value from form data using a dot-separated path.
  */
-export function getNestedValue(
-  obj: Record<string, unknown>,
-  path: string
-): unknown {
+export function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   const parts = path.split(".");
   let current: unknown = obj;
 
@@ -291,7 +282,7 @@ export function getNestedValue(
 export function setNestedValue(
   obj: Record<string, unknown>,
   path: string,
-  value: unknown
+  value: unknown,
 ): Record<string, unknown> {
   const parts = path.split(".");
   const result = { ...obj };
@@ -305,11 +296,7 @@ export function setNestedValue(
   let current = result;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-    if (
-      !current[part] ||
-      typeof current[part] !== "object" ||
-      Array.isArray(current[part])
-    ) {
+    if (!current[part] || typeof current[part] !== "object" || Array.isArray(current[part])) {
       current[part] = {};
     } else {
       current[part] = { ...(current[part] as Record<string, unknown>) };
@@ -320,4 +307,3 @@ export function setNestedValue(
   current[parts[parts.length - 1]] = value;
   return result;
 }
-

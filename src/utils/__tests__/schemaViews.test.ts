@@ -1,36 +1,36 @@
-import { describe, it, expect } from 'vitest';
-import type { RJSFSchema } from '@rjsf/utils';
+import type { RJSFSchema } from "@rjsf/utils";
+import { describe, expect, it } from "vitest";
 import {
   getBaseSchema,
-  getProtocolMetadata,
-  getProjectSchema,
-  getExperimentSchema,
-  getInterventionSchema,
-  getTracerSchema,
-  getInterventionWithTracerSchema,
   getDatasetSchema,
+  getExperimentSchema,
   getFieldDatasetSchema,
-  getModelOutputDatasetSchema
-} from '../schemaViews';
+  getInterventionSchema,
+  getInterventionWithTracerSchema,
+  getModelOutputDatasetSchema,
+  getProjectSchema,
+  getProtocolMetadata,
+  getTracerSchema,
+} from "../schemaViews";
 
-describe('Schema Views', () => {
-  describe('getBaseSchema', () => {
-    it('should return the bundled schema', () => {
+describe("Schema Views", () => {
+  describe("getBaseSchema", () => {
+    it("should return the bundled schema", () => {
       const schema = getBaseSchema();
 
       expect(schema).toBeDefined();
       expect(schema.$defs).toBeDefined();
-      expect(typeof schema.$defs).toBe('object');
+      expect(typeof schema.$defs).toBe("object");
     });
 
-    it('should have protocol version metadata', () => {
+    it("should have protocol version metadata", () => {
       const schema = getBaseSchema();
 
-      expect(schema['x-protocol-version']).toBeDefined();
-      expect(typeof schema['x-protocol-version']).toBe('string');
+      expect(schema["x-protocol-version"]).toBeDefined();
+      expect(typeof schema["x-protocol-version"]).toBe("string");
     });
 
-    it('should have Container definition in $defs', () => {
+    it("should have Container definition in $defs", () => {
       const schema = getBaseSchema();
 
       expect(schema.$defs.Container).toBeDefined();
@@ -39,32 +39,32 @@ describe('Schema Views', () => {
     });
   });
 
-  describe('getProtocolMetadata', () => {
-    it('should extract version and git hash from schema', () => {
+  describe("getProtocolMetadata", () => {
+    it("should extract version and git hash from schema", () => {
       const metadata = getProtocolMetadata();
 
-      expect(metadata).toHaveProperty('version');
-      expect(metadata).toHaveProperty('gitHash');
+      expect(metadata).toHaveProperty("version");
+      expect(metadata).toHaveProperty("gitHash");
     });
 
-    it('should return strings for version and gitHash', () => {
+    it("should return strings for version and gitHash", () => {
       const metadata = getProtocolMetadata();
 
-      expect(typeof metadata.version).toBe('string');
-      expect(typeof metadata.gitHash).toBe('string');
+      expect(typeof metadata.version).toBe("string");
+      expect(typeof metadata.gitHash).toBe("string");
     });
   });
 
-  describe('getProjectSchema', () => {
-    it('should create schema with Project definition as root', () => {
+  describe("getProjectSchema", () => {
+    it("should create schema with Project definition as root", () => {
       const schema = getProjectSchema();
 
-      expect(schema.$id).toBe('ProjectSchema');
+      expect(schema.$id).toBe("ProjectSchema");
       expect(schema.title).toBeDefined();
       expect(schema.properties).toBeDefined();
     });
 
-    it('should have required project fields', () => {
+    it("should have required project fields", () => {
       const schema = getProjectSchema();
 
       expect(schema.properties!.project_id).toBeDefined();
@@ -75,7 +75,7 @@ describe('Schema Views', () => {
       expect(schema.properties!.temporal_coverage).toBeDefined();
     });
 
-    it('should preserve all $defs from base schema', () => {
+    it("should preserve all $defs from base schema", () => {
       const projectSchema = getProjectSchema();
 
       expect(projectSchema.$defs).toBeDefined();
@@ -86,31 +86,31 @@ describe('Schema Views', () => {
       expect(projectSchema.$defs!.MCDRPathway).toBeDefined();
     });
 
-    it('should preserve protocol metadata', () => {
+    it("should preserve protocol metadata", () => {
       const projectSchema = getProjectSchema();
 
-      expect(projectSchema['x-protocol-version']).toBeDefined();
-      expect(typeof projectSchema['x-protocol-version']).toBe('string');
+      expect(projectSchema["x-protocol-version"]).toBeDefined();
+      expect(typeof projectSchema["x-protocol-version"]).toBe("string");
     });
 
-    it('should have experiments array in properties', () => {
+    it("should have experiments array in properties", () => {
       const schema = getProjectSchema();
 
       expect(schema.properties!.experiments).toBeDefined();
       // Schema now allows null values, so type is ['array', 'null']
-      expect((schema.properties!.experiments as RJSFSchema).type).toEqual(['array', 'null']);
+      expect((schema.properties!.experiments as RJSFSchema).type).toEqual(["array", "null"]);
     });
   });
 
-  describe('getExperimentSchema', () => {
-    it('should create schema with Experiment definition as root', () => {
+  describe("getExperimentSchema", () => {
+    it("should create schema with Experiment definition as root", () => {
       const schema = getExperimentSchema();
 
-      expect(schema.$id).toBe('ExperimentSchema');
+      expect(schema.$id).toBe("ExperimentSchema");
       expect(schema.properties).toBeDefined();
     });
 
-    it('should have required experiment fields', () => {
+    it("should have required experiment fields", () => {
       const schema = getExperimentSchema();
 
       expect(schema.properties!.experiment_id).toBeDefined();
@@ -119,23 +119,23 @@ describe('Schema Views', () => {
       expect(schema.properties!.experiment_leads).toBeDefined();
     });
 
-    it('should preserve $defs and metadata', () => {
+    it("should preserve $defs and metadata", () => {
       const schema = getExperimentSchema();
 
       expect(schema.$defs).toBeDefined();
-      expect(schema['x-protocol-version']).toBeDefined();
+      expect(schema["x-protocol-version"]).toBeDefined();
     });
   });
 
-  describe('getInterventionSchema', () => {
-    it('should create schema with Intervention definition as root', () => {
+  describe("getInterventionSchema", () => {
+    it("should create schema with Intervention definition as root", () => {
       const schema = getInterventionSchema();
 
-      expect(schema.$id).toBe('InterventionSchema');
+      expect(schema.$id).toBe("InterventionSchema");
       expect(schema.properties).toBeDefined();
     });
 
-    it('should have intervention-specific fields', () => {
+    it("should have intervention-specific fields", () => {
       const schema = getInterventionSchema();
 
       // Intervention-specific fields
@@ -146,7 +146,7 @@ describe('Schema Views', () => {
       expect(schema.properties!.dosing_delivery_type).toBeDefined();
     });
 
-    it('should also include base experiment fields (extends Experiment)', () => {
+    it("should also include base experiment fields (extends Experiment)", () => {
       const schema = getInterventionSchema();
 
       // Base experiment fields should also be present
@@ -156,15 +156,15 @@ describe('Schema Views', () => {
     });
   });
 
-  describe('getTracerSchema', () => {
-    it('should create schema with Tracer definition as root', () => {
+  describe("getTracerSchema", () => {
+    it("should create schema with Tracer definition as root", () => {
       const schema = getTracerSchema();
 
-      expect(schema.$id).toBe('TracerSchema');
+      expect(schema.$id).toBe("TracerSchema");
       expect(schema.properties).toBeDefined();
     });
 
-    it('should have tracer-specific fields', () => {
+    it("should have tracer-specific fields", () => {
       const schema = getTracerSchema();
 
       // Tracer-specific fields
@@ -173,15 +173,15 @@ describe('Schema Views', () => {
     });
   });
 
-  describe('getInterventionWithTracerSchema', () => {
-    it('should create schema with InterventionWithTracer definition as root', () => {
+  describe("getInterventionWithTracerSchema", () => {
+    it("should create schema with InterventionWithTracer definition as root", () => {
       const schema = getInterventionWithTracerSchema();
 
-      expect(schema.$id).toBe('InterventionWithTracerSchema');
+      expect(schema.$id).toBe("InterventionWithTracerSchema");
       expect(schema.properties).toBeDefined();
     });
 
-    it('should have both intervention and tracer fields', () => {
+    it("should have both intervention and tracer fields", () => {
       const schema = getInterventionWithTracerSchema();
 
       // Should have intervention fields
@@ -192,7 +192,7 @@ describe('Schema Views', () => {
     });
   });
 
-  describe('Conditional keys (if/then/else/allOf) are absent when undefined', () => {
+  describe("Conditional keys (if/then/else/allOf) are absent when undefined", () => {
     // Regression guard: a previous version of createSchemaView assigned
     // `if: def.if`, `then: def.then`, etc. unconditionally. When the def
     // lacked these keys, the assignment still created own properties with
@@ -203,52 +203,52 @@ describe('Schema Views', () => {
     //
     // For defs without conditionals, these keys must not be present at all.
 
-    it('omits if/then/else/allOf on Project (no conditionals)', () => {
+    it("omits if/then/else/allOf on Project (no conditionals)", () => {
       const schema = getProjectSchema();
-      expect('if' in schema).toBe(false);
-      expect('then' in schema).toBe(false);
-      expect('else' in schema).toBe(false);
-      expect('allOf' in schema).toBe(false);
+      expect("if" in schema).toBe(false);
+      expect("then" in schema).toBe(false);
+      expect("else" in schema).toBe(false);
+      expect("allOf" in schema).toBe(false);
     });
 
-    it('omits if/then/else/allOf on Experiment (no conditionals)', () => {
+    it("omits if/then/else/allOf on Experiment (no conditionals)", () => {
       const schema = getExperimentSchema();
-      expect('if' in schema).toBe(false);
-      expect('then' in schema).toBe(false);
-      expect('else' in schema).toBe(false);
-      expect('allOf' in schema).toBe(false);
+      expect("if" in schema).toBe(false);
+      expect("then" in schema).toBe(false);
+      expect("else" in schema).toBe(false);
+      expect("allOf" in schema).toBe(false);
     });
 
-    it('omits if/then/else on Dataset (no conditionals)', () => {
+    it("omits if/then/else on Dataset (no conditionals)", () => {
       const schema = getDatasetSchema();
-      expect('if' in schema).toBe(false);
-      expect('then' in schema).toBe(false);
-      expect('else' in schema).toBe(false);
+      expect("if" in schema).toBe(false);
+      expect("then" in schema).toBe(false);
+      expect("else" in schema).toBe(false);
     });
 
-    it('omits if/then/else on FieldDataset (no conditionals)', () => {
+    it("omits if/then/else on FieldDataset (no conditionals)", () => {
       const schema = getFieldDatasetSchema();
-      expect('if' in schema).toBe(false);
-      expect('then' in schema).toBe(false);
-      expect('else' in schema).toBe(false);
+      expect("if" in schema).toBe(false);
+      expect("then" in schema).toBe(false);
+      expect("else" in schema).toBe(false);
     });
 
-    it('preserves if/then on ModelOutputDataset (has conditionals)', () => {
+    it("preserves if/then on ModelOutputDataset (has conditionals)", () => {
       const schema = getModelOutputDatasetSchema();
       expect(schema.if).toBeDefined();
       expect(schema.then).toBeDefined();
     });
   });
 
-  describe('Bug Regression: Schema decoration path (Bug #3)', () => {
-    it('should find sea_names in Project definition (not at root)', () => {
+  describe("Bug Regression: Schema decoration path (Bug #3)", () => {
+    it("should find sea_names in Project definition (not at root)", () => {
       const projectSchema = getProjectSchema();
       const seaNames = projectSchema.properties!.sea_names as RJSFSchema;
 
       // This test ensures we're looking in the right place after Container became root
       expect(seaNames).toBeDefined();
       // Schema now allows null values, so type is ['array', 'null']
-      expect(seaNames.type).toEqual(['array', 'null']);
+      expect(seaNames.type).toEqual(["array", "null"]);
 
       // Should have decorated enum values from sea_names_labeled.json
       const items = seaNames.items as RJSFSchema;
@@ -262,9 +262,9 @@ describe('Schema Views', () => {
 
       // Each option should have const (URI) and title (label)
       if (options.length > 0) {
-        expect(options[0]).toHaveProperty('const');
-        expect(options[0]).toHaveProperty('title');
-        expect((options[0] as RJSFSchema).const).toContain('vocab.nerc.ac.uk');
+        expect(options[0]).toHaveProperty("const");
+        expect(options[0]).toHaveProperty("title");
+        expect((options[0] as RJSFSchema).const).toContain("vocab.nerc.ac.uk");
       }
     });
   });

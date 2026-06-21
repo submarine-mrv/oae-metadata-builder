@@ -1,30 +1,12 @@
-
+import { Box, Grid, Pill, PillsInput, Stack, Textarea, TextInput } from "@mantine/core";
+import type { FieldProps } from "@rjsf/utils";
 import React from "react";
-import type { FieldProps, FieldPathList } from "@rjsf/utils";
-import {
-  Grid,
-  Box,
-  Text,
-  TextInput,
-  Textarea,
-  Stack,
-  PillsInput,
-  Pill
-} from "@mantine/core";
 import IsoIntervalWidgetVertical from "./IsoIntervalWidgetVertical";
-import SpatialCoverageField from "./SpatialCoverageField";
 import { FieldLabelSmall } from "./rjsf/FieldLabel";
+import SpatialCoverageField from "./SpatialCoverageField";
 
 const ExternalProjectField: React.FC<FieldProps> = (props) => {
-  const {
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    schema,
-    uiSchema,
-    fieldPathId
-  } = props;
+  const { formData, onChange, disabled, readonly, schema, uiSchema, fieldPathId } = props;
 
   // Handle null/undefined formData
   const data = formData || {};
@@ -33,7 +15,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     // For a custom Field managing a complex object, we merge the changes ourselves
     const updatedData = {
       ...data,
-      [fieldName]: value
+      [fieldName]: value,
     };
 
     // v6 onChange: pass merged data with absolute path to this field
@@ -45,8 +27,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     name: fieldName,
     value: data[fieldName],
     formData: data[fieldName],
-    onChange: (widgetData: any) =>
-      handleFieldChange(fieldName, widgetData.formData || widgetData),
+    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData.formData || widgetData),
     onBlur: () => {},
     onFocus: () => {},
     disabled,
@@ -58,7 +39,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     label: fieldName,
     placeholder: "",
     rawErrors: [],
-    registry: props.registry
+    registry: props.registry,
   });
 
   // Helper for creating props for custom fields (FieldProps)
@@ -77,13 +58,13 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     uiSchema: uiSchema?.[fieldName] || {},
     fieldPathId: {
       $id: `${fieldPathId.$id}_${fieldName}`,
-      path: [...fieldPathId.path, fieldName]
+      path: [...fieldPathId.path, fieldName],
     },
     options: {},
     label: fieldName,
     placeholder: "",
     rawErrors: [],
-    registry: props.registry
+    registry: props.registry,
   });
 
   return (
@@ -110,9 +91,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                   />
                   <TextInput
                     value={data.name || ""}
-                    onChange={(e) =>
-                      handleFieldChange("name", e.currentTarget.value)
-                    }
+                    onChange={(e) => handleFieldChange("name", e.currentTarget.value)}
                     disabled={disabled || readonly}
                     placeholder="Project name"
                   />
@@ -122,10 +101,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
               {/* Temporal coverage */}
               {schema.properties?.temporal_coverage && (
                 <IsoIntervalWidgetVertical
-                  {...createWidgetProps(
-                    "temporal_coverage",
-                    schema.properties.temporal_coverage
-                  )}
+                  {...createWidgetProps("temporal_coverage", schema.properties.temporal_coverage)}
                 />
               )}
             </Grid.Col>
@@ -134,10 +110,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
             {schema.properties?.spatial_coverage && (
               <Grid.Col span={6}>
                 <SpatialCoverageField
-                  {...createFieldProps(
-                    "spatial_coverage",
-                    schema.properties.spatial_coverage
-                  )}
+                  {...createFieldProps("spatial_coverage", schema.properties.spatial_coverage)}
                 />
               </Grid.Col>
             )}
@@ -158,9 +131,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
             />
             <Textarea
               value={data.description || ""}
-              onChange={(e) =>
-                handleFieldChange("description", e.currentTarget.value)
-              }
+              onChange={(e) => handleFieldChange("description", e.currentTarget.value)}
               disabled={disabled || readonly}
               placeholder="Project description"
               rows={3}
@@ -201,7 +172,7 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
   onChange,
   disabled,
   description,
-  required = false
+  required = false,
 }) => {
   const [search, setSearch] = React.useState("");
 
@@ -213,11 +184,7 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
         onChange([...value, link]);
         setSearch("");
       }
-    } else if (
-      e.key === "Backspace" &&
-      search.length === 0 &&
-      value.length > 0
-    ) {
+    } else if (e.key === "Backspace" && search.length === 0 && value.length > 0) {
       onChange(value.slice(0, -1));
     }
   };
@@ -228,19 +195,11 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
 
   return (
     <Box>
-      <FieldLabelSmall
-        label="Related Links"
-        description={description}
-        required={required}
-      />
+      <FieldLabelSmall label="Related Links" description={description} required={required} />
       <PillsInput>
         <Pill.Group>
           {value.map((link, index) => (
-            <Pill
-              key={index}
-              withRemoveButton
-              onRemove={() => !disabled && handleRemove(link)}
-            >
+            <Pill key={index} withRemoveButton onRemove={() => !disabled && handleRemove(link)}>
               {link}
             </Pill>
           ))}

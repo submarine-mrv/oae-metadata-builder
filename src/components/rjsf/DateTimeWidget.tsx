@@ -1,11 +1,11 @@
-import * as React from "react";
-import { WidgetProps } from "@rjsf/utils";
-import { TextInput, Box } from "@mantine/core";
-import { FieldLabelSmall } from "./FieldLabel";
+import { Box, TextInput } from "@mantine/core";
+import type { WidgetProps } from "@rjsf/utils";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import utc from "dayjs/plugin/utc";
+import * as React from "react";
 import DateTimePickerPopover from "../DateTimePickerPopover";
+import { FieldLabelSmall } from "./FieldLabel";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(utc);
@@ -74,7 +74,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
   placeholder,
   schema,
   uiSchema,
-  rawErrors
+  rawErrors,
 }) => {
   const [dateTime, setDateTime] = React.useState(parseFromIso(value as string));
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -110,7 +110,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
       const dateOnly = dayjs.utc(dateTime, DATE_FORMAT, true);
 
       if (!fullDateTime.isValid() && dateOnly.isValid()) {
-        finalValue = dateOnly.format(DATE_FORMAT) + " 00:00:00";
+        finalValue = `${dateOnly.format(DATE_FORMAT)} 00:00:00`;
         setDateTime(finalValue);
       }
     }
@@ -118,7 +118,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
     // Parse and propagate - undefined blocks form submission if invalid
     const isoValue = parseToIso(finalValue);
     onChange(isoValue);
-    onBlur && onBlur(id, finalValue);
+    onBlur?.(id, finalValue);
   };
 
   const handlePickerChange = (newValue: string) => {
@@ -143,7 +143,7 @@ const DateTimeWidget: React.FC<WidgetProps> = ({
         value={dateTime}
         onChange={(event) => handleChange(event.currentTarget.value)}
         onBlur={handleBlur}
-        onFocus={() => onFocus && onFocus(id, dateTime)}
+        onFocus={() => onFocus?.(id, dateTime)}
         disabled={disabled || readonly}
         placeholder={placeholder || DATETIME_FORMAT}
         required={required}

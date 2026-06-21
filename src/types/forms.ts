@@ -14,8 +14,8 @@
  * 4. Explicit types for our custom structures
  */
 
-import type { RJSFSchema, UiSchema, ErrorSchema } from "@rjsf/utils";
 import type { IChangeEvent } from "@rjsf/core";
+import type { ErrorSchema, RJSFSchema, UiSchema } from "@rjsf/utils";
 
 // =============================================================================
 // Form Data Types
@@ -212,7 +212,7 @@ export type DatasetChangeEvent = IChangeEvent<DatasetFormData, RJSFSchema>;
  * Generic form change handler
  */
 export type FormChangeHandler<T extends FormDataRecord> = (
-  event: IChangeEvent<T, RJSFSchema>
+  event: IChangeEvent<T, RJSFSchema>,
 ) => void;
 
 // =============================================================================
@@ -293,7 +293,7 @@ export function isObject(value: unknown): value is Record<string, unknown> {
  * Check if form data has spatial coverage
  */
 export function hasSpatialCoverage(
-  data: FormDataRecord
+  data: FormDataRecord,
 ): data is FormDataRecord & { spatial_coverage: SpatialCoverage } {
   return (
     isObject(data.spatial_coverage) &&
@@ -305,7 +305,7 @@ export function hasSpatialCoverage(
  * Check if form data has a bounding box
  */
 export function hasBoundingBox(
-  data: FormDataRecord
+  data: FormDataRecord,
 ): data is FormDataRecord & { spatial_coverage: { geo: { box: string } } } {
   if (!hasSpatialCoverage(data)) return false;
   const geo = data.spatial_coverage.geo as Record<string, unknown>;
@@ -316,21 +316,14 @@ export function hasBoundingBox(
  * Check if geo data is coordinates (point)
  */
 export function isGeoCoordinates(geo: unknown): geo is GeoCoordinates {
-  return (
-    isObject(geo) &&
-    typeof geo.latitude === "number" &&
-    typeof geo.longitude === "number"
-  );
+  return isObject(geo) && typeof geo.latitude === "number" && typeof geo.longitude === "number";
 }
 
 /**
  * Check if geo data is a shape (box/line)
  */
 export function isGeoShape(geo: unknown): geo is GeoShape {
-  return (
-    isObject(geo) &&
-    (typeof geo.box === "string" || typeof geo.line === "string")
-  );
+  return isObject(geo) && (typeof geo.box === "string" || typeof geo.line === "string");
 }
 
 /**
@@ -355,4 +348,4 @@ export function getNumber(data: unknown, key: string): number | undefined {
 // Re-exports from RJSF for convenience
 // =============================================================================
 
-export type { RJSFSchema, UiSchema, ErrorSchema };
+export type { ErrorSchema, RJSFSchema, UiSchema };

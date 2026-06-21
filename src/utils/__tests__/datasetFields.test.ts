@@ -1,8 +1,5 @@
-import { describe, it, expect } from "vitest";
-import {
-  getValidDatasetFieldsForType,
-  cleanDatasetFormDataForType
-} from "../datasetFields";
+import { describe, expect, it } from "vitest";
+import { cleanDatasetFormDataForType, getValidDatasetFieldsForType } from "../datasetFields";
 
 describe("getValidDatasetFieldsForType", () => {
   it("includes base fields for all types", () => {
@@ -54,7 +51,7 @@ describe("cleanDatasetFormDataForType", () => {
       platform_info: { name: "R/V Test", platform_type: "ship" },
       variables: [{ variable_name: "salinity" }],
       calibration_files: ["cal.csv"],
-      simulation_type: "perturbation"
+      simulation_type: "perturbation",
     };
 
     const cleaned = cleanDatasetFormDataForType(formData, "model_output");
@@ -74,7 +71,7 @@ describe("cleanDatasetFormDataForType", () => {
       dataset_type: "cast",
       simulation_type: "perturbation",
       hardware_configuration: { cpu_count: 128 },
-      platform_info: { name: "R/V Test" }
+      platform_info: { name: "R/V Test" },
     };
 
     const cleaned = cleanDatasetFormDataForType(formData, "cast");
@@ -93,7 +90,7 @@ describe("cleanDatasetFormDataForType", () => {
   it("strips auto-initialized field-dataset fields on first type selection to model_output", () => {
     const formData = {
       dataset_type: "model_output",
-      platform_info: {}
+      platform_info: {},
     };
 
     const cleaned = cleanDatasetFormDataForType(formData, "model_output");
@@ -107,7 +104,7 @@ describe("cleanDatasetFormDataForType", () => {
       name: "Test",
       dataset_type: "cast",
       platform_info: { name: "Ship" },
-      variables: []
+      variables: [],
     };
 
     const cleaned = cleanDatasetFormDataForType(formData, "cast");

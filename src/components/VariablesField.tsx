@@ -1,31 +1,22 @@
-
-import React, { useState } from "react";
+import { ActionIcon, Button, Group, Paper, Table, Text, Title, Tooltip } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
-import {
-  Paper,
-  Title,
-  Text,
-  Button,
-  Group,
-  Table,
-  ActionIcon,
-  Tooltip
-} from "@mantine/core";
-import { IconPlus, IconPencil, IconTrash, IconCopy, IconAlertCircle } from "@tabler/icons-react";
-import VariableModal from "./VariableModal/VariableModal";
+import { IconAlertCircle, IconCopy, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
+import type React from "react";
+import { useState } from "react";
 import { brandColors } from "@/theme";
 import {
-  resolveRef,
   fieldExistsInSchema,
-  isFieldRequired,
   getNestedValue,
-  type JSONSchema
+  isFieldRequired,
+  type JSONSchema,
+  resolveRef,
 } from "./schemaUtils";
+import VariableModal from "./VariableModal/VariableModal";
 import {
   getAccordionConfig,
-  normalizeFieldConfig
+  normalizeFieldConfig,
+  VARIABLE_TYPE_OPTIONS,
 } from "./VariableModal/variableModalConfig";
-import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
@@ -33,7 +24,7 @@ type VariableData = Record<string, unknown>;
 // Build label lookup from the dropdown options + non_measured (not a dropdown option)
 const VARIABLE_TYPE_LABEL_MAP: Record<string, string> = {
   ...Object.fromEntries(VARIABLE_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])),
-  non_measured: "Contextual"
+  non_measured: "Contextual",
 };
 
 function getVariableDisplayLabel(variable: VariableData): string {
@@ -47,10 +38,7 @@ function getVariableDisplayLabel(variable: VariableData): string {
  * Uses the variable's type selections to determine the appropriate schema,
  * then checks all fields defined in ACCORDION_CONFIG.
  */
-function countMissingRequiredFields(
-  variable: VariableData,
-  rootSchema: JSONSchema
-): number {
+function countMissingRequiredFields(variable: VariableData, rootSchema: JSONSchema): number {
   // Get schema key from variable's type selections
   const schemaKey = variable.schema_class as string | undefined;
 
@@ -96,8 +84,7 @@ function countMissingRequiredFields(
  * Integrates with VariableModal for adding and editing variables.
  */
 const VariablesField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, registry, fieldPathId } =
-    props;
+  const { formData, onChange, disabled, readonly, registry, fieldPathId } = props;
 
   // Get the root schema from RJSF registry
   const rootSchema = registry.rootSchema as JSONSchema;
@@ -134,7 +121,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
     const original = variables[index];
     const duplicate: VariableData = {
       ...structuredClone(original),
-      dataset_variable_name: `${(original.dataset_variable_name as string) || ""} (Copy)`
+      dataset_variable_name: `${(original.dataset_variable_name as string) || ""} (Copy)`,
     };
     const newVariables = [...variables, duplicate];
     handleChange(newVariables);
@@ -158,7 +145,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
       <Paper
         withBorder
         style={{
-          backgroundColor: "var(--brand-sunlight-overlay-light)"
+          backgroundColor: "var(--brand-sunlight-overlay-light)",
         }}
         p="md"
         mt="md"
@@ -179,8 +166,8 @@ const VariablesField: React.FC<FieldProps> = (props) => {
 
         {variables.length === 0 ? (
           <Text c="dimmed" ta="center" py="lg">
-            No variables added yet. Click &quot;Add Variable&quot; to define the
-            variables in your dataset.
+            No variables added yet. Click &quot;Add Variable&quot; to define the variables in your
+            dataset.
           </Text>
         ) : (
           <Table striped stripedColor={brandColors.sunlight} highlightOnHover>
@@ -202,7 +189,9 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                         const missing = countMissingRequiredFields(variable, rootSchema);
                         if (missing > 0) {
                           return (
-                            <Tooltip label={`${missing} required field${missing > 1 ? "s" : ""} missing`}>
+                            <Tooltip
+                              label={`${missing} required field${missing > 1 ? "s" : ""} missing`}
+                            >
                               <IconAlertCircle size={16} color="var(--mantine-color-orange-6)" />
                             </Tooltip>
                           );
@@ -253,9 +242,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
-        initialData={
-          editingIndex !== null ? variables[editingIndex] : undefined
-        }
+        initialData={editingIndex !== null ? variables[editingIndex] : undefined}
         rootSchema={rootSchema}
       />
     </>

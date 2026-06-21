@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import type React from "react";
+import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 
@@ -16,10 +17,7 @@ interface AppLayoutProps {
  */
 export default function AppLayout({ children, noScroll = false }: AppLayoutProps) {
   const { state } = useAppState();
-  const hasContent =
-    state.hasProject ||
-    state.experiments.length > 0 ||
-    state.datasets.length > 0;
+  const hasContent = state.hasProject || state.experiments.length > 0 || state.datasets.length > 0;
 
   useEffect(() => {
     if (!hasContent) return;
@@ -38,20 +36,16 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        overflow: "hidden"
+        overflow: "hidden",
       }}
     >
       <Navigation />
       {noScroll ? (
         // Children manage their own scrolling (e.g., form + sidebar layout)
-        <main style={{ display: "flex", flex: 1, minHeight: 0 }}>
-          {children}
-        </main>
+        <main style={{ display: "flex", flex: 1, minHeight: 0 }}>{children}</main>
       ) : (
         // Standard scrollable content area
-        <main style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
-          {children}
-        </main>
+        <main style={{ flex: 1, overflow: "auto", minHeight: 0 }}>{children}</main>
       )}
     </div>
   );

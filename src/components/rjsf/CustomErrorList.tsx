@@ -1,27 +1,12 @@
-import {
+import { ActionIcon, Button, Code, Collapse, List, Paper, Stack, Text, Title } from "@mantine/core";
+import type {
   ErrorListProps,
   FormContextType,
   RJSFSchema,
   RJSFValidationError,
-  StrictRJSFSchema
+  StrictRJSFSchema,
 } from "@rjsf/utils";
-import {
-  ActionIcon,
-  Paper,
-  Title,
-  Text,
-  Stack,
-  Button,
-  Collapse,
-  Code,
-  List
-} from "@mantine/core";
-import {
-  IconAlertCircle,
-  IconChevronDown,
-  IconChevronUp,
-  IconX
-} from "@tabler/icons-react";
+import { IconAlertCircle, IconChevronDown, IconChevronUp, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 
 /**
@@ -31,18 +16,16 @@ import { useState } from "react";
 function formatPropertyPath(property: string | undefined): string {
   if (!property || property === ".") return "";
 
-  return (
-    property
-      .replace(/^\./, "") // Remove leading dot
-      .split(".")
-      .map((part) =>
-        part
-          .split("_")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ")
-      )
-      .join(" → ") + ": "
-  );
+  return `${property
+    .replace(/^\./, "") // Remove leading dot
+    .split(".")
+    .map((part) =>
+      part
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "),
+    )
+    .join(" → ")}: `;
 }
 
 /**
@@ -62,7 +45,7 @@ function formatError(error: RJSFValidationError): string {
 export default function CustomErrorList<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >({ errors, registry }: ErrorListProps<T, S, F>) {
   const [showDevView, setShowDevView] = useState(false);
 
@@ -91,7 +74,7 @@ export default function CustomErrorList<
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "8px"
+            gap: "8px",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -106,11 +89,7 @@ export default function CustomErrorList<
               size="xs"
               color="gray"
               leftSection={
-                showDevView ? (
-                  <IconChevronUp size={14} />
-                ) : (
-                  <IconChevronDown size={14} />
-                )
+                showDevView ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />
               }
               onClick={() => setShowDevView(!showDevView)}
             >

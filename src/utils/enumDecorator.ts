@@ -17,8 +17,7 @@ const ENUM_OVERRIDES: Record<string, string> = {
   // AnalyzingInstrumentType
   ctd_sensor: "CTD Sensor",
   dic_analyzers_based_on_coulometers: "DIC Analyzers Based On Coulometers",
-  dic_analyzers_based_on_co2_gas_detectors:
-    "DIC Analyzers Based On CO2 Gas Detectors",
+  dic_analyzers_based_on_co2_gas_detectors: "DIC Analyzers Based On CO2 Gas Detectors",
   autonomous_dic_sensor: "Autonomous DIC Sensor",
   autonomous_ta_sensor: "Autonomous TA Sensor",
   handheld_ph_spectrophotometer: "Handheld pH Spectrophotometer",
@@ -27,8 +26,7 @@ const ENUM_OVERRIDES: Record<string, string> = {
   sea_bird_seafet_v2: "Sea-Bird SeaFET V2",
   sea_bird_seaphox: "Sea-Bird SeapHOx",
   ysi: "YSI",
-  high_performance_liquid_chromatography:
-    "High Performance Liquid Chromatogrpahy (HPLC)",
+  high_performance_liquid_chromatography: "High Performance Liquid Chromatogrpahy (HPLC)",
   acoustic_doppler_current_profiler: "Acoustic Doppler Current Profiler (ADCP)",
   isotope_ratio_mass_spectrometers: "Isotope Ratio Mass Spectrometers (IRMS)",
 
@@ -57,7 +55,7 @@ const ENUM_OVERRIDES: Record<string, string> = {
   itis: "ITIS",
   worms: "WoRMS",
   col: "COL",
-  pbdb: "PBDB"
+  pbdb: "PBDB",
 };
 
 /**
@@ -91,10 +89,7 @@ export function formatEnumTitle(value: string): string {
  * const result = generateEnumNames(schema, ["FeedstockType"]);
  * // Returns: { FeedstockType: ["Lime", "Portlandite"] }
  */
-export function generateEnumNames(
-  schema: any,
-  enumDefNames: string[]
-): Record<string, string[]> {
+export function generateEnumNames(schema: any, enumDefNames: string[]): Record<string, string[]> {
   const enumNamesMap: Record<string, string[]> = {};
 
   enumDefNames.forEach((enumName) => {

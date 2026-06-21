@@ -1,7 +1,8 @@
 // PlaceholderWidget.tsx - Placeholder for fields not yet fully implemented
-import React from "react";
+
 import { Box, Text } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
+import type React from "react";
 
 const PlaceholderWidget: React.FC<WidgetProps> = (props) => {
   const { label } = props;
@@ -18,7 +19,7 @@ const PlaceholderWidget: React.FC<WidgetProps> = (props) => {
         style={{
           backgroundColor: "#f1f3f5",
           border: "1px solid #dee2e6",
-          borderRadius: "4px"
+          borderRadius: "4px",
         }}
       >
         <Text size="sm" c="dimmed" ta="center">

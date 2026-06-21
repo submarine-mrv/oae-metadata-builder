@@ -2,6 +2,9 @@
 
 A dynamic form builder for Ocean Alkalinization Enhancement (OAE) data collection metadata.
 
+- Main Status: [![main deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=main)](https://app.netlify.com/projects/oae-mb/deploys?branch=main)
+- Dev Status: [![dev deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=dev)](https://app.netlify.com/projects/oae-mb/deploys?branch=dev)
+
 ## Overview
 
 This application generates schema-driven forms for collecting structured metadata according to the OAE Data Protocol specification. The form structure is entirely driven by JSON Schema, enabling rapid iteration and updates as the protocol evolves.
@@ -24,6 +27,7 @@ The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://gi
 - **Icons**: Tabler Icons React
 - **Validation**: AJV JSON Schema validator
 - **Build Tool**: Vite
+- **Linting & Formatting**: Biome
 
 ## Getting Started
 
@@ -55,6 +59,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 - `npm run preview` - Preview the production build locally
 - `npm test` - Run unit tests (Vitest)
 - `npm run test:e2e` - Run end-to-end tests (Playwright)
+- `npm run check` - Lint and format check with Biome (enforced in CI)
+- `npm run check:fix` - Apply Biome lint and format fixes
 - `node scripts/bundle-schema.mjs` - Bundle JSON schema for human readable sea names labels
 
 ## Architecture
@@ -93,6 +99,10 @@ The application uses two configuration layers:
 
 ## Development
 
+### Linting & Formatting
+
+[Biome](https://biomejs.dev/) handles linting and formatting (replacing ESLint/Prettier), mirroring the `oae-data-web` setup so components can be shared across repos. Config lives in `biome.json`; CI enforces it via `npm run check` in `.github/workflows/lint.yml`.
+
 ### Adding Custom Components
 
 Custom components should be designed with portability in mind for potential future migration away from RJSF:
@@ -112,12 +122,13 @@ done by running:
 ```bash
 make gen-project
 ```
-**Note:** The above should __not__ be run from this repo, as it is a make task associated with the `oae-data-protocol`
+
+**Note:** The above should **not** be run from this repo, as it is a make task associated with the `oae-data-protocol`
 project, so must be run from the root of that repository.
 
 Then, from the root of this repository, you can import the latest JSON Schema into this project and run the
 necessary schema-bundling. This bundling script (located in `scripts/bundle-schema.mjs`) prepares the JSON Schema
-of the OAE Data Protocol for use in this project. It creates multiple separate root-schema artifacts (e.g. for 
+of the OAE Data Protocol for use in this project. It creates multiple separate root-schema artifacts (e.g. for
 Projects and Experiments), and also pulls in human-readable names for titles of dynamic enums (such as for the Sea
 Names controlled vocabulary). It also makes some important fixes to enable conditional rendering of certain fields
 (namely conditional rendering of `_custom` fields when a controlled vocab value is not found for a given enum field,

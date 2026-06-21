@@ -6,8 +6,8 @@
  * schema definition and preserve metadata like protocol version and git hash.
  */
 
-import baseSchema from "@/schema/schema.bundled.json";
 import type { RJSFSchema } from "@rjsf/utils";
+import baseSchema from "@/schema/schema.bundled.json";
 
 /**
  * Gets the base Container schema with all definitions and metadata
@@ -22,7 +22,7 @@ export function getBaseSchema() {
 export function getProtocolMetadata() {
   return {
     version: baseSchema["x-protocol-version"] || "",
-    gitHash: baseSchema["x-protocol-git-hash"] || ""
+    gitHash: baseSchema["x-protocol-git-hash"] || "",
   };
 }
 
@@ -37,7 +37,11 @@ export function getProtocolMetadata() {
  *   that have conditional fields (e.g., Intervention), as it causes RJSF to
  *   render nested object properties as additional properties.
  */
-function createSchemaView(defName: string, schemaId: string, hasConditionalFields = false): RJSFSchema {
+function createSchemaView(
+  defName: string,
+  schemaId: string,
+  hasConditionalFields = false,
+): RJSFSchema {
   const def = (baseSchema as any).$defs?.[defName];
 
   if (!def) {
@@ -61,10 +65,11 @@ function createSchemaView(defName: string, schemaId: string, hasConditionalField
     // Only set additionalProperties: true for schemas with allOf/if/then conditionals.
     // This is required for conditional fields to render, but causes issues with
     // nested object properties being rendered as additional properties.
-    additionalProperties: hasConditionalFields ? true : def.additionalProperties
+    additionalProperties: hasConditionalFields ? true : def.additionalProperties,
   };
   if (def.allOf !== undefined) view.allOf = def.allOf;
   if (def.if !== undefined) view.if = def.if;
+  // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
   if (def.then !== undefined) view.then = def.then;
   if (def.else !== undefined) view.else = def.else;
   return view as unknown as RJSFSchema;
@@ -104,11 +109,7 @@ export function getTracerSchema() {
  * Has conditional fields (allOf/if/then) so needs additionalProperties: true.
  */
 export function getInterventionWithTracerSchema() {
-  return createSchemaView(
-    "InterventionWithTracer",
-    "InterventionWithTracerSchema",
-    true
-  );
+  return createSchemaView("InterventionWithTracer", "InterventionWithTracerSchema", true);
 }
 
 /**

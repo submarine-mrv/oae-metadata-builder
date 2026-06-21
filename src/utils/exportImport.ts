@@ -1,20 +1,20 @@
-import { getProtocolMetadata, getBaseSchema } from "./schemaViews";
+import type { JSONSchema } from "@/components/schemaUtils";
 import {
   normalizeVariableFields,
-  stripExtraVariableFields
+  stripExtraVariableFields,
 } from "@/components/VariableModal/variableModalConfig";
-import type { JSONSchema } from "@/components/schemaUtils";
-import { migrateFormData } from "@/utils/migrations";
-import { cleanVariableData } from "@/utils/formDataCleanup";
 import type {
-  ProjectFormData,
-  ExperimentFormData,
-  ExperimentState,
   DatasetFormData,
   DatasetState,
+  ExperimentFormData,
+  ExperimentState,
   ExportContainer,
-  ImportResult
+  ImportResult,
+  ProjectFormData,
 } from "@/types/forms";
+import { cleanVariableData } from "@/utils/formDataCleanup";
+import { migrateFormData } from "@/utils/migrations";
+import { getBaseSchema, getProtocolMetadata } from "./schemaViews";
 
 /**
  * Options for exporting metadata
@@ -42,14 +42,10 @@ export function exportMetadata(
   projectData: ProjectFormData,
   experiments: ExperimentState[],
   datasets: DatasetState[],
-  options?: ExportOptions
+  options?: ExportOptions,
 ): void {
   // Determine which sections to include (default to all)
-  const selectedSections = options?.selectedSections || [
-    "project",
-    "experiment",
-    "dataset"
-  ];
+  const selectedSections = options?.selectedSections || ["project", "experiment", "dataset"];
   const includeProject = selectedSections.includes("project");
   const includeExperiments = selectedSections.includes("experiment");
   const includeDatasets = selectedSections.includes("dataset");
@@ -57,9 +53,7 @@ export function exportMetadata(
   // Get version metadata from schema
   const protocolMetadata = getProtocolMetadata();
 
-  const cleanedProjectData = includeProject
-    ? projectData
-    : {};
+  const cleanedProjectData = includeProject ? projectData : {};
 
   // Build Container object matching schema structure
   const exportData: ExportContainer = {
@@ -67,15 +61,13 @@ export function exportMetadata(
     protocol_git_hash: protocolMetadata.gitHash,
     metadata_builder_git_hash: "", // TODO: populate from build metadata
     project: cleanedProjectData,
-    experiments: includeExperiments
-      ? experiments.map((exp) => exp.formData)
-      : [],
-    datasets: includeDatasets ? datasets.map((ds) => ds.formData) : []
+    experiments: includeExperiments ? experiments.map((exp) => exp.formData) : [],
+    datasets: includeDatasets ? datasets.map((ds) => ds.formData) : [],
   };
 
   // Create blob and download
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-    type: "application/json"
+    type: "application/json",
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -123,9 +115,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         }
 
         // Handle datasets - only exists in new format
-        const datasetsData: DatasetFormData[] = Array.isArray(data.datasets)
-          ? data.datasets
-          : [];
+        const datasetsData: DatasetFormData[] = Array.isArray(data.datasets) ? data.datasets : [];
 
         // Remove experiments from project data (in case of old format)
         // Migrate legacy bounding box format (W S E N → S W N E)
@@ -133,10 +123,10 @@ export async function importMetadata(file: File): Promise<ImportResult> {
 
         // Migrate legacy bounding box format (W S E N → S W N E)
         experimentsData = experimentsData.map(
-          (exp: ExperimentFormData) => migrateFormData(exp) as ExperimentFormData
+          (exp: ExperimentFormData) => migrateFormData(exp) as ExperimentFormData,
         );
         const migratedDatasets = datasetsData.map(
-          (ds: DatasetFormData) => migrateFormData(ds) as DatasetFormData
+          (ds: DatasetFormData) => migrateFormData(ds) as DatasetFormData,
         );
 
         // Convert experiment data to ExperimentState format
@@ -150,8 +140,8 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             formData: expData,
             experiment_types: expData.experiment_types,
             createdAt: Date.now(),
-            updatedAt: Date.now()
-          })
+            updatedAt: Date.now(),
+          }),
         );
 
         // Convert dataset data to DatasetState format
@@ -167,24 +157,22 @@ export async function importMetadata(file: File): Promise<ImportResult> {
                   cleanVariableData(
                     stripExtraVariableFields(
                       normalizeVariableFields(v),
-                      getBaseSchema() as JSONSchema
-                    ) as Record<string, unknown>
-                  )
-                )
+                      getBaseSchema() as JSONSchema,
+                    ) as Record<string, unknown>,
+                  ),
+                ),
             };
             return {
               id: index + 1,
-              name:
-                (dsData.name as string) ||
-                `Dataset ${index + 1}`,
+              name: (dsData.name as string) || `Dataset ${index + 1}`,
               formData: dsData,
               linking: {
-                linkedExperimentInternalId: null
+                linkedExperimentInternalId: null,
               },
               createdAt: Date.now(),
-              updatedAt: Date.now()
+              updatedAt: Date.now(),
             };
-          }
+          },
         );
 
         resolve({ projectData, experiments, datasets });

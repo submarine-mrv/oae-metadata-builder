@@ -1,27 +1,20 @@
+import type { RJSFValidationError } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { RJSFValidationError } from "@rjsf/utils";
-import {
-  getProjectSchema,
-  getInSituExperimentSchema,
-  getModelSchema,
-  getInterventionSchema,
-  getTracerSchema,
-  getInterventionWithTracerSchema,
-  getFieldDatasetSchema,
-  getModelOutputDatasetSchema
-} from "./schemaViews";
+import type { DatasetFormData, ExperimentFormData, ProjectFormData } from "@/types/forms";
+import { experimentCustomValidate, projectCustomValidate } from "./customValidators";
 import { validateDatasetWithVariables } from "./datasetValidation";
 import { getExperimentSchemaType } from "./experimentFields";
 import {
-  experimentCustomValidate,
-  projectCustomValidate
-} from "./customValidators";
-import type {
-  ProjectFormData,
-  ExperimentFormData,
-  DatasetFormData
-} from "@/types/forms";
+  getFieldDatasetSchema,
+  getInSituExperimentSchema,
+  getInterventionSchema,
+  getInterventionWithTracerSchema,
+  getModelOutputDatasetSchema,
+  getModelSchema,
+  getProjectSchema,
+  getTracerSchema,
+} from "./schemaViews";
 
 // Create validator with Draft 2019-09 support
 const validator = customizeValidator({ AjvClass: Ajv2019 });
@@ -43,13 +36,12 @@ export interface ValidationResult {
  * experiment_types selection.
  */
 export function getExperimentSchemaForData(
-  experimentData: ExperimentFormData
+  experimentData: ExperimentFormData,
 ): ReturnType<typeof getInSituExperimentSchema> {
   const schemaType = getExperimentSchemaType(experimentData.experiment_types ?? []);
   if (schemaType === "intervention") return getInterventionSchema();
   if (schemaType === "tracer_study") return getTracerSchema();
-  if (schemaType === "intervention_with_tracer")
-    return getInterventionWithTracerSchema();
+  if (schemaType === "intervention_with_tracer") return getInterventionWithTracerSchema();
   if (schemaType === "model") return getModelSchema();
   return getInSituExperimentSchema();
 }
@@ -59,7 +51,7 @@ export function getExperimentSchemaForData(
  * dataset_type selection.
  */
 export function getDatasetSchemaForData(
-  datasetData: DatasetFormData
+  datasetData: DatasetFormData,
 ): ReturnType<typeof getFieldDatasetSchema> {
   return datasetData.dataset_type === "model_output"
     ? getModelOutputDatasetSchema()
@@ -74,23 +66,19 @@ export function validateProject(projectData: ProjectFormData): ValidationResult 
     const schema = getProjectSchema();
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage, temporal ordering).
-    const result = validator.validateFormData(
-      projectData,
-      schema,
-      projectCustomValidate
-    );
+    const result = validator.validateFormData(projectData, schema, projectCustomValidate);
 
     return {
       isValid: result.errors.length === 0,
       errors: result.errors,
-      errorCount: result.errors.length
+      errorCount: result.errors.length,
     };
   } catch (error) {
     console.error("Error validating project:", error);
     return {
       isValid: false,
       errors: [],
-      errorCount: 1
+      errorCount: 1,
     };
   }
 }
@@ -105,23 +93,19 @@ export function validateExperiment(experimentData: ExperimentFormData): Validati
 
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage).
-    const result = validator.validateFormData(
-      experimentData,
-      schema,
-      experimentCustomValidate
-    );
+    const result = validator.validateFormData(experimentData, schema, experimentCustomValidate);
 
     return {
       isValid: result.errors.length === 0,
       errors: result.errors,
-      errorCount: result.errors.length
+      errorCount: result.errors.length,
     };
   } catch (error) {
     console.error("Error validating experiment:", error);
     return {
       isValid: false,
       errors: [],
-      errorCount: 1
+      errorCount: 1,
     };
   }
 }
@@ -134,8 +118,7 @@ interface ValidateDatasetOptions {
 function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
   return (
     e.name === "required" &&
-    (e.params?.missingProperty === "experiment_id" ||
-      e.property === ".experiment_id")
+    (e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id")
   );
 }
 
@@ -147,7 +130,7 @@ function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
  */
 export function validateDataset(
   datasetData: DatasetFormData,
-  options?: ValidateDatasetOptions
+  options?: ValidateDatasetOptions,
 ): ValidationResult {
   try {
     const schema = getDatasetSchemaForData(datasetData);
@@ -165,7 +148,7 @@ export function validateDataset(
           message: `Variable '${varError.variableName}': ${msg}`,
           params: {},
           stack: `variables[${varError.index}]: ${msg}`,
-          schemaPath: "#/properties/variables"
+          schemaPath: "#/properties/variables",
         });
       }
     }
@@ -187,8 +170,8 @@ export function validateDataset(
           message: "is a required property",
           params: { missingProperty: "experiment_id" },
           stack: ".experiment_id is a required property",
-          schemaPath: "#/required"
-        }
+          schemaPath: "#/required",
+        },
       ];
     }
 
@@ -202,15 +185,14 @@ export function validateDataset(
     return {
       isValid: errorCount === 0,
       errors,
-      errorCount
+      errorCount,
     };
   } catch (error) {
     console.error("Error validating dataset:", error);
     return {
       isValid: false,
       errors: [],
-      errorCount: 1
+      errorCount: 1,
     };
   }
 }
-

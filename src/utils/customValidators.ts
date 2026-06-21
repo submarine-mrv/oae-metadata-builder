@@ -52,29 +52,21 @@ export const validateVerticalCoverage: CustomValidator<any> = (data, errors) => 
 
   if (typeof maxDepth === "number" && maxDepth > 0) {
     errors?.vertical_coverage?.max_depth_in_m?.addError(
-      "Maximum depth must be 0 or negative (below sea surface)."
+      "Maximum depth must be 0 or negative (below sea surface).",
     );
   }
 
-  if (
-    typeof minDepth === "number" &&
-    typeof maxDepth === "number" &&
-    minDepth < maxDepth
-  ) {
+  if (typeof minDepth === "number" && typeof maxDepth === "number" && minDepth < maxDepth) {
     errors?.vertical_coverage?.min_depth_in_m?.addError(
-      "Minimum depth must be greater than or equal to maximum depth."
+      "Minimum depth must be greater than or equal to maximum depth.",
     );
   }
 
   const minHeight = vc.min_height_in_m;
   const maxHeight = vc.max_height_in_m;
-  if (
-    typeof minHeight === "number" &&
-    typeof maxHeight === "number" &&
-    minHeight > maxHeight
-  ) {
+  if (typeof minHeight === "number" && typeof maxHeight === "number" && minHeight > maxHeight) {
     errors?.vertical_coverage?.min_height_in_m?.addError(
-      "Minimum height must be less than or equal to maximum height."
+      "Minimum height must be less than or equal to maximum height.",
     );
   }
 
@@ -101,12 +93,10 @@ export function composeValidators(
  */
 export const projectCustomValidate = composeValidators(
   validateTemporalCoverageOrder,
-  validateVerticalCoverage
+  validateVerticalCoverage,
 );
 
 /**
  * The full custom validator for experiment forms.
  */
-export const experimentCustomValidate = composeValidators(
-  validateVerticalCoverage
-);
+export const experimentCustomValidate = composeValidators(validateVerticalCoverage);

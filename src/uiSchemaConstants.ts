@@ -5,7 +5,7 @@
 export const textAreaWidget = {
   "ui:widget": "textarea",
   "ui:options": { rows: 5 },
-  "ui:descriptionModal": true
+  "ui:descriptionModal": true,
 };
 
 // Border parts are exported individually so other components (e.g. the
@@ -19,13 +19,13 @@ export const nestedItemStyle = {
   borderRadius: "5px",
   padding: "16px",
   margin: "8px 0",
-  background: "var(--brand-sunlight-overlay-light)" // Slightly darker than Shell background
+  background: "var(--brand-sunlight-overlay-light)", // Slightly darker than Shell background
 };
 
 export const halfWidthStyle = {
-  "ui:classNames": "field-half-width"
+  "ui:classNames": "field-half-width",
 };
 
 export const quarterWidthStyle = {
-  "ui:style": { width: "25%" }
+  "ui:style": { width: "25%" },
 };

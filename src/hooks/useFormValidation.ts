@@ -1,11 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export type BadgeState =
-  | "empty"
-  | "missing-only"
-  | "missing-and-errors"
-  | "errors-only"
-  | "passed";
+export type BadgeState = "empty" | "missing-only" | "missing-and-errors" | "errors-only" | "passed";
 
 interface UseFormValidationOptions {
   /** Count of AJV errors with name === "required" */
@@ -36,7 +31,7 @@ interface UseFormValidationReturn {
 function deriveBadgeState(
   isEmpty: boolean,
   missingRequired: number,
-  otherErrors: number
+  otherErrors: number,
 ): BadgeState {
   if (missingRequired === 0 && otherErrors === 0) return "passed";
   // "empty" only applies when the only thing wrong is unfilled required
@@ -64,7 +59,7 @@ export function useFormValidation({
   missingRequired,
   otherErrors,
   isEmpty,
-  onStatusChange
+  onStatusChange,
 }: UseFormValidationOptions): UseFormValidationReturn {
   const [showErrorList, setShowErrorList] = useState(false);
   const formRef = useRef<any>(null);
@@ -132,6 +127,6 @@ export function useFormValidation({
     showErrorList,
     formRef,
     handleClick,
-    closeErrorList
+    closeErrorList,
   };
 }

@@ -1,8 +1,8 @@
-import React from "react";
-import { Popover, ActionIcon } from "@mantine/core";
+import { ActionIcon, Popover } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
 import { IconCalendar } from "@tabler/icons-react";
-import { parseToDate, formatFromDate } from "@/utils/dateUtils";
+import type React from "react";
+import { parseToDate } from "@/utils/dateUtils";
 
 interface DatePickerPopoverProps {
   opened: boolean;
@@ -21,14 +21,9 @@ const DatePickerPopover: React.FC<DatePickerPopoverProps> = ({
   onDateChange,
   onTouched,
   disabled,
-  readonly
+  readonly,
 }) => (
-  <Popover
-    opened={opened}
-    onChange={onChange}
-    position="bottom-end"
-    withinPortal={true}
-  >
+  <Popover opened={opened} onChange={onChange} position="bottom-end" withinPortal={true}>
     <Popover.Target>
       <ActionIcon
         variant="subtle"

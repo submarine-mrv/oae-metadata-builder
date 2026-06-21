@@ -1,6 +1,6 @@
-import React from 'react';
-import { Modal, Text, Box, Divider, Anchor } from '@mantine/core';
-import ReactMarkdown from 'react-markdown';
+import { Anchor, Box, Divider, Modal, Text } from "@mantine/core";
+import type React from "react";
+import ReactMarkdown from "react-markdown";
 
 interface DescriptionModalProps {
   opened: boolean;
@@ -13,21 +13,15 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
   opened,
   onClose,
   title,
-  description
+  description,
 }) => {
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={title}
-      size="md"
-      zIndex={1200}
-    >
+    <Modal opened={opened} onClose={onClose} title={title} size="md" zIndex={1200}>
       <Divider mb="md" color="gray.3" />
       <Box
         style={{
-          fontSize: '14px',
-          lineHeight: 1.5
+          fontSize: "14px",
+          lineHeight: 1.5,
         }}
       >
         <ReactMarkdown
@@ -37,15 +31,15 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
                 {children}
               </Text>
             ),
-            br: () => <br style={{ marginBottom: '8px' }} />,
+            br: () => <br style={{ marginBottom: "8px" }} />,
             ul: ({ children }) => (
               <Box
                 component="ul"
                 ml="md"
                 mb="xs"
                 style={{
-                  listStyleType: 'disc',
-                  paddingLeft: '16px'
+                  listStyleType: "disc",
+                  paddingLeft: "16px",
                 }}
               >
                 {children}
@@ -57,8 +51,8 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
                 size="sm"
                 mb={2}
                 style={{
-                  display: 'list-item',
-                  listStyleType: 'disc'
+                  display: "list-item",
+                  listStyleType: "disc",
                 }}
               >
                 {children}
@@ -74,15 +68,14 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({
               >
                 {children}
               </Anchor>
-            )
+            ),
           }}
         >
           {description
             // Convert single newlines to double newlines, but NOT for list items
-            .replace(/\n(?!\n)(?!\s*[-*+])/g, '\n\n')
+            .replace(/\n(?!\n)(?!\s*[-*+])/g, "\n\n")
             // Clean up any triple+ newlines
-            .replace(/\n{3,}/g, '\n\n')
-          }
+            .replace(/\n{3,}/g, "\n\n")}
         </ReactMarkdown>
       </Box>
     </Modal>

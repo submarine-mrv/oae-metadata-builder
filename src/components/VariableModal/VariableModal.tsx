@@ -1,74 +1,68 @@
-
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef
-} from "react";
 import {
-  Modal,
-  Select,
+  Accordion,
+  Badge,
+  Box,
   Button,
+  Grid,
   Group,
+  Modal,
+  Pill,
+  ScrollArea,
+  Select,
   Stack,
   Text,
-  Accordion,
-  ScrollArea,
-  Badge,
-  Pill,
-  Grid,
-  Box
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconCheck, IconCategory, IconChevronDown } from "@tabler/icons-react";
-import {
-  VARIABLE_TYPE_OPTIONS,
-  VARIABLE_SCHEMA_MAP,
-  VARIABLE_TYPE_BEHAVIOR,
-  getAccordionConfig,
-  getSchemaKeyForUI,
-  resolveVariableType,
-  normalizeFieldConfig,
-  getPlaceholderOverride,
-  stripExtraVariableFields
-} from "./variableModalConfig";
+import { IconCategory, IconCheck, IconChevronDown } from "@tabler/icons-react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fieldExistsInSchema,
   getFieldSchema,
-  isFieldRequired,
   getNestedValue,
+  isFieldRequired,
+  type JSONSchema,
   resolveRef,
-  type JSONSchema
 } from "../schemaUtils";
-import SchemaField from "./SchemaField";
 import EnumWithOtherField from "./EnumWithOtherField";
-import OptionalWithGateField from "./OptionalWithGateField";
 import FieldLabel from "./FieldLabel";
+import OptionalWithGateField from "./OptionalWithGateField";
+import SchemaField from "./SchemaField";
+import {
+  getAccordionConfig,
+  getPlaceholderOverride,
+  getSchemaKeyForUI,
+  normalizeFieldConfig,
+  resolveVariableType,
+  stripExtraVariableFields,
+  VARIABLE_SCHEMA_MAP,
+  VARIABLE_TYPE_BEHAVIOR,
+  VARIABLE_TYPE_OPTIONS,
+} from "./variableModalConfig";
 
 // Genesis (measured/calculated) options
 const GENESIS_OPTIONS = [
   { value: "measured", label: "Measured directly" },
-  { value: "calculated", label: "Calculated from other variables" }
+  { value: "calculated", label: "Calculated from other variables" },
 ];
 
 // Sampling (discrete/continuous) options
 const SAMPLING_OPTIONS = [
   { value: "discrete", label: "Discrete bottle samples" },
-  { value: "continuous", label: "Continuous autonomous sensors" }
+  { value: "continuous", label: "Continuous autonomous sensors" },
 ];
 
 // Genesis options for the "Other (Generic Variable Type)" — includes contextual
 const OTHER_GENESIS_OPTIONS = [
   {
     value: "measured",
-    label: "Measured (directly observed or recorded by an instrument)"
+    label: "Measured (directly observed or recorded by an instrument)",
   },
   { value: "calculated", label: "Calculated (derived from other variables)" },
   {
     value: "contextual",
-    label: "Not Applicable (e.g. EXPOCODE, region, timestamps, lat/long)"
-  }
+    label: "Not Applicable (e.g. EXPOCODE, region, timestamps, lat/long)",
+  },
 ];
 
 // Human-readable labels for pills
@@ -80,18 +74,18 @@ const VARIABLE_TYPE_LABELS: Record<string, string> = {
   non_measured: "Contextual",
   sediment: "Sediment",
   co2: "CO₂",
-  hplc: "HPLC"
+  hplc: "HPLC",
 };
 
 const GENESIS_LABELS: Record<string, string> = {
   measured: "Measured",
   calculated: "Calculated",
-  contextual: "Contextual"
+  contextual: "Contextual",
 };
 
 const SAMPLING_LABELS: Record<string, string> = {
   discrete: "Discrete",
-  continuous: "Continuous"
+  continuous: "Continuous",
 };
 
 interface VariableModalProps {
@@ -119,7 +113,7 @@ export default function VariableModal({
   onClose,
   onSave,
   initialData,
-  rootSchema
+  rootSchema,
 }: VariableModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -176,25 +170,19 @@ export default function VariableModal({
     return getSchemaKeyForUI(
       variableType || undefined,
       genesis || undefined,
-      sampling || undefined
+      sampling || undefined,
     );
   }, [variableType, genesis, sampling]);
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
-    const effectiveType = resolveVariableType(
-      variableType || undefined,
-      genesis || undefined
-    );
+    const effectiveType = resolveVariableType(variableType || undefined, genesis || undefined);
     if (!effectiveType) return SAMPLING_OPTIONS;
-    const typeMap =
-      VARIABLE_SCHEMA_MAP[effectiveType as keyof typeof VARIABLE_SCHEMA_MAP];
+    const typeMap = VARIABLE_SCHEMA_MAP[effectiveType as keyof typeof VARIABLE_SCHEMA_MAP];
     if (!typeMap) return [];
     const measured = (typeMap as Record<string, unknown>).measured;
     if (!measured || typeof measured === "string") return [];
-    return SAMPLING_OPTIONS.filter(
-      (opt) => opt.value in (measured as Record<string, unknown>)
-    );
+    return SAMPLING_OPTIONS.filter((opt) => opt.value in (measured as Record<string, unknown>));
   }, [variableType, genesis]);
 
   // Get the resolved variable schema
@@ -214,17 +202,13 @@ export default function VariableModal({
         ...section,
         visibleFields: section.fields
           .map(normalizeFieldConfig)
-          .filter((field) =>
-            fieldExistsInSchema(field.path, variableSchema, rootSchema)
-          )
+          .filter((field) => fieldExistsInSchema(field.path, variableSchema, rootSchema)),
       }))
       .filter((section) => section.visibleFields.length > 0);
   }, [schemaKey, variableSchema, rootSchema]);
 
   // Check if variable type selection is complete
-  const typeBehavior = variableType
-    ? VARIABLE_TYPE_BEHAVIOR[variableType]
-    : undefined;
+  const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
     genesis === "calculated" ||
@@ -253,7 +237,7 @@ export default function VariableModal({
     setFormData((prev) => ({
       ...prev,
       genesis: newGenesis || undefined,
-      sampling: newSampling || undefined
+      sampling: newSampling || undefined,
     }));
   };
 
@@ -265,7 +249,7 @@ export default function VariableModal({
     setFormData((prev) => ({
       ...prev,
       genesis: persistedGenesis,
-      sampling: undefined
+      sampling: undefined,
     }));
   };
 
@@ -275,48 +259,35 @@ export default function VariableModal({
   };
 
   // Handle form data changes from SchemaField
-  const handleFormChange = useCallback(
-    (newFormData: Record<string, unknown>) => {
-      setFormData(newFormData);
-    },
-    []
-  );
+  const handleFormChange = useCallback((newFormData: Record<string, unknown>) => {
+    setFormData(newFormData);
+  }, []);
 
   const handleSave = () => {
     if (!schemaKey) return;
     // For "non_measured" the UI uses variableType directly;
     // for "other" with contextual genesis, resolveVariableType maps to "non_measured"
-    const effectiveType = resolveVariableType(
-      variableType || undefined,
-      genesis || undefined
-    );
+    const effectiveType = resolveVariableType(variableType || undefined, genesis || undefined);
     const rawVariable = {
       ...formData,
       schema_class: schemaKey,
-      variable_type: effectiveType
+      variable_type: effectiveType,
     };
     onSave(stripExtraVariableFields(rawVariable, rootSchema));
   };
 
   // Handle accordion section click - auto-collapse others unless using chevron
-  const handleSectionClick = useCallback(
-    (sectionKey: string, isChevronClick: boolean) => {
-      if (isChevronClick) {
-        // Toggle mode: add or remove this section from openSections
-        setOpenSections((prev) =>
-          prev.includes(sectionKey)
-            ? prev.filter((s) => s !== sectionKey)
-            : [...prev, sectionKey]
-        );
-      } else {
-        // Single mode: close all others, open only this section
-        setOpenSections((prev) =>
-          prev.includes(sectionKey) ? [] : [sectionKey]
-        );
-      }
-    },
-    []
-  );
+  const handleSectionClick = useCallback((sectionKey: string, isChevronClick: boolean) => {
+    if (isChevronClick) {
+      // Toggle mode: add or remove this section from openSections
+      setOpenSections((prev) =>
+        prev.includes(sectionKey) ? prev.filter((s) => s !== sectionKey) : [...prev, sectionKey],
+      );
+    } else {
+      // Single mode: close all others, open only this section
+      setOpenSections((prev) => (prev.includes(sectionKey) ? [] : [sectionKey]));
+    }
+  }, []);
 
   const isEditing = !!initialData?.schema_class;
 
@@ -327,7 +298,7 @@ export default function VariableModal({
     }
 
     const requiredFields = section.visibleFields.filter((field) =>
-      isFieldRequired(field.path, variableSchema, rootSchema)
+      isFieldRequired(field.path, variableSchema, rootSchema),
     );
 
     if (requiredFields.length === 0) {
@@ -343,7 +314,7 @@ export default function VariableModal({
       filled,
       total: requiredFields.length,
       allOptional: false,
-      complete: filled === requiredFields.length
+      complete: filled === requiredFields.length,
     };
   };
 
@@ -357,12 +328,7 @@ export default function VariableModal({
       fullScreen={isMobile ?? false}
     >
       <ScrollArea h={550} offsetScrollbars>
-        <Accordion
-          multiple
-          value={openSections}
-          variant="separated"
-          chevron={null}
-        >
+        <Accordion multiple value={openSections} variant="separated" chevron={null}>
           {/* Variable Type Selection - Special accordion */}
           <Accordion.Item value="variable-type">
             <Accordion.Control icon={<IconCategory size={18} />}>
@@ -375,28 +341,18 @@ export default function VariableModal({
                   (variableType || genesis || sampling) && (
                     <Group gap={4} ml="xs">
                       {variableType && (
-                        <Pill size="sm">
-                          {VARIABLE_TYPE_LABELS[variableType] || variableType}
-                        </Pill>
+                        <Pill size="sm">{VARIABLE_TYPE_LABELS[variableType] || variableType}</Pill>
                       )}
                       {genesis && genesis !== "contextual" && (
-                        <Pill size="sm">
-                          {GENESIS_LABELS[genesis] || genesis}
-                        </Pill>
+                        <Pill size="sm">{GENESIS_LABELS[genesis] || genesis}</Pill>
                       )}
-                      {sampling && (
-                        <Pill size="sm">
-                          {SAMPLING_LABELS[sampling] || sampling}
-                        </Pill>
-                      )}
+                      {sampling && <Pill size="sm">{SAMPLING_LABELS[sampling] || sampling}</Pill>}
                     </Group>
                   )
                 }
               />
             </Accordion.Control>
-            <Accordion.Panel
-              key={`variable-type-${variableType || "none"}-${genesis || "none"}`}
-            >
+            <Accordion.Panel key={`variable-type-${variableType || "none"}-${genesis || "none"}`}>
               <Stack gap="sm">
                 {/* Variable Type Selector */}
                 <Select
@@ -404,7 +360,7 @@ export default function VariableModal({
                   placeholder="Select variable type"
                   data={VARIABLE_TYPE_OPTIONS.map((opt) => ({
                     value: opt.value,
-                    label: opt.label
+                    label: opt.label,
                   }))}
                   value={variableType}
                   onChange={handleVariableTypeChange}
@@ -412,36 +368,30 @@ export default function VariableModal({
                 />
 
                 {/* Genesis Selector - appears after variable type selected, hidden for direct/fixed types */}
-                {variableType &&
-                  !typeBehavior?.directSchema &&
-                  !typeBehavior?.fixedGenesis && (
-                    <Select
-                      label={
-                        variableType === "other" ? (
-                          <FieldLabel
-                            title="Was this variable directly measured or calculated from other variables?"
-                            required={true}
-                          />
-                        ) : (
-                          "Was this variable measured directly or calculated?"
-                        )
-                      }
-                      placeholder={
-                        variableType === "other"
-                          ? "Select how this variable was produced"
-                          : "Select measurement method"
-                      }
-                      data={
-                        variableType === "other"
-                          ? OTHER_GENESIS_OPTIONS
-                          : GENESIS_OPTIONS
-                      }
-                      value={genesis}
-                      onChange={handleGenesisChange}
-                      required
-                      withAsterisk={variableType !== "other"}
-                    />
-                  )}
+                {variableType && !typeBehavior?.directSchema && !typeBehavior?.fixedGenesis && (
+                  <Select
+                    label={
+                      variableType === "other" ? (
+                        <FieldLabel
+                          title="Was this variable directly measured or calculated from other variables?"
+                          required={true}
+                        />
+                      ) : (
+                        "Was this variable measured directly or calculated?"
+                      )
+                    }
+                    placeholder={
+                      variableType === "other"
+                        ? "Select how this variable was produced"
+                        : "Select measurement method"
+                    }
+                    data={variableType === "other" ? OTHER_GENESIS_OPTIONS : GENESIS_OPTIONS}
+                    value={genesis}
+                    onChange={handleGenesisChange}
+                    required
+                    withAsterisk={variableType !== "other"}
+                  />
+                )}
 
                 {/* Sampling Selector - Only for measured, hidden for direct/fixed/contextual types */}
                 {genesis === "measured" &&
@@ -480,133 +430,117 @@ export default function VariableModal({
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Grid gutter="sm">
-                      {section.visibleFields.flatMap(
-                        (field): React.ReactElement[] => {
-                          // Compute effective placeholder with override support
-                          const effectivePlaceholder =
-                            getPlaceholderOverride(
-                              resolveVariableType(variableType || undefined, genesis || undefined),
-                              field.path
-                            ) || field.placeholderText;
+                      {section.visibleFields.flatMap((field): React.ReactElement[] => {
+                        // Compute effective placeholder with override support
+                        const effectivePlaceholder =
+                          getPlaceholderOverride(
+                            resolveVariableType(variableType || undefined, genesis || undefined),
+                            field.path,
+                          ) || field.placeholderText;
 
-                          // Helper to add row spacer if needed
-                          const maybeAddSpacer = (
-                            elements: React.ReactElement[]
-                          ): React.ReactElement[] => {
-                            if (
-                              field.newRowAfter &&
-                              field.span &&
-                              field.span < 12
-                            ) {
-                              elements.push(
-                                <Grid.Col
-                                  key={`${field.path}-spacer`}
-                                  span={12 - field.span}
-                                />
-                              );
-                            }
-                            return elements;
-                          };
-
-                          // --------------------------------------------------
-                          // Const field intercept
-                          //
-                          // Some fields are configured in the layer with a
-                          // specialized inputType (e.g. "enum_with_other"
-                          // for instrument_type in the BASE layer) but the
-                          // concrete schema for a specific variable class
-                          // pins them to a single value via JSON Schema
-                          // `const`. Example: CO2GasDetector pins
-                          // instrument_type to "gas_analyzer".
-                          //
-                          // In that case the dropdown/gate widgets would
-                          // render the usual editable UI ("Select an
-                          // option") which is wrong. We short-circuit to
-                          // SchemaField which renders const fields as a
-                          // disabled TextInput showing the pinned value.
-                          // --------------------------------------------------
-                          if (
-                            field.inputType === "enum_with_other" ||
-                            field.inputType === "boolean_select" ||
-                            field.inputType === "optional_with_gate"
-                          ) {
-                            const fieldSchema = getFieldSchema(
-                              field.path,
-                              variableSchema,
-                              rootSchema
+                        // Helper to add row spacer if needed
+                        const maybeAddSpacer = (
+                          elements: React.ReactElement[],
+                        ): React.ReactElement[] => {
+                          if (field.newRowAfter && field.span && field.span < 12) {
+                            elements.push(
+                              <Grid.Col key={`${field.path}-spacer`} span={12 - field.span} />,
                             );
-                            if (fieldSchema?.const !== undefined) {
-                              return maybeAddSpacer([
-                                <Grid.Col
-                                  key={field.path}
-                                  span={field.span}
-                                >
-                                  <SchemaField
-                                    fieldPath={field.path}
-                                    variableSchema={variableSchema}
-                                    rootSchema={rootSchema}
-                                    formData={formData}
-                                    onChange={handleFormChange}
-                                    placeholderText={effectivePlaceholder}
-                                    rows={field.rows}
-                                  />
-                                </Grid.Col>
-                              ]);
-                            }
                           }
+                          return elements;
+                        };
 
-                          if (field.inputType === "enum_with_other") {
-                            return [
-                              <EnumWithOtherField
-                                key={field.path}
-                                fieldPath={field.path}
-                                variableSchema={variableSchema}
-                                rootSchema={rootSchema}
-                                formData={formData}
-                                onChange={handleFormChange}
-                                descriptionModal={field.descriptionModal}
-                                placeholderText={effectivePlaceholder}
-                              />
-                            ];
+                        // --------------------------------------------------
+                        // Const field intercept
+                        //
+                        // Some fields are configured in the layer with a
+                        // specialized inputType (e.g. "enum_with_other"
+                        // for instrument_type in the BASE layer) but the
+                        // concrete schema for a specific variable class
+                        // pins them to a single value via JSON Schema
+                        // `const`. Example: CO2GasDetector pins
+                        // instrument_type to "gas_analyzer".
+                        //
+                        // In that case the dropdown/gate widgets would
+                        // render the usual editable UI ("Select an
+                        // option") which is wrong. We short-circuit to
+                        // SchemaField which renders const fields as a
+                        // disabled TextInput showing the pinned value.
+                        // --------------------------------------------------
+                        if (
+                          field.inputType === "enum_with_other" ||
+                          field.inputType === "boolean_select" ||
+                          field.inputType === "optional_with_gate"
+                        ) {
+                          const fieldSchema = getFieldSchema(
+                            field.path,
+                            variableSchema,
+                            rootSchema,
+                          );
+                          if (fieldSchema?.const !== undefined) {
+                            return maybeAddSpacer([
+                              <Grid.Col key={field.path} span={field.span}>
+                                <SchemaField
+                                  fieldPath={field.path}
+                                  variableSchema={variableSchema}
+                                  rootSchema={rootSchema}
+                                  formData={formData}
+                                  onChange={handleFormChange}
+                                  placeholderText={effectivePlaceholder}
+                                  rows={field.rows}
+                                />
+                              </Grid.Col>,
+                            ]);
                           }
-
-                          if (field.inputType === "optional_with_gate") {
-                            return [
-                              <OptionalWithGateField
-                                key={field.path}
-                                fieldPath={field.path}
-                                variableSchema={variableSchema}
-                                rootSchema={rootSchema}
-                                formData={formData}
-                                onChange={handleFormChange}
-                                descriptionModal={field.descriptionModal}
-                                placeholderText={effectivePlaceholder}
-                                gateLabel={
-                                  field.gateLabel || "Include this field?"
-                                }
-                              />
-                            ];
-                          }
-
-                          return maybeAddSpacer([
-                            <Grid.Col key={field.path} span={field.span}>
-                              <SchemaField
-                                fieldPath={field.path}
-                                variableSchema={variableSchema}
-                                rootSchema={rootSchema}
-                                formData={formData}
-                                onChange={handleFormChange}
-                                inputType={field.inputType}
-                                descriptionMode={
-                                  field.descriptionModal ? "modal" : "tooltip"
-                                }
-                                placeholderText={effectivePlaceholder}
-                                rows={field.rows}
-                              />
-                            </Grid.Col>
-                          ]);
                         }
-                      )}
+
+                        if (field.inputType === "enum_with_other") {
+                          return [
+                            <EnumWithOtherField
+                              key={field.path}
+                              fieldPath={field.path}
+                              variableSchema={variableSchema}
+                              rootSchema={rootSchema}
+                              formData={formData}
+                              onChange={handleFormChange}
+                              descriptionModal={field.descriptionModal}
+                              placeholderText={effectivePlaceholder}
+                            />,
+                          ];
+                        }
+
+                        if (field.inputType === "optional_with_gate") {
+                          return [
+                            <OptionalWithGateField
+                              key={field.path}
+                              fieldPath={field.path}
+                              variableSchema={variableSchema}
+                              rootSchema={rootSchema}
+                              formData={formData}
+                              onChange={handleFormChange}
+                              descriptionModal={field.descriptionModal}
+                              placeholderText={effectivePlaceholder}
+                              gateLabel={field.gateLabel || "Include this field?"}
+                            />,
+                          ];
+                        }
+
+                        return maybeAddSpacer([
+                          <Grid.Col key={field.path} span={field.span}>
+                            <SchemaField
+                              fieldPath={field.path}
+                              variableSchema={variableSchema}
+                              rootSchema={rootSchema}
+                              formData={formData}
+                              onChange={handleFormChange}
+                              inputType={field.inputType}
+                              descriptionMode={field.descriptionModal ? "modal" : "tooltip"}
+                              placeholderText={effectivePlaceholder}
+                              rows={field.rows}
+                            />
+                          </Grid.Col>,
+                        ]);
+                      })}
                     </Grid>
                   </Accordion.Panel>
                 </Accordion.Item>
@@ -621,9 +555,7 @@ export default function VariableModal({
         </Button>
         <Button
           onClick={handleSave}
-          disabled={
-            !schemaKey || !formData.long_name || !formData.dataset_variable_name
-          }
+          disabled={!schemaKey || !formData.long_name || !formData.dataset_variable_name}
         >
           {isEditing ? "Update Variable" : "Add Variable"}
         </Button>
@@ -654,7 +586,7 @@ function AccordionControlContent({
   label,
   isOpen,
   onSectionClick,
-  collapsedContent
+  collapsedContent,
 }: AccordionControlContentProps) {
   return (
     <Box
@@ -667,7 +599,7 @@ function AccordionControlContent({
         display: "flex",
         alignItems: "center",
         width: "100%",
-        cursor: "pointer"
+        cursor: "pointer",
       }}
     >
       <Text fw={500} style={{ flex: 1 }}>
@@ -685,14 +617,14 @@ function AccordionControlContent({
           padding: "4px",
           cursor: "pointer",
           display: "flex",
-          alignItems: "center"
+          alignItems: "center",
         }}
       >
         <IconChevronDown
           size={18}
           style={{
             transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 200ms ease"
+            transition: "transform 200ms ease",
           }}
         />
       </Box>
@@ -707,12 +639,7 @@ interface ProgressBadgeProps {
   complete: boolean;
 }
 
-function ProgressBadge({
-  filled,
-  total,
-  allOptional,
-  complete
-}: ProgressBadgeProps) {
+function ProgressBadge({ filled, total, allOptional, complete }: ProgressBadgeProps) {
   if (allOptional) {
     return (
       <Badge variant="light" color="gray" size="sm">
@@ -723,12 +650,7 @@ function ProgressBadge({
 
   if (complete) {
     return (
-      <Badge
-        variant="light"
-        color="green"
-        size="sm"
-        leftSection={<IconCheck size={12} />}
-      >
+      <Badge variant="light" color="green" size="sm" leftSection={<IconCheck size={12} />}>
         Complete
       </Badge>
     );

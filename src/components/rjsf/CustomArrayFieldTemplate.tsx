@@ -1,12 +1,12 @@
+import { Box, Fieldset, Group } from "@mantine/core";
 import {
+  type ArrayFieldTemplateProps,
+  type FormContextType,
   getTemplate,
   getUiOptions,
-  ArrayFieldTemplateProps,
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
-} from '@rjsf/utils';
-import { Fieldset, Box, Group } from '@mantine/core';
+  type RJSFSchema,
+  type StrictRJSFSchema,
+} from "@rjsf/utils";
 
 export default function CustomArrayFieldTemplate<
   T = any,
@@ -31,13 +31,13 @@ export default function CustomArrayFieldTemplate<
   const hasErrors = rawErrors && rawErrors.length > 0;
 
   const uiOptions = getUiOptions<T, S, F>(uiSchema);
-  const ArrayFieldDescriptionTemplate = getTemplate<'ArrayFieldDescriptionTemplate', T, S, F>(
-    'ArrayFieldDescriptionTemplate',
+  const ArrayFieldDescriptionTemplate = getTemplate<"ArrayFieldDescriptionTemplate", T, S, F>(
+    "ArrayFieldDescriptionTemplate",
     registry,
     uiOptions,
   );
-  const ArrayFieldTitleTemplate = getTemplate<'ArrayFieldTitleTemplate', T, S, F>(
-    'ArrayFieldTitleTemplate',
+  const ArrayFieldTitleTemplate = getTemplate<"ArrayFieldTitleTemplate", T, S, F>(
+    "ArrayFieldTitleTemplate",
     registry,
     uiOptions,
   );
@@ -63,8 +63,8 @@ export default function CustomArrayFieldTemplate<
       className={className}
       id={fieldPathId.$id}
       style={{
-        backgroundColor: 'transparent',
-        ...(hasErrors ? { borderColor: 'var(--mantine-color-red-5)' } : {}),
+        backgroundColor: "transparent",
+        ...(hasErrors ? { borderColor: "var(--mantine-color-red-5)" } : {}),
       }}
     >
       {(uiOptions.description || schema.description) && (
@@ -77,14 +77,12 @@ export default function CustomArrayFieldTemplate<
         />
       )}
 
-      <Box className='row rjsf-array-item-list'>
-        {items}
-      </Box>
+      <Box className="row rjsf-array-item-list">{items}</Box>
 
       {canAdd && (
-        <Group justify='flex-start'>
+        <Group justify="flex-start">
           <AddButton
-            className='rjsf-array-item-add'
+            className="rjsf-array-item-add"
             disabled={disabled || readonly}
             onClick={onAddClick}
             uiSchema={uiSchema}

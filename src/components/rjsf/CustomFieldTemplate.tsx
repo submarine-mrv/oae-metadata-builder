@@ -45,17 +45,14 @@
  */
 import { Box } from "@mantine/core";
 import {
-  FieldTemplateProps,
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
+  type FieldTemplateProps,
+  type FormContextType,
   getTemplate,
   getUiOptions,
+  type RJSFSchema,
+  type StrictRJSFSchema,
 } from "@rjsf/utils";
-import {
-  NESTED_ITEM_BORDER_STYLE,
-  NESTED_ITEM_BORDER_WIDTH,
-} from "@/uiSchemaConstants";
+import { NESTED_ITEM_BORDER_STYLE, NESTED_ITEM_BORDER_WIDTH } from "@/uiSchemaConstants";
 
 function isObjectSchema(schema: any): boolean {
   if (!schema) return false;
@@ -108,8 +105,7 @@ export default function CustomFieldTemplate<
   // architectural note at the top of the file.
   // For object fields without an existing border, this is a no-op — those
   // fields rely on the inner inputs and the standard error text.
-  const objectHasErrors =
-    isObjectSchema(schema) && rawErrors && rawErrors.length > 0;
+  const objectHasErrors = isObjectSchema(schema) && rawErrors && rawErrors.length > 0;
   const styleWithErrorBorder =
     objectHasErrors && style
       ? {

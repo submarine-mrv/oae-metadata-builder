@@ -1,9 +1,4 @@
-import {
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
-  TitleFieldProps
-} from "@rjsf/utils";
+import type { FormContextType, RJSFSchema, StrictRJSFSchema, TitleFieldProps } from "@rjsf/utils";
 import FieldLabel from "./FieldLabel";
 
 /**
@@ -14,19 +9,11 @@ import FieldLabel from "./FieldLabel";
 export default function CustomTitleFieldTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: TitleFieldProps<T, S, F>) {
   const { id, title, schema } = props;
   const description = schema?.description;
 
   // Note: useModal is always false since TitleFieldProps doesn't expose uiSchema
-  return (
-    <FieldLabel
-      label={title}
-      description={description}
-      useModal={false}
-      order={4}
-      fw={500}
-    />
-  );
+  return <FieldLabel label={title} description={description} useModal={false} order={4} fw={500} />;
 }

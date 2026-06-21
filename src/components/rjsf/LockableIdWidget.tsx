@@ -12,15 +12,11 @@
  * - Auto-locks on blur, pencil reappears, input dims again
  */
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { TextInput, ActionIcon, Box, Text, Tooltip } from "@mantine/core";
-import { IconPencil, IconInfoCircle } from "@tabler/icons-react";
-import {
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
-  WidgetProps
-} from "@rjsf/utils";
+import { ActionIcon, Box, Text, TextInput, Tooltip } from "@mantine/core";
+import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
+import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DescriptionModal from "./DescriptionModal";
 
 interface LockableIdOptions {
@@ -31,7 +27,7 @@ interface LockableIdOptions {
 export default function LockableIdWidget<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: WidgetProps<T, S, F>) {
   const {
     id,
@@ -46,7 +42,7 @@ export default function LockableIdWidget<
     onChange,
     onBlur,
     schema,
-    uiSchema
+    uiSchema,
   } = props;
 
   const description = schema?.description;
@@ -100,7 +96,7 @@ export default function LockableIdWidget<
       const newValue = event.target.value;
       onChange(newValue === "" ? undefined : newValue);
     },
-    [onChange]
+    [onChange],
   );
 
   const hasError = rawErrors && rawErrors.length > 0;
@@ -109,8 +105,8 @@ export default function LockableIdWidget<
   const lockedStyles = {
     input: {
       backgroundColor: "var(--mantine-color-gray-1)",
-      color: "var(--mantine-color-gray-6)"
-    }
+      color: "var(--mantine-color-gray-6)",
+    },
   };
 
   return (
@@ -145,23 +141,26 @@ export default function LockableIdWidget<
           }
         />
         {description && !hideLabel && (
-          <Box style={{
-            position: "absolute",
-            top: "2px",
-            left: "0",
-            display: "flex",
-            alignItems: "center",
-            pointerEvents: "none"
-          }}>
+          <Box
+            style={{
+              position: "absolute",
+              top: "2px",
+              left: "0",
+              display: "flex",
+              alignItems: "center",
+              pointerEvents: "none",
+            }}
+          >
             <Text
               size="sm"
               fw={500}
               style={{
                 visibility: "hidden",
-                marginRight: "4px"
+                marginRight: "4px",
               }}
             >
-              {label}{required && " *"}
+              {label}
+              {required && " *"}
             </Text>
             <Box style={{ pointerEvents: "auto" }}>
               {useModal ? (
