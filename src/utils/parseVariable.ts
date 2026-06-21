@@ -4,6 +4,7 @@ import {
 } from "@/components/VariableModal/variableModalConfig";
 import { cleanVariableData } from "@/utils/formDataCleanup";
 import type { JSONSchema } from "@/components/schemaUtils";
+import type { DraftVariable } from "@/types/variable";
 
 /**
  * Normalizes a single variable into clean, schema-faithful data in one pass:
@@ -21,13 +22,19 @@ import type { JSONSchema } from "@/components/schemaUtils";
 export function parseVariable(
   raw: Record<string, unknown>,
   rootSchema: JSONSchema
-): Record<string, unknown> {
-  return cleanVariableData(
+): DraftVariable {
+  const cleaned = cleanVariableData(
     stripExtraVariableFields(
       normalizeVariableFields(raw),
       rootSchema
     ) as Record<string, unknown>
   );
+  // The one cast: structural cleaning guarantees the discriminant and that any
+  // surviving field is a real field of that schema_class, but not that values
+  // type-check or that required fields are present — which is what DraftVariable
+  // models (everything optional but the discriminant). Completeness/value checks
+  // are validateDataset()'s job.
+  return cleaned as DraftVariable;
 }
 
 /**
@@ -37,7 +44,7 @@ export function parseVariable(
 export function parseVariables(
   raws: unknown,
   rootSchema: JSONSchema
-): Record<string, unknown>[] {
+): DraftVariable[] {
   if (!Array.isArray(raws)) return [];
   return raws
     .filter(
