@@ -17,6 +17,7 @@ import { IconCategory, IconCheck, IconChevronDown } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseVariable } from "@/utils/parseVariable";
+import type { DraftVariable } from "@/types/variable";
 import {
   fieldExistsInSchema,
   getFieldSchema,
@@ -92,7 +93,7 @@ const SAMPLING_LABELS: Record<string, string> = {
 interface VariableModalProps {
   opened: boolean;
   onClose: () => void;
-  onSave: (data: Record<string, unknown>) => void;
+  onSave: (data: DraftVariable) => void;
   initialData?: Record<string, unknown>;
   /** The root schema containing $defs for all variable types */
   rootSchema: JSONSchema;
