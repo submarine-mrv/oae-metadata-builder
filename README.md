@@ -112,12 +112,13 @@ done by running:
 ```bash
 make gen-project
 ```
-**Note:** The above should __not__ be run from this repo, as it is a make task associated with the `oae-data-protocol`
+
+**Note:** The above should **not** be run from this repo, as it is a make task associated with the `oae-data-protocol`
 project, so must be run from the root of that repository.
 
 Then, from the root of this repository, you can import the latest JSON Schema into this project and run the
 necessary schema-bundling. This bundling script (located in `scripts/bundle-schema.mjs`) prepares the JSON Schema
-of the OAE Data Protocol for use in this project. It creates multiple separate root-schema artifacts (e.g. for 
+of the OAE Data Protocol for use in this project. It creates multiple separate root-schema artifacts (e.g. for
 Projects and Experiments), and also pulls in human-readable names for titles of dynamic enums (such as for the Sea
 Names controlled vocabulary). It also makes some important fixes to enable conditional rendering of certain fields
 (namely conditional rendering of `_custom` fields when a controlled vocab value is not found for a given enum field,
