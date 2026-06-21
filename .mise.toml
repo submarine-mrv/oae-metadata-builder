@@ -1,5 +1,5 @@
 [tools]
-node = "24"
+node = "26"
 npm = "11"
 
 # Optional: Configure mise behavior for this project
