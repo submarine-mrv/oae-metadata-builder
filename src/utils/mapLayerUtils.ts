@@ -15,17 +15,17 @@ import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
 export const BBOX_STYLES = {
   fill: {
     color: "#ff7800",
-    opacity: 0.1
+    opacity: 0.1,
   },
   outline: {
     color: "#ff7800",
-    width: 2
-  }
+    width: 2,
+  },
 } as const;
 
 export const LINE_STYLES = {
   color: "#228be6",
-  width: 3
+  width: 3,
 } as const;
 
 export const MARKER_COLOR = "#228be6";
@@ -62,13 +62,13 @@ export function addBoundingBox(
   south: number,
   east: number,
   north: number,
-  options: BoundingBoxOptions = {}
+  options: BoundingBoxOptions = {},
 ): void {
   const {
     sourceId = "bbox",
     fillLayerId = `${sourceId}-fill`,
     outlineLayerId = `${sourceId}-outline`,
-    handleAntimeridian = true
+    handleAntimeridian = true,
   } = options;
 
   // Remove existing layers and source
@@ -76,9 +76,7 @@ export function addBoundingBox(
 
   // Handle antimeridian crossing for rendering
   const renderWest = west;
-  const renderEast = handleAntimeridian
-    ? adjustEastForAntimeridian(west, east)
-    : east;
+  const renderEast = handleAntimeridian ? adjustEastForAntimeridian(west, east) : east;
 
   // Add bounding box as GeoJSON source
   map.addSource(sourceId, {
@@ -93,11 +91,11 @@ export function addBoundingBox(
             [renderEast, north],
             [renderEast, south],
             [renderWest, south],
-            [renderWest, north]
-          ]
-        ]
-      }
-    }
+            [renderWest, north],
+          ],
+        ],
+      },
+    },
   });
 
   // Add fill layer
@@ -107,8 +105,8 @@ export function addBoundingBox(
     source: sourceId,
     paint: {
       "fill-color": BBOX_STYLES.fill.color,
-      "fill-opacity": BBOX_STYLES.fill.opacity
-    }
+      "fill-opacity": BBOX_STYLES.fill.opacity,
+    },
   });
 
   // Add outline layer
@@ -118,8 +116,8 @@ export function addBoundingBox(
     source: sourceId,
     paint: {
       "line-color": BBOX_STYLES.outline.color,
-      "line-width": BBOX_STYLES.outline.width
-    }
+      "line-width": BBOX_STYLES.outline.width,
+    },
   });
 }
 
@@ -129,14 +127,11 @@ export function addBoundingBox(
  * @param map - MapLibre map instance
  * @param options - Optional configuration for layer IDs
  */
-export function removeBoundingBox(
-  map: any,
-  options: BoundingBoxOptions = {}
-): void {
+export function removeBoundingBox(map: any, options: BoundingBoxOptions = {}): void {
   const {
     sourceId = "bbox",
     fillLayerId = `${sourceId}-fill`,
-    outlineLayerId = `${sourceId}-outline`
+    outlineLayerId = `${sourceId}-outline`,
   } = options;
 
   if (map.getSource(sourceId)) {
@@ -167,7 +162,7 @@ export function addLine(
   lon1: number,
   lat2: number,
   lon2: number,
-  options: LineOptions = {}
+  options: LineOptions = {},
 ): void {
   const { sourceId = "line", layerId = sourceId } = options;
 
@@ -183,10 +178,10 @@ export function addLine(
         type: "LineString",
         coordinates: [
           [lon1, lat1],
-          [lon2, lat2]
-        ]
-      }
-    }
+          [lon2, lat2],
+        ],
+      },
+    },
   });
 
   // Add line layer
@@ -196,8 +191,8 @@ export function addLine(
     source: sourceId,
     paint: {
       "line-color": LINE_STYLES.color,
-      "line-width": LINE_STYLES.width
-    }
+      "line-width": LINE_STYLES.width,
+    },
   });
 }
 
@@ -232,7 +227,7 @@ export function fitBoundsWithAntimeridian(
   south: number,
   east: number,
   north: number,
-  options: { padding?: number; duration?: number } = {}
+  options: { padding?: number; duration?: number } = {},
 ): void {
   const { padding = 20, duration = 500 } = options;
   const fitEast = adjustEastForAntimeridian(west, east);
@@ -240,9 +235,9 @@ export function fitBoundsWithAntimeridian(
   map.fitBounds(
     [
       [west, south],
-      [fitEast, north]
+      [fitEast, north],
     ],
-    { padding, duration }
+    { padding, duration },
   );
 }
 
@@ -254,7 +249,7 @@ export function fitBoundsWithAntimeridian(
  * @returns Parsed coordinates or null if invalid
  */
 export function parseBoundsString(
-  boundsString: string
+  boundsString: string,
 ): { west: number; south: number; east: number; north: number } | null {
   if (!boundsString?.trim()) return null;
 
@@ -283,7 +278,7 @@ export function formatBoundsString(
   south: number,
   east: number,
   north: number,
-  precision = 6
+  precision = 6,
 ): string {
   return `${south.toFixed(precision)} ${west.toFixed(precision)} ${north.toFixed(precision)} ${east.toFixed(precision)}`;
 }

@@ -1,32 +1,17 @@
-
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import {
-  Modal,
-  Button,
-  Text,
-  Box,
-  Stack,
-  NumberInput,
-  Group
-} from "@mantine/core";
+import { Box, Button, Group, Modal, NumberInput, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import {
-  isValidLatitude,
-  resolveBoxFromClicks
-} from "@/utils/spatialUtils";
-import {
-  addBoundingBox,
-  removeBoundingBox,
-  fitBoundsWithAntimeridian,
-  formatBoundsString,
-  parseBoundsString
-} from "@/utils/mapLayerUtils";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DEFAULT_MAP_CENTER, DEFAULT_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
-  MAP_TILE_STYLE,
-  DEFAULT_MAP_CENTER,
-  DEFAULT_ZOOM
-} from "@/config/maps";
+  addBoundingBox,
+  fitBoundsWithAntimeridian,
+  formatBoundsString,
+  parseBoundsString,
+  removeBoundingBox,
+} from "@/utils/mapLayerUtils";
+import { isValidLatitude, resolveBoxFromClicks } from "@/utils/spatialUtils";
 
 interface SpatialCoverageMapModalProps {
   opened: boolean;
@@ -39,7 +24,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   opened,
   onClose,
   onSelect,
-  initialBounds = ""
+  initialBounds = "",
 }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const mapRef = useRef<HTMLDivElement>(null);
@@ -89,14 +74,10 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       newWest: number | string,
       newSouth: number | string,
       newEast: number | string,
-      newNorth: number | string
+      newNorth: number | string,
     ) => {
       // Check for latitude validation error
-      if (
-        typeof newNorth === "number" &&
-        typeof newSouth === "number" &&
-        newNorth <= newSouth
-      ) {
+      if (typeof newNorth === "number" && typeof newSouth === "number" && newNorth <= newSouth) {
         setHasLatitudeError(true);
       } else {
         setHasLatitudeError(false);
@@ -115,11 +96,14 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         // Update map if it's loaded and coordinates are valid
         if (mapInstanceRef.current && mapLoaded && newNorth > newSouth) {
           addBoundingBox(mapInstanceRef.current, newWest, newSouth, newEast, newNorth);
-          fitBoundsWithAntimeridian(mapInstanceRef.current, newWest, newSouth, newEast, newNorth, { padding: 20, duration: 500 });
+          fitBoundsWithAntimeridian(mapInstanceRef.current, newWest, newSouth, newEast, newNorth, {
+            padding: 20,
+            duration: 500,
+          });
         }
       }
     },
-    [mapLoaded]
+    [mapLoaded],
   );
 
   const initializeMap = useCallback(() => {
@@ -129,7 +113,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       container: mapRef.current,
       style: MAP_TILE_STYLE,
       center: DEFAULT_MAP_CENTER,
-      zoom: DEFAULT_ZOOM
+      zoom: DEFAULT_ZOOM,
     });
 
     mapInstanceRef.current = map;
@@ -193,14 +177,11 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       } else {
         // Second click - complete selection
         const startPt = startPointRef.current;
-        const { west, south, east, north } = resolveBoxFromClicks(
-          startPt,
-          { lng, lat }
-        );
+        const { west, south, east, north } = resolveBoxFromClicks(startPt, { lng, lat });
 
         // Validate coordinates are within valid ranges
         if (!isValidLatitude(south) || !isValidLatitude(north)) {
-          console.error('Invalid latitude coordinates:', { south, north });
+          console.error("Invalid latitude coordinates:", { south, north });
           return;
         }
 
@@ -286,10 +267,10 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
           {!mapLoaded
             ? "Loading map..."
             : !isSelecting
-            ? "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your bounding box."
-            : startPoint
-            ? "Click second point to complete selection"
-            : "Click first point to start selection"}
+              ? "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your bounding box."
+              : startPoint
+                ? "Click second point to complete selection"
+                : "Click first point to start selection"}
         </Text>
 
         <Box
@@ -299,7 +280,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
             width: "100%",
             border: "1px solid var(--brand-twilight)",
             borderRadius: "4px",
-            position: "relative"
+            position: "relative",
           }}
         />
 
@@ -380,15 +361,11 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
           }}
         >
           {mapLoaded && (
-            <Button
-              variant="outline"
-              onClick={startSelection}
-              disabled={isSelecting}
-            >
+            <Button variant="outline" onClick={startSelection} disabled={isSelecting}>
               {isSelecting ? "Drawing..." : "Draw Selection"}
             </Button>
           )}

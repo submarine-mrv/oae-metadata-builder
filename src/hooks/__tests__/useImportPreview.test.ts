@@ -1,37 +1,32 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
-import { useImportPreview } from "../useImportPreview";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type {
-  ProjectFormData,
-  ExperimentFormData,
   DatasetFormData,
+  DatasetState,
+  ExperimentFormData,
   ExperimentState,
-  DatasetState
 } from "@/types/forms";
+import { useImportPreview } from "../useImportPreview";
 
 // Helper to create test experiments
-function createExperiment(
-  id: number,
-  experimentId: string,
-  name: string
-): ExperimentState {
+function createExperiment(id: number, experimentId: string, name: string): ExperimentState {
   return {
     id,
     name,
     formData: { experiment_id: experimentId, project_id: "PROJ-001" },
     createdAt: Date.now(),
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
   };
 }
 
 // Helper to create test datasets
-function createDataset(id: number, name: string): DatasetState {
+function _createDataset(id: number, name: string): DatasetState {
   return {
     id,
     name,
     formData: { name, project_id: "PROJ-001" },
     createdAt: Date.now(),
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
   };
 }
 
@@ -42,8 +37,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -52,9 +47,9 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [
             { name: "Experiment 1", experiment_id: "EXP-001" } as ExperimentFormData,
-            { name: "Experiment 2", experiment_id: "EXP-001" } as ExperimentFormData // duplicate
+            { name: "Experiment 2", experiment_id: "EXP-001" } as ExperimentFormData, // duplicate
           ],
-          []
+          [],
         );
       });
 
@@ -66,8 +61,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -76,9 +71,9 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [
             { name: "Experiment 1", experiment_id: "EXP-001" } as ExperimentFormData,
-            { name: "Experiment 2", experiment_id: "EXP-002" } as ExperimentFormData
+            { name: "Experiment 2", experiment_id: "EXP-002" } as ExperimentFormData,
           ],
-          []
+          [],
         );
       });
 
@@ -90,8 +85,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -100,9 +95,9 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [
             { name: "Experiment 1", experiment_id: "" } as ExperimentFormData,
-            { name: "Experiment 2", experiment_id: "" } as ExperimentFormData // both empty - should be ok
+            { name: "Experiment 2", experiment_id: "" } as ExperimentFormData, // both empty - should be ok
           ],
-          []
+          [],
         );
       });
 
@@ -114,15 +109,15 @@ describe("useImportPreview", () => {
     it("resolves to existing experiment when experiment_id matches", () => {
       const currentExperiments = [
         createExperiment(1, "EXP-001", "Existing Experiment 1"),
-        createExperiment(2, "EXP-002", "Existing Experiment 2")
+        createExperiment(2, "EXP-002", "Existing Experiment 2"),
       ];
 
       const { result } = renderHook(() =>
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments,
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       // Import a dataset with experiment_id matching existing experiment
@@ -131,20 +126,16 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData]
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
         );
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.mode).toBe("use-file");
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe(
-        "existing"
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("existing");
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.experimentName).toBe(
+        "Existing Experiment 1",
       );
-      expect(
-        datasetItem?.experimentLinking?.resolvedMatch?.experimentName
-      ).toBe("Existing Experiment 1");
       expect(datasetItem?.experimentLinking?.resolvedMatch?.internalId).toBe(1);
     });
 
@@ -153,8 +144,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       // Import both an experiment and a dataset that references it
@@ -165,27 +156,17 @@ describe("useImportPreview", () => {
           [
             {
               name: "New Experiment",
-              experiment_id: "EXP-NEW"
-            } as ExperimentFormData
+              experiment_id: "EXP-NEW",
+            } as ExperimentFormData,
           ],
-          [
-            { name: "Dataset 1", experiment_id: "EXP-NEW" } as DatasetFormData
-          ]
+          [{ name: "Dataset 1", experiment_id: "EXP-NEW" } as DatasetFormData],
         );
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe(
-        "importing"
-      );
-      expect(
-        datasetItem?.experimentLinking?.resolvedMatch?.experimentName
-      ).toBe("New Experiment");
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.importKey).toBe(
-        "experiment-0"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("importing");
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.experimentName).toBe("New Experiment");
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.importKey).toBe("experiment-0");
     });
 
     it("resolves to none when experiment_id has no match", () => {
@@ -193,8 +174,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       // Import a dataset with experiment_id that doesn't match anything
@@ -206,15 +187,13 @@ describe("useImportPreview", () => {
           [
             {
               name: "Dataset 1",
-              experiment_id: "EXP-NONEXISTENT"
-            } as DatasetFormData
-          ]
+              experiment_id: "EXP-NONEXISTENT",
+            } as DatasetFormData,
+          ],
         );
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("none");
     });
 
@@ -223,8 +202,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       // Import a dataset without experiment_id
@@ -233,29 +212,25 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1" } as DatasetFormData]
+          [{ name: "Dataset 1" } as DatasetFormData],
         );
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("none");
     });
   });
 
   describe("setDatasetExperimentLinking", () => {
     it("switches dataset to explicit linking with existing experiment", () => {
-      const currentExperiments = [
-        createExperiment(1, "EXP-001", "Existing Experiment 1")
-      ];
+      const currentExperiments = [createExperiment(1, "EXP-001", "Existing Experiment 1")];
 
       const { result } = renderHook(() =>
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments,
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -263,7 +238,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1" } as DatasetFormData]
+          [{ name: "Dataset 1" } as DatasetFormData],
         );
       });
 
@@ -273,23 +248,17 @@ describe("useImportPreview", () => {
           "dataset-0",
           "explicit",
           1, // internal ID of existing experiment
-          undefined
+          undefined,
         );
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.mode).toBe("explicit");
-      expect(
-        datasetItem?.experimentLinking?.explicitExperimentInternalId
-      ).toBe(1);
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe(
-        "existing"
+      expect(datasetItem?.experimentLinking?.explicitExperimentInternalId).toBe(1);
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("existing");
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.experimentName).toBe(
+        "Existing Experiment 1",
       );
-      expect(
-        datasetItem?.experimentLinking?.resolvedMatch?.experimentName
-      ).toBe("Existing Experiment 1");
     });
 
     it("switches dataset to explicit linking with importing experiment", () => {
@@ -297,8 +266,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -308,10 +277,10 @@ describe("useImportPreview", () => {
           [
             {
               name: "New Experiment",
-              experiment_id: "EXP-NEW"
-            } as ExperimentFormData
+              experiment_id: "EXP-NEW",
+            } as ExperimentFormData,
           ],
-          [{ name: "Dataset 1" } as DatasetFormData]
+          [{ name: "Dataset 1" } as DatasetFormData],
         );
       });
 
@@ -321,31 +290,23 @@ describe("useImportPreview", () => {
           "dataset-0",
           "explicit",
           undefined,
-          "experiment-0" // import key of importing experiment
+          "experiment-0", // import key of importing experiment
         );
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.mode).toBe("explicit");
-      expect(datasetItem?.experimentLinking?.explicitImportKey).toBe(
-        "experiment-0"
-      );
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe(
-        "importing"
-      );
+      expect(datasetItem?.experimentLinking?.explicitImportKey).toBe("experiment-0");
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("importing");
     });
 
     it("switches back to use-file mode", () => {
       const { result } = renderHook(() =>
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [
-            createExperiment(1, "EXP-001", "Existing Experiment")
-          ],
-          currentDatasets: []
-        })
+          currentExperiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -353,20 +314,13 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [
-            { name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData
-          ]
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
         );
       });
 
       // First switch to explicit
       act(() => {
-        result.current.setDatasetExperimentLinking(
-          "dataset-0",
-          "explicit",
-          1,
-          undefined
-        );
+        result.current.setDatasetExperimentLinking("dataset-0", "explicit", 1, undefined);
       });
 
       // Then switch back to use-file
@@ -374,13 +328,9 @@ describe("useImportPreview", () => {
         result.current.setDatasetExperimentLinking("dataset-0", "use-file");
       });
 
-      const datasetItem = result.current.state.items.find(
-        (i) => i.type === "dataset"
-      );
+      const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.mode).toBe("use-file");
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe(
-        "existing"
-      );
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("existing");
     });
   });
 
@@ -390,8 +340,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -399,7 +349,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-123" } as DatasetFormData]
+          [{ name: "Dataset 1", experiment_id: "EXP-123" } as DatasetFormData],
         );
       });
 
@@ -412,15 +362,15 @@ describe("useImportPreview", () => {
     it("shows matched experiment name for file experiment_id option", () => {
       const currentExperiments = [
         createExperiment(1, "EXP-001", "Experiment One"),
-        createExperiment(2, "EXP-002", "Experiment Two")
+        createExperiment(2, "EXP-002", "Experiment Two"),
       ];
 
       const { result } = renderHook(() =>
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments,
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -428,7 +378,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData]
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
         );
       });
 
@@ -446,8 +396,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -455,7 +405,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1" } as DatasetFormData]
+          [{ name: "Dataset 1" } as DatasetFormData],
         );
       });
 
@@ -469,8 +419,8 @@ describe("useImportPreview", () => {
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
           currentExperiments: [],
-          currentDatasets: []
-        })
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -480,18 +430,16 @@ describe("useImportPreview", () => {
           [
             {
               name: "Importing Experiment",
-              experiment_id: "EXP-IMP"
-            } as ExperimentFormData
+              experiment_id: "EXP-IMP",
+            } as ExperimentFormData,
           ],
-          [{ name: "Dataset 1" } as DatasetFormData]
+          [{ name: "Dataset 1" } as DatasetFormData],
         );
       });
 
       const options = result.current.getExperimentLinkOptions("dataset-0");
       // First option is use-file, second should be the importing experiment
-      const importingOption = options.find(
-        (o) => o.value === "importing-experiment-0"
-      );
+      const importingOption = options.find((o) => o.value === "importing-experiment-0");
       expect(importingOption).toBeDefined();
       expect(importingOption?.label).toBe("Importing Experiment (EXP-IMP)");
     });
@@ -502,11 +450,9 @@ describe("useImportPreview", () => {
       const { result } = renderHook(() =>
         useImportPreview({
           currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [
-            createExperiment(1, "EXP-001", "Existing Experiment")
-          ],
-          currentDatasets: []
-        })
+          currentExperiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+          currentDatasets: [],
+        }),
       );
 
       act(() => {
@@ -514,9 +460,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [
-            { name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData
-          ]
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
         );
       });
 
@@ -524,9 +468,7 @@ describe("useImportPreview", () => {
       expect(selected.datasets).toHaveLength(1);
       expect(selected.datasets[0].formData.name).toBe("Dataset 1");
       expect(selected.datasets[0].experimentLinking?.mode).toBe("use-file");
-      expect(selected.datasets[0].experimentLinking?.resolvedMatch?.type).toBe(
-        "existing"
-      );
+      expect(selected.datasets[0].experimentLinking?.resolvedMatch?.type).toBe("existing");
     });
   });
 });

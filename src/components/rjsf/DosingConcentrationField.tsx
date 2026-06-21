@@ -1,7 +1,6 @@
-
-import React from "react";
+import { Box, Group, NumberInput, Select, Stack, Text } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
-import { Box, Stack, Select, NumberInput, Text, Group } from "@mantine/core";
+import type React from "react";
 import schema from "@/schema/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import FieldLabel, { FieldLabelSmall } from "./FieldLabel";
@@ -14,7 +13,7 @@ const nestedItemStyle = {
   borderRadius: "5px",
   padding: "16px",
   margin: "8px 0",
-  background: "var(--brand-sand)"
+  background: "var(--brand-sand)",
 };
 
 /**
@@ -29,12 +28,11 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
     readonly,
     schema: fieldSchema,
     uiSchema,
-    fieldPathId
+    fieldPathId,
   } = props;
 
   // Get DosingConcentration schema definition
-  const dosingConcentrationSchema =
-    (schema as any).$defs?.DosingConcentration || {};
+  const dosingConcentrationSchema = (schema as any).$defs?.DosingConcentration || {};
   const properties = dosingConcentrationSchema.properties || {};
   const requiredFields = dosingConcentrationSchema.required || [];
 
@@ -45,7 +43,7 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
     const data = formData || {};
     const updatedData = {
       ...data,
-      [fieldName]: value
+      [fieldName]: value,
     };
     // v6: Pass merged data with absolute path to this field
     onChange(updatedData, fieldPathId.path, undefined, fieldPathId.$id);
@@ -61,12 +59,7 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
   return (
     <>
       {/* Field Title - outside the grey box */}
-      <FieldLabel
-        label={fieldTitle}
-        description={fieldDescription}
-        useModal={useModal}
-        order={5}
-      />
+      <FieldLabel label={fieldTitle} description={fieldDescription} useModal={useModal} order={5} />
 
       <Box style={nestedItemStyle}>
         <Stack gap="md">
@@ -91,7 +84,7 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
               }}
               data={[
                 { value: "measured", label: "Measured Directly" },
-                { value: "derived", label: "Derived Value" }
+                { value: "derived", label: "Derived Value" },
               ]}
               disabled={disabled || readonly}
             />
@@ -100,9 +93,7 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
           {/* Value Type - is_provided_as_a_file */}
           <Box>
             <FieldLabelSmall
-              label={
-                "Is " + fieldTitle.toLowerCase() + " a fixed value or variable?"
-              }
+              label={`Is ${fieldTitle.toLowerCase()} a fixed value or variable?`}
               description={properties.is_provided_as_a_file?.description}
               required={requiredFields.includes("is_provided_as_a_file")}
               useModal={useModal}
@@ -116,14 +107,11 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
                     : null
               }
               onChange={(value) => {
-                handleFieldChange(
-                  "is_provided_as_a_file",
-                  value === "variable"
-                );
+                handleFieldChange("is_provided_as_a_file", value === "variable");
               }}
               data={[
                 { value: "fixed", label: "Fixed Value" },
-                { value: "variable", label: "Variable" }
+                { value: "variable", label: "Variable" },
               ]}
               disabled={disabled || readonly}
             />
@@ -147,8 +135,8 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
                 (schema as any).$defs?.MassConcentrationUnit?.enum?.map(
                   (unit: string, index: number) => ({
                     value: unit,
-                    label: enumNames.MassConcentrationUnit[index]
-                  })
+                    label: enumNames.MassConcentrationUnit[index],
+                  }),
                 ) || []
               }
               disabled={disabled || readonly || isVariable}
@@ -162,9 +150,8 @@ const DosingConcentrationField: React.FC<FieldProps> = (props) => {
           {/* Informational text for variable values */}
           {isVariable && (
             <Text size="sm" c="dimmed" style={{ fontStyle: "italic" }}>
-              Variable effluent densities should be provided separately in the
-              dosing file, using the field names specified in the dosing data
-              template.
+              Variable effluent densities should be provided separately in the dosing file, using
+              the field names specified in the dosing data template.
             </Text>
           )}
         </Stack>

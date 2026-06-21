@@ -1,7 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
 import { MantineProvider } from "@mantine/core";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import SchemaField from "../SchemaField";
 
 // Minimal schema stubs — enough for SchemaField to resolve metadata
@@ -12,10 +11,10 @@ const ROOT_SCHEMA = {
       properties: {
         name: { type: "string", title: "Name" },
         notes: { type: "string", title: "Notes" },
-        count: { type: "number", title: "Count" }
-      }
-    }
-  }
+        count: { type: "number", title: "Count" },
+      },
+    },
+  },
 };
 
 const VAR_SCHEMA = ROOT_SCHEMA.$defs.SimpleVar;
@@ -24,7 +23,7 @@ function renderField(
   fieldPath: string,
   formData: Record<string, unknown>,
   onChange: (d: Record<string, unknown>) => void,
-  inputType: "text" | "textarea" = "text"
+  inputType: "text" | "textarea" = "text",
 ) {
   return render(
     <MantineProvider>
@@ -36,7 +35,7 @@ function renderField(
         onChange={onChange}
         inputType={inputType}
       />
-    </MantineProvider>
+    </MantineProvider>,
   );
 }
 

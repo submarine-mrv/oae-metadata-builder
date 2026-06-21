@@ -11,7 +11,7 @@
  * @returns Object with `isLoaded` boolean and `error` if loading failed
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MAPLIBRE_GL_CSS_URL, MAPLIBRE_GL_JS_URL } from "@/config/maps";
 
 // Extend Window interface for MapLibre

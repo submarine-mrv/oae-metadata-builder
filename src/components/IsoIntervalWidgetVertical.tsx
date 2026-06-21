@@ -5,11 +5,11 @@
  * For horizontal layout, use IsoIntervalWidget instead.
  */
 
-import * as React from "react";
-import { WidgetProps } from "@rjsf/utils";
-import { TextInput, Text, Stack } from "@mantine/core";
-import DatePickerPopover from "./DatePickerPopover";
+import { Stack, Text, TextInput } from "@mantine/core";
+import type { WidgetProps } from "@rjsf/utils";
+import type * as React from "react";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
+import DatePickerPopover from "./DatePickerPopover";
 
 const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
   id,
@@ -21,7 +21,7 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
   onBlur,
   onFocus,
   label,
-  rawErrors
+  rawErrors,
 }) => {
   const interval = useIsoInterval({
     id,
@@ -29,7 +29,7 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
     onChange,
     onBlur,
     onFocus,
-    hasError: !!(rawErrors && rawErrors.length > 0)
+    hasError: !!(rawErrors && rawErrors.length > 0),
   });
 
   return (

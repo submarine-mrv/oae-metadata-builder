@@ -1,52 +1,40 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Group
-} from "@mantine/core";
+import { Container, Group, Stack, Text, Title } from "@mantine/core";
 import Form from "@rjsf/mantine";
+import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
-
-import IsoIntervalWidget from "@/components/IsoIntervalWidget";
-import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
-import fieldDatasetUiSchema from "./uiSchema";
-import modelOutputUiSchema from "./modelOutputUiSchema";
-import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
-import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
-import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
-import CustomAddButton from "@/components/rjsf/CustomAddButton";
-import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
-import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
-import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
-import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
-import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
-import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
-import CustomErrorList from "@/components/rjsf/CustomErrorList";
-import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
-import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
-import ValidationButton from "@/components/ValidationButton";
 import FilenamesField from "@/components/FilenamesField";
+import IsoIntervalWidget from "@/components/IsoIntervalWidget";
+import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
+import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
+import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
+import CustomAddButton from "@/components/rjsf/CustomAddButton";
+import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
+import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
+import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
+import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
+import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
+import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
+import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
+import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
+import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import ValidationButton from "@/components/ValidationButton";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
-import {
-  getFieldDatasetSchema,
-  getModelOutputDatasetSchema
-} from "@/utils/schemaViews";
-import { transformFormErrors } from "@/utils/errorTransformer";
-import { validateDataset } from "@/utils/validation";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { type ConditionalFieldPair, cleanupConditionalFields } from "@/utils/conditionalFields";
 import { cleanDatasetFormDataForType } from "@/utils/datasetFields";
-import {
-  cleanupConditionalFields,
-  type ConditionalFieldPair
-} from "@/utils/conditionalFields";
+import { transformFormErrors } from "@/utils/errorTransformer";
 import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
+import { getFieldDatasetSchema, getModelOutputDatasetSchema } from "@/utils/schemaViews";
+import { validateDataset } from "@/utils/validation";
+import modelOutputUiSchema from "./modelOutputUiSchema";
+import fieldDatasetUiSchema from "./uiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -64,8 +52,8 @@ const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
     triggerField: "simulation_type",
     triggerValue: "perturbation",
     customField: "mcdr_forcing_description",
-    matchMode: "array-contains"
-  }
+    matchMode: "array-contains",
+  },
 ];
 
 /**
@@ -102,8 +90,8 @@ function createFieldDatasetFormSchema() {
       variables: {
         type: "array",
         title,
-        description
-      }
+        description,
+      },
     };
   }
 
@@ -128,9 +116,7 @@ export default function DatasetPage() {
   const [formData, setFormData] = useState<any>({});
 
   // Get current dataset
-  const currentDataset = state.activeDatasetId
-    ? getDataset(state.activeDatasetId)
-    : null;
+  const currentDataset = state.activeDatasetId ? getDataset(state.activeDatasetId) : null;
 
   // Load dataset data when active dataset changes
   useEffect(() => {
@@ -145,19 +131,18 @@ export default function DatasetPage() {
     (status: boolean | null) => {
       if (state.activeDatasetId) setDatasetValidation(state.activeDatasetId, status);
     },
-    [state.activeDatasetId, setDatasetValidation]
+    [state.activeDatasetId, setDatasetValidation],
   );
 
   // AJV validation result, memoized on form data. Handles the polymorphic
   // variable workaround internally via validateDataset().
   const validationResult = useMemo(
     () => validateDataset(formData, { hasExperiments }),
-    [formData, hasExperiments]
+    [formData, hasExperiments],
   );
   const missingRequired = useMemo(
-    () =>
-      validationResult.errors.filter((e) => e.name === "required").length,
-    [validationResult]
+    () => validationResult.errors.filter((e) => e.name === "required").length,
+    [validationResult],
   );
   const otherErrors = validationResult.errors.length - missingRequired;
   const isEmpty = useMemo(() => isFormEmpty(formData), [formData]);
@@ -166,7 +151,7 @@ export default function DatasetPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: onValidationStatusChange
+    onStatusChange: onValidationStatusChange,
   });
 
   // Reset error-list visibility when switching active dataset so the
@@ -210,9 +195,8 @@ export default function DatasetPage() {
           (e) =>
             !(
               e.name === "required" &&
-              (e.params?.missingProperty === "experiment_id" ||
-                e.property === ".experiment_id")
-            )
+              (e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id")
+            ),
         );
       }
 
@@ -222,9 +206,7 @@ export default function DatasetPage() {
       // Only applies to FieldDataset (ModelOutputDataset has no variables field).
       if (!isModelOutputType(formDataRef.current.dataset_type)) {
         const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
-        const variableErrors = datasetResult.errors.filter(
-          (e) => e.name === "variable"
-        );
+        const variableErrors = datasetResult.errors.filter((e) => e.name === "variable");
         if (variableErrors.length > 0) {
           transformed = [...transformed, ...variableErrors];
         }
@@ -238,33 +220,36 @@ export default function DatasetPage() {
     setActiveTab("dataset");
   }, [setActiveTab]);
 
-  const handleFormChange = useCallback((e: any) => {
-    if (!state.activeDatasetId) return;
+  const handleFormChange = useCallback(
+    (e: any) => {
+      if (!state.activeDatasetId) return;
 
-    let newData = e.formData;
+      let newData = e.formData;
 
-    // Check if dataset_type changed
-    const oldType = formData.dataset_type;
-    const newType = newData.dataset_type;
+      // Check if dataset_type changed
+      const oldType = formData.dataset_type;
+      const newType = newData.dataset_type;
 
-    if (newType && oldType !== newType) {
-      // Dataset type changed — clean fields that don't belong to new type.
-      // Note: oldType can be undefined on first selection (fresh dataset),
-      // so we don't guard on oldType being truthy.
-      newData = cleanDatasetFormDataForType(newData, newType);
-    }
+      if (newType && oldType !== newType) {
+        // Dataset type changed — clean fields that don't belong to new type.
+        // Note: oldType can be undefined on first selection (fresh dataset),
+        // so we don't guard on oldType being truthy.
+        newData = cleanDatasetFormDataForType(newData, newType);
+      }
 
-    // Clean up conditional custom fields for model output datasets
-    if (isModelOutputType(newData.dataset_type)) {
-      newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
-    }
-    newData = cleanFormData(newData);
+      // Clean up conditional custom fields for model output datasets
+      if (isModelOutputType(newData.dataset_type)) {
+        newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
+      }
+      newData = cleanFormData(newData);
 
-    // Update local state first (form sees cleaned data immediately),
-    // then sync to context
-    setFormData(newData);
-    replaceDatasetFormData(state.activeDatasetId, newData);
-  }, [formData, state.activeDatasetId, replaceDatasetFormData]);
+      // Update local state first (form sees cleaned data immediately),
+      // then sync to context
+      setFormData(newData);
+      replaceDatasetFormData(state.activeDatasetId, newData);
+    },
+    [formData, state.activeDatasetId, replaceDatasetFormData],
+  );
 
   // Show message if no dataset is selected
   if (!currentDataset) {
@@ -279,10 +264,9 @@ export default function DatasetPage() {
   return (
     <AppLayout noScroll>
       <div
-
         style={{
           flex: 1,
-          overflow: "auto"
+          overflow: "auto",
         }}
       >
         <Container size="md" py="lg">
@@ -297,8 +281,8 @@ export default function DatasetPage() {
               />
             </Group>
             <Text c="dimmed">
-              Define metadata for your dataset including data files, platform
-              information, and variable specifications.
+              Define metadata for your dataset including data files, platform information, and
+              variable specifications.
             </Text>
           </Stack>
 
@@ -318,11 +302,11 @@ export default function DatasetPage() {
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",
-              constAsDefaults: "never"
+              constAsDefaults: "never",
             }}
             fields={{
               FilenamesField: FilenamesField,
-              VariablesField: VariablesField
+              VariablesField: VariablesField,
             }}
             widgets={{
               IsoIntervalWidget,
@@ -330,7 +314,7 @@ export default function DatasetPage() {
               TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget,
               LinkedExperimentIdWidget: LinkedExperimentIdWidget,
-              DateTimeWidget: DateTimeWidget
+              DateTimeWidget: DateTimeWidget,
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
@@ -338,14 +322,13 @@ export default function DatasetPage() {
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-              ArrayFieldItemButtonsTemplate:
-                CustomArrayFieldItemButtonsTemplate,
+              ArrayFieldItemButtonsTemplate: CustomArrayFieldItemButtonsTemplate,
               TitleFieldTemplate: CustomTitleFieldTemplate,
               ErrorListTemplate: CustomErrorList,
               ButtonTemplates: {
                 AddButton: CustomAddButton,
-                SubmitButton: HiddenSubmitButton
-              }
+                SubmitButton: HiddenSubmitButton,
+              },
             }}
             showErrorList={validation.showErrorList ? "top" : false}
           />

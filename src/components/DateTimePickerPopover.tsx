@@ -1,10 +1,10 @@
-import React from "react";
-import { Popover, ActionIcon, Group, Divider } from "@mantine/core";
-import { DatePicker, TimePicker } from "@mantine/dates";
+import { ActionIcon, Divider, Group, Popover } from "@mantine/core";
 import type { DateValue } from "@mantine/dates";
+import { DatePicker, TimePicker } from "@mantine/dates";
 import { IconCalendar, IconCheck } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import React from "react";
 import { DATETIME_FORMAT } from "@/utils/dateUtils";
 
 dayjs.extend(utc);
@@ -30,7 +30,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
   value,
   onDateTimeChange,
   disabled,
-  readonly
+  readonly,
 }) => {
   const [selectedDate, setSelectedDate] = React.useState<DateValue>(null);
   const [timeValue, setTimeValue] = React.useState<string>("00:00:00");
@@ -62,9 +62,9 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
   const handleDateChange = (date: DateValue | string) => {
     if (date === null) {
       setSelectedDate(null);
-    } else if (typeof date === 'string') {
+    } else if (typeof date === "string") {
       // Handle string input: parse and convert to Date
-      const parsed = dayjs.utc(date, 'YYYY-MM-DD', true);
+      const parsed = dayjs.utc(date, "YYYY-MM-DD", true);
       if (parsed.isValid()) {
         setSelectedDate(new Date(parsed.year(), parsed.month(), parsed.date()));
       } else {
@@ -86,7 +86,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
    * Note: Mantine's DatePicker onDateChange prop expects (date: string) => void
    */
   const handleDisplayedMonthChange = (date: string) => {
-    const parsed = dayjs.utc(date, 'YYYY-MM-DD', true);
+    const parsed = dayjs.utc(date, "YYYY-MM-DD", true);
     if (parsed.isValid()) {
       setDisplayedMonth(new Date(parsed.year(), parsed.month(), parsed.date()));
     }
@@ -104,14 +104,14 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
     }
 
     // Type guard: ensure it's actually a Date instance
-    if (!(selectedDate instanceof Date) || typeof selectedDate.getFullYear !== 'function') {
+    if (!(selectedDate instanceof Date) || typeof selectedDate.getFullYear !== "function") {
       onDateTimeChange("");
       return;
     }
 
     const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
     const formatted = `${year}-${month}-${day} ${timeValue}`;
 
     onDateTimeChange(formatted);
@@ -162,8 +162,8 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
               wrap="nowrap"
               justify="space-between"
               style={{
-                display: 'flex',
-                alignItems: 'stretch'
+                display: "flex",
+                alignItems: "stretch",
               }}
             >
               <TimePicker
@@ -173,7 +173,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
                 size="sm"
                 style={{
                   flex: 1,
-                  marginInlineEnd: '12px'
+                  marginInlineEnd: "12px",
                 }}
               />
               <ActionIcon
@@ -185,7 +185,7 @@ const DateTimePickerPopover: React.FC<DateTimePickerPopoverProps> = ({
                 }}
                 aria-label="Submit datetime"
               >
-                <IconCheck style={{ width: '30%', height: '30%' }} />
+                <IconCheck style={{ width: "30%", height: "30%" }} />
               </ActionIcon>
             </Group>
           </>

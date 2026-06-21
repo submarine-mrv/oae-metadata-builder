@@ -1,10 +1,9 @@
-
-import React from "react";
+import { ActionIcon, Box, Text, TextInput, Tooltip } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
-import { TextInput, Text, Tooltip, ActionIcon, Box } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
-import SpatialCoverageMapModal from "../SpatialCoverageMapModal";
+import React from "react";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
+import SpatialCoverageMapModal from "../SpatialCoverageMapModal";
 
 // parse SOSO bounds string (minLat minLon maxLat maxLon) from nested GeoShape object
 function readBox(formData: any): string {
@@ -21,24 +20,13 @@ function writeBox(s: string): any {
 }
 
 const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
-  const {
-    fieldPathId,
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    required,
-    schema,
-    uiSchema
-  } = props;
+  const { fieldPathId, formData, onChange, disabled, readonly, required, schema, uiSchema } = props;
 
   // This field completely replaces any default object/anyOf rendering
 
   const id = fieldPathId.$id;
   const [value, setValue] = React.useState<string>(readBox(formData));
-  const [validationError, setValidationError] = React.useState<string | null>(
-    null
-  );
+  const [validationError, setValidationError] = React.useState<string | null>(null);
   const [showMap, setShowMap] = React.useState(false);
 
   React.useEffect(() => {
@@ -47,14 +35,10 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
     setValidationError(validateSpatialBounds(boxValue));
   }, [formData]);
 
-  const label =
-    uiSchema?.["ui:title"] ??
-    schema?.title ??
-    "Spatial coverage (bounding box)";
+  const label = uiSchema?.["ui:title"] ?? schema?.title ?? "Spatial coverage (bounding box)";
 
   const placeholder =
-    uiSchema?.["ui:options"]?.placeholder ??
-    "minLat minLon maxLat maxLon  (decimal degrees)";
+    uiSchema?.["ui:options"]?.placeholder ?? "minLat minLon maxLat maxLon  (decimal degrees)";
 
   const maxWidth = uiSchema?.["ui:options"]?.maxWidth ?? 420;
 
@@ -76,7 +60,7 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            marginBottom: "4px"
+            marginBottom: "4px",
           }}
         >
           <label style={{ fontWeight: 600 }}>
@@ -112,15 +96,14 @@ const SpatialCoverageFlatField: React.FC<FieldProps> = (props) => {
           error={validationError}
           styles={{
             input: {
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
-            }
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            },
           }}
         />
 
         <Text size="xs" c="dimmed" mt={4}>
           Enter four numbers: <code>minLat minLon maxLat maxLon</code> (e.g.
-          <code> 36.8 -124.5 38.2 -121.9</code>). Leave blank to set{" "}
-          <code>null</code>.
+          <code> 36.8 -124.5 38.2 -121.9</code>). Leave blank to set <code>null</code>.
         </Text>
       </div>
 

@@ -18,7 +18,7 @@ const BASE_EXPERIMENT_FIELDS = [
   "end_datetime",
   "spatial_coverage",
   "experiment_leads",
-  "public_comments"
+  "public_comments",
 ];
 
 // Additional fields on InSituExperiment (field experiment types)
@@ -27,7 +27,7 @@ const IN_SITU_FIELDS = [
   "permits",
   "meteorological_and_tidal_data",
   "data_conflicts_and_unreported_data",
-  "additional_details"
+  "additional_details",
 ];
 
 // Intervention-specific fields
@@ -46,7 +46,7 @@ const INTERVENTION_FIELDS = [
   "dosing_description",
   "dosing_dispersal_hydrologic_location",
   "dosing_location",
-  "dosing_regimen"
+  "dosing_regimen",
 ];
 
 // Tracer-specific fields
@@ -60,7 +60,7 @@ const TRACER_FIELDS = [
   "dosing_description",
   "dosing_dispersal_hydrologic_location",
   "dosing_location",
-  "dosing_regimen"
+  "dosing_regimen",
 ];
 
 // Model-specific fields
@@ -69,7 +69,7 @@ const MODEL_FIELDS = [
   "model_components",
   "model_configuration",
   "spin_up_protocol",
-  "time_stepping_scheme"
+  "time_stepping_scheme",
 ];
 
 /**
@@ -99,10 +99,7 @@ export function getExperimentSchemaType(experimentType: string[]): string {
  * - If model was just added (not previously selected), remove all other types.
  * - If a non-model type was added while model was selected, remove model.
  */
-export function enforceModelExclusivity(
-  newTypes: string[],
-  previousTypes: string[]
-): string[] {
+export function enforceModelExclusivity(newTypes: string[], previousTypes: string[]): string[] {
   const hadModel = previousTypes.includes("model");
   const hasModel = newTypes.includes("model");
 
@@ -123,27 +120,41 @@ export function getValidFieldsForType(experimentType: string): Set<string> {
 
   switch (experimentType) {
     case "model":
-      MODEL_FIELDS.forEach((field) => validFields.add(field));
+      MODEL_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
       break;
     case "intervention":
-      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
-      INTERVENTION_FIELDS.forEach((field) => validFields.add(field));
+      IN_SITU_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
+      INTERVENTION_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
       break;
     case "tracer_study":
-      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
-      TRACER_FIELDS.forEach((field) => validFields.add(field));
+      IN_SITU_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
+      TRACER_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
       break;
     case "intervention_with_tracer":
-      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
-      INTERVENTION_FIELDS.forEach((field) => validFields.add(field));
-      TRACER_FIELDS.forEach((field) => validFields.add(field));
+      IN_SITU_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
+      INTERVENTION_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
+      TRACER_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
       break;
-    case "in_situ":
-    case "control":
-    case "baseline":
-    case "other":
     default:
-      IN_SITU_FIELDS.forEach((field) => validFields.add(field));
+      IN_SITU_FIELDS.forEach((field) => {
+        validFields.add(field);
+      });
       break;
   }
 
@@ -156,7 +167,7 @@ export function getValidFieldsForType(experimentType: string): Set<string> {
  */
 export function cleanFormDataForType<T extends FormDataRecord>(
   formData: T,
-  experimentType: string
+  experimentType: string,
 ): Partial<T> {
   const validFields = getValidFieldsForType(experimentType);
   const cleanedData: Partial<T> = {};

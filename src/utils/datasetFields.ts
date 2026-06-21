@@ -17,7 +17,7 @@ const BASE_DATASET_FIELDS = [
   "filenames",
   "author_list_for_citation",
   "license",
-  "fair_use_data_request"
+  "fair_use_data_request",
 ];
 
 // FieldDataset-specific fields (not in ModelOutputDataset)
@@ -27,7 +27,7 @@ const FIELD_DATASET_FIELDS = [
   "qc_flag_scheme",
   "data_product_type",
   "temporal_coverage",
-  "variables"
+  "variables",
 ];
 
 // ModelOutputDataset-specific fields (not in FieldDataset)
@@ -38,7 +38,7 @@ const MODEL_SIMULATION_FIELDS = [
   "output_frequency",
   "hardware_configuration",
   "start_datetime",
-  "end_datetime"
+  "end_datetime",
 ];
 
 /**
@@ -48,9 +48,13 @@ export function getValidDatasetFieldsForType(datasetType: string): Set<string> {
   const validFields = new Set(BASE_DATASET_FIELDS);
 
   if (datasetType === "model_output") {
-    MODEL_SIMULATION_FIELDS.forEach((field) => validFields.add(field));
+    MODEL_SIMULATION_FIELDS.forEach((field) => {
+      validFields.add(field);
+    });
   } else {
-    FIELD_DATASET_FIELDS.forEach((field) => validFields.add(field));
+    FIELD_DATASET_FIELDS.forEach((field) => {
+      validFields.add(field);
+    });
   }
 
   return validFields;
@@ -62,7 +66,7 @@ export function getValidDatasetFieldsForType(datasetType: string): Set<string> {
  */
 export function cleanDatasetFormDataForType<T extends FormDataRecord>(
   formData: T,
-  datasetType: string
+  datasetType: string,
 ): Partial<T> {
   const validFields = getValidDatasetFieldsForType(datasetType);
   const cleanedData: Partial<T> = {};

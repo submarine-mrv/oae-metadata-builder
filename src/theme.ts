@@ -1,4 +1,4 @@
-import { createTheme, MantineColorsTuple } from "@mantine/core";
+import { createTheme, type MantineColorsTuple } from "@mantine/core";
 
 /**
  * Carbon to Sea Initiative Brand Colors
@@ -27,12 +27,12 @@ export const brandColors = {
  */
 export const dataVizColors = {
   // Progress/status colors (using CtS brand darker shades)
-  progressOrange: "#EE5919",  // Same as coral - poor/warning
-  progressBlue: "#76A3AB",    // Medium/in-progress (darker CtS shade)
-  progressGreen: "#A3BC8A",   // Good/complete (darker CtS shade)
+  progressOrange: "#EE5919", // Same as coral - poor/warning
+  progressBlue: "#76A3AB", // Medium/in-progress (darker CtS shade)
+  progressGreen: "#A3BC8A", // Good/complete (darker CtS shade)
 
   // Qualitative/categorical colors from brand guidelines
-  ocean: "#005967",           // Deep teal - used for links
+  ocean: "#005967", // Deep teal - used for links
 
   // Extended palette for charts
   teal: "#81C7D0",
@@ -305,7 +305,7 @@ export const theme = createTheme({
         root: {
           color: dataVizColors.ocean,
           "&:hover": {
-            color: "#004451",  // Darker shade on hover
+            color: "#004451", // Darker shade on hover
           },
         },
       },

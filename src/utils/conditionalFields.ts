@@ -68,7 +68,7 @@ export interface NestedConditionalFieldPair extends ConditionalFieldPair {
  */
 export function cleanupNestedConditionalFields<T extends FormDataRecord>(
   formData: T,
-  nestedPairs: NestedConditionalFieldPair[]
+  nestedPairs: NestedConditionalFieldPair[],
 ): T {
   let cleanedData = { ...formData } as T;
 
@@ -104,7 +104,7 @@ export function cleanupNestedConditionalFields<T extends FormDataRecord>(
 function isConditionMet(
   currentValue: unknown,
   triggerValue: unknown,
-  matchMode: "exact" | "array-contains" = "exact"
+  matchMode: "exact" | "array-contains" = "exact",
 ): boolean {
   if (matchMode === "array-contains") {
     return Array.isArray(currentValue) && currentValue.includes(triggerValue);
@@ -114,7 +114,7 @@ function isConditionMet(
 
 export function cleanupConditionalFields<T extends FormDataRecord>(
   formData: T,
-  conditionalPairs: ConditionalFieldPair[]
+  conditionalPairs: ConditionalFieldPair[],
 ): T {
   let cleanedData = { ...formData } as T;
 

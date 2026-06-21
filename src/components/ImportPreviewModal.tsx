@@ -1,26 +1,22 @@
-import React from "react";
 import {
-  Modal,
-  Table,
-  Checkbox,
-  Button,
-  Group,
-  Stack,
-  Text,
   Alert,
+  Button,
+  Checkbox,
+  Group,
+  Modal,
   Select,
-  Tooltip
+  Stack,
+  Table,
+  Text,
+  Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import {
-  IconAlertTriangle,
-  IconFileImport,
-  IconCheck
-} from "@tabler/icons-react";
+import { IconAlertTriangle, IconCheck, IconFileImport } from "@tabler/icons-react";
+import type React from "react";
 import type {
-  ImportItem,
+  DatasetExperimentLinking,
   ExperimentLinkOption,
-  DatasetExperimentLinking
+  ImportItem,
 } from "@/hooks/useImportPreview";
 
 interface ImportPreviewModalProps {
@@ -33,7 +29,7 @@ interface ImportPreviewModalProps {
     datasetKey: string,
     mode: "use-file" | "explicit",
     explicitExperimentInternalId?: number,
-    explicitImportKey?: string
+    explicitImportKey?: string,
   ) => void;
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
   duplicateExperimentIdError: string | null;
@@ -64,7 +60,7 @@ export default function ImportPreviewModal({
   onSetDatasetLinking,
   getExperimentLinkOptions,
   duplicateExperimentIdError,
-  onImport
+  onImport,
 }: ImportPreviewModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
@@ -83,13 +79,11 @@ export default function ImportPreviewModal({
   }
   if (experimentItems.length > 0) {
     summaryParts.push(
-      `${experimentItems.length} experiment${experimentItems.length !== 1 ? "s" : ""}`
+      `${experimentItems.length} experiment${experimentItems.length !== 1 ? "s" : ""}`,
     );
   }
   if (datasetItems.length > 0) {
-    summaryParts.push(
-      `${datasetItems.length} dataset${datasetItems.length !== 1 ? "s" : ""}`
-    );
+    summaryParts.push(`${datasetItems.length} dataset${datasetItems.length !== 1 ? "s" : ""}`);
   }
 
   /**
@@ -112,9 +106,7 @@ export default function ImportPreviewModal({
   /**
    * Get the current select value for a dataset's linking
    */
-  const getLinkingSelectValue = (
-    linking: DatasetExperimentLinking | undefined
-  ): string => {
+  const getLinkingSelectValue = (linking: DatasetExperimentLinking | undefined): string => {
     if (!linking || linking.mode === "use-file") {
       return "use-file";
     }
@@ -130,10 +122,7 @@ export default function ImportPreviewModal({
   /**
    * Render a warning icon with tooltip for override conflicts
    */
-  const renderWarningIcon = (
-    item: ImportItem,
-    tooltipText: string
-  ): React.ReactNode => {
+  const renderWarningIcon = (item: ImportItem, tooltipText: string): React.ReactNode => {
     if (item.conflict !== "override") {
       return null;
     }
@@ -165,10 +154,7 @@ export default function ImportPreviewModal({
           </Text>
         </Table.Td>
         <Table.Td style={{ width: 40 }}>
-          {renderWarningIcon(
-            item,
-            "Experiments with the same experiment_id will be overwritten"
-          )}
+          {renderWarningIcon(item, "Experiments with the same experiment_id will be overwritten")}
         </Table.Td>
       </Table.Tr>
     );
@@ -200,7 +186,7 @@ export default function ImportPreviewModal({
             onChange={(value) => handleLinkingChange(item.key, value)}
             disabled={!item.selected}
             styles={{
-              input: { minWidth: 200 }
+              input: { minWidth: 200 },
             }}
           />
         </Table.Td>
@@ -233,11 +219,7 @@ export default function ImportPreviewModal({
 
         {/* Duplicate experiment_id error */}
         {duplicateExperimentIdError && (
-          <Alert
-            icon={<IconAlertTriangle size={18} />}
-            color="red"
-            variant="light"
-          >
+          <Alert icon={<IconAlertTriangle size={18} />} color="red" variant="light">
             <Text size="sm">{duplicateExperimentIdError}</Text>
           </Alert>
         )}
@@ -256,10 +238,7 @@ export default function ImportPreviewModal({
                   </Text>
                 }
               />
-              {renderWarningIcon(
-                projectItems[0],
-                "Existing project metadata will be overwritten"
-              )}
+              {renderWarningIcon(projectItems[0], "Existing project metadata will be overwritten")}
             </Group>
           </Stack>
         )}
@@ -277,9 +256,7 @@ export default function ImportPreviewModal({
                   <Table.Th style={{ width: 40 }}></Table.Th>
                 </Table.Tr>
               </Table.Thead>
-              <Table.Tbody>
-                {experimentItems.map(renderExperimentRow)}
-              </Table.Tbody>
+              <Table.Tbody>{experimentItems.map(renderExperimentRow)}</Table.Tbody>
             </Table>
           </Stack>
         )}
@@ -313,10 +290,7 @@ export default function ImportPreviewModal({
           <Button variant="default" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={onImport}
-            disabled={noneSelected || hasBlockingError}
-          >
+          <Button onClick={onImport} disabled={noneSelected || hasBlockingError}>
             Import {selectedCount} item{selectedCount !== 1 ? "s" : ""}
           </Button>
         </Group>

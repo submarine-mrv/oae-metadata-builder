@@ -1,21 +1,14 @@
-
+import { Checkbox, NumberInput, Select, Textarea, TextInput } from "@mantine/core";
 import React from "react";
+import { formatEnumTitle } from "@/utils/enumDecorator";
 import {
-  TextInput,
-  Textarea,
-  Select,
-  Checkbox,
-  NumberInput
-} from "@mantine/core";
-import {
+  type FieldMetadata,
   getFieldMetadata,
   getNestedValue,
-  setNestedValue,
   type JSONSchema,
-  type FieldMetadata
+  setNestedValue,
 } from "../schemaUtils";
 import FieldLabel, { type DescriptionMode } from "./FieldLabel";
-import { formatEnumTitle } from "@/utils/enumDecorator";
 
 export interface SchemaFieldProps {
   /** Dot-separated path to the field (e.g., "analyzing_instrument.calibration.dye_purified") */
@@ -51,7 +44,7 @@ export default function SchemaField({
   descriptionMode = "tooltip",
   inputType = "text",
   placeholderText,
-  rows
+  rows,
 }: SchemaFieldProps) {
   // Get field metadata from schema
   const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
@@ -119,25 +112,11 @@ export default function SchemaField({
 
   // Const fields render as a disabled text input with formatted value
   if (schemaConst !== undefined) {
-    return (
-      <TextInput
-        label={label}
-        value={formatEnumTitle(String(schemaConst))}
-        disabled
-      />
-    );
+    return <TextInput label={label} value={formatEnumTitle(String(schemaConst))} disabled />;
   }
 
   // Render the appropriate input based on type
-  return renderInput(
-    metadata,
-    currentValue,
-    handleChange,
-    label,
-    getPlaceholder,
-    inputType,
-    rows
-  );
+  return renderInput(metadata, currentValue, handleChange, label, getPlaceholder, inputType, rows);
 }
 
 /**
@@ -153,7 +132,7 @@ function renderInput(
   label: React.ReactNode,
   getPlaceholder: () => string | undefined,
   inputType: "text" | "textarea" | "boolean_select",
-  rows?: number
+  rows?: number,
 ) {
   const { type } = metadata;
 
@@ -166,7 +145,7 @@ function renderInput(
         placeholder={getPlaceholder() || "Select an option"}
         data={[
           { value: "yes", label: "Yes" },
-          { value: "no", label: "No" }
+          { value: "no", label: "No" },
         ]}
         value={boolValue}
         onChange={(value) => handleChange(value === "yes" ? true : value === "no" ? false : null)}
@@ -192,8 +171,8 @@ function renderInput(
       typeof currentValue === "number"
         ? currentValue
         : typeof currentValue === "string" && currentValue !== ""
-        ? Number(currentValue)
-        : "";
+          ? Number(currentValue)
+          : "";
     return (
       <NumberInput
         label={label}
@@ -204,8 +183,8 @@ function renderInput(
             typeof value === "number"
               ? value
               : value === "" || value === null
-              ? undefined
-              : Number(value)
+                ? undefined
+                : Number(value),
           )
         }
         allowDecimal={type === "number"}
@@ -218,7 +197,7 @@ function renderInput(
     const options =
       metadata.enum?.map((value) => ({
         value: String(value),
-        label: formatEnumTitle(String(value))
+        label: formatEnumTitle(String(value)),
       })) || [];
 
     return (

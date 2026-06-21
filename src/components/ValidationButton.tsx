@@ -1,6 +1,6 @@
-import React from "react";
 import { Button } from "@mantine/core";
-import { IconCheck, IconShieldCheck, IconAlertCircle } from "@tabler/icons-react";
+import { IconAlertCircle, IconCheck, IconShieldCheck } from "@tabler/icons-react";
+import type React from "react";
 import type { BadgeState } from "@/hooks/useFormValidation";
 
 interface ValidationButtonProps {
@@ -20,7 +20,7 @@ interface ButtonConfig {
 function getButtonConfig(
   badgeState: BadgeState,
   missingRequired: number,
-  otherErrors: number
+  otherErrors: number,
 ): ButtonConfig {
   const errorWord = (n: number) => (n === 1 ? "error" : "errors");
 
@@ -30,35 +30,35 @@ function getButtonConfig(
         label: `${missingRequired} required fields`,
         color: "gray",
         icon: <IconShieldCheck size={14} />,
-        clickable: false
+        clickable: false,
       };
     case "missing-only":
       return {
         label: `${missingRequired} required fields missing`,
         color: "blue",
         icon: <IconShieldCheck size={14} />,
-        clickable: true
+        clickable: true,
       };
     case "missing-and-errors":
       return {
         label: `${missingRequired} required fields missing, ${otherErrors} ${errorWord(otherErrors)}`,
         color: "red",
         icon: <IconAlertCircle size={14} />,
-        clickable: true
+        clickable: true,
       };
     case "errors-only":
       return {
         label: `${otherErrors} ${errorWord(otherErrors)}`,
         color: "red",
         icon: <IconAlertCircle size={14} />,
-        clickable: true
+        clickable: true,
       };
     case "passed":
       return {
         label: "Validated",
         color: "green",
         icon: <IconCheck size={14} />,
-        clickable: false
+        clickable: false,
       };
   }
 }
@@ -67,12 +67,12 @@ export default function ValidationButton({
   badgeState,
   missingRequired,
   otherErrors,
-  onClick
+  onClick,
 }: ValidationButtonProps) {
   const { label, color, icon, clickable } = getButtonConfig(
     badgeState,
     missingRequired,
-    otherErrors
+    otherErrors,
   );
 
   // For non-clickable states ("empty", "passed") we keep the visual

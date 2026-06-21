@@ -1,22 +1,18 @@
-
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { ActionIcon, Box, Text, Tooltip } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
-import { Box, Text, Tooltip, ActionIcon } from "@mantine/core";
-import { IconMap, IconEdit } from "@tabler/icons-react";
-import SpatialCoverageMapModal from "./SpatialCoverageMapModal";
-import { validateSpatialBounds } from "@/utils/spatialUtils";
-import {
-  addBoundingBox,
-  removeBoundingBox,
-  fitBoundsWithAntimeridian,
-  parseBoundsString
-} from "@/utils/mapLayerUtils";
+import { IconEdit, IconMap } from "@tabler/icons-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
-  MAP_TILE_STYLE,
-  DEFAULT_MAP_CENTER,
-  DEFAULT_MINI_MAP_ZOOM
-} from "@/config/maps";
+  addBoundingBox,
+  fitBoundsWithAntimeridian,
+  parseBoundsString,
+  removeBoundingBox,
+} from "@/utils/mapLayerUtils";
+import { validateSpatialBounds } from "@/utils/spatialUtils";
+import SpatialCoverageMapModal from "./SpatialCoverageMapModal";
 
 // parse SOSO bounds string (minLat minLon maxLat maxLon) from nested GeoShape object
 function readBox(formData: any): string {
@@ -32,16 +28,7 @@ function writeBox(s: string): any {
 }
 
 const SpatialCoverageField: React.FC<FieldProps> = (props) => {
-  const {
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    required,
-    schema,
-    uiSchema,
-    rawErrors
-  } = props;
+  const { formData, onChange, disabled, readonly, required, schema, uiSchema, rawErrors } = props;
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -83,7 +70,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       center: DEFAULT_MAP_CENTER,
       zoom: DEFAULT_MINI_MAP_ZOOM,
       interactive: false, // Make it non-interactive for preview
-      attributionControl: false
+      attributionControl: false,
     });
 
     mapInstanceRef.current = map;
@@ -98,7 +85,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
         addBoundingBox(map, west, south, east, north);
         fitBoundsWithAntimeridian(map, west, south, east, north, {
           padding: 20,
-          duration: 0
+          duration: 0,
         });
       }
     });
@@ -127,7 +114,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       addBoundingBox(map, west, south, east, north);
       fitBoundsWithAntimeridian(map, west, south, east, north, {
         padding: 20,
-        duration: 500
+        duration: 500,
       });
     } else {
       // Remove bounding box if no value
@@ -136,7 +123,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       map.flyTo({
         center: DEFAULT_MAP_CENTER,
         zoom: DEFAULT_MINI_MAP_ZOOM,
-        duration: 500
+        duration: 500,
       });
     }
   }, [value, miniMapLoaded]);
@@ -166,7 +153,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
             cursor: disabled || readonly ? "default" : "pointer",
             position: "relative",
             overflow: "hidden",
-            backgroundColor: "var(--brand-sunlight)"
+            backgroundColor: "var(--brand-sunlight)",
           }}
         >
           {/* Mini map preview */}
@@ -178,7 +165,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
               borderRadius: "4px",
               position: "absolute",
               top: 0,
-              left: 0
+              left: 0,
             }}
           />
 
@@ -197,13 +184,10 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
                 justifyContent: "center",
                 backgroundColor: "var(--brand-sunlight-overlay)",
                 borderRadius: "4px",
-                padding: "8px"
+                padding: "8px",
               }}
             >
-              <IconMap
-                size={32}
-                style={{ marginBottom: "8px", opacity: 0.6 }}
-              />
+              <IconMap size={32} style={{ marginBottom: "8px", opacity: 0.6 }} />
               <Text size="sm" ta="center" c="dimmed">
                 Click to set spatial coverage
               </Text>
@@ -220,7 +204,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
                   position: "absolute",
                   top: "8px",
                   right: "8px",
-                  zIndex: 10
+                  zIndex: 10,
                 }}
                 onClick={(e) => {
                   e.stopPropagation();

@@ -1,19 +1,11 @@
-
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { ActionIcon, Box, Stack, Text, Tooltip } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
-import {
-  Box,
-  Text,
-  Tooltip,
-  ActionIcon,
-  Select,
-  TextInput,
-  Stack
-} from "@mantine/core";
-import { IconMap, IconEdit } from "@tabler/icons-react";
-import DosingLocationMapModal from "./DosingLocationMapModal";
+import { IconEdit, IconMap } from "@tabler/icons-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { parseBoundsString } from "@/utils/mapLayerUtils";
 import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
+import DosingLocationMapModal from "./DosingLocationMapModal";
 
 type DosingMode = "point" | "line" | "box";
 
@@ -58,20 +50,9 @@ function formatBox(formData: any): string {
 }
 
 const DosingLocationField: React.FC<FieldProps> = (props) => {
-  const {
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    required,
-    schema,
-    uiSchema,
-    rawErrors
-  } = props;
+  const { formData, onChange, disabled, readonly, required, schema, uiSchema, rawErrors } = props;
 
-  const [selectedMode, setSelectedMode] = useState<DosingMode | null>(
-    inferMode(formData)
-  );
+  const [selectedMode, setSelectedMode] = useState<DosingMode | null>(inferMode(formData));
   const [showMapModal, setShowMapModal] = useState(false);
   const [miniMapLoaded, setMiniMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -88,14 +69,10 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
 
   const hasValidationErrors = rawErrors && rawErrors.length > 0;
 
-  const handleMapDataChange = (
-    newGeoData: any,
-    fileLocation?: string,
-    newMode?: DosingMode
-  ) => {
+  const handleMapDataChange = (newGeoData: any, fileLocation?: string, newMode?: DosingMode) => {
     const newData = {
       ...formData,
-      geo: newGeoData
+      geo: newGeoData,
     };
 
     // Update selected mode if provided
@@ -135,15 +112,18 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
     if (!selectedMode) return null;
 
     switch (selectedMode) {
-      case "point":
+      case "point": {
         const point = formatPoint(formData);
         return point || null;
-      case "line":
+      }
+      case "line": {
         const line = formatLine(formData);
         return line || null;
-      case "box":
+      }
+      case "box": {
         const box = formatBox(formData);
         return box || null;
+      }
       default:
         return null;
     }
@@ -160,7 +140,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         center: [-123.0, 47.5],
         zoom: 2,
         interactive: false,
-        attributionControl: false
+        attributionControl: false,
       });
 
       mapInstanceRef.current = map;
@@ -184,8 +164,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
           const link = document.createElement("link");
           link.rel = "stylesheet";
-          link.href =
-            "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
+          link.href = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
           document.head.appendChild(link);
         }
 
@@ -226,8 +205,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
     }
     if (map.getSource("dosing-bbox")) {
       if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
-      if (map.getLayer("dosing-bbox-outline"))
-        map.removeLayer("dosing-bbox-outline");
+      if (map.getLayer("dosing-bbox-outline")) map.removeLayer("dosing-bbox-outline");
       map.removeSource("dosing-bbox");
     }
 
@@ -256,21 +234,18 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
                 type: "LineString",
                 coordinates: [
                   [lon1, lat1],
-                  [lon2, lat2]
-                ]
-              }
-            }
+                  [lon2, lat2],
+                ],
+              },
+            },
           });
           map.addLayer({
             id: "dosing-line",
             type: "line",
             source: "dosing-line",
-            paint: { "line-color": "#228be6", "line-width": 3 }
+            paint: { "line-color": "#228be6", "line-width": 3 },
           });
-          const bounds = new window.maplibregl.LngLatBounds(
-            [lon1, lat1],
-            [lon2, lat2]
-          );
+          const bounds = new window.maplibregl.LngLatBounds([lon1, lat1], [lon2, lat2]);
           map.fitBounds(bounds, { padding: 20, duration: 0 });
         }
       }
@@ -293,30 +268,30 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
                     [renderEast, north],
                     [renderEast, south],
                     [west, south],
-                    [west, north]
-                  ]
-                ]
-              }
-            }
+                    [west, north],
+                  ],
+                ],
+              },
+            },
           });
           map.addLayer({
             id: "dosing-bbox-fill",
             type: "fill",
             source: "dosing-bbox",
-            paint: { "fill-color": "#ff7800", "fill-opacity": 0.1 }
+            paint: { "fill-color": "#ff7800", "fill-opacity": 0.1 },
           });
           map.addLayer({
             id: "dosing-bbox-outline",
             type: "line",
             source: "dosing-bbox",
-            paint: { "line-color": "#ff7800", "line-width": 2 }
+            paint: { "line-color": "#ff7800", "line-width": 2 },
           });
           map.fitBounds(
             [
               [west, south],
-              [renderEast, north]
+              [renderEast, north],
             ],
-            { padding: 20, duration: 0 }
+            { padding: 20, duration: 0 },
           );
         }
       }
@@ -337,14 +312,12 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
       </Text>
       <Box
         style={{
-          border: hasValidationErrors
-            ? "2px solid red"
-            : "1px solid var(--brand-twilight)",
+          border: hasValidationErrors ? "2px solid red" : "1px solid var(--brand-twilight)",
           borderRadius: "4px",
           padding: "8px",
           cursor: disabled || readonly ? "default" : "pointer",
           position: "relative",
-          height: "300px"
+          height: "300px",
         }}
         onClick={() => {
           if (!disabled && !readonly) {
@@ -361,7 +334,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
             borderRadius: "4px",
             position: "absolute",
             top: 0,
-            left: 0
+            left: 0,
           }}
         />
 
@@ -380,7 +353,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
               justifyContent: "center",
               backgroundColor: "var(--brand-sunlight-overlay)",
               borderRadius: "4px",
-              padding: "8px"
+              padding: "8px",
             }}
           >
             <IconMap size={32} style={{ marginBottom: "8px", opacity: 0.6 }} />
@@ -400,7 +373,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
                 position: "absolute",
                 top: "8px",
                 right: "8px",
-                zIndex: 10
+                zIndex: 10,
               }}
               onClick={(e) => {
                 e.stopPropagation();

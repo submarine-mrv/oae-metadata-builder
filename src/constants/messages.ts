@@ -2,19 +2,18 @@
 
 export const MESSAGES = {
   validation: {
-    temporalCoveragePattern:
-      "Start date and end date must be properly formatted",
+    temporalCoveragePattern: "Start date and end date must be properly formatted",
     spatialCoverage: "Spatial Coverage is required",
     experimentIdRequired: "Please select an experiment for your dataset.",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
     depthOrder: "Minimum depth must be greater than or equal to maximum depth.",
     temporalCoverageRequired: "Start date is required.",
-    temporalCoverageOrder: "End date must be ≥ start date."
+    temporalCoverageOrder: "End date must be ≥ start date.",
   },
   errors: {
     importFailed: (error: string) => `Failed to import metadata: ${error}`,
     fileReadFailed: "Failed to read file",
     jsonParseFailed: (error: string) => `Failed to parse JSON file: ${error}`,
-    mapLoadFailed: "Failed to load map library"
-  }
+    mapLoadFailed: "Failed to load map library",
+  },
 };

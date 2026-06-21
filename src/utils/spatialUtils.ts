@@ -46,13 +46,13 @@ export function prepareBoundsForRendering(
   west: number,
   south: number,
   east: number,
-  north: number
+  north: number,
 ) {
   return {
     renderWest: west,
     renderEast: adjustEastForAntimeridian(west, east),
     south,
-    north
+    north,
   };
 }
 
@@ -73,9 +73,7 @@ export function validateSpatialBounds(boxString: string): string | null {
   const [south, west, north, east] = parts.map(Number);
 
   // Check if all parts are valid numbers
-  if (
-    parts.some((part, i) => !Number.isFinite([south, west, north, east][i]))
-  ) {
+  if (parts.some((_part, i) => !Number.isFinite([south, west, north, east][i]))) {
     return "All values must be valid numbers";
   }
 
@@ -115,7 +113,7 @@ export function validateSpatialBounds(boxString: string): string | null {
  */
 export function resolveBoxFromClicks(
   click1: { lng: number; lat: number },
-  click2: { lng: number; lat: number }
+  click2: { lng: number; lat: number },
 ): { west: number; south: number; east: number; north: number } {
   const lng1 = normalizeLongitude(click1.lng);
   const lng2 = normalizeLongitude(click2.lng);
@@ -124,7 +122,7 @@ export function resolveBoxFromClicks(
   const wrapDistance = DEGREES_IN_CIRCLE - directDistance;
   const crossesAntimeridian = wrapDistance < directDistance;
 
-  let west, east;
+  let west: number, east: number;
   if (crossesAntimeridian) {
     west = Math.max(lng1, lng2);
     east = Math.min(lng1, lng2);
@@ -188,7 +186,7 @@ export function migrateFormDataBoxStrings(formData: Record<string, any>): Record
       result[key] = { ...value, geo: { ...value.geo, box: migrateLegacyBoxString(value.geo.box) } };
     } else if (Array.isArray(value)) {
       result[key] = value.map((item) =>
-        item && typeof item === "object" ? migrateFormDataBoxStrings(item) : item
+        item && typeof item === "object" ? migrateFormDataBoxStrings(item) : item,
       );
     } else if (value && typeof value === "object") {
       result[key] = migrateFormDataBoxStrings(value);
