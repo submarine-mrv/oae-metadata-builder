@@ -1,5 +1,6 @@
 [tools]
-node = "26"
+node = "24"
+npm = "11"
 
 # Optional: Configure mise behavior for this project
 [settings]
