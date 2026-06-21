@@ -24,6 +24,7 @@ The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://gi
 - **Icons**: Tabler Icons React
 - **Validation**: AJV JSON Schema validator
 - **Build Tool**: Vite
+- **Linting & Formatting**: Biome
 
 ## Getting Started
 
@@ -55,6 +56,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 - `npm run preview` - Preview the production build locally
 - `npm test` - Run unit tests (Vitest)
 - `npm run test:e2e` - Run end-to-end tests (Playwright)
+- `npm run check` - Lint and format check with Biome (enforced in CI)
+- `npm run check:fix` - Apply Biome lint and format fixes
 - `node scripts/bundle-schema.mjs` - Bundle JSON schema for human readable sea names labels
 
 ## Architecture
@@ -92,6 +95,10 @@ The application uses two configuration layers:
 2. **UI Schema** (colocated per page, e.g. `src/pages/project/uiSchema.ts`; shared pieces in `src/uiSchemaConstants.ts`) - Presentation layer, widget selection, field ordering, styling
 
 ## Development
+
+### Linting & Formatting
+
+[Biome](https://biomejs.dev/) handles linting and formatting (replacing ESLint/Prettier), mirroring the `oae-data-web` setup so components can be shared across repos. Config lives in `biome.json`; CI enforces it via `npm run check` in `.github/workflows/lint.yml`.
 
 ### Adding Custom Components
 
