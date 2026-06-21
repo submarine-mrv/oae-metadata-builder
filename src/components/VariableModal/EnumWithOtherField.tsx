@@ -1,4 +1,3 @@
-"use client";
 
 import { Select, TextInput, Grid } from "@mantine/core";
 import {

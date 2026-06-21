@@ -62,7 +62,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 1. Source schema from `submarine-mrv/oae-data-protocol`
 2. Schema bundling resolves references and adds controlled vocabulary labels
-3. Bundled schema served from `/public/schema.bundled.json`
+3. Bundled schema imported from `/src/schema/schema.bundled.json`
 4. Form generation driven by bundled schema + UI configuration
 
 ### Custom Components
@@ -87,7 +87,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 The application uses two configuration layers:
 
-1. **JSON Schema** (`/public/schema.bundled.json`) - Data structure, validation rules, field types
+1. **JSON Schema** (`/src/schema/schema.bundled.json`) - Data structure, validation rules, field types
 2. **UI Schema** (`src/app/uiSchema.ts`) - Presentation layer, widget selection, field ordering, styling
 
 ## Development

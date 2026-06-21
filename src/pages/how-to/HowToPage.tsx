@@ -1,4 +1,3 @@
-"use client";
 import { IconUser, IconShare, IconArrowRight } from "@tabler/icons-react";
 import {
 	Box,

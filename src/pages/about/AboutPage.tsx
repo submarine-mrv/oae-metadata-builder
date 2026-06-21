@@ -1,4 +1,3 @@
-"use client";
 import React from "react";
 import { Container, Title, Text, Stack, Paper, Anchor } from "@mantine/core";
 import AppLayout from "@/components/AppLayout";

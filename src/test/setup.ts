@@ -7,20 +7,6 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock Next.js router
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    refresh: vi.fn(),
-    prefetch: vi.fn()
-  }),
-  usePathname: () => '/',
-  useSearchParams: () => new URLSearchParams()
-}));
-
 // Mock window.URL
 global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 global.URL.revokeObjectURL = vi.fn();

@@ -18,7 +18,7 @@ export default defineConfig({
       reporter: ['text', 'html', 'json'],
       include: [
         'src/utils/**/*.{ts,tsx}',
-        'src/app/**/*.{ts,tsx}',
+        'src/pages/**/*.{ts,tsx}',
         'src/contexts/**/*.{ts,tsx}',
         'src/components/**/*.{ts,tsx}',
         'scripts/**/*.mjs'
@@ -27,8 +27,6 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/**/__tests__/**',
         'src/components/rjsf/**', // Skip RJSF custom widgets (mostly UI)
-        'src/app/**/layout.tsx',
-        'src/app/**/loading.tsx',
       ],
       thresholds: {
         lines: 70,

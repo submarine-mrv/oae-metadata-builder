@@ -55,7 +55,7 @@ import {
 import {
   NESTED_ITEM_BORDER_STYLE,
   NESTED_ITEM_BORDER_WIDTH,
-} from "@/app/uiSchemaConstants";
+} from "@/uiSchemaConstants";
 
 function isObjectSchema(schema: any): boolean {
   if (!schema) return false;

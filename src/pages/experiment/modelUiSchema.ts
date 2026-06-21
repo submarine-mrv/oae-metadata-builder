@@ -2,13 +2,13 @@
 // Inherits from experimentUiSchema and adds model-specific customizations
 
 import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
-import schema from "../../../public/schema.bundled.json";
+import schema from "@/schema/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import {
   textAreaWidget,
   nestedItemStyle,
   halfWidthStyle
-} from "../uiSchemaConstants";
+} from "@/uiSchemaConstants";
 import GridObjectFieldTemplate from "@/components/rjsf/GridObjectFieldTemplate";
 
 // Generate formatted enum names for model-specific enums

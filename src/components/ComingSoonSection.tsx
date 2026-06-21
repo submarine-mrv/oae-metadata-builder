@@ -1,4 +1,3 @@
-"use client";
 import { IconFileText, IconFlask, IconTemplate } from "@tabler/icons-react";
 import { Box, Container, Flex, Title, Text, Paper, Stack } from "@mantine/core";
 

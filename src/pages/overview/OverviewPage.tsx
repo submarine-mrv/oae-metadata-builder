@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect } from "react";
 import {
   Container,
@@ -25,9 +24,8 @@ import {
   IconAlertTriangle,
   IconCircleCheck
 } from "@tabler/icons-react";
-import Link from "next/link";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 
 export default function OverviewPage() {
@@ -48,7 +46,7 @@ export default function OverviewPage() {
     deleteDataset,
     duplicateDataset
   } = useAppState();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setActiveTab("overview");
@@ -60,7 +58,7 @@ export default function OverviewPage() {
   const handleCreateProject = () => {
     createProject();
     setActiveTab("project");
-    router.push("/project");
+    navigate({ to: "/project" });
   };
 
   const handleDeleteProject = (e: React.MouseEvent) => {
@@ -79,18 +77,18 @@ export default function OverviewPage() {
     const id = addExperiment();
     setActiveExperiment(id);
     setActiveTab("experiment");
-    router.push("/experiment");
+    navigate({ to: "/experiment" });
   };
 
   const handleEditProject = () => {
     setActiveTab("project");
-    router.push("/project");
+    navigate({ to: "/project" });
   };
 
   const handleEditExperiment = (id: number) => {
     setActiveExperiment(id);
     setActiveTab("experiment");
-    router.push("/experiment");
+    navigate({ to: "/experiment" });
   };
 
   const handleDeleteExperiment = (id: number, e: React.MouseEvent) => {
@@ -109,13 +107,13 @@ export default function OverviewPage() {
     const id = addDataset();
     setActiveDataset(id);
     setActiveTab("dataset");
-    router.push("/dataset");
+    navigate({ to: "/dataset" });
   };
 
   const handleEditDataset = (id: number) => {
     setActiveDataset(id);
     setActiveTab("dataset");
-    router.push("/dataset");
+    navigate({ to: "/dataset" });
   };
 
   const handleDeleteDataset = (id: number, e: React.MouseEvent) => {
@@ -222,7 +220,7 @@ export default function OverviewPage() {
             </Text>
             <Text size="sm" mt="xs">
               For more information, visit the{" "}
-              <Anchor component={Link} href="/about">
+              <Anchor component={Link} to="/about">
                 About page
               </Anchor>
               .

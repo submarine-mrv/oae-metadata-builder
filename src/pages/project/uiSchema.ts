@@ -1,13 +1,13 @@
 // uiSchema.ts
 
 // Generate formatted enum names from schema
-import schema from "../../../public/schema.bundled.json";
+import schema from "@/schema/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import {
   textAreaWidget,
   nestedItemStyle,
   halfWidthStyle
-} from "../uiSchemaConstants";
+} from "@/uiSchemaConstants";
 
 const enumNames = generateEnumNames(schema, [
   "MCDRPathway",

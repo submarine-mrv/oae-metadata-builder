@@ -161,7 +161,7 @@ test.describe("Conditional Dropdown Fields", () => {
 });
 
 test.describe("Import preserves conditional field values", () => {
-  const fixturePath = path.resolve(__dirname, "fixtures/conditional-import.json");
+  const fixturePath = path.resolve("e2e/fixtures/conditional-import.json");
 
   test("alkalinity feedstock and processing custom values survive import", async ({ page }) => {
     // Import the fixture file

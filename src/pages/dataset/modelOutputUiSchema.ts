@@ -1,38 +1,38 @@
-// uiSchema.ts - Dataset form UI schema configuration
+// modelOutputUiSchema.ts - UI configuration for model output datasets
+// Tailored for ModelOutputDataset schema fields
 
-import schema from "../../../public/schema.bundled.json";
+import schema from "@/schema/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import {
   textAreaWidget,
   nestedItemStyle,
   halfWidthStyle
-} from "../uiSchemaConstants";
+} from "@/uiSchemaConstants";
 
-const enumNames = generateEnumNames(schema, ["DatasetType", "DataProductType", "DataAccessibility", "ResearcherIDType"]);
+const enumNames = generateEnumNames(schema, ["DatasetType", "SimulationType", "ResearcherIDType"]);
 
-// UI schema configuration for dataset form
-const datasetUiSchema = {
+const modelOutputUiSchema = {
   "ui:title": "",
   "ui:options": {
     expandable: false
   },
   "ui:order": [
     "name",
-    "data_accessibility",
     "experiment_id",
     "description",
-    "temporal_coverage",
     "dataset_type",
-    "data_product_type",
+    "simulation_type",
+    "mcdr_forcing_description",
+    "start_datetime",
+    "end_datetime",
+    "model_output_variables",
+    "output_frequency",
+    "hardware_configuration",
     "filenames",
-    "platform_info",
     "data_submitter",
     "author_list_for_citation",
-    "qc_flag_scheme",
-    "calibration_files",
     "license",
     "fair_use_data_request",
-    "variables",
     "*"
   ],
   name: {
@@ -40,14 +40,7 @@ const datasetUiSchema = {
       "Brief descriptive sentence summarizing the dataset content",
     "ui:descriptionModal": true
   },
-  data_accessibility: {
-    ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": enumNames.DataAccessibility,
-    "ui:descriptionModal": true
-  },
   description: textAreaWidget,
-  // Project ID - hidden, auto-inferred from parent project
   project_id: {
     "ui:widget": "hidden"
   },
@@ -57,50 +50,76 @@ const datasetUiSchema = {
     "ui:title": "Experiment",
     "ui:descriptionModal": true
   },
-  temporal_coverage: {
-    "ui:widget": "IsoIntervalWidget",
-    "ui:title": "",
-    "ui:style": { width: "50%" },
-    "ui:options": {
-      endDateRequired: true
-    }
-  },
   dataset_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DatasetType
   },
-  // Hide dataset_type_custom - should render conditionally later
   dataset_type_custom: {
     "ui:widget": "hidden"
   },
-  data_product_type: {
+  simulation_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": enumNames.DataProductType
+    "ui:options": {
+      enumNames: enumNames.SimulationType
+    }
+  },
+  mcdr_forcing_description: textAreaWidget,
+  start_datetime: {
+    ...halfWidthStyle,
+    "ui:widget": "DateTimeWidget",
+    "ui:title": "Simulation Start",
+    "ui:description": "Start date and time of simulation in UTC"
+  },
+  end_datetime: {
+    ...halfWidthStyle,
+    "ui:widget": "DateTimeWidget",
+    "ui:title": "Simulation End",
+    "ui:description": "End date and time of simulation in UTC"
+  },
+  model_output_variables: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:options": {
+      placeholder: "Search output variables…"
+    }
+  },
+  output_frequency: {
+    ...halfWidthStyle,
+    "ui:placeholder": "e.g., daily, monthly, hourly"
+  },
+  hardware_configuration: {
+    "ui:style": nestedItemStyle,
+    "ui:order": [
+      "machine",
+      "cpu_gpu_details",
+      "parallelization",
+      "memory",
+      "storage",
+      "operating_system"
+    ],
+    machine: {
+      "ui:placeholder": "e.g., NOAA Gaea, NCAR Cheyenne"
+    },
+    cpu_gpu_details: {
+      "ui:placeholder": "e.g., 2x Intel Xeon, 128 cores"
+    },
+    parallelization: {
+      "ui:placeholder": "e.g., MPI with 256 ranks"
+    },
+    memory: {
+      "ui:placeholder": "e.g., 512 GB"
+    },
+    storage: {
+      "ui:placeholder": "e.g., 10 TB output"
+    },
+    operating_system: {
+      "ui:placeholder": "e.g., CentOS 7"
+    }
   },
   filenames: {
     "ui:field": "FilenamesField",
-    "ui:title": "Dataset Filenames"
-  },
-  platform_info: {
-    "ui:style": nestedItemStyle,
-    "ui:order": ["name", "platform_type", "platform_id", "owner", "country"],
-    name: {
-      "ui:placeholder": "e.g., R/V Wecoma"
-    },
-    platform_type: {
-      "ui:widget": "CustomSelectWidget"
-    },
-    platform_id: {
-      "ui:placeholder": "Unique identifier for the platform"
-    },
-    owner: {
-      "ui:placeholder": "Institution that owns the platform"
-    },
-    country: {
-      "ui:placeholder": "e.g., US"
-    }
   },
   data_submitter: {
     "ui:style": nestedItemStyle,
@@ -154,13 +173,6 @@ const datasetUiSchema = {
     "ui:placeholder": "Lastname1, Firstname1; Lastname2, Firstname2; ...",
     "ui:descriptionModal": true
   },
-  qc_flag_scheme: {
-    ...textAreaWidget,
-    "ui:placeholder": "Describe what quality control flags stand for..."
-  },
-  calibration_files: {
-    "ui:field": "FilenamesField"
-  },
   license: {
     ...textAreaWidget,
     "ui:placeholder": "License terms for data usage (e.g., CC BY 4.0)"
@@ -168,11 +180,7 @@ const datasetUiSchema = {
   fair_use_data_request: {
     ...textAreaWidget,
     "ui:placeholder": "Statement regarding how this dataset should be used"
-  },
-  // Variables field - rendered as a custom field with table and modal
-  variables: {
-    "ui:field": "VariablesField"
   }
 };
 
-export default datasetUiSchema;
+export default modelOutputUiSchema;

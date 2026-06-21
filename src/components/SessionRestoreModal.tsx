@@ -1,4 +1,3 @@
-"use client";
 import React from "react";
 import { Modal, Text, Group, Button, Stack } from "@mantine/core";
 import type { SavedSession } from "@/hooks/useSessionPersistence";

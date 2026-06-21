@@ -3,7 +3,6 @@
  *
  * For vertical layout, use IsoIntervalWidgetVertical instead.
  */
-"use client";
 
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";

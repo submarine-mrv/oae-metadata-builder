@@ -7,13 +7,13 @@
 //
 // See docs/experiment-type-multi-select.md for schema selection rules.
 
-import schema from "../../../public/schema.bundled.json";
+import schema from "@/schema/schema.bundled.json";
 import { generateEnumNames } from "@/utils/enumDecorator";
 import {
   textAreaWidget,
   nestedItemStyle,
   halfWidthStyle
-} from "../uiSchemaConstants";
+} from "@/uiSchemaConstants";
 
 const enumNames = generateEnumNames(schema, [
   "ResearcherIDType",

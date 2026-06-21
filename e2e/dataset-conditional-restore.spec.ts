@@ -15,11 +15,7 @@ import path from "path";
  * Fix: useRef for isInitialLoad (synchronous reads) + RJSF 6.4 upgrade.
  */
 test.describe("Dataset Conditional Field Restore", () => {
-  const fixtureFile = path.join(
-    __dirname,
-    "fixtures",
-    "dataset-conditional-import.json"
-  );
+  const fixtureFile = path.resolve("e2e/fixtures/dataset-conditional-import.json");
 
   test("mcdr_forcing_description renders as proper field after import, not as additionalProperties", async ({
     page,

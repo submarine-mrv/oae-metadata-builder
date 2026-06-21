@@ -1,4 +1,3 @@
-"use client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { AppFormState } from "@/types/forms";
 import type { ExperimentData, DatasetData } from "@/contexts/AppStateContext";

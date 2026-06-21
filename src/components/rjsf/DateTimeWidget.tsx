@@ -1,4 +1,3 @@
-"use client";
 import * as React from "react";
 import { WidgetProps } from "@rjsf/utils";
 import { TextInput, Box } from "@mantine/core";
