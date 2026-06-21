@@ -243,7 +243,7 @@ function renderInput(
         label={label}
         placeholder={getPlaceholder() || "YYYY-MM-DDTHH:MM:SSZ"}
         value={String(currentValue || "")}
-        onChange={(e) => handleChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value === "" ? undefined : e.target.value)}
       />
     );
   }
@@ -255,7 +255,7 @@ function renderInput(
         label={label}
         placeholder={getPlaceholder()}
         value={String(currentValue || "")}
-        onChange={(e) => handleChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value === "" ? undefined : e.target.value)}
         autosize={!rows}
         minRows={rows || 2}
         maxRows={rows || 6}
@@ -269,7 +269,7 @@ function renderInput(
       label={label}
       placeholder={getPlaceholder()}
       value={String(currentValue || "")}
-      onChange={(e) => handleChange(e.target.value)}
+      onChange={(e) => handleChange(e.target.value === "" ? undefined : e.target.value)}
     />
   );
 }

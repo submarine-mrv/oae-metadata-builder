@@ -78,7 +78,7 @@ export default function EnumWithOtherField({
   };
 
   const handleCustomChange = (value: string) => {
-    const newFormData = setNestedValue(formData, customFieldPath, value);
+    const newFormData = setNestedValue(formData, customFieldPath, value || undefined);
     onChange(newFormData);
   };
 

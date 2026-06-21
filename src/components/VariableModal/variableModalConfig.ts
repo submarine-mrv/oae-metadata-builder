@@ -6,7 +6,12 @@
  * - VARIABLE_TYPE_OPTIONS: User-facing dropdown options
  * - getAccordionConfig(): Builds per-type accordion sections from layer stacks
  * - VARIABLE_TYPE_LAYERS: Maps schema keys to their hierarchy layer stacks
- * - normalizeVariableFields(): Fixes inconsistencies on import/load
+ * - normalizeVariableFields(): Fixes inconsistencies on import/load (also used by exportImport.ts)
+ * - stripExtraVariableFields(): AJV-based schema-driven field stripping (also used by exportImport.ts, datasetValidation.ts)
+ *
+ * Note: normalizeVariableFields and stripExtraVariableFields are shared utilities used
+ * beyond the modal — by the import pipeline and dataset validator. A future refactor
+ * could move them to src/utils/variableUtils.ts once variable TypeScript types exist.
  *
  * Field organization uses a hierarchy-aware layer system that mirrors LinkML classes:
  * - Each HierarchyLayer corresponds to a level in the LinkML class tree
@@ -34,6 +39,8 @@
  */
 
 import type { ComponentType } from "react";
+import Ajv2019 from "ajv/dist/2019";
+import type { JSONSchema } from "@/components/schemaUtils";
 import {
   IconInfoCircle,
   IconFlask,
@@ -1386,4 +1393,74 @@ export function getPlaceholderOverride(
     | Record<string, string>
     | undefined;
   return overrides?.[fieldPath];
+}
+
+// Dedicated AJV instance for field stripping only — never used for user-facing validation
+const stripAjv = new Ajv2019({ removeAdditional: true, strict: false });
+
+// WeakMap keyed by rootSchema object so validators are cache-correct when different
+// schemas are used (e.g., in tests). In production the app has one immutable bundled
+// schema, so the WeakMap always resolves to the same inner Map.
+const stripValidatorCache = new WeakMap<
+  object,
+  Map<string, ReturnType<typeof stripAjv.compile>>
+>();
+
+// AJV's removeAdditional is skipped when any required keyword fails — which happens
+// whenever the user switches variable types and required fields from the new type are
+// missing. Dropping required throughout the schema makes removeAdditional unconditional.
+function dropRequired(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(dropRequired);
+  const { required: _required, ...rest } = value as Record<string, unknown>;
+  return Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, dropRequired(v)]));
+}
+
+/**
+ * Strips fields from a variable that are not valid for its schema_class.
+ *
+ * Uses AJV's removeAdditional feature to recursively remove any properties
+ * not present in the schema, including nested objects (e.g., calibration fields
+ * that don't belong to the current instrument type).
+ *
+ * required keywords are removed from the compiled schema so that stripping works
+ * even when the variable is mid-transition (e.g., type switch left required fields
+ * from the new type unpopulated). Validation (not stripping) enforces required fields.
+ *
+ * Compiled validators are cached per (rootSchema, schema_class) pair — correct
+ * across different schema objects and zero-overhead in the common single-schema case.
+ *
+ * @param variable - Variable data (must have a schema_class field)
+ * @param rootSchema - The full bundled schema containing $defs
+ * @returns A new variable object with extra fields removed, or the original if schema_class is unknown
+ */
+export function stripExtraVariableFields(
+  variable: Record<string, unknown>,
+  rootSchema: JSONSchema
+): Record<string, unknown> {
+  const schemaClass = variable.schema_class as string | undefined;
+  if (!schemaClass) return variable;
+
+  const defs = (rootSchema as Record<string, unknown>)["$defs"] as
+    | Record<string, JSONSchema>
+    | undefined;
+  if (!defs?.[schemaClass]) return variable;
+
+  let classCache = stripValidatorCache.get(rootSchema as object);
+  if (!classCache) {
+    classCache = new Map();
+    stripValidatorCache.set(rootSchema as object, classCache);
+  }
+
+  let validate = classCache.get(schemaClass);
+  if (!validate) {
+    const stripSchema = dropRequired({ ...defs[schemaClass], $defs: defs });
+    validate = stripAjv.compile(stripSchema as object);
+    classCache.set(schemaClass, validate);
+  }
+
+  // Deep clone — AJV mutates the data object in place
+  const copy = JSON.parse(JSON.stringify(variable)) as Record<string, unknown>;
+  validate(copy);
+  return copy;
 }

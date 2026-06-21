@@ -37,6 +37,8 @@ import Ajv2019 from "ajv/dist/2019";
 import type { RJSFValidationError, RJSFSchema } from "@rjsf/utils";
 import { resolveRef, type JSONSchema } from "@/components/schemaUtils";
 import type { DatasetFormData, FormDataRecord } from "@/types/forms";
+import { stripExtraVariableFields } from "@/components/VariableModal/variableModalConfig";
+import { cleanVariableData } from "@/utils/formDataCleanup";
 
 // Create validator with Draft 2019-09 support (same as rest of app)
 const validator = customizeValidator({ AjvClass: Ajv2019 });
@@ -183,17 +185,19 @@ function validateVariable(
     $defs: rootSchema.$defs
   } as RJSFSchema;
 
-  // Only keep fields that exist in the target schema.
-  // Only keep fields that exist in the target schema. This strips fields from the type
-  // selection that don't belong in this variable type. schema_class is a real
-  // schema field (designates_type) so it stays.
-  const schemaProps = new Set(Object.keys(variableSchema.properties || {}));
-  const cleanedVariable = Object.fromEntries(
-    Object.entries(variable).filter(([key]) => schemaProps.has(key))
+  // Strip extra fields (including nested) before validation so orphaned fields
+  // from type-switching don't generate false-positive errors. Then strip empty
+  // strings so AJV's `required` check treats "" the same as absent — Mantine
+  // text inputs write "" when cleared, which otherwise passes required + type:string.
+  const cleanedVariable = cleanVariableData(
+    stripExtraVariableFields(variable, rootSchema) as Record<string, unknown>
   );
 
   // Validate the variable against its specific schema
-  const result = validator.validateFormData(cleanedVariable, completeSchema);
+  const result = validator.validateFormData(
+    cleanedVariable,
+    completeSchema
+  );
 
   // Convert RJSF errors to simple messages
   result.errors.forEach((error) => {

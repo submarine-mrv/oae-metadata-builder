@@ -1,7 +1,7 @@
 // formDataCleanup.test.ts - Tests for form data cleaning helpers
 
 import { describe, it, expect } from "vitest";
-import { cleanFormData, isFormEmpty } from "../formDataCleanup";
+import { cleanFormData, cleanVariableData, isFormEmpty } from "../formDataCleanup";
 
 describe("cleanFormData", () => {
   it("returns a new object reference for root-level data", () => {
@@ -152,5 +152,57 @@ describe("isFormEmpty", () => {
 
   it("returns false when an array has items", () => {
     expect(isFormEmpty({ tags: ["a"] })).toBe(false);
+  });
+});
+
+describe("cleanVariableData", () => {
+  it("strips null and undefined like cleanFormData", () => {
+    const result = cleanVariableData({
+      a: "x",
+      b: null,
+      c: undefined
+    } as Record<string, unknown>);
+    expect(result).toEqual({ a: "x" });
+  });
+
+  it("strips empty strings — the key difference from cleanFormData", () => {
+    const result = cleanVariableData({
+      name: "kept",
+      measurement_temperature: "",
+      ph_reported_temperature: ""
+    } as Record<string, unknown>);
+    expect(result).toEqual({ name: "kept" });
+  });
+
+  it("strips nested empty strings", () => {
+    const result = cleanVariableData({
+      schema_class: "DiscretePHVariable",
+      instrument: { make: "SeaBird", calibration_date: "" }
+    } as Record<string, unknown>);
+    expect(result).toEqual({
+      schema_class: "DiscretePHVariable",
+      instrument: { make: "SeaBird" }
+    });
+  });
+
+  it("drops a nested object that becomes empty after empty-string stripping", () => {
+    const result = cleanVariableData({
+      schema_class: "DiscretePHVariable",
+      instrument: { make: "", model: "" }
+    } as Record<string, unknown>);
+    expect(result).toEqual({ schema_class: "DiscretePHVariable" });
+  });
+
+  it("preserves falsy non-empty values (0, false)", () => {
+    const result = cleanVariableData({
+      count: 0,
+      flag: false
+    } as Record<string, unknown>);
+    expect(result).toEqual({ count: 0, flag: false });
+  });
+
+  it("keeps the root object even when all values are stripped", () => {
+    const result = cleanVariableData({ a: "" } as Record<string, unknown>);
+    expect(result).toEqual({});
   });
 });
