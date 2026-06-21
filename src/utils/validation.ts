@@ -28,6 +28,13 @@ export interface ValidationResult {
   isValid: boolean;
   errors: RJSFValidationError[];
   errorCount: number;
+  /**
+   * Per-variable errors keyed by index in the dataset's `variables` array,
+   * grouped from the single validation pass. Only populated by validateDataset.
+   * An index absent from the map means that variable has no errors. This is the
+   * one source the badge, the overview check, and the variable-table (!) all read.
+   */
+  errorsByVariableIndex?: Map<number, RJSFValidationError[]>;
 }
 
 // =============================================================================
@@ -212,12 +219,25 @@ export function validateDataset(
       errors = errors.filter((e) => !isExperimentIdRequiredError(e));
     }
 
+    // Group per-variable errors by index from this same pass, so the variable
+    // table's (!) indicator derives from the same validation as the badge.
+    const errorsByVariableIndex = new Map<number, RJSFValidationError[]>();
+    for (const e of errors) {
+      const match = /^\.variables\[(\d+)\]/.exec(e.property ?? "");
+      if (!match) continue;
+      const i = Number(match[1]);
+      const list = errorsByVariableIndex.get(i) ?? [];
+      list.push(e);
+      errorsByVariableIndex.set(i, list);
+    }
+
     const errorCount = errors.length;
 
     return {
       isValid: errorCount === 0,
       errors,
       errorCount,
+      errorsByVariableIndex,
     };
   } catch (error) {
     console.error("Error validating dataset:", error);

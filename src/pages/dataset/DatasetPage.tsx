@@ -290,7 +290,10 @@ export default function DatasetPage() {
             liveOmit={false}
             liveValidate
             noHtml5Validate
-            formContext={{ onCloseErrorList: validation.closeErrorList }}
+            formContext={{
+              onCloseErrorList: validation.closeErrorList,
+              variableErrors: validationResult.errorsByVariableIndex
+            }}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",
