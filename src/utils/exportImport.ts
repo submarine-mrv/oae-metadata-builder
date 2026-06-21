@@ -1,8 +1,5 @@
 import type { JSONSchema } from "@/components/schemaUtils";
-import {
-  normalizeVariableFields,
-  stripExtraVariableFields,
-} from "@/components/VariableModal/variableModalConfig";
+import { parseVariables } from "@/utils/parseVariable";
 import type {
   DatasetFormData,
   DatasetState,
@@ -147,20 +144,14 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         // Convert dataset data to DatasetState format
         const datasets: DatasetState[] = migratedDatasets.map(
           (dsData: DatasetFormData, index: number) => {
-            // Normalize variable fields on import (fix inconsistencies)
-            const rawVars = Array.isArray(dsData.variables) ? dsData.variables : [];
+            // Parse variables at the import boundary so stored data is clean
+            // (consistent type fields, no extra fields, no empty strings).
             dsData = {
               ...dsData,
-              variables: rawVars
-                .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
-                .map((v) =>
-                  cleanVariableData(
-                    stripExtraVariableFields(
-                      normalizeVariableFields(v),
-                      getBaseSchema() as JSONSchema,
-                    ) as Record<string, unknown>,
-                  ),
-                ),
+              variables: parseVariables(
+                dsData.variables,
+                getBaseSchema() as JSONSchema,
+              ),
             };
             return {
               id: index + 1,
