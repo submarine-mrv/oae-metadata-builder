@@ -8,11 +8,11 @@ afterEach(() => {
 });
 
 // Mock window.URL
-global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-global.URL.revokeObjectURL = vi.fn();
+globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+globalThis.URL.revokeObjectURL = vi.fn();
 
 // Mock window.scrollTo
-global.scrollTo = vi.fn();
+globalThis.scrollTo = vi.fn();
 
 // Mock ResizeObserver (required for Mantine Select/Combobox components)
 class MockResizeObserver {
@@ -20,7 +20,7 @@ class MockResizeObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
 }
-global.ResizeObserver = MockResizeObserver as any;
+globalThis.ResizeObserver = MockResizeObserver as any;
 
 // Mock window.matchMedia (required for Mantine components)
 Object.defineProperty(window, 'matchMedia', {
@@ -80,4 +80,4 @@ class MockBlob {
   }
 }
 
-global.Blob = vi.fn((parts: any[], options?: any) => new MockBlob(parts, options)) as any;
+globalThis.Blob = vi.fn((parts: any[], options?: any) => new MockBlob(parts, options)) as any;
