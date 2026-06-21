@@ -34,7 +34,7 @@
     "@tabler/icons-react": "3.34.1",
     "@tailwindcss/vite": "^4",
     "@tanstack/react-router": "^1.160.2",
-    "ajv": "8.17.1",
+    "ajv": "^8.20.0",
     "ajv-formats": "2.1.1",
     "dayjs": "^1.11.18",
     "react": "19.1.0",
