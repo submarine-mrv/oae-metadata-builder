@@ -1,5 +1,5 @@
 [tools]
-node = "20.12.0"
+node = "26"
 
 # Optional: Configure mise behavior for this project
 [settings]
