@@ -21,6 +21,9 @@ export type AppState = AppFormState;
 
 import { cleanFormData } from "@/utils/formDataCleanup";
 import { migrateFormData } from "@/utils/migrations";
+import { parseVariables } from "@/utils/parseVariable";
+import { getBaseSchema } from "@/utils/schemaViews";
+import type { JSONSchema } from "@/components/schemaUtils";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -1003,10 +1006,22 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ...exp,
         formData: cleanFormData(migrateFormData(exp.formData)) as ExperimentFormData,
       }));
-      const cleanedDatasets = saved.datasets.map((ds) => ({
-        ...ds,
-        formData: cleanFormData(migrateFormData(ds.formData)) as DatasetFormData,
-      }));
+      const cleanedDatasets = saved.datasets.map((ds) => {
+        const migrated = migrateFormData(ds.formData);
+        // Parse variables at the restore boundary so stored data is clean and
+        // can be validated directly (empty arrays are dropped by cleanFormData).
+        const withParsedVars = {
+          ...migrated,
+          variables: parseVariables(
+            migrated.variables,
+            getBaseSchema() as unknown as JSONSchema,
+          ),
+        };
+        return {
+          ...ds,
+          formData: cleanFormData(withParsedVars) as DatasetFormData,
+        };
+      });
       setState((prev) => ({
         ...prev,
         hasProject: saved.hasProject,

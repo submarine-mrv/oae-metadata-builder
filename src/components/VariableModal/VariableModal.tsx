@@ -16,6 +16,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconCategory, IconCheck, IconChevronDown } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { parseVariable } from "@/utils/parseVariable";
 import {
   fieldExistsInSchema,
   getFieldSchema,
@@ -273,7 +274,7 @@ export default function VariableModal({
       schema_class: schemaKey,
       variable_type: effectiveType,
     };
-    onSave(stripExtraVariableFields(rawVariable, rootSchema));
+    onSave(parseVariable(rawVariable, rootSchema));
   };
 
   // Handle accordion section click - auto-collapse others unless using chevron
