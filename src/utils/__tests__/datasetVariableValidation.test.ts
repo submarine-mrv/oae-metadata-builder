@@ -105,4 +105,38 @@ describe("validateDataset — polymorphic variables", () => {
       false
     );
   });
+
+  it("groups per-variable errors by index for the (!) indicator", () => {
+    const result = validateDataset(
+      {
+        ...baseDataset,
+        variables: [
+          {
+            schema_class: "DiscretePHVariable",
+            dataset_variable_name: "pH_total",
+            long_name: "pH"
+          },
+          {
+            schema_class: "DiscreteCO2Variable",
+            dataset_variable_name: "xco2",
+            long_name: "co2"
+          }
+        ]
+      },
+      { hasExperiments: true }
+    );
+
+    const byIndex = result.errorsByVariableIndex;
+    expect(byIndex).toBeDefined();
+    // Each incomplete variable has its own bucket of errors...
+    expect(byIndex?.get(0)?.length ?? 0).toBeGreaterThan(0);
+    expect(byIndex?.get(1)?.length ?? 0).toBeGreaterThan(0);
+    // ...labeled for the right variable (no cross-contamination between buckets).
+    expect(
+      byIndex?.get(0)?.every((e) => e.message?.startsWith("Variable 'pH_total':"))
+    ).toBe(true);
+    expect(
+      byIndex?.get(1)?.every((e) => e.message?.startsWith("Variable 'xco2':"))
+    ).toBe(true);
+  });
 });
