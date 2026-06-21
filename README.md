@@ -18,19 +18,19 @@ The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://gi
 
 ## Technology Stack
 
-- **Frontend Framework**: Next.js 15 with App Router
+- **Frontend Framework**: React 19 with Vite and TanStack Router (file-based routing)
 - **Form Engine**: React JSON Schema Forms (RJSF) with `@rjsf/mantine`
 - **UI Components**: Mantine v8 design system
 - **Icons**: Tabler Icons React
 - **Validation**: AJV JSON Schema validator
-- **Build Tool**: Turbopack for fast development
+- **Build Tool**: Vite
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm, yarn, pnpm, or bun
+- Node.js 26 (see `.mise.toml`)
+- npm
 
 ### Installation
 
@@ -50,10 +50,11 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ### Available Scripts
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run dev` - Start the Vite dev server (port 3000)
+- `npm run build` - Build for production (generates the route tree, type-checks with `tsc -b`, then `vite build`)
+- `npm run preview` - Preview the production build locally
+- `npm test` - Run unit tests (Vitest)
+- `npm run test:e2e` - Run end-to-end tests (Playwright)
 - `node scripts/bundle-schema.mjs` - Bundle JSON schema for human readable sea names labels
 
 ## Architecture
