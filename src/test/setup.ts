@@ -1,6 +1,6 @@
-import '@testing-library/jest-dom';
-import { cleanup } from '@testing-library/react';
-import { afterEach, beforeAll, afterAll, vi } from 'vitest';
+import "@testing-library/jest-dom";
+import { cleanup } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
 // Auto-cleanup after each test
 afterEach(() => {
@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 // Mock window.URL
-globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-url");
 globalThis.URL.revokeObjectURL = vi.fn();
 
 // Mock window.scrollTo
@@ -23,9 +23,9 @@ class MockResizeObserver {
 globalThis.ResizeObserver = MockResizeObserver as any;
 
 // Mock window.matchMedia (required for Mantine components)
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -40,7 +40,7 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock window.addEventListener (for some components)
 const originalAddEventListener = window.addEventListener;
 window.addEventListener = vi.fn((event, handler, options) => {
-  if (typeof handler === 'function') {
+  if (typeof handler === "function") {
     originalAddEventListener(event, handler, options);
   }
 });
@@ -50,10 +50,10 @@ const originalError = console.error;
 beforeAll(() => {
   console.error = (...args: any[]) => {
     if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('Warning: ReactDOM.render') ||
-       args[0].includes('useAppState must be used within') ||
-       args[0].includes('Not implemented: navigation'))
+      typeof args[0] === "string" &&
+      (args[0].includes("Warning: ReactDOM.render") ||
+        args[0].includes("useAppState must be used within") ||
+        args[0].includes("Not implemented: navigation"))
     ) {
       return;
     }
@@ -76,7 +76,7 @@ class MockBlob {
   }
 
   get type() {
-    return this.options?.type || '';
+    return this.options?.type || "";
   }
 }
 
