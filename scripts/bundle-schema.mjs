@@ -290,6 +290,75 @@ function inlineEnumArrayItems(schema, configs) {
   return schema;
 }
 
+// Converts a polymorphic variable union from a bare `anyOf` into a discriminated
+// `oneOf` keyed on `schema_class`. Each variable subclass pins `schema_class` to a
+// single-value enum (LinkML designates_type).
+//
+// What this does and does NOT buy: that per-class enum tag alone already makes the
+// branches mutually exclusive, so validation *correctness* (accept/reject) does not
+// need a discriminator. What Ajv's `discriminator` keyword adds is error *routing* —
+// on failure it reports only the matching branch's errors instead of an 18-way
+// oneOf wall. That clean routing is the point: it lets one AJV pass validate a
+// dataset's variables inline with usable per-variable errors, replacing the
+// per-variable manual routing the app would otherwise do by hand.
+//
+// `discriminator` is an OpenAPI/AJV extension, NOT standard JSON Schema. The
+// standards-track long-term replacement is JSON Schema's `propertyDependencies`
+// keyword (value-keyed subschema selection — the same routing without the
+// extension): proposed in json-schema-org/json-schema-spec#1082, merged to the
+// draft-next branch in PR #1143, slated for the next stable release (JSON Schema
+// v1, ~2026). This transform can be retired once that ships AND LinkML emits it.
+//
+// Why this lives downstream and not in LinkML: the JSON Schema generator hardcodes
+// `anyOf` for type-designator/descendant unions and emits neither `discriminator`
+// nor `propertyDependencies` — `designates_type` only emits the per-class
+// `schema_class` enum tag, with no generator flag to change this. Upstream tracking
+// of the type-designator JSON Schema gaps: https://github.com/linkml/linkml/issues/1681
+// (attempted in https://github.com/linkml/linkml/pull/1617). Being an app-internal
+// validation concern, it also belongs in this bundle, not the protocol's published
+// interoperability schema.
+//
+// Any validator that compiles the resulting union must set Ajv's
+// `discriminator: true` option.
+function discriminateVariableUnions(schema, configs) {
+  for (const { defName, fieldPath, propertyName } of configs) {
+    const classDef = schema.$defs?.[defName];
+    if (!classDef) {
+      console.warn(`⚠️  discriminateVariableUnions: $defs.${defName} not found`);
+      continue;
+    }
+
+    // Navigate to the parent of the target node (e.g. properties.variables.items)
+    const parts = fieldPath.split(".");
+    let parent = classDef;
+    for (let i = 0; i < parts.length - 1; i++) {
+      parent = parent?.[parts[i]];
+    }
+    const lastKey = parts[parts.length - 1];
+    const target = parent?.[lastKey];
+
+    if (!target || !Array.isArray(target.anyOf)) {
+      console.warn(
+        `⚠️  discriminateVariableUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
+      );
+      continue;
+    }
+
+    const { anyOf, ...rest } = target;
+    parent[lastKey] = {
+      ...rest,
+      oneOf: anyOf,
+      discriminator: { propertyName }
+    };
+
+    console.log(
+      `✓ Discriminated ${defName}.${fieldPath} on "${propertyName}" (${anyOf.length} branches)`
+    );
+  }
+
+  return schema;
+}
+
 // NVS decoration configurations
 // Add new entries here when adding more NVS vocabularies
 const nvsDecorations = [
@@ -343,6 +412,15 @@ if (decorated.$defs?.ModelOutputDataset?.if?.properties?.simulation_type) {
     `✓ Patched ModelOutputDataset.if to require simulation_type contains "perturbation"`
   );
 }
+
+// Discriminate the polymorphic variables union on schema_class.
+decorated = discriminateVariableUnions(decorated, [
+  {
+    defName: "FieldDataset",
+    fieldPath: "properties.variables.items",
+    propertyName: "schema_class"
+  }
+]);
 
 // Add x-protocol-git-hash field to root schema if git hash is provided
 if (protocolGitHash) {
