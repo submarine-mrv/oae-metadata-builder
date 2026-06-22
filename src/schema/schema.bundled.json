@@ -3809,7 +3809,7 @@
         },
         "variables": {
           "items": {
-            "anyOf": [
+            "oneOf": [
               {
                 "$ref": "#/$defs/NonMeasuredVariable"
               },
@@ -3864,7 +3864,10 @@
               {
                 "$ref": "#/$defs/DiscretePhysiologicalVariable"
               }
-            ]
+            ],
+            "discriminator": {
+              "propertyName": "schema_class"
+            }
           },
           "title": "Variables",
           "type": [
