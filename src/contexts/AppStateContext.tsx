@@ -19,11 +19,11 @@ export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
 
+import type { JSONSchema } from "@/components/schemaUtils";
 import { cleanFormData } from "@/utils/formDataCleanup";
 import { migrateFormData } from "@/utils/migrations";
 import { parseVariables } from "@/utils/parseVariable";
 import { getBaseSchema } from "@/utils/schemaViews";
-import type { JSONSchema } from "@/components/schemaUtils";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -1012,10 +1012,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         // can be validated directly (empty arrays are dropped by cleanFormData).
         const withParsedVars = {
           ...migrated,
-          variables: parseVariables(
-            migrated.variables,
-            getBaseSchema() as unknown as JSONSchema,
-          ),
+          variables: parseVariables(migrated.variables, getBaseSchema() as unknown as JSONSchema),
         };
         return {
           ...ds,

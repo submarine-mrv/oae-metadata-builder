@@ -18,10 +18,13 @@ import {
 // Create validator with Draft 2019-09 support. `discriminator: true` lets AJV
 // route each polymorphic variable to its schema_class branch (oneOf +
 // discriminator) and report branch-targeted errors. Harmless for schemas
-// without a discriminator keyword (project, experiment).
+// without a discriminator keyword (project, experiment). `discriminator` is an
+// OpenAPI/AJV extension; its standards-track long-term replacement is JSON Schema
+// `propertyDependencies` (JSON Schema v1, ~2026) — full rationale in
+// scripts/bundle-schema.mjs.
 const validator = customizeValidator({
   AjvClass: Ajv2019,
-  ajvOptionsOverrides: { discriminator: true }
+  ajvOptionsOverrides: { discriminator: true },
 });
 
 export interface ValidationResult {
@@ -141,7 +144,7 @@ function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
  */
 function relabelVariableError(
   e: RJSFValidationError,
-  datasetData: DatasetFormData
+  datasetData: DatasetFormData,
 ): RJSFValidationError {
   const prop = e.property ?? "";
   const match = /^\.variables(?:\.|\[)(\d+)\]?(.*)$/.exec(prop);
@@ -153,14 +156,11 @@ function relabelVariableError(
   // additionalProperties errors report on the parent object — the offending key
   // is in params, not the path — so append it.
   if (e.name === "additionalProperties") {
-    const extra = (e.params as { additionalProperty?: string } | undefined)
-      ?.additionalProperty;
+    const extra = (e.params as { additionalProperty?: string } | undefined)?.additionalProperty;
     if (extra) fieldPath = fieldPath ? `${fieldPath}.${extra}` : `.${extra}`;
   }
 
-  const variables = datasetData.variables as
-    | Array<Record<string, unknown>>
-    | undefined;
+  const variables = datasetData.variables as Array<Record<string, unknown>> | undefined;
   const variable = variables?.[index];
   const variableName =
     (variable?.dataset_variable_name as string) ||

@@ -4,7 +4,7 @@ import { IconAlertCircle, IconCopy, IconPencil, IconPlus, IconTrash } from "@tab
 import type React from "react";
 import { useState } from "react";
 import { brandColors } from "@/theme";
-import { type JSONSchema } from "./schemaUtils";
+import type { JSONSchema } from "./schemaUtils";
 import VariableModal from "./VariableModal/VariableModal";
 import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
 
@@ -137,8 +137,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                     <Group gap="xs">
                       {(variable.dataset_variable_name as string) || "(unnamed)"}
                       {(() => {
-                        const issues =
-                          formContext?.variableErrors?.get(index)?.length ?? 0;
+                        const issues = formContext?.variableErrors?.get(index)?.length ?? 0;
                         if (issues > 0) {
                           return (
                             <Tooltip

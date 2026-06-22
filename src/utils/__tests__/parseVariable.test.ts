@@ -1,8 +1,8 @@
-import { describe, it, expect, expectTypeOf } from "vitest";
-import { parseVariable } from "@/utils/parseVariable";
-import { getBaseSchema } from "@/utils/schemaViews";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import type { JSONSchema } from "@/components/schemaUtils";
 import type { DraftVariable } from "@/types/variable";
+import { parseVariable } from "@/utils/parseVariable";
+import { getBaseSchema } from "@/utils/schemaViews";
 
 const root = getBaseSchema() as unknown as JSONSchema;
 
@@ -13,9 +13,9 @@ describe("parseVariable", () => {
         schema_class: "DiscretePHVariable",
         long_name: "pH",
         not_a_field: "x",
-        cleared: ""
+        cleared: "",
       },
-      root
+      root,
     );
 
     expect(result.schema_class).toBe("DiscretePHVariable");

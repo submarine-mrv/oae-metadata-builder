@@ -1,5 +1,4 @@
 import type { JSONSchema } from "@/components/schemaUtils";
-import { parseVariables } from "@/utils/parseVariable";
 import type {
   DatasetFormData,
   DatasetState,
@@ -9,8 +8,8 @@ import type {
   ImportResult,
   ProjectFormData,
 } from "@/types/forms";
-import { cleanVariableData } from "@/utils/formDataCleanup";
 import { migrateFormData } from "@/utils/migrations";
+import { parseVariables } from "@/utils/parseVariable";
 import { getBaseSchema, getProtocolMetadata } from "./schemaViews";
 
 /**
@@ -148,10 +147,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             // (consistent type fields, no extra fields, no empty strings).
             dsData = {
               ...dsData,
-              variables: parseVariables(
-                dsData.variables,
-                getBaseSchema() as JSONSchema,
-              ),
+              variables: parseVariables(dsData.variables, getBaseSchema() as JSONSchema),
             };
             return {
               id: index + 1,
