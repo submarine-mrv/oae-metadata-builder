@@ -16,8 +16,8 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconCategory, IconCheck, IconChevronDown } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseVariable } from "@/utils/parseVariable";
 import type { DraftVariable } from "@/types/variable";
+import { parseVariable } from "@/utils/parseVariable";
 import {
   fieldExistsInSchema,
   getFieldSchema,
@@ -36,7 +36,6 @@ import {
   getSchemaKeyForUI,
   normalizeFieldConfig,
   resolveVariableType,
-  stripExtraVariableFields,
   VARIABLE_SCHEMA_MAP,
   VARIABLE_TYPE_BEHAVIOR,
   VARIABLE_TYPE_OPTIONS,

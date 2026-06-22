@@ -1,10 +1,10 @@
+import type { JSONSchema } from "@/components/schemaUtils";
 import {
   normalizeVariableFields,
-  stripExtraVariableFields
+  stripExtraVariableFields,
 } from "@/components/VariableModal/variableModalConfig";
-import { cleanVariableData } from "@/utils/formDataCleanup";
-import type { JSONSchema } from "@/components/schemaUtils";
 import type { DraftVariable } from "@/types/variable";
+import { cleanVariableData } from "@/utils/formDataCleanup";
 
 /**
  * Normalizes a single variable into clean, schema-faithful data in one pass:
@@ -19,15 +19,9 @@ import type { DraftVariable } from "@/types/variable";
  * steps are no-ops and the (empty-stripped) input is returned, matching the prior
  * import behavior.
  */
-export function parseVariable(
-  raw: Record<string, unknown>,
-  rootSchema: JSONSchema
-): DraftVariable {
+export function parseVariable(raw: Record<string, unknown>, rootSchema: JSONSchema): DraftVariable {
   const cleaned = cleanVariableData(
-    stripExtraVariableFields(
-      normalizeVariableFields(raw),
-      rootSchema
-    ) as Record<string, unknown>
+    stripExtraVariableFields(normalizeVariableFields(raw), rootSchema) as Record<string, unknown>,
   );
   // The one cast: structural cleaning guarantees the discriminant and that any
   // surviving field is a real field of that schema_class, but not that values
@@ -41,15 +35,9 @@ export function parseVariable(
  * parseVariable over an array, dropping non-object entries (defensive against
  * malformed imported/restored data). Non-array input yields an empty array.
  */
-export function parseVariables(
-  raws: unknown,
-  rootSchema: JSONSchema
-): DraftVariable[] {
+export function parseVariables(raws: unknown, rootSchema: JSONSchema): DraftVariable[] {
   if (!Array.isArray(raws)) return [];
   return raws
-    .filter(
-      (v): v is Record<string, unknown> =>
-        !!v && typeof v === "object" && !Array.isArray(v)
-    )
+    .filter((v): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v))
     .map((v) => parseVariable(v, rootSchema));
 }

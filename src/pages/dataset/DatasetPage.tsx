@@ -292,7 +292,7 @@ export default function DatasetPage() {
             noHtml5Validate
             formContext={{
               onCloseErrorList: validation.closeErrorList,
-              variableErrors: validationResult.errorsByVariableIndex
+              variableErrors: validationResult.errorsByVariableIndex,
             }}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
