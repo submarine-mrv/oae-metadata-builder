@@ -9,6 +9,9 @@ A dynamic form builder for Ocean Alkalinization Enhancement (OAE) data collectio
 
 This application generates schema-driven forms for collecting structured metadata according to the OAE Data Protocol specification. The form structure is entirely driven by JSON Schema, enabling rapid iteration and updates as the protocol evolves.
 
+- Main Status [![main deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=main)](https://app.netlify.com/projects/oae-mb/deploys?branch=main)
+- Dev Status [![dev deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=dev)](https://app.netlify.com/projects/oae-mb/deploys?branch=dev)
+
 ### Schema Source
 
 The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://github.com/submarine-mrv/oae-data-protocol) repository. This application consumes the schema output and generates interactive forms for data collection.
