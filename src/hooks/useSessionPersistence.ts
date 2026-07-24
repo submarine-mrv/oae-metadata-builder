@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import type { AppFormState } from "@/types/forms";
-import type { ExperimentData, DatasetData } from "@/contexts/AppStateContext";
-import type { ProjectFormData } from "@/types/forms";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { DatasetData, ExperimentData } from "@/contexts/AppStateContext";
+import type { AppFormState, ProjectFormData } from "@/types/forms";
 
 const STORAGE_KEY = "oae-metadata-builder-session";
 const DEBOUNCE_MS = 2000;
@@ -18,11 +17,7 @@ export interface SavedSession {
 }
 
 function sessionHasContent(state: AppFormState): boolean {
-  return (
-    state.hasProject ||
-    state.experiments.length > 0 ||
-    state.datasets.length > 0
-  );
+  return state.hasProject || state.experiments.length > 0 || state.datasets.length > 0;
 }
 
 function isValidSavedSession(data: unknown): data is SavedSession {
@@ -78,7 +73,7 @@ export function useSessionPersistence(
     datasets: DatasetData[];
     nextExperimentId: number;
     nextDatasetId: number;
-  }) => void
+  }) => void,
 ) {
   const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
@@ -120,7 +115,7 @@ export function useSessionPersistence(
         experiments: state.experiments,
         datasets: state.datasets,
         nextExperimentId: state.nextExperimentId,
-        nextDatasetId: state.nextDatasetId
+        nextDatasetId: state.nextDatasetId,
       };
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -144,7 +139,7 @@ export function useSessionPersistence(
       experiments: savedSession.experiments,
       datasets: savedSession.datasets,
       nextExperimentId: savedSession.nextExperimentId,
-      nextDatasetId: savedSession.nextDatasetId
+      nextDatasetId: savedSession.nextDatasetId,
     });
     setSavedSession(null);
     setIsRestoreModalOpen(false);
@@ -166,6 +161,6 @@ export function useSessionPersistence(
     savedSession,
     isRestoreModalOpen,
     restoreSession,
-    discardSession
+    discardSession,
   };
 }

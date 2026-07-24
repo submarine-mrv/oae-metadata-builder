@@ -1,8 +1,8 @@
-
-import React, { useState } from "react";
-import type { FieldProps } from "@rjsf/utils";
 import { ActionIcon, Box, Group, Text, TextInput } from "@mantine/core";
+import type { FieldProps } from "@rjsf/utils";
 import { IconPlus, IconX } from "@tabler/icons-react";
+import type React from "react";
+import { useState } from "react";
 import { FieldLabelSmall } from "./FieldLabel";
 
 /**
@@ -16,16 +16,7 @@ import { FieldLabelSmall } from "./FieldLabel";
  * - placeholder: input placeholder (default: "Type and press Enter to add")
  */
 const StringListField: React.FC<FieldProps> = (props) => {
-  const {
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    schema,
-    uiSchema,
-    name,
-    fieldPathId
-  } = props;
+  const { formData, onChange, disabled, readonly, schema, uiSchema, name, fieldPathId } = props;
 
   const items: string[] = Array.isArray(formData) ? formData : [];
   const [input, setInput] = useState("");
@@ -67,22 +58,14 @@ const StringListField: React.FC<FieldProps> = (props) => {
     } else if (e.key === "Tab" && input.trim()) {
       e.preventDefault();
       addItem();
-    } else if (
-      e.key === "Backspace" &&
-      input.length === 0 &&
-      items.length > 0
-    ) {
+    } else if (e.key === "Backspace" && input.length === 0 && items.length > 0) {
       removeItem(items.length - 1);
     }
   };
 
   return (
     <Box>
-      <FieldLabelSmall
-        label={label}
-        description={schema.description}
-        required={isRequired}
-      />
+      <FieldLabelSmall label={label} description={schema.description} required={isRequired} />
 
       {/* Item list */}
       {items.length > 0 && (
@@ -91,7 +74,7 @@ const StringListField: React.FC<FieldProps> = (props) => {
             border: "1px solid var(--mantine-color-gray-3)",
             borderRadius: "var(--mantine-radius-sm)",
             overflow: "hidden",
-            marginBottom: 8
+            marginBottom: 8,
           }}
         >
           {items.map((item, index) => (
@@ -104,10 +87,8 @@ const StringListField: React.FC<FieldProps> = (props) => {
               py={6}
               style={{
                 borderBottom:
-                  index < items.length - 1
-                    ? "1px solid var(--mantine-color-gray-2)"
-                    : undefined,
-                minHeight: 36
+                  index < items.length - 1 ? "1px solid var(--mantine-color-gray-2)" : undefined,
+                minHeight: 36,
               }}
             >
               <Text
@@ -118,7 +99,7 @@ const StringListField: React.FC<FieldProps> = (props) => {
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                   fontFamily: "var(--mantine-font-family-monospace)",
-                  fontSize: 13
+                  fontSize: 13,
                 }}
                 title={item}
               >

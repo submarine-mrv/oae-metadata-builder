@@ -1,5 +1,4 @@
-import React from "react";
-import { Modal, Text, Group, Button, Stack } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import type { SavedSession } from "@/hooks/useSessionPersistence";
 
 function formatTimeAgo(savedAt: number): string {
@@ -27,7 +26,7 @@ export default function SessionRestoreModal({
   opened,
   session,
   onRestore,
-  onDiscard
+  onDiscard,
 }: SessionRestoreModalProps) {
   const projectCount = session.hasProject ? 1 : 0;
   const experimentCount = session.experiments.length;
@@ -37,11 +36,8 @@ export default function SessionRestoreModal({
   const parts: string[] = [];
   if (projectCount > 0) parts.push(`${projectCount} project`);
   if (experimentCount > 0)
-    parts.push(
-      `${experimentCount} experiment${experimentCount !== 1 ? "s" : ""}`
-    );
-  if (datasetCount > 0)
-    parts.push(`${datasetCount} dataset${datasetCount !== 1 ? "s" : ""}`);
+    parts.push(`${experimentCount} experiment${experimentCount !== 1 ? "s" : ""}`);
+  if (datasetCount > 0) parts.push(`${datasetCount} dataset${datasetCount !== 1 ? "s" : ""}`);
   const summary = parts.join(", ");
 
   return (

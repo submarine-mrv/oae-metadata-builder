@@ -1,62 +1,60 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Group
-} from "@mantine/core";
+import { Container, Group, Stack, Text, Title } from "@mantine/core";
 import Form from "@rjsf/mantine";
+import type { DescriptionFieldProps } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DescriptionFieldProps } from "@rjsf/utils";
-
-import SpatialCoverageField from "@/components/SpatialCoverageField";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AppLayout from "@/components/AppLayout";
 import DosingLocationField from "@/components/DosingLocationField";
-import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
-import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import EmptyEntityPage from "@/components/EmptyEntityPage";
+import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
 import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
+import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
 import CustomAddButton from "@/components/rjsf/CustomAddButton";
 import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
-import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
-import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
-import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
-import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
+import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
 import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
+import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
+import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
-import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
-import PlaceholderField from "@/components/rjsf/PlaceholderField";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
+import PlaceholderField from "@/components/rjsf/PlaceholderField";
+import PlaceholderWidget from "@/components/rjsf/PlaceholderWidget";
+import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
 import StringListField from "@/components/rjsf/StringListField";
-import AppLayout from "@/components/AppLayout";
-import EmptyEntityPage from "@/components/EmptyEntityPage";
-import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
+import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
-import { validateExperiment } from "@/utils/validation";
 import { useFormValidation } from "@/hooks/useFormValidation";
-import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
-import modelUiSchema from "./modelUiSchema";
-import { cleanFormDataForType, getExperimentSchemaType, enforceModelExclusivity } from "@/utils/experimentFields";
 import {
+  type ConditionalFieldPair,
   cleanupConditionalFields,
   cleanupNestedConditionalFields,
-  type ConditionalFieldPair,
-  type NestedConditionalFieldPair
+  type NestedConditionalFieldPair,
 } from "@/utils/conditionalFields";
+import { experimentCustomValidate } from "@/utils/customValidators";
+import { transformFormErrors } from "@/utils/errorTransformer";
+import {
+  cleanFormDataForType,
+  enforceModelExclusivity,
+  getExperimentSchemaType,
+} from "@/utils/experimentFields";
+import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
 import {
   getInSituExperimentSchema,
-  getModelSchema,
   getInterventionSchema,
+  getInterventionWithTracerSchema,
+  getModelSchema,
   getTracerSchema,
-  getInterventionWithTracerSchema
 } from "@/utils/schemaViews";
-import { transformFormErrors } from "@/utils/errorTransformer";
-import { experimentCustomValidate } from "@/utils/customValidators";
-import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
+import { validateExperiment } from "@/utils/validation";
+import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
+import modelUiSchema from "./modelUiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -72,18 +70,18 @@ const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
   {
     triggerField: "alkalinity_feedstock",
     triggerValue: "other",
-    customField: "alkalinity_feedstock_custom"
+    customField: "alkalinity_feedstock_custom",
   },
   {
     triggerField: "alkalinity_feedstock_processing",
     triggerValue: "other",
-    customField: "alkalinity_feedstock_processing_custom"
+    customField: "alkalinity_feedstock_processing_custom",
   },
   {
     triggerField: "tracer_form",
     triggerValue: "other",
-    customField: "tracer_form_custom"
-  }
+    customField: "tracer_form_custom",
+  },
 ];
 
 // Conditional field pairs nested inside array fields
@@ -92,13 +90,12 @@ const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
     arrayField: "model_components",
     triggerField: "model_component_type",
     triggerValue: "other",
-    customField: "model_component_type_custom"
-  }
+    customField: "model_component_type_custom",
+  },
 ];
 
 export default function ExperimentPage() {
-  const { state, replaceExperimentFormData, setActiveTab, setExperimentValidation } =
-    useAppState();
+  const { state, replaceExperimentFormData, setActiveTab, setExperimentValidation } = useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
@@ -110,17 +107,14 @@ export default function ExperimentPage() {
     (status: boolean | null) => {
       if (activeExperimentId) setExperimentValidation(activeExperimentId, status);
     },
-    [activeExperimentId, setExperimentValidation]
+    [activeExperimentId, setExperimentValidation],
   );
 
   // AJV validation result, memoized on form data. Split by err.name.
-  const validationResult = useMemo(
-    () => validateExperiment(formData),
-    [formData]
-  );
+  const validationResult = useMemo(() => validateExperiment(formData), [formData]);
   const missingRequired = useMemo(
     () => validationResult.errors.filter((e) => e.name === "required").length,
-    [validationResult]
+    [validationResult],
   );
   const otherErrors = validationResult.errors.length - missingRequired;
   const isEmpty = useMemo(() => isFormEmpty(formData), [formData]);
@@ -129,7 +123,7 @@ export default function ExperimentPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: onValidationStatusChange
+    onStatusChange: onValidationStatusChange,
   });
 
   // Hide required-field errors from inline display unless the user has
@@ -174,7 +168,7 @@ export default function ExperimentPage() {
       intervention: getInterventionSchema,
       tracer_study: getTracerSchema,
       intervention_with_tracer: getInterventionWithTracerSchema,
-      model: getModelSchema
+      model: getModelSchema,
     };
     setActiveSchema((schemaMap[schemaType] || getInSituExperimentSchema)());
     setActiveUiSchema(schemaType === "model" ? modelUiSchema : fieldExperimentUiSchema);
@@ -191,10 +185,7 @@ export default function ExperimentPage() {
         const previousTypes = Array.isArray(formData.experiment_types)
           ? formData.experiment_types
           : [];
-        const cleaned = enforceModelExclusivity(
-          newData.experiment_types,
-          previousTypes
-        );
+        const cleaned = enforceModelExclusivity(newData.experiment_types, previousTypes);
         if (cleaned !== newData.experiment_types) {
           newData = { ...newData, experiment_types: cleaned };
         }
@@ -222,7 +213,7 @@ export default function ExperimentPage() {
         replaceExperimentFormData(activeExperimentId, newData);
       }
     },
-    [formData, activeExperimentId, replaceExperimentFormData]
+    [formData, activeExperimentId, replaceExperimentFormData],
   );
 
   if (!experiment) {
@@ -237,10 +228,9 @@ export default function ExperimentPage() {
   return (
     <AppLayout noScroll>
       <div
-
         style={{
           flex: 1,
-          overflow: "auto"
+          overflow: "auto",
         }}
       >
         <Container size="md" py="lg">
@@ -255,8 +245,7 @@ export default function ExperimentPage() {
               />
             </Group>
             <Text c="dimmed">
-              Edit experiment metadata. Fields marked with an asterisk (*) are
-              required.
+              Edit experiment metadata. Fields marked with an asterisk (*) are required.
             </Text>
           </Stack>
 
@@ -277,7 +266,7 @@ export default function ExperimentPage() {
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",
-              constAsDefaults: "never"
+              constAsDefaults: "never",
             }}
             widgets={{
               CustomSelectWidget: CustomSelectWidget,
@@ -286,7 +275,7 @@ export default function ExperimentPage() {
               DateTimeWidget: DateTimeWidget,
               PlaceholderWidget: PlaceholderWidget,
               DosingDepthWidget: DosingDepthWidget,
-              LockableIdWidget: LockableIdWidget
+              LockableIdWidget: LockableIdWidget,
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
@@ -294,21 +283,20 @@ export default function ExperimentPage() {
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-              ArrayFieldItemButtonsTemplate:
-                CustomArrayFieldItemButtonsTemplate,
+              ArrayFieldItemButtonsTemplate: CustomArrayFieldItemButtonsTemplate,
               TitleFieldTemplate: CustomTitleFieldTemplate,
               ErrorListTemplate: CustomErrorList,
               ButtonTemplates: {
                 AddButton: CustomAddButton,
-                SubmitButton: HiddenSubmitButton
-              }
+                SubmitButton: HiddenSubmitButton,
+              },
             }}
             fields={{
               SpatialCoverageMiniMap: SpatialCoverageField,
               PlaceholderField: PlaceholderField,
               DosingLocationField: DosingLocationField,
               DosingConcentrationField: DosingConcentrationField,
-              StringListField: StringListField
+              StringListField: StringListField,
             }}
             showErrorList={validation.showErrorList ? "top" : false}
           />

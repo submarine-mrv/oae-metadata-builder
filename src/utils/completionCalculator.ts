@@ -97,8 +97,8 @@
 // once. This is the deduping layer that solves the earlier dataset
 // double-penalty bug.
 
-import type { FormDataRecord } from "@/types/forms";
 import type { RJSFValidationError } from "@rjsf/utils";
+import type { FormDataRecord } from "@/types/forms";
 
 // =============================================================================
 // Filled-leaf collection
@@ -124,20 +124,14 @@ function isPrimitiveFilled(value: unknown): boolean {
  *   - Array of objects → recurse into each item with `[i]` path segment.
  *   - Object → recurse into each property with `.key` path segment.
  */
-function collectFilledLeafPaths(
-  data: unknown,
-  path: string,
-  out: Set<string>
-): void {
+function collectFilledLeafPaths(data: unknown, path: string, out: Set<string>): void {
   if (data === undefined || data === null) return;
 
   if (Array.isArray(data)) {
     if (data.length === 0) return;
     // Decide "array of primitives" by the first non-null item. Mixed arrays
     // are rare in these schemas; the first item is a good proxy.
-    const firstObjectIdx = data.findIndex(
-      (item) => item !== null && typeof item === "object"
-    );
+    const firstObjectIdx = data.findIndex((item) => item !== null && typeof item === "object");
     if (firstObjectIdx === -1) {
       // All primitives — count the whole array as one filled path if any
       // individual entry is primitive-filled.
@@ -203,7 +197,7 @@ export interface CompletionResult {
  */
 export function computeCompletion(
   data: FormDataRecord | null | undefined,
-  validationErrors: RJSFValidationError[]
+  validationErrors: RJSFValidationError[],
 ): CompletionResult {
   const filled = new Set<string>();
   if (data) collectFilledLeafPaths(data, "", filled);
@@ -239,4 +233,3 @@ export function computeCompletion(
   const percentage = Math.round((filledCount / total) * 100);
   return { total, filled: filledCount, percentage };
 }
-

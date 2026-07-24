@@ -1,44 +1,38 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Group
-} from "@mantine/core";
+import { Container, Group, Stack, Text, Title } from "@mantine/core";
 import Form from "@rjsf/mantine";
+import type { DescriptionFieldProps } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DescriptionFieldProps } from "@rjsf/utils";
-
-import IsoIntervalWidget from "@/components/IsoIntervalWidget";
-import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
-import uiSchema from "./uiSchema";
-import SpatialCoverageField from "@/components/SpatialCoverageField";
-import ExternalProjectField from "@/components/ExternalProjectField";
-import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
-import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
-import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
-import CustomAddButton from "@/components/rjsf/CustomAddButton";
-import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
-import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
-import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
-import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
-import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
-import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
-import CustomErrorList from "@/components/rjsf/CustomErrorList";
-import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
+import ExternalProjectField from "@/components/ExternalProjectField";
+import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
+import CustomArrayFieldTitleTemplate from "@/components/rjsf/ArrayFieldTitleTemplate";
+import BaseInputWidget from "@/components/rjsf/BaseInputWidget";
+import CustomAddButton from "@/components/rjsf/CustomAddButton";
+import CustomArrayFieldTemplate from "@/components/rjsf/CustomArrayFieldTemplate";
+import CustomArrayFieldItemButtonsTemplate from "@/components/rjsf/CustomButtonsTemplate";
+import CustomErrorList from "@/components/rjsf/CustomErrorList";
+import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
+import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
+import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
+import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
+import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
+import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
+import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
-import { getProjectSchema } from "@/utils/schemaViews";
-import { transformFormErrors } from "@/utils/errorTransformer";
-import { validateProject } from "@/utils/validation";
-import { projectCustomValidate } from "@/utils/customValidators";
-import { isFormEmpty } from "@/utils/formDataCleanup";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { projectCustomValidate } from "@/utils/customValidators";
+import { transformFormErrors } from "@/utils/errorTransformer";
+import { isFormEmpty } from "@/utils/formDataCleanup";
+import { getProjectSchema } from "@/utils/schemaViews";
+import { validateProject } from "@/utils/validation";
+import uiSchema from "./uiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
 
@@ -49,23 +43,15 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
-  const {
-    state,
-    updateProjectData,
-    setActiveTab,
-    setProjectValidation
-  } = useAppState();
+  const { state, updateProjectData, setActiveTab, setProjectValidation } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
   // Source of truth for badge counts: run AJV via validateProject, memoized
   // on form data. Filter by err.name to split missing-required from others.
-  const validationResult = useMemo(
-    () => validateProject(state.projectData),
-    [state.projectData]
-  );
+  const validationResult = useMemo(() => validateProject(state.projectData), [state.projectData]);
   const missingRequired = useMemo(
     () => validationResult.errors.filter((e) => e.name === "required").length,
-    [validationResult]
+    [validationResult],
   );
   const otherErrors = validationResult.errors.length - missingRequired;
   const isEmpty = useMemo(() => isFormEmpty(state.projectData), [state.projectData]);
@@ -74,7 +60,7 @@ export default function ProjectPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: setProjectValidation
+    onStatusChange: setProjectValidation,
   });
 
   // Hide required-field errors from inline display unless the user has
@@ -106,10 +92,9 @@ export default function ProjectPage() {
   return (
     <AppLayout noScroll>
       <div
-
         style={{
           flex: 1,
-          overflow: "auto"
+          overflow: "auto",
         }}
       >
         <Container size="md" py="lg">
@@ -124,9 +109,8 @@ export default function ProjectPage() {
               />
             </Group>
             <Text c="dimmed">
-              Create standardized metadata for your Ocean Alkalinity
-              Enhancement project. Click the info icons next to field labels
-              for detailed descriptions.
+              Create standardized metadata for your Ocean Alkalinity Enhancement project. Click the
+              info icons next to field labels for detailed descriptions.
             </Text>
           </Stack>
 
@@ -149,7 +133,7 @@ export default function ProjectPage() {
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",
-              constAsDefaults: "never"
+              constAsDefaults: "never",
             }}
             widgets={{
               IsoIntervalWidget,
@@ -157,7 +141,7 @@ export default function ProjectPage() {
               CustomSelectWidget: CustomSelectWidget,
               TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget,
-              LockableIdWidget: LockableIdWidget
+              LockableIdWidget: LockableIdWidget,
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
@@ -165,18 +149,17 @@ export default function ProjectPage() {
               ObjectFieldTemplate: ResponsiveObjectFieldTemplate,
               ArrayFieldTemplate: CustomArrayFieldTemplate,
               ArrayFieldTitleTemplate: CustomArrayFieldTitleTemplate,
-              ArrayFieldItemButtonsTemplate:
-                CustomArrayFieldItemButtonsTemplate,
+              ArrayFieldItemButtonsTemplate: CustomArrayFieldItemButtonsTemplate,
               TitleFieldTemplate: CustomTitleFieldTemplate,
               ErrorListTemplate: CustomErrorList,
               ButtonTemplates: {
                 AddButton: CustomAddButton,
-                SubmitButton: HiddenSubmitButton
-              }
+                SubmitButton: HiddenSubmitButton,
+              },
             }}
             fields={{
               SpatialCoverageMiniMap: SpatialCoverageField,
-              ExternalProjectField: ExternalProjectField
+              ExternalProjectField: ExternalProjectField,
             }}
             showErrorList={validation.showErrorList ? "top" : false}
           />

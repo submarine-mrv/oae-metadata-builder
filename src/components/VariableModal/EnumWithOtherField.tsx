@@ -1,13 +1,7 @@
-
-import { Select, TextInput, Grid } from "@mantine/core";
-import {
-  getFieldMetadata,
-  getNestedValue,
-  setNestedValue,
-  type JSONSchema
-} from "../schemaUtils";
-import FieldLabel from "./FieldLabel";
+import { Grid, Select, TextInput } from "@mantine/core";
 import { formatEnumTitle } from "@/utils/enumDecorator";
+import { getFieldMetadata, getNestedValue, type JSONSchema, setNestedValue } from "../schemaUtils";
+import FieldLabel from "./FieldLabel";
 
 interface EnumWithOtherFieldProps {
   /** Dot-separated path to the enum field */
@@ -39,38 +33,29 @@ export default function EnumWithOtherField({
   formData,
   onChange,
   descriptionModal = false,
-  placeholderText
+  placeholderText,
 }: EnumWithOtherFieldProps) {
   // Get metadata for the enum field
   const enumMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
   const customFieldPath = `${fieldPath}_custom`;
-  const customMetadata = getFieldMetadata(
-    customFieldPath,
-    variableSchema,
-    rootSchema
-  );
+  const customMetadata = getFieldMetadata(customFieldPath, variableSchema, rootSchema);
 
   if (!enumMetadata) {
-    console.warn(
-      `EnumWithOtherField: No metadata found for path "${fieldPath}"`
-    );
+    console.warn(`EnumWithOtherField: No metadata found for path "${fieldPath}"`);
     return null;
   }
 
   const enumValue = getNestedValue(formData, fieldPath) as string | undefined;
-  const customValue = getNestedValue(formData, customFieldPath) as
-    | string
-    | undefined;
+  const customValue = getNestedValue(formData, customFieldPath) as string | undefined;
 
   // Check if "other" is selected (case-insensitive)
   const isOtherSelected =
-    enumValue?.toLowerCase() === "other" ||
-    enumValue?.toLowerCase() === "other (please specify)";
+    enumValue?.toLowerCase() === "other" || enumValue?.toLowerCase() === "other (please specify)";
 
   const handleEnumChange = (value: string | null) => {
     let newFormData = setNestedValue(formData, fieldPath, value);
     // Clear custom field when switching away from "other"
-    if (!value || value.toLowerCase() !== "other") {
+    if (value?.toLowerCase() !== "other") {
       newFormData = setNestedValue(newFormData, customFieldPath, undefined);
     }
     onChange(newFormData);
@@ -81,13 +66,13 @@ export default function EnumWithOtherField({
     onChange(newFormData);
   };
 
-  const descriptionMode = descriptionModal ? "modal" as const : "tooltip" as const;
+  const descriptionMode = descriptionModal ? ("modal" as const) : ("tooltip" as const);
 
   // Build enum options
   const enumOptions =
     enumMetadata.enum?.map((value) => ({
       value: String(value),
-      label: formatEnumTitle(String(value))
+      label: formatEnumTitle(String(value)),
     })) || [];
 
   return (

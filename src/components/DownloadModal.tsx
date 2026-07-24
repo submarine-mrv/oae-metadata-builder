@@ -1,15 +1,4 @@
-import React from "react";
-import {
-  Modal,
-  Alert,
-  Button,
-  Group,
-  Checkbox,
-  Stack,
-  Text,
-  Badge,
-  Tooltip
-} from "@mantine/core";
+import { Alert, Badge, Button, Checkbox, Group, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 
 export interface DownloadSection {
@@ -56,7 +45,7 @@ export default function DownloadModal({
   sections,
   onSectionToggle,
   onViewErrors,
-  onExitTransitionEnd
+  onExitTransitionEnd,
 }: DownloadModalProps) {
   // Calculate total validation errors across enabled sections
   const totalErrors = sections
@@ -94,51 +83,46 @@ export default function DownloadModal({
                 : section.label;
 
             return (
-            <Group key={section.key} justify="space-between" wrap="nowrap">
-              {section.disabled && section.disabledReason ? (
-                <Tooltip label={section.disabledReason} position="right">
+              <Group key={section.key} justify="space-between" wrap="nowrap">
+                {section.disabled && section.disabledReason ? (
+                  <Tooltip label={section.disabledReason} position="right">
+                    <Checkbox
+                      label={labelWithCount}
+                      checked={section.enabled}
+                      disabled
+                      styles={{ label: { color: "var(--mantine-color-dimmed)" } }}
+                    />
+                  </Tooltip>
+                ) : (
                   <Checkbox
                     label={labelWithCount}
                     checked={section.enabled}
-                    disabled
-                    styles={{ label: { color: "var(--mantine-color-dimmed)" } }}
+                    disabled={section.disabled}
+                    onChange={() => onSectionToggle(section.key)}
                   />
-                </Tooltip>
-              ) : (
-                <Checkbox
-                  label={labelWithCount}
-                  checked={section.enabled}
-                  disabled={section.disabled}
-                  onChange={() => onSectionToggle(section.key)}
-                />
-              )}
-              <Group gap="xs">
-                {!section.disabled && section.missingFields > 0 && (
-                  <Badge color="orange" variant="light" size="sm">
-                    {section.missingFields} validation error
-                    {section.missingFields !== 1 ? "s" : ""}
-                  </Badge>
                 )}
-                {section.disabled && section.disabledReason && (
-                  <Badge color="gray" variant="light" size="sm">
-                    {section.disabledReason}
-                  </Badge>
-                )}
+                <Group gap="xs">
+                  {!section.disabled && section.missingFields > 0 && (
+                    <Badge color="orange" variant="light" size="sm">
+                      {section.missingFields} validation error
+                      {section.missingFields !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                  {section.disabled && section.disabledReason && (
+                    <Badge color="gray" variant="light" size="sm">
+                      {section.disabledReason}
+                    </Badge>
+                  )}
+                </Group>
               </Group>
-            </Group>
             );
           })}
         </Stack>
         {hasWarnings && (
-          <Alert
-            icon={<IconAlertTriangle size={18} />}
-            color="yellow"
-            variant="light"
-            py="sm"
-          >
+          <Alert icon={<IconAlertTriangle size={18} />} color="yellow" variant="light" py="sm">
             <Text size="sm" c="dark.6">
-              Some required fields are missing or incomplete. However, you can
-              still download as a draft to save your work in progress.
+              Some required fields are missing or incomplete. However, you can still download as a
+              draft to save your work in progress.
             </Text>
           </Alert>
         )}
@@ -147,11 +131,7 @@ export default function DownloadModal({
           <Button variant="default" onClick={onViewErrors || onClose}>
             Go Back
           </Button>
-          <Button
-            variant="filled"
-            onClick={handleDownload}
-            disabled={!hasSelection}
-          >
+          <Button variant="filled" onClick={handleDownload} disabled={!hasSelection}>
             {hasWarnings ? "Download Anyway" : "Download"}
           </Button>
         </Group>

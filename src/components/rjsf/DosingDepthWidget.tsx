@@ -1,7 +1,7 @@
-
-import React, { useState, useEffect } from "react";
+import { Box, NumberInput, Select, Stack, Text } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
-import { Stack, Select, NumberInput, Text, Box } from "@mantine/core";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { FieldLabelSmall } from "./FieldLabel";
 
 /**
@@ -17,7 +17,7 @@ const DosingDepthWidget: React.FC<WidgetProps> = ({
   readonly,
   label,
   schema,
-  uiSchema
+  uiSchema,
 }) => {
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
@@ -75,7 +75,7 @@ const DosingDepthWidget: React.FC<WidgetProps> = ({
           onChange={handleVariabilityChange}
           data={[
             { value: "fixed", label: "Fixed Value" },
-            { value: "variable", label: "Variable" }
+            { value: "variable", label: "Variable" },
           ]}
           disabled={disabled || readonly}
         />
@@ -94,9 +94,7 @@ const DosingDepthWidget: React.FC<WidgetProps> = ({
           value={state.isVariable ? "" : state.numericValue}
           onChange={handleDepthChange}
           disabled={disabled || readonly || state.isVariable}
-          placeholder={
-            state.isVariable ? "Provided in file" : "Enter depth in meters"
-          }
+          placeholder={state.isVariable ? "Provided in file" : "Enter depth in meters"}
           decimalScale={2}
           min={0}
         />
@@ -105,8 +103,8 @@ const DosingDepthWidget: React.FC<WidgetProps> = ({
       {/* Informational text for variable values */}
       {state.isVariable && (
         <Text size="sm" c="dimmed" style={{ fontStyle: "italic" }}>
-          Variable dosing depths should be provided separately in the dosing
-          file, using the field names specified in the dosing data template.
+          Variable dosing depths should be provided separately in the dosing file, using the field
+          names specified in the dosing data template.
         </Text>
       )}
     </Stack>

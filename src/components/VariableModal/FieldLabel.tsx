@@ -1,7 +1,6 @@
-
-import { useState } from "react";
-import { Group, Text, Tooltip, ActionIcon } from "@mantine/core";
+import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useState } from "react";
 import DescriptionModal from "../rjsf/DescriptionModal";
 
 export type DescriptionMode = "tooltip" | "modal" | "placeholder" | "none";
@@ -22,7 +21,7 @@ export default function FieldLabel({
   title,
   description,
   required,
-  descriptionMode = "tooltip"
+  descriptionMode = "tooltip",
 }: FieldLabelProps) {
   const [modalOpen, setModalOpen] = useState(false);
 

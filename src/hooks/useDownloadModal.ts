@@ -1,16 +1,8 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { DownloadSection } from "@/components/DownloadModal";
-import {
-  validateProject,
-  validateExperiment,
-  validateDataset
-} from "@/utils/validation";
+import type { DatasetState, ExperimentState, ProjectFormData } from "@/types/forms";
 import { exportMetadata } from "@/utils/exportImport";
-import type {
-  ProjectFormData,
-  ExperimentState,
-  DatasetState
-} from "@/types/forms";
+import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
 
 export type DefaultSelection = "all" | "project" | "experiment" | "dataset";
 
@@ -44,7 +36,7 @@ export function useDownloadModal({
   projectData,
   experiments,
   datasets,
-  defaultSelection = "all"
+  defaultSelection = "all",
 }: UseDownloadModalProps): UseDownloadModalReturn {
   const [showModal, setShowModal] = useState(false);
   const [sections, setSections] = useState<DownloadSection[]>([
@@ -52,20 +44,20 @@ export function useDownloadModal({
       key: "project",
       label: "Project",
       missingFields: 0,
-      enabled: false
+      enabled: false,
     },
     {
       key: "experiment",
       label: "Experiments",
       missingFields: 0,
-      enabled: false
+      enabled: false,
     },
     {
       key: "dataset",
       label: "Datasets",
       missingFields: 0,
-      enabled: false
-    }
+      enabled: false,
+    },
   ]);
 
   const openModal = useCallback(() => {
@@ -75,9 +67,7 @@ export function useDownloadModal({
     const hasDatasets = datasets.length > 0;
 
     // Validate project using JSON schema validation
-    const projectErrors = hasProjectData
-      ? validateProject(projectData).errorCount
-      : 0;
+    const projectErrors = hasProjectData ? validateProject(projectData).errorCount : 0;
 
     // Validate experiments (sum all errors)
     let experimentErrors = 0;
@@ -93,10 +83,7 @@ export function useDownloadModal({
     });
 
     // Determine which sections should be enabled by default
-    const getDefaultEnabled = (
-      sectionKey: string,
-      hasData: boolean
-    ): boolean => {
+    const getDefaultEnabled = (sectionKey: string, hasData: boolean): boolean => {
       if (!hasData) return false;
 
       switch (defaultSelection) {
@@ -121,7 +108,7 @@ export function useDownloadModal({
         enabled: getDefaultEnabled("project", hasProjectData),
         disabled: !hasProjectData,
         disabledReason: !hasProjectData ? "No project data" : undefined,
-        itemCount: 1 // Project is always 1 item
+        itemCount: 1, // Project is always 1 item
       },
       {
         key: "experiment",
@@ -130,7 +117,7 @@ export function useDownloadModal({
         enabled: getDefaultEnabled("experiment", hasExperiments),
         disabled: !hasExperiments,
         disabledReason: !hasExperiments ? "No experiments created" : undefined,
-        itemCount: experiments.length
+        itemCount: experiments.length,
       },
       {
         key: "dataset",
@@ -139,8 +126,8 @@ export function useDownloadModal({
         enabled: getDefaultEnabled("dataset", hasDatasets),
         disabled: !hasDatasets,
         disabledReason: !hasDatasets ? "No datasets created" : undefined,
-        itemCount: datasets.length
-      }
+        itemCount: datasets.length,
+      },
     ]);
 
     setShowModal(true);
@@ -155,13 +142,11 @@ export function useDownloadModal({
       exportMetadata(projectData, experiments, datasets, { selectedSections });
       setShowModal(false);
     },
-    [projectData, experiments, datasets]
+    [projectData, experiments, datasets],
   );
 
   const handleSectionToggle = useCallback((key: string) => {
-    setSections((prev) =>
-      prev.map((s) => (s.key === key ? { ...s, enabled: !s.enabled } : s))
-    );
+    setSections((prev) => prev.map((s) => (s.key === key ? { ...s, enabled: !s.enabled } : s)));
   }, []);
 
   return {
@@ -170,6 +155,6 @@ export function useDownloadModal({
     openModal,
     closeModal,
     handleDownload,
-    handleSectionToggle
+    handleSectionToggle,
   };
 }

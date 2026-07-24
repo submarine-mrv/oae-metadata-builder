@@ -1,18 +1,17 @@
-
 import { Box, Container, Group } from "@mantine/core";
+import type {
+  FormContextType,
+  ObjectFieldTemplateProps,
+  RJSFSchema,
+  StrictRJSFSchema,
+} from "@rjsf/utils";
 import {
   buttonId,
   canExpand,
   descriptionId,
   getTemplate,
   getUiOptions,
-  titleId
-} from "@rjsf/utils";
-import type {
-  ObjectFieldTemplateProps,
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema
+  titleId,
 } from "@rjsf/utils";
 
 /**
@@ -35,7 +34,7 @@ import type {
 export default function GridObjectFieldTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: ObjectFieldTemplateProps<T, S, F>) {
   const {
     title,
@@ -50,24 +49,23 @@ export default function GridObjectFieldTemplate<
     uiSchema,
     fieldPathId,
     formData,
-    registry
+    registry,
   } = props;
 
   const uiOptions = getUiOptions<T, S, F>(uiSchema);
   const TitleFieldTemplate = getTemplate<"TitleFieldTemplate", T, S, F>(
     "TitleFieldTemplate",
     registry,
-    uiOptions
+    uiOptions,
   );
-  const DescriptionFieldTemplate = getTemplate<
+  const DescriptionFieldTemplate = getTemplate<"DescriptionFieldTemplate", T, S, F>(
     "DescriptionFieldTemplate",
-    T,
-    S,
-    F
-  >("DescriptionFieldTemplate", registry, uiOptions);
+    registry,
+    uiOptions,
+  );
   const showOptionalDataControlInTitle = !readonly && !disabled;
   const {
-    ButtonTemplates: { AddButton }
+    ButtonTemplates: { AddButton },
   } = registry.templates;
 
   return (
@@ -80,9 +78,7 @@ export default function GridObjectFieldTemplate<
           schema={schema}
           uiSchema={uiSchema}
           registry={registry}
-          optionalDataControl={
-            showOptionalDataControlInTitle ? optionalDataControl : undefined
-          }
+          optionalDataControl={showOptionalDataControlInTitle ? optionalDataControl : undefined}
         />
       )}
       {description && (
@@ -99,7 +95,7 @@ export default function GridObjectFieldTemplate<
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, 1fr)",
-          gap: "16px 16px"
+          gap: "16px 16px",
         }}
       >
         {!showOptionalDataControlInTitle ? optionalDataControl : undefined}
@@ -107,16 +103,10 @@ export default function GridObjectFieldTemplate<
           .filter((e) => !e.hidden)
           .map((element) => {
             const propUiSchema = uiSchema?.[element.name] || {};
-            const span =
-              typeof propUiSchema["ui:span"] === "number"
-                ? propUiSchema["ui:span"]
-                : 6;
+            const span = typeof propUiSchema["ui:span"] === "number" ? propUiSchema["ui:span"] : 6;
 
             return (
-              <Box
-                key={element.name}
-                style={{ gridColumn: `span ${span}` }}
-              >
+              <Box key={element.name} style={{ gridColumn: `span ${span}` }}>
                 {element.content}
               </Box>
             );

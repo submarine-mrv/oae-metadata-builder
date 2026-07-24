@@ -24,9 +24,7 @@ function isSpatialCoverageError(e: RJSFValidationError): boolean {
  * @param errors - Array of validation errors from RJSF
  * @returns Transformed errors with improved messaging
  */
-export function transformFormErrors(
-  errors: RJSFValidationError[]
-): RJSFValidationError[] {
+export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidationError[] {
   return errors.map((e) => {
     // Normalize ALL "required" error messages.
     //
@@ -46,8 +44,7 @@ export function transformFormErrors(
       // those branches return early below.
       const isSpatialCov = isSpatialCoverageError(e);
       const isExperimentId =
-        e.params?.missingProperty === "experiment_id" ||
-        e.property === ".experiment_id";
+        e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id";
       if (!isSpatialCov && !isExperimentId) {
         e = { ...e, message: "Field is required" };
       }
@@ -57,7 +54,7 @@ export function transformFormErrors(
     if (e.property === ".temporal_coverage" && e.name === "pattern") {
       return {
         ...e,
-        message: MESSAGES.validation.temporalCoveragePattern
+        message: MESSAGES.validation.temporalCoveragePattern,
       };
     }
 
@@ -66,19 +63,18 @@ export function transformFormErrors(
       return {
         ...e,
         property: ".spatial_coverage", // Normalize to spatial_coverage level
-        message: MESSAGES.validation.spatialCoverage
+        message: MESSAGES.validation.spatialCoverage,
       };
     }
 
     // Improve experiment_id required error message
     if (
       e.name === "required" &&
-      (e.params?.missingProperty === "experiment_id" ||
-        e.property === ".experiment_id")
+      (e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id")
     ) {
       return {
         ...e,
-        message: MESSAGES.validation.experimentIdRequired
+        message: MESSAGES.validation.experimentIdRequired,
       };
     }
 
@@ -86,7 +82,7 @@ export function transformFormErrors(
     if (e.name === "pattern" && e.message?.includes("@[a-zA-Z0-9.-]+")) {
       return {
         ...e,
-        message: "Please enter a valid email address"
+        message: "Please enter a valid email address",
       };
     }
 
@@ -94,7 +90,7 @@ export function transformFormErrors(
     if (e.name === "pattern" && e.property?.endsWith(".phone")) {
       return {
         ...e,
-        message: "Invalid phone number"
+        message: "Invalid phone number",
       };
     }
 

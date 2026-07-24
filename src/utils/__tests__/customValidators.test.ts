@@ -1,12 +1,12 @@
 // customValidators.test.ts - Tests for cross-field custom validators
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+  composeValidators,
+  experimentCustomValidate,
+  projectCustomValidate,
   validateTemporalCoverageOrder,
   validateVerticalCoverage,
-  projectCustomValidate,
-  experimentCustomValidate,
-  composeValidators
 } from "../customValidators";
 
 /**
@@ -19,7 +19,7 @@ function makeErrors(): any {
       addError: (msg: string) => {
         node.__errors = node.__errors || [];
         node.__errors.push(msg);
-      }
+      },
     };
     return new Proxy(node, {
       get(target, prop) {
@@ -28,7 +28,7 @@ function makeErrors(): any {
         // Auto-vivify nested nodes on access
         target[prop as string] = createNode();
         return target[prop as string];
-      }
+      },
     });
   };
   return createNode();
@@ -79,9 +79,7 @@ describe("validateTemporalCoverageOrder", () => {
     const errors = makeErrors();
     const data = { temporal_coverage: "2024-12-31/2024-01-01" };
     const result = validateTemporalCoverageOrder(data, errors, undefined) as any;
-    expect(collectDeepErrors(result.temporal_coverage)).toContain(
-      "End date must be ≥ start date."
-    );
+    expect(collectDeepErrors(result.temporal_coverage)).toContain("End date must be ≥ start date.");
   });
 });
 
@@ -98,40 +96,38 @@ describe("validateVerticalCoverage", () => {
     const data = { vertical_coverage: { max_depth_in_m: 5 } };
     const result = validateVerticalCoverage(data, errors, undefined) as any;
     expect(collectDeepErrors(result.vertical_coverage.max_depth_in_m)).toContain(
-      "Maximum depth must be 0 or negative (below sea surface)."
+      "Maximum depth must be 0 or negative (below sea surface).",
     );
   });
 
   it("fails when min_depth < max_depth (deeper than max)", () => {
     const errors = makeErrors();
     const data = {
-      vertical_coverage: { min_depth_in_m: -50, max_depth_in_m: -10 }
+      vertical_coverage: { min_depth_in_m: -50, max_depth_in_m: -10 },
     };
     const result = validateVerticalCoverage(data, errors, undefined) as any;
     expect(collectDeepErrors(result.vertical_coverage.min_depth_in_m)).toContain(
-      "Minimum depth must be greater than or equal to maximum depth."
+      "Minimum depth must be greater than or equal to maximum depth.",
     );
   });
 
   it("passes when min_depth >= max_depth", () => {
     const errors = makeErrors();
     const data = {
-      vertical_coverage: { min_depth_in_m: -5, max_depth_in_m: -10 }
+      vertical_coverage: { min_depth_in_m: -5, max_depth_in_m: -10 },
     };
     const result = validateVerticalCoverage(data, errors, undefined) as any;
-    expect(collectDeepErrors(result.vertical_coverage.min_depth_in_m)).toEqual(
-      []
-    );
+    expect(collectDeepErrors(result.vertical_coverage.min_depth_in_m)).toEqual([]);
   });
 
   it("fails when min_height > max_height", () => {
     const errors = makeErrors();
     const data = {
-      vertical_coverage: { min_height_in_m: 20, max_height_in_m: 10 }
+      vertical_coverage: { min_height_in_m: 20, max_height_in_m: 10 },
     };
     const result = validateVerticalCoverage(data, errors, undefined) as any;
     expect(collectDeepErrors(result.vertical_coverage.min_height_in_m)).toContain(
-      "Minimum height must be less than or equal to maximum height."
+      "Minimum height must be less than or equal to maximum height.",
     );
   });
 });
@@ -139,20 +135,15 @@ describe("validateVerticalCoverage", () => {
 describe("composeValidators", () => {
   it("runs all composed validators in order", () => {
     const errors = makeErrors();
-    const composed = composeValidators(
-      validateTemporalCoverageOrder,
-      validateVerticalCoverage
-    );
+    const composed = composeValidators(validateTemporalCoverageOrder, validateVerticalCoverage);
     const data = {
       temporal_coverage: "2024-12-31/2024-01-01",
-      vertical_coverage: { max_depth_in_m: 5 }
+      vertical_coverage: { max_depth_in_m: 5 },
     };
     const result = composed(data, errors, undefined) as any;
-    expect(collectDeepErrors(result.temporal_coverage)).toContain(
-      "End date must be ≥ start date."
-    );
+    expect(collectDeepErrors(result.temporal_coverage)).toContain("End date must be ≥ start date.");
     expect(collectDeepErrors(result.vertical_coverage.max_depth_in_m)).toContain(
-      "Maximum depth must be 0 or negative (below sea surface)."
+      "Maximum depth must be 0 or negative (below sea surface).",
     );
   });
 });
@@ -162,15 +153,11 @@ describe("projectCustomValidate", () => {
     const errors = makeErrors();
     const data = {
       temporal_coverage: "2024-12-31/2024-01-01",
-      vertical_coverage: { min_depth_in_m: -5, max_depth_in_m: -10 } // valid depth
+      vertical_coverage: { min_depth_in_m: -5, max_depth_in_m: -10 }, // valid depth
     };
     const result = projectCustomValidate(data, errors, undefined) as any;
-    expect(collectDeepErrors(result.temporal_coverage)).toContain(
-      "End date must be ≥ start date."
-    );
-    expect(collectDeepErrors(result.vertical_coverage.min_depth_in_m)).toEqual(
-      []
-    );
+    expect(collectDeepErrors(result.temporal_coverage)).toContain("End date must be ≥ start date.");
+    expect(collectDeepErrors(result.vertical_coverage.min_depth_in_m)).toEqual([]);
   });
 });
 
@@ -181,12 +168,12 @@ describe("experimentCustomValidate", () => {
       // Experiment doesn't check temporal_coverage ordering — if we set a
       // bad ordering it should still not add an error for it.
       temporal_coverage: "2024-12-31/2024-01-01",
-      vertical_coverage: { max_depth_in_m: 5 }
+      vertical_coverage: { max_depth_in_m: 5 },
     };
     const result: any = experimentCustomValidate(data, errors, undefined);
     expect(collectDeepErrors(result.temporal_coverage)).toEqual([]);
     expect(collectDeepErrors(result.vertical_coverage.max_depth_in_m)).toContain(
-      "Maximum depth must be 0 or negative (below sea surface)."
+      "Maximum depth must be 0 or negative (below sea surface).",
     );
   });
 });

@@ -2,23 +2,16 @@
 
 // Generate formatted enum names from schema
 import schema from "@/schema/schema.bundled.json";
+import { halfWidthStyle, nestedItemStyle, textAreaWidget } from "@/uiSchemaConstants";
 import { generateEnumNames } from "@/utils/enumDecorator";
-import {
-  textAreaWidget,
-  nestedItemStyle,
-  halfWidthStyle
-} from "@/uiSchemaConstants";
 
-const enumNames = generateEnumNames(schema, [
-  "MCDRPathway",
-  "ResearcherIDType"
-]);
+const enumNames = generateEnumNames(schema, ["MCDRPathway", "ResearcherIDType"]);
 
 // UI schema configuration for project form
 const projectUiSchema = {
   "ui:title": "",
   "ui:options": {
-    expandable: false
+    expandable: false,
   },
   "ui:order": [
     "research_project",
@@ -37,7 +30,7 @@ const projectUiSchema = {
     "permits",
     "funding",
     "additional_details",
-    "*"
+    "*",
   ],
   project_id: {
     ...halfWidthStyle,
@@ -46,28 +39,28 @@ const projectUiSchema = {
     "ui:descriptionModal": true,
     "ui:options": {
       lockOnBlur: true,
-      defaultLocked: false
-    }
+      defaultLocked: false,
+    },
   },
   temporal_coverage: {
     ...halfWidthStyle,
     "ui:widget": "IsoIntervalWidget",
-    "ui:title": ""
+    "ui:title": "",
   },
   spatial_coverage: {
     "ui:field": "SpatialCoverageMiniMap",
-    "ui:title": "Spatial Coverage"
+    "ui:title": "Spatial Coverage",
   },
   project_leads: {
     "ui:options": {
       addable: true,
       orderable: false,
-      addItemText: "Add Person"
+      addItemText: "Add Person",
     },
     items: {
       "ui:style": nestedItemStyle,
       "ui:options": {
-        gridCols: 2
+        gridCols: 2,
       },
       "ui:order": [
         "name",
@@ -76,53 +69,53 @@ const projectUiSchema = {
         "phone",
         "identifier_type",
         "identifier",
-        "affiliation"
+        "affiliation",
       ],
       name: {
-        "ui:placeholder": "Full name"
+        "ui:placeholder": "Full name",
       },
       email: {
-        "ui:placeholder": "email@example.com"
+        "ui:placeholder": "email@example.com",
       },
       phone: {
-        "ui:placeholder": "+1-555-555-5555"
+        "ui:placeholder": "+1-555-555-5555",
       },
       role: {
-        "ui:placeholder": "e.g., Principal Investigator"
+        "ui:placeholder": "e.g., Principal Investigator",
       },
       identifier_type: {
         "ui:widget": "CustomSelectWidget",
         "ui:options": {
-          enumNames: enumNames.ResearcherIDType
-        }
+          enumNames: enumNames.ResearcherIDType,
+        },
       },
       identifier: {
-        "ui:placeholder": "e.g., 0000-0000-0000-0000"
+        "ui:placeholder": "e.g., 0000-0000-0000-0000",
       },
       affiliation: {
         "ui:order": ["name", "identifier", "country"],
         name: {
           "ui:title": "Organization Name",
-          "ui:placeholder": "Organization name"
+          "ui:placeholder": "Organization name",
         },
         identifier: {
           "ui:title": "Organization Identifier",
-          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)"
+          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)",
         },
         country: {
-          "ui:placeholder": "e.g., US"
-        }
-      }
-    }
+          "ui:placeholder": "e.g., US",
+        },
+      },
+    },
   },
   mcdr_pathway: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": enumNames.MCDRPathway
+    "ui:enumNames": enumNames.MCDRPathway,
   },
   sea_names: {
     ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget"
+    "ui:widget": "CustomSelectWidget",
   },
   description: textAreaWidget,
   physical_site_description: textAreaWidget,
@@ -132,41 +125,41 @@ const projectUiSchema = {
     "ui:options": {
       addable: true,
       orderable: false,
-      addItemText: "Add Co-located Research"
+      addItemText: "Add Co-located Research",
     },
     items: {
       "ui:field": "ExternalProjectField",
-      "ui:style": nestedItemStyle
-    }
+      "ui:style": nestedItemStyle,
+    },
   },
   colocated_operations: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 3 }
+    "ui:options": { rows: 3 },
   },
   research_project: {
     ...halfWidthStyle,
-    "ui:title": "Research Project"
+    "ui:title": "Research Project",
   },
   funding: {
     "ui:options": {
       addable: true,
       orderable: false,
-      addItemText: "Add Funding Source"
+      addItemText: "Add Funding Source",
     },
     items: {
       "ui:title": "",
       "ui:style": nestedItemStyle,
       "ui:order": ["name", "identifier", "start_date", "end_date", "funder"],
       "ui:options": {
-        gridCols: 2
+        gridCols: 2,
       },
       name: {
         "ui:title": "Grant or Project Name",
-        "ui:placeholder": "e.g., NSF Ocean Sciences Research Grant"
+        "ui:placeholder": "e.g., NSF Ocean Sciences Research Grant",
       },
       identifier: {
         "ui:title": "Grant or Project Identifier",
-        "ui:placeholder": "e.g., Grant number or URL"
+        "ui:placeholder": "e.g., Grant number or URL",
       },
       funder: {
         "ui:style": { gridColumn: "1 / -1" },
@@ -174,23 +167,23 @@ const projectUiSchema = {
         "ui:order": ["name", "identifier", "country"],
         name: {
           "ui:title": "Name of Funding Organization",
-          "ui:placeholder": "Organization name"
+          "ui:placeholder": "Organization name",
         },
         country: {
-          "ui:placeholder": "e.g., US"
+          "ui:placeholder": "e.g., US",
         },
         identifier: {
           "ui:title": "Identifier for Funding Organization",
           "ui:descriptionModal": true,
-          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)"
-        }
-      }
-    }
+          "ui:placeholder": "e.g., ROR URL (https://ror.org/...)",
+        },
+      },
+    },
   },
   additional_details: textAreaWidget,
   experiments: {
-    "ui:widget": "hidden"
-  }
+    "ui:widget": "hidden",
+  },
 };
 
 export default projectUiSchema;

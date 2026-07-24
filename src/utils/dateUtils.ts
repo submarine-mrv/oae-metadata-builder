@@ -1,8 +1,8 @@
 // dateUtils.ts - Centralized date and time utility functions
 
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
 dayjs.extend(customParseFormat);
@@ -42,7 +42,7 @@ export const parseInterval = (v?: string | null): { start: string; end: string }
   const [start, end] = v.split("/");
   return {
     start: start || "",
-    end: end && end !== ".." ? end : ""
+    end: end && end !== ".." ? end : "",
   };
 };
 

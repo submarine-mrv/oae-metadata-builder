@@ -2,19 +2,15 @@
 // Tailored for ModelOutputDataset schema fields
 
 import schema from "@/schema/schema.bundled.json";
+import { halfWidthStyle, nestedItemStyle, textAreaWidget } from "@/uiSchemaConstants";
 import { generateEnumNames } from "@/utils/enumDecorator";
-import {
-  textAreaWidget,
-  nestedItemStyle,
-  halfWidthStyle
-} from "@/uiSchemaConstants";
 
 const enumNames = generateEnumNames(schema, ["DatasetType", "SimulationType", "ResearcherIDType"]);
 
 const modelOutputUiSchema = {
   "ui:title": "",
   "ui:options": {
-    expandable: false
+    expandable: false,
   },
   "ui:order": [
     "name",
@@ -33,61 +29,60 @@ const modelOutputUiSchema = {
     "author_list_for_citation",
     "license",
     "fair_use_data_request",
-    "*"
+    "*",
   ],
   name: {
-    "ui:placeholder":
-      "Brief descriptive sentence summarizing the dataset content",
-    "ui:descriptionModal": true
+    "ui:placeholder": "Brief descriptive sentence summarizing the dataset content",
+    "ui:descriptionModal": true,
   },
   description: textAreaWidget,
   project_id: {
-    "ui:widget": "hidden"
+    "ui:widget": "hidden",
   },
   experiment_id: {
     ...halfWidthStyle,
     "ui:widget": "LinkedExperimentIdWidget",
     "ui:title": "Experiment",
-    "ui:descriptionModal": true
+    "ui:descriptionModal": true,
   },
   dataset_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
-    "ui:enumNames": enumNames.DatasetType
+    "ui:enumNames": enumNames.DatasetType,
   },
   dataset_type_custom: {
-    "ui:widget": "hidden"
+    "ui:widget": "hidden",
   },
   simulation_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:options": {
-      enumNames: enumNames.SimulationType
-    }
+      enumNames: enumNames.SimulationType,
+    },
   },
   mcdr_forcing_description: textAreaWidget,
   start_datetime: {
     ...halfWidthStyle,
     "ui:widget": "DateTimeWidget",
     "ui:title": "Simulation Start",
-    "ui:description": "Start date and time of simulation in UTC"
+    "ui:description": "Start date and time of simulation in UTC",
   },
   end_datetime: {
     ...halfWidthStyle,
     "ui:widget": "DateTimeWidget",
     "ui:title": "Simulation End",
-    "ui:description": "End date and time of simulation in UTC"
+    "ui:description": "End date and time of simulation in UTC",
   },
   model_output_variables: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:options": {
-      placeholder: "Search output variables…"
-    }
+      placeholder: "Search output variables…",
+    },
   },
   output_frequency: {
     ...halfWidthStyle,
-    "ui:placeholder": "e.g., daily, monthly, hourly"
+    "ui:placeholder": "e.g., daily, monthly, hourly",
   },
   hardware_configuration: {
     "ui:style": nestedItemStyle,
@@ -97,90 +92,82 @@ const modelOutputUiSchema = {
       "parallelization",
       "memory",
       "storage",
-      "operating_system"
+      "operating_system",
     ],
     machine: {
-      "ui:placeholder": "e.g., NOAA Gaea, NCAR Cheyenne"
+      "ui:placeholder": "e.g., NOAA Gaea, NCAR Cheyenne",
     },
     cpu_gpu_details: {
-      "ui:placeholder": "e.g., 2x Intel Xeon, 128 cores"
+      "ui:placeholder": "e.g., 2x Intel Xeon, 128 cores",
     },
     parallelization: {
-      "ui:placeholder": "e.g., MPI with 256 ranks"
+      "ui:placeholder": "e.g., MPI with 256 ranks",
     },
     memory: {
-      "ui:placeholder": "e.g., 512 GB"
+      "ui:placeholder": "e.g., 512 GB",
     },
     storage: {
-      "ui:placeholder": "e.g., 10 TB output"
+      "ui:placeholder": "e.g., 10 TB output",
     },
     operating_system: {
-      "ui:placeholder": "e.g., CentOS 7"
-    }
+      "ui:placeholder": "e.g., CentOS 7",
+    },
   },
   filenames: {
     "ui:field": "FilenamesField",
   },
   data_submitter: {
     "ui:style": nestedItemStyle,
-    "ui:order": [
-      "name",
-      "email",
-      "phone",
-      "identifier",
-      "identifier_type",
-      "role",
-      "affiliation"
-    ],
+    "ui:order": ["name", "email", "phone", "identifier", "identifier_type", "role", "affiliation"],
     name: {
-      "ui:placeholder": "Full name of the data submitter"
+      "ui:placeholder": "Full name of the data submitter",
     },
     email: {
-      "ui:placeholder": "email@example.com"
+      "ui:placeholder": "email@example.com",
     },
     phone: {
-      "ui:placeholder": "+1-555-555-5555"
+      "ui:placeholder": "+1-555-555-5555",
     },
     identifier: {
-      "ui:placeholder": "https://orcid.org/0000-0000-0000-0000"
+      "ui:placeholder": "https://orcid.org/0000-0000-0000-0000",
     },
     identifier_type: {
       "ui:widget": "CustomSelectWidget",
-      "ui:enumNames": enumNames.ResearcherIDType
+      "ui:enumNames": enumNames.ResearcherIDType,
     },
     role: {
-      "ui:placeholder": "e.g., Data Submitter, Principal Investigator"
+      "ui:placeholder": "e.g., Data Submitter, Principal Investigator",
     },
     affiliation: {
       "ui:title": "Affiliation",
       "ui:order": ["name", "identifier", "country"],
       name: {
         "ui:title": "Organization Name",
-        "ui:placeholder": "Institution or organization"
+        "ui:placeholder": "Institution or organization",
       },
       identifier: {
         "ui:title": "Organization ROR",
-        "ui:placeholder": "https://ror.org/..."
+        "ui:placeholder": "https://ror.org/...",
       },
       country: {
-        "ui:placeholder": "e.g., US"
-      }
-    }
+        "ui:placeholder": "e.g., US",
+      },
+    },
   },
   author_list_for_citation: {
     "ui:widget": "textarea",
     "ui:options": { rows: 2 },
     "ui:placeholder": "Lastname1, Firstname1; Lastname2, Firstname2; ...",
-    "ui:descriptionModal": true
+    "ui:descriptionModal": true,
   },
   license: {
     ...textAreaWidget,
-    "ui:placeholder": "License terms for data usage (e.g., CC BY 4.0)"
+    "ui:placeholder": "License terms for data usage (e.g., CC BY 4.0)",
   },
   fair_use_data_request: {
     ...textAreaWidget,
-    "ui:placeholder": "Statement regarding how this dataset should be used"
-  }
+    "ui:placeholder": "Statement regarding how this dataset should be used",
+  },
 };
 
 export default modelOutputUiSchema;

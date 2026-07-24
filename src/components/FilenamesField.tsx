@@ -1,7 +1,7 @@
-
-import React, { useState } from "react";
+import { Box, Pill, PillsInput } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
-import { Box, PillsInput, Pill } from "@mantine/core";
+import type React from "react";
+import { useState } from "react";
 import { FieldLabelSmall } from "./rjsf/FieldLabel";
 
 /**
@@ -10,17 +10,8 @@ import { FieldLabelSmall } from "./rjsf/FieldLabel";
  * Similar to RelatedLinksField in ExternalProjectField.
  */
 const FilenamesField: React.FC<FieldProps> = (props) => {
-  const {
-    formData,
-    onChange,
-    disabled,
-    readonly,
-    schema,
-    uiSchema,
-    name,
-    fieldPathId,
-    rawErrors
-  } = props;
+  const { formData, onChange, disabled, readonly, schema, uiSchema, name, fieldPathId, rawErrors } =
+    props;
 
   // Ensure formData is an array
   const values: string[] = Array.isArray(formData) ? formData : [];
@@ -51,11 +42,7 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
         e.preventDefault();
         addPillFromSearch();
       }
-    } else if (
-      e.key === "Backspace" &&
-      search.length === 0 &&
-      values.length > 0
-    ) {
+    } else if (e.key === "Backspace" && search.length === 0 && values.length > 0) {
       handleChange(values.slice(0, -1));
     }
   };
@@ -78,16 +65,8 @@ const FilenamesField: React.FC<FieldProps> = (props) => {
 
   return (
     <Box>
-      <FieldLabelSmall
-        label={label}
-        description={schema.description}
-        required={isRequired}
-      />
-      <PillsInput
-        error={
-          rawErrors && rawErrors.length > 0 ? rawErrors.join(", ") : undefined
-        }
-      >
+      <FieldLabelSmall label={label} description={schema.description} required={isRequired} />
+      <PillsInput error={rawErrors && rawErrors.length > 0 ? rawErrors.join(", ") : undefined}>
         <Pill.Group>
           {values.map((filename, index) => (
             <Pill

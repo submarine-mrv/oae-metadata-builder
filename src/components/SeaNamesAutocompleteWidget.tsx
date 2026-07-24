@@ -1,5 +1,5 @@
-import React from "react";
 import type { WidgetProps } from "@rjsf/utils";
+import type React from "react";
 import MultiSelectPillWidget from "./rjsf/MultiSelectPillWidget";
 
 /**
@@ -19,13 +19,13 @@ const SeaNamesAutocompleteWidget: React.FC<WidgetProps> = (props) => {
           rel="noopener noreferrer"
           style={{
             color: "var(--mantine-color-blue-6)",
-            textDecoration: "underline"
+            textDecoration: "underline",
           }}
         >
           View all sea names
         </a>
       </>
-    )
+    ),
   };
 
   return <MultiSelectPillWidget {...props} options={options} />;

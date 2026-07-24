@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Group, Text, Tooltip, ActionIcon } from "@mantine/core";
+import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import type React from "react";
+import { useState } from "react";
 import DescriptionModal from "./DescriptionModal";
 
 interface FieldLabelProps {
@@ -22,7 +23,7 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   required = false,
   useModal = false,
   order = 5,
-  fw = 500
+  fw = 500,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -81,9 +82,7 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
 /**
  * Smaller version for inline field labels (not titles)
  */
-export const FieldLabelSmall: React.FC<
-  Omit<FieldLabelProps, "order" | "fw">
-> = (props) => {
+export const FieldLabelSmall: React.FC<Omit<FieldLabelProps, "order" | "fw">> = (props) => {
   const [modalOpen, setModalOpen] = useState(false);
   const { label, description, required = false, useModal = false } = props;
 

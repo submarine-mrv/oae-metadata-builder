@@ -10,21 +10,57 @@ export interface StandardIdentifierOption {
 
 export const STANDARD_IDENTIFIER_OPTIONS: Record<string, StandardIdentifierOption[]> = {
   pH: [
-    { code: "PHXXZZXX", uri: "http://vocab.nerc.ac.uk/collection/P01/current/PHXXZZXX/", term: "pH (unspecified scale)" },
-    { code: "PHMASSXX", uri: "http://vocab.nerc.ac.uk/collection/P01/current/PHMASSXX/", term: "pH (total scale)" },
+    {
+      code: "PHXXZZXX",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/PHXXZZXX/",
+      term: "pH (unspecified scale)",
+    },
+    {
+      code: "PHMASSXX",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/PHMASSXX/",
+      term: "pH (total scale)",
+    },
   ],
   ta: [
-    { code: "ALKYZZXX", uri: "http://vocab.nerc.ac.uk/collection/P01/current/ALKYZZXX/", term: "Total Alkalinity (per volume)" },
-    { code: "MDMAP014", uri: "http://vocab.nerc.ac.uk/collection/P01/current/MDMAP014/", term: "Total Alkalinity (per mass)" },
+    {
+      code: "ALKYZZXX",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/ALKYZZXX/",
+      term: "Total Alkalinity (per volume)",
+    },
+    {
+      code: "MDMAP014",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/MDMAP014/",
+      term: "Total Alkalinity (per mass)",
+    },
   ],
   dic: [
-    { code: "DIC", uri: "https://oae-data-protocol.org/variables/dic", term: "Dissolved Inorganic Carbon" },
+    {
+      code: "DIC",
+      uri: "https://oae-data-protocol.org/variables/dic",
+      term: "Dissolved Inorganic Carbon",
+    },
   ],
   co2: [
-    { code: "PCO2XXXX", uri: "http://vocab.nerc.ac.uk/collection/P01/current/PCO2XXXX/", term: "pCO\u2082 (partial pressure)" },
-    { code: "FCO2XXXX", uri: "http://vocab.nerc.ac.uk/collection/P01/current/FCO2XXXX/", term: "fCO\u2082 (fugacity)" },
-    { code: "XCO2DRAT", uri: "http://vocab.nerc.ac.uk/collection/P01/current/XCO2DRAT/", term: "xCO\u2082 (atmosphere)" },
-    { code: "XCO2WBDY", uri: "http://vocab.nerc.ac.uk/collection/P01/current/XCO2WBDY/", term: "xCO\u2082 (water body)" },
+    {
+      code: "PCO2XXXX",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/PCO2XXXX/",
+      term: "pCO\u2082 (partial pressure)",
+    },
+    {
+      code: "FCO2XXXX",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/FCO2XXXX/",
+      term: "fCO\u2082 (fugacity)",
+    },
+    {
+      code: "XCO2DRAT",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/XCO2DRAT/",
+      term: "xCO\u2082 (atmosphere)",
+    },
+    {
+      code: "XCO2WBDY",
+      uri: "http://vocab.nerc.ac.uk/collection/P01/current/XCO2WBDY/",
+      term: "xCO\u2082 (water body)",
+    },
   ],
 };
 

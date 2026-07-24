@@ -1,17 +1,6 @@
-
+import { Checkbox, Collapse, Grid, TextInput } from "@mantine/core";
 import { useState } from "react";
-import {
-  Checkbox,
-  TextInput,
-  Grid,
-  Collapse
-} from "@mantine/core";
-import {
-  getFieldMetadata,
-  getNestedValue,
-  setNestedValue,
-  type JSONSchema
-} from "../schemaUtils";
+import { getFieldMetadata, getNestedValue, type JSONSchema, setNestedValue } from "../schemaUtils";
 import FieldLabel from "./FieldLabel";
 
 interface OptionalWithGateFieldProps {
@@ -49,7 +38,7 @@ export default function OptionalWithGateField({
   onChange,
   descriptionModal = false,
   placeholderText,
-  gateLabel
+  gateLabel,
 }: OptionalWithGateFieldProps) {
   // Get metadata for the field
   const fieldMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
@@ -60,9 +49,7 @@ export default function OptionalWithGateField({
   const [isChecked, setIsChecked] = useState(!!fieldValue);
 
   if (!fieldMetadata) {
-    console.warn(
-      `OptionalWithGateField: No metadata found for path "${fieldPath}"`
-    );
+    console.warn(`OptionalWithGateField: No metadata found for path "${fieldPath}"`);
     return null;
   }
 
@@ -80,7 +67,7 @@ export default function OptionalWithGateField({
     onChange(newFormData);
   };
 
-  const descriptionMode = descriptionModal ? "modal" as const : "tooltip" as const;
+  const descriptionMode = descriptionModal ? ("modal" as const) : ("tooltip" as const);
 
   return (
     <>
@@ -93,8 +80,8 @@ export default function OptionalWithGateField({
           radius={6}
           styles={{
             label: {
-              fontSize: "var(--mantine-font-size-sm)"
-            }
+              fontSize: "var(--mantine-font-size-sm)",
+            },
           }}
         />
       </Grid.Col>

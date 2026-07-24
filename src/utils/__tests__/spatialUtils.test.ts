@@ -1,19 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { formatBoundsString, parseBoundsString } from "../mapLayerUtils";
 import {
-  normalizeLongitude,
   adjustEastForAntimeridian,
-  prepareBoundsForRendering,
-  validateSpatialBounds,
-  resolveBoxFromClicks,
   isValidLatitude,
   isValidLongitude,
+  migrateFormDataBoxStrings,
   migrateLegacyBoxString,
-  migrateFormDataBoxStrings
+  normalizeLongitude,
+  prepareBoundsForRendering,
+  resolveBoxFromClicks,
+  validateSpatialBounds,
 } from "../spatialUtils";
-import {
-  parseBoundsString,
-  formatBoundsString
-} from "../mapLayerUtils";
 
 // ── normalizeLongitude ──────────────────────────────────────────────
 
@@ -66,7 +63,7 @@ describe("prepareBoundsForRendering", () => {
       renderWest: -125,
       renderEast: -114,
       south: 32,
-      north: 42
+      north: 42,
     });
   });
 
@@ -76,7 +73,7 @@ describe("prepareBoundsForRendering", () => {
       renderWest: 170,
       renderEast: 190,
       south: -10,
-      north: 10
+      north: 10,
     });
   });
 });
@@ -186,7 +183,13 @@ describe("parseBoundsString / formatBoundsString round-trip", () => {
     // SOSO example: "39.3280 120.1633 40.4450 123.7878"
     const parsed = parseBoundsString("39.3280 120.1633 40.4450 123.7878");
     expect(parsed).toEqual({ south: 39.328, west: 120.1633, north: 40.445, east: 123.7878 });
-    const formatted = formatBoundsString(parsed!.west, parsed!.south, parsed!.east, parsed!.north, 4);
+    const formatted = formatBoundsString(
+      parsed!.west,
+      parsed!.south,
+      parsed!.east,
+      parsed!.north,
+      4,
+    );
     expect(formatted).toBe("39.3280 120.1633 40.4450 123.7878");
   });
 });
@@ -196,10 +199,7 @@ describe("parseBoundsString / formatBoundsString round-trip", () => {
 describe("resolveBoxFromClicks", () => {
   describe("normal boxes (no antimeridian crossing)", () => {
     it("resolves a simple box", () => {
-      const result = resolveBoxFromClicks(
-        { lng: -125, lat: 32 },
-        { lng: -114, lat: 42 }
-      );
+      const result = resolveBoxFromClicks({ lng: -125, lat: 32 }, { lng: -114, lat: 42 });
       expect(result).toEqual({ west: -125, south: 32, east: -114, north: 42 });
     });
 
@@ -214,25 +214,13 @@ describe("resolveBoxFromClicks", () => {
 
     it("produces the same box when corners are swapped diagonally", () => {
       // NW then SE
-      const nwSe = resolveBoxFromClicks(
-        { lng: -125, lat: 42 },
-        { lng: -114, lat: 32 }
-      );
+      const nwSe = resolveBoxFromClicks({ lng: -125, lat: 42 }, { lng: -114, lat: 32 });
       // SE then NW
-      const seNw = resolveBoxFromClicks(
-        { lng: -114, lat: 32 },
-        { lng: -125, lat: 42 }
-      );
+      const seNw = resolveBoxFromClicks({ lng: -114, lat: 32 }, { lng: -125, lat: 42 });
       // SW then NE
-      const swNe = resolveBoxFromClicks(
-        { lng: -125, lat: 32 },
-        { lng: -114, lat: 42 }
-      );
+      const swNe = resolveBoxFromClicks({ lng: -125, lat: 32 }, { lng: -114, lat: 42 });
       // NE then SW
-      const neSw = resolveBoxFromClicks(
-        { lng: -114, lat: 42 },
-        { lng: -125, lat: 32 }
-      );
+      const neSw = resolveBoxFromClicks({ lng: -114, lat: 42 }, { lng: -125, lat: 32 });
 
       expect(nwSe).toEqual(seNw);
       expect(swNe).toEqual(neSw);
@@ -243,10 +231,7 @@ describe("resolveBoxFromClicks", () => {
   describe("antimeridian-crossing boxes", () => {
     it("detects crossing when shortest path goes over the antimeridian", () => {
       // Fiji area: 170E to 170W — shortest path crosses antimeridian (40° span)
-      const result = resolveBoxFromClicks(
-        { lng: 170, lat: -20 },
-        { lng: -170, lat: -10 }
-      );
+      const result = resolveBoxFromClicks({ lng: 170, lat: -20 }, { lng: -170, lat: -10 });
       expect(result.west).toBe(170);
       expect(result.east).toBe(-170);
       expect(result.south).toBe(-20);
@@ -264,20 +249,14 @@ describe("resolveBoxFromClicks", () => {
 
     it("handles narrow antimeridian crossing", () => {
       // 179E to 179W — very narrow 2° box across antimeridian
-      const result = resolveBoxFromClicks(
-        { lng: 179, lat: 0 },
-        { lng: -179, lat: 5 }
-      );
+      const result = resolveBoxFromClicks({ lng: 179, lat: 0 }, { lng: -179, lat: 5 });
       expect(result.west).toBe(179);
       expect(result.east).toBe(-179);
     });
 
     it("does NOT cross when the direct path is shorter", () => {
       // 10E to 20E — direct path is 10°, wrap path is 350°
-      const result = resolveBoxFromClicks(
-        { lng: 10, lat: 0 },
-        { lng: 20, lat: 5 }
-      );
+      const result = resolveBoxFromClicks({ lng: 10, lat: 0 }, { lng: 20, lat: 5 });
       expect(result.west).toBe(10);
       expect(result.east).toBe(20);
     });
@@ -285,8 +264,8 @@ describe("resolveBoxFromClicks", () => {
     it("normalizes out-of-range longitudes before resolving", () => {
       // MapLibre can report lng > 180 when panning
       const result = resolveBoxFromClicks(
-        { lng: 190, lat: 0 },   // normalizes to -170
-        { lng: 170, lat: 10 }
+        { lng: 190, lat: 0 }, // normalizes to -170
+        { lng: 170, lat: 10 },
       );
       // 170 to -170 crosses antimeridian
       expect(result.west).toBe(170);
@@ -296,29 +275,20 @@ describe("resolveBoxFromClicks", () => {
 
   describe("edge cases", () => {
     it("handles both points at the same longitude", () => {
-      const result = resolveBoxFromClicks(
-        { lng: 10, lat: 0 },
-        { lng: 10, lat: 5 }
-      );
+      const result = resolveBoxFromClicks({ lng: 10, lat: 0 }, { lng: 10, lat: 5 });
       expect(result.west).toBe(10);
       expect(result.east).toBe(10);
     });
 
     it("handles both points at the same latitude", () => {
-      const result = resolveBoxFromClicks(
-        { lng: 10, lat: 5 },
-        { lng: 20, lat: 5 }
-      );
+      const result = resolveBoxFromClicks({ lng: 10, lat: 5 }, { lng: 20, lat: 5 });
       expect(result.south).toBe(5);
       expect(result.north).toBe(5);
     });
 
     it("handles exactly 180° apart (ambiguous — either path is equal)", () => {
       // When direct = wrap = 180°, crossesAntimeridian is false (not strictly less)
-      const result = resolveBoxFromClicks(
-        { lng: 0, lat: 0 },
-        { lng: 180, lat: 10 }
-      );
+      const result = resolveBoxFromClicks({ lng: 0, lat: 0 }, { lng: 180, lat: 10 });
       expect(result.west).toBe(0);
       expect(result.east).toBe(180);
     });
@@ -330,10 +300,7 @@ describe("resolveBoxFromClicks", () => {
 describe("antimeridian rendering pipeline", () => {
   it("full pipeline: click → resolve → format → parse → adjust for rendering", () => {
     // Simulate two clicks near Fiji
-    const box = resolveBoxFromClicks(
-      { lng: 175, lat: -18 },
-      { lng: -175, lat: -15 }
-    );
+    const box = resolveBoxFromClicks({ lng: 175, lat: -18 }, { lng: -175, lat: -15 });
     expect(box.west).toBeGreaterThan(box.east); // confirms antimeridian crossing
 
     // Format to SOSO string
@@ -423,15 +390,14 @@ describe("migrateLegacyBoxString", () => {
     // Both pass through unchanged — the legacy one will render in the wrong spot
     // but won't crash. A future version-based migration will handle this.
     const legacy = "-63.678757 44.588164 -63.484064 44.729404";
-    const soso   = "44.588164 -63.678757 44.729404 -63.484064";
+    const soso = "44.588164 -63.678757 44.729404 -63.484064";
     expect(migrateLegacyBoxString(legacy)).toBe(legacy); // can't detect, unchanged
-    expect(migrateLegacyBoxString(soso)).toBe(soso);     // already correct, unchanged
+    expect(migrateLegacyBoxString(soso)).toBe(soso); // already correct, unchanged
   });
 
   it("handles Pacific Northwest example (clearly legacy)", () => {
     // Old: W=-124.5 S=36.8 E=-121.9 N=38.2 → position 0 is -124.5, |−124.5| > 90
-    expect(migrateLegacyBoxString("-124.5 36.8 -121.9 38.2"))
-      .toBe("36.8 -124.5 38.2 -121.9");
+    expect(migrateLegacyBoxString("-124.5 36.8 -121.9 38.2")).toBe("36.8 -124.5 38.2 -121.9");
   });
 });
 
@@ -441,7 +407,7 @@ describe("migrateFormDataBoxStrings", () => {
   it("migrates legacy box in spatial_coverage.geo.box", () => {
     const data = {
       name: "Test Project",
-      spatial_coverage: { geo: { box: "-125 32 -114 42" } }
+      spatial_coverage: { geo: { box: "-125 32 -114 42" } },
     };
     const result = migrateFormDataBoxStrings(data);
     expect(result.spatial_coverage.geo.box).toBe("32 -125 42 -114");
@@ -451,7 +417,7 @@ describe("migrateFormDataBoxStrings", () => {
 
   it("leaves SOSO format unchanged", () => {
     const data = {
-      spatial_coverage: { geo: { box: "32 -125 42 -114" } }
+      spatial_coverage: { geo: { box: "32 -125 42 -114" } },
     };
     const result = migrateFormDataBoxStrings(data);
     expect(result.spatial_coverage.geo.box).toBe("32 -125 42 -114");
@@ -463,10 +429,12 @@ describe("migrateFormDataBoxStrings", () => {
   });
 
   it("handles null/empty box", () => {
-    expect(migrateFormDataBoxStrings({ spatial_coverage: { geo: { box: "" } } }))
-      .toEqual({ spatial_coverage: { geo: { box: "" } } });
-    expect(migrateFormDataBoxStrings({ spatial_coverage: { geo: { box: null } } }))
-      .toEqual({ spatial_coverage: { geo: { box: null } } });
+    expect(migrateFormDataBoxStrings({ spatial_coverage: { geo: { box: "" } } })).toEqual({
+      spatial_coverage: { geo: { box: "" } },
+    });
+    expect(migrateFormDataBoxStrings({ spatial_coverage: { geo: { box: null } } })).toEqual({
+      spatial_coverage: { geo: { box: null } },
+    });
   });
 
   it("handles null/undefined input", () => {
@@ -480,39 +448,36 @@ describe("migrateFormDataBoxStrings", () => {
       grid_details: [
         {
           grid_name: "Grid 1",
-          spatial_coverage: { geo: { box: "-124.565552 47.254494 -122.390259 48.207705" } }
+          spatial_coverage: { geo: { box: "-124.565552 47.254494 -122.390259 48.207705" } },
         },
         {
           grid_name: "Grid 2",
-          spatial_coverage: { geo: { box: "32 -125 42 -114" } } // already SOSO
-        }
-      ]
+          spatial_coverage: { geo: { box: "32 -125 42 -114" } }, // already SOSO
+        },
+      ],
     };
     const result = migrateFormDataBoxStrings(data);
-    expect(result.grid_details[0].spatial_coverage.geo.box)
-      .toBe("47.254494 -124.565552 48.207705 -122.390259");
-    expect(result.grid_details[1].spatial_coverage.geo.box)
-      .toBe("32 -125 42 -114"); // unchanged
+    expect(result.grid_details[0].spatial_coverage.geo.box).toBe(
+      "47.254494 -124.565552 48.207705 -122.390259",
+    );
+    expect(result.grid_details[1].spatial_coverage.geo.box).toBe("32 -125 42 -114"); // unchanged
   });
 
   it("migrates deeply nested spatial_coverage in objects", () => {
     const data = {
       interventions: {
         tracer: {
-          spatial_coverage: { geo: { box: "-170 -10 170 10" } }
-        }
-      }
+          spatial_coverage: { geo: { box: "-170 -10 170 10" } },
+        },
+      },
     };
     const result = migrateFormDataBoxStrings(data);
-    expect(result.interventions.tracer.spatial_coverage.geo.box)
-      .toBe("-10 -170 10 170");
+    expect(result.interventions.tracer.spatial_coverage.geo.box).toBe("-10 -170 10 170");
   });
 
   it("preserves values when no migration needed", () => {
     const data = {
-      grid_details: [
-        { spatial_coverage: { geo: { box: "32 -125 42 -114" } } }
-      ]
+      grid_details: [{ spatial_coverage: { geo: { box: "32 -125 42 -114" } } }],
     };
     const result = migrateFormDataBoxStrings(data);
     expect(result.grid_details[0].spatial_coverage.geo.box).toBe("32 -125 42 -114");

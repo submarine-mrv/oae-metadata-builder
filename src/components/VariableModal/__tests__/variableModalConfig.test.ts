@@ -1,15 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
 import {
   buildSectionFields,
   getAccordionConfig,
-  VARIABLE_TYPE_LAYERS,
-  VARIABLE_SCHEMA_MAP,
-  normalizeFieldConfig,
   getSchemaKey,
+  getSchemaKeyForUI,
+  normalizeFieldConfig,
   resolveVariableType,
-  getSchemaKeyForUI
+  VARIABLE_SCHEMA_MAP,
+  VARIABLE_TYPE_LAYERS,
 } from "../variableModalConfig";
-import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
 
 describe("buildSectionFields", () => {
   it("returns empty array when no layers contribute to the section", () => {
@@ -20,11 +20,11 @@ describe("buildSectionFields", () => {
   it("appends fields from plain array contributions (default)", () => {
     const layer1: HierarchyLayer = {
       name: "L1",
-      sections: { basic: ["field_a"] }
+      sections: { basic: ["field_a"] },
     };
     const layer2: HierarchyLayer = {
       name: "L2",
-      sections: { basic: [{ path: "field_b", span: 6 }] }
+      sections: { basic: [{ path: "field_b", span: 6 }] },
     };
     const result = buildSectionFields("basic", [layer1, layer2]);
     expect(result).toEqual(["field_a", { path: "field_b", span: 6 }]);
@@ -33,13 +33,13 @@ describe("buildSectionFields", () => {
   it("prepends fields when position is 'prepend'", () => {
     const base: HierarchyLayer = {
       name: "Base",
-      sections: { analysis: ["base_field"] }
+      sections: { analysis: ["base_field"] },
     };
     const prepended: HierarchyLayer = {
       name: "Prepend",
       sections: {
-        analysis: { fields: ["prepend_field"], position: "prepend" }
-      }
+        analysis: { fields: ["prepend_field"], position: "prepend" },
+      },
     };
     const result = buildSectionFields("analysis", [base, prepended]);
     expect(result).toEqual(["prepend_field", "base_field"]);
@@ -48,37 +48,31 @@ describe("buildSectionFields", () => {
   it("inserts fields after a named field", () => {
     const base: HierarchyLayer = {
       name: "Base",
-      sections: { calibration: ["top", "anchor", "bottom"] }
+      sections: { calibration: ["top", "anchor", "bottom"] },
     };
     const inserter: HierarchyLayer = {
       name: "Inserter",
       sections: {
         calibration: {
           fields: ["inserted_a", "inserted_b"],
-          position: { after: "anchor" }
-        }
-      }
+          position: { after: "anchor" },
+        },
+      },
     };
     const result = buildSectionFields("calibration", [base, inserter]);
-    expect(result).toEqual([
-      "top",
-      "anchor",
-      "inserted_a",
-      "inserted_b",
-      "bottom"
-    ]);
+    expect(result).toEqual(["top", "anchor", "inserted_a", "inserted_b", "bottom"]);
   });
 
   it("falls back to append when { after } target is not found", () => {
     const base: HierarchyLayer = {
       name: "Base",
-      sections: { basic: ["field_a"] }
+      sections: { basic: ["field_a"] },
     };
     const inserter: HierarchyLayer = {
       name: "Inserter",
       sections: {
-        basic: { fields: ["orphan"], position: { after: "nonexistent" } }
-      }
+        basic: { fields: ["orphan"], position: { after: "nonexistent" } },
+      },
     };
     const result = buildSectionFields("basic", [base, inserter]);
     expect(result).toEqual(["field_a", "orphan"]);
@@ -87,35 +81,29 @@ describe("buildSectionFields", () => {
   it("handles multiple { after } inserts at the same anchor", () => {
     const base: HierarchyLayer = {
       name: "Base",
-      sections: { calibration: ["top", "anchor", "bottom"] }
+      sections: { calibration: ["top", "anchor", "bottom"] },
     };
     const first: HierarchyLayer = {
       name: "First",
       sections: {
-        calibration: { fields: ["first_insert"], position: { after: "anchor" } }
-      }
+        calibration: { fields: ["first_insert"], position: { after: "anchor" } },
+      },
     };
     const second: HierarchyLayer = {
       name: "Second",
       sections: {
-        calibration: { fields: ["second_insert"], position: { after: "anchor" } }
-      }
+        calibration: { fields: ["second_insert"], position: { after: "anchor" } },
+      },
     };
     // Second inserts after "anchor", which pushes it between anchor and first_insert
     const result = buildSectionFields("calibration", [base, first, second]);
-    expect(result).toEqual([
-      "top",
-      "anchor",
-      "second_insert",
-      "first_insert",
-      "bottom"
-    ]);
+    expect(result).toEqual(["top", "anchor", "second_insert", "first_insert", "bottom"]);
   });
 
   it("skips layers that have no contribution for the requested section", () => {
     const layer: HierarchyLayer = {
       name: "Other",
-      sections: { sampling: ["only_in_sampling"] }
+      sections: { sampling: ["only_in_sampling"] },
     };
     expect(buildSectionFields("basic", [layer])).toEqual([]);
   });
@@ -123,11 +111,11 @@ describe("buildSectionFields", () => {
   it("skips layers with empty field arrays", () => {
     const base: HierarchyLayer = {
       name: "Base",
-      sections: { basic: ["field_a"] }
+      sections: { basic: ["field_a"] },
     };
     const empty: HierarchyLayer = {
       name: "Empty",
-      sections: { basic: [] }
+      sections: { basic: [] },
     };
     expect(buildSectionFields("basic", [base, empty])).toEqual(["field_a"]);
   });
@@ -136,7 +124,7 @@ describe("buildSectionFields", () => {
     const fields = ["field_a"];
     const layer: HierarchyLayer = {
       name: "L",
-      sections: { basic: fields }
+      sections: { basic: fields },
     };
     buildSectionFields("basic", [layer]);
     expect(fields).toEqual(["field_a"]);
@@ -154,7 +142,7 @@ describe("getAccordionConfig", () => {
       "instrument",
       "calibration",
       "qc",
-      "additional"
+      "additional",
     ]);
   });
 
@@ -174,30 +162,18 @@ describe("getAccordionConfig", () => {
   it("preserves calibration field ordering for pH: shared top → dye → shared bottom", () => {
     const sections = getAccordionConfig("DiscretePHVariable");
     const cal = sections.find((s) => s.key === "calibration")!;
-    const paths = cal.fields.map((f) =>
-      typeof f === "string" ? f : (f as FieldConfig).path
-    );
+    const paths = cal.fields.map((f) => (typeof f === "string" ? f : (f as FieldConfig).path));
 
     // Shared top fields come first
-    const techIdx = paths.indexOf(
-      "analyzing_instrument.calibration.technique_description"
-    );
-    const locIdx = paths.indexOf(
-      "analyzing_instrument.calibration.calibration_location"
-    );
+    const techIdx = paths.indexOf("analyzing_instrument.calibration.technique_description");
+    const locIdx = paths.indexOf("analyzing_instrument.calibration.calibration_location");
 
     // Dye fields (pH-specific) come after location
-    const dyeIdx = paths.indexOf(
-      "analyzing_instrument.calibration.dye_type_and_manufacturer"
-    );
+    const dyeIdx = paths.indexOf("analyzing_instrument.calibration.dye_type_and_manufacturer");
 
     // Shared bottom fields come last
-    const freqIdx = paths.indexOf(
-      "analyzing_instrument.calibration.frequency"
-    );
-    const certsIdx = paths.indexOf(
-      "analyzing_instrument.calibration.calibration_certificates"
-    );
+    const freqIdx = paths.indexOf("analyzing_instrument.calibration.frequency");
+    const certsIdx = paths.indexOf("analyzing_instrument.calibration.calibration_certificates");
 
     expect(techIdx).toBeLessThan(dyeIdx);
     expect(locIdx).toBeLessThan(dyeIdx);
@@ -209,27 +185,17 @@ describe("getAccordionConfig", () => {
     for (const schemaKey of ["DiscretePHVariable", "DiscreteCO2Variable"]) {
       const sections = getAccordionConfig(schemaKey);
       const cal = sections.find((s) => s.key === "calibration")!;
-      const paths = cal.fields.map((f) =>
-        typeof f === "string" ? f : (f as FieldConfig).path
-      );
-      expect(paths).toContain(
-        "analyzing_instrument.calibration.calibration_temperature"
-      );
+      const paths = cal.fields.map((f) => (typeof f === "string" ? f : (f as FieldConfig).path));
+      expect(paths).toContain("analyzing_instrument.calibration.calibration_temperature");
     }
   });
 
   it("does not include pH-specific fields in sediment config", () => {
     const sections = getAccordionConfig("DiscreteSedimentVariable");
     const cal = sections.find((s) => s.key === "calibration")!;
-    const paths = cal.fields.map((f) =>
-      typeof f === "string" ? f : (f as FieldConfig).path
-    );
-    expect(paths).not.toContain(
-      "analyzing_instrument.calibration.dye_type_and_manufacturer"
-    );
-    expect(paths).not.toContain(
-      "analyzing_instrument.calibration.calibration_temperature"
-    );
+    const paths = cal.fields.map((f) => (typeof f === "string" ? f : (f as FieldConfig).path));
+    expect(paths).not.toContain("analyzing_instrument.calibration.dye_type_and_manufacturer");
+    expect(paths).not.toContain("analyzing_instrument.calibration.calibration_temperature");
   });
 
   it("NonMeasuredVariable has no calculation section", () => {
@@ -271,10 +237,9 @@ describe("VARIABLE_TYPE_LAYERS", () => {
   it("every layer stack starts with BASE (has basic section)", () => {
     for (const [key, layers] of Object.entries(VARIABLE_TYPE_LAYERS)) {
       const basicFields = buildSectionFields("basic", layers);
-      expect(
-        basicFields.length,
-        `${key} should have basic fields from BASE layer`
-      ).toBeGreaterThan(0);
+      expect(basicFields.length, `${key} should have basic fields from BASE layer`).toBeGreaterThan(
+        0,
+      );
     }
   });
 
@@ -287,17 +252,11 @@ describe("VARIABLE_TYPE_LAYERS", () => {
       "DiscreteCO2Variable",
       "HPLCVariable",
       "DiscretePhysiologicalVariable",
-      "DiscreteMeasuredVariable"
+      "DiscreteMeasuredVariable",
     ];
     for (const key of discreteKeys) {
-      const calFields = buildSectionFields(
-        "calibration",
-        VARIABLE_TYPE_LAYERS[key]
-      );
-      expect(
-        calFields.length,
-        `${key} should have calibration fields`
-      ).toBeGreaterThan(0);
+      const calFields = buildSectionFields("calibration", VARIABLE_TYPE_LAYERS[key]);
+      expect(calFields.length, `${key} should have calibration fields`).toBeGreaterThan(0);
     }
   });
 
@@ -309,47 +268,32 @@ describe("VARIABLE_TYPE_LAYERS", () => {
       "ContinuousSedimentVariable",
       "ContinuousPhysiologicalVariable",
       "ContinuousMeasuredVariable",
-      "ContinuousCO2Variable"
+      "ContinuousCO2Variable",
     ];
     for (const key of continuousKeys) {
-      const analysisFields = buildSectionFields(
-        "analysis",
-        VARIABLE_TYPE_LAYERS[key]
-      );
-      const paths = analysisFields.map((f) =>
-        typeof f === "string" ? f : f.path
-      );
+      const analysisFields = buildSectionFields("analysis", VARIABLE_TYPE_LAYERS[key]);
+      const paths = analysisFields.map((f) => (typeof f === "string" ? f : f.path));
       expect(paths).toContain("raw_data_calculation_method");
     }
   });
 
   it("ContinuousCO2Variable includes required calibration fields", () => {
-    const calFields = buildSectionFields(
-      "calibration",
-      VARIABLE_TYPE_LAYERS["ContinuousCO2Variable"]
-    );
+    const calFields = buildSectionFields("calibration", VARIABLE_TYPE_LAYERS.ContinuousCO2Variable);
     const paths = calFields.map((f) => (typeof f === "string" ? f : f.path));
+    expect(paths).toContain("analyzing_instrument.calibration.technique_description");
     expect(paths).toContain(
-      "analyzing_instrument.calibration.technique_description"
-    );
-    expect(paths).toContain(
-      "analyzing_instrument.calibration.standard_gas_info.number_of_nonzero_standards"
+      "analyzing_instrument.calibration.standard_gas_info.number_of_nonzero_standards",
     );
   });
 
   it("calculated type includes calculation section", () => {
-    const calcFields = buildSectionFields(
-      "calculation",
-      VARIABLE_TYPE_LAYERS["CalculatedVariable"]
-    );
-    const paths = calcFields.map((f) =>
-      typeof f === "string" ? f : f.path
-    );
+    const calcFields = buildSectionFields("calculation", VARIABLE_TYPE_LAYERS.CalculatedVariable);
+    const paths = calcFields.map((f) => (typeof f === "string" ? f : f.path));
     expect(paths).toContain("calculation_method_and_parameters");
   });
 
   it("NonMeasuredVariable has only BASE layer fields", () => {
-    const layers = VARIABLE_TYPE_LAYERS["NonMeasuredVariable"];
+    const layers = VARIABLE_TYPE_LAYERS.NonMeasuredVariable;
     expect(layers).toHaveLength(1);
     // BASE now includes calibration fields (inherited from base Calibration
     // class in the protocol), so they appear in the layer output for every
@@ -365,7 +309,7 @@ describe("VARIABLE_TYPE_LAYERS", () => {
     expect(keys).toContain("biological");
     const bioFields = buildSectionFields(
       "biological",
-      VARIABLE_TYPE_LAYERS["DiscretePhysiologicalVariable"]
+      VARIABLE_TYPE_LAYERS.DiscretePhysiologicalVariable,
     );
     const paths = bioFields.map((f) => (typeof f === "string" ? f : f.path));
     expect(paths).toContain("biological_subject");
@@ -374,11 +318,9 @@ describe("VARIABLE_TYPE_LAYERS", () => {
   it("ContinuousPhysiologicalVariable includes CONTINUOUS layer", () => {
     const analysisFields = buildSectionFields(
       "analysis",
-      VARIABLE_TYPE_LAYERS["ContinuousPhysiologicalVariable"]
+      VARIABLE_TYPE_LAYERS.ContinuousPhysiologicalVariable,
     );
-    const paths = analysisFields.map((f) =>
-      typeof f === "string" ? f : f.path
-    );
+    const paths = analysisFields.map((f) => (typeof f === "string" ? f : f.path));
     expect(paths).toContain("raw_data_calculation_method");
   });
 
@@ -403,7 +345,9 @@ describe("getSchemaKey", () => {
     expect(getSchemaKey("dic", "measured", "discrete")).toBe("DiscreteDICVariable");
     expect(getSchemaKey("sediment", "measured", "discrete")).toBe("DiscreteSedimentVariable");
     expect(getSchemaKey("co2", "measured", "discrete")).toBe("DiscreteCO2Variable");
-    expect(getSchemaKey("physiological", "measured", "discrete")).toBe("DiscretePhysiologicalVariable");
+    expect(getSchemaKey("physiological", "measured", "discrete")).toBe(
+      "DiscretePhysiologicalVariable",
+    );
     expect(getSchemaKey("other", "measured", "discrete")).toBe("DiscreteMeasuredVariable");
   });
 
@@ -427,7 +371,9 @@ describe("getSchemaKey", () => {
   });
 
   it("returns physiological schema keys for measured continuous and calculated", () => {
-    expect(getSchemaKey("physiological", "measured", "continuous")).toBe("ContinuousPhysiologicalVariable");
+    expect(getSchemaKey("physiological", "measured", "continuous")).toBe(
+      "ContinuousPhysiologicalVariable",
+    );
     expect(getSchemaKey("physiological", "calculated", undefined)).toBe("CalculatedVariable");
   });
 
@@ -465,7 +411,7 @@ describe("normalizeFieldConfig", () => {
       placeholderText: undefined,
       rows: undefined,
       gateLabel: undefined,
-      newRowAfter: false
+      newRowAfter: false,
     });
   });
 

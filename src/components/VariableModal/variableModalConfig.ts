@@ -38,26 +38,26 @@
  * time rather than maintained by hand. See oae-data-commons#93.
  */
 
-import type { ComponentType } from "react";
-import Ajv2019 from "ajv/dist/2019";
-import type { JSONSchema } from "@/components/schemaUtils";
 import {
-  IconInfoCircle,
-  IconFlask,
-  IconMicroscope,
-  IconTool,
   IconAdjustments,
-  IconShieldCheck,
-  IconFileDescription,
   IconCalculator,
-  IconDroplet,
-  IconTemperature,
-  IconGauge,
   IconCloud,
-  IconWind,
+  IconDroplet,
+  IconFileDescription,
+  IconFlask,
+  IconGauge,
+  IconInfoCircle,
   IconLeaf,
-  IconUsers
+  IconMicroscope,
+  IconShieldCheck,
+  IconTemperature,
+  IconTool,
+  IconUsers,
+  IconWind,
 } from "@tabler/icons-react";
+import Ajv2019 from "ajv/dist/2019";
+import type { ComponentType } from "react";
+import type { JSONSchema } from "@/components/schemaUtils";
 
 // Icon type from tabler icons
 type IconProps = { size?: number | string; stroke?: number };
@@ -77,66 +77,66 @@ export const VARIABLE_SCHEMA_MAP = {
   pH: {
     measured: {
       discrete: "DiscretePHVariable",
-      continuous: "ContinuousPHVariable"
+      continuous: "ContinuousPHVariable",
     },
     calculated: "CalculatedVariable",
     placeholderOverrides: {
-      units: "NBS scale, total scale, seawater scale, etc."
-    }
+      units: "NBS scale, total scale, seawater scale, etc.",
+    },
   },
   other: {
     measured: {
       discrete: "DiscreteMeasuredVariable",
-      continuous: "ContinuousMeasuredVariable"
+      continuous: "ContinuousMeasuredVariable",
     },
-    calculated: "CalculatedVariable"
+    calculated: "CalculatedVariable",
   },
   ta: {
     measured: {
       discrete: "DiscreteTAVariable",
-      continuous: "ContinuousTAVariable"
+      continuous: "ContinuousTAVariable",
     },
-    calculated: "CalculatedVariable"
+    calculated: "CalculatedVariable",
   },
   dic: {
     measured: {
       discrete: "DiscreteDICVariable",
-      continuous: "ContinuousDICVariable"
+      continuous: "ContinuousDICVariable",
     },
-    calculated: "CalculatedVariable"
+    calculated: "CalculatedVariable",
   },
   sediment: {
     measured: {
       discrete: "DiscreteSedimentVariable",
-      continuous: "ContinuousSedimentVariable"
+      continuous: "ContinuousSedimentVariable",
     },
-    calculated: "CalculatedVariable"
+    calculated: "CalculatedVariable",
   },
   co2: {
     measured: {
       discrete: "DiscreteCO2Variable",
-      continuous: "ContinuousCO2Variable"
+      continuous: "ContinuousCO2Variable",
     },
     calculated: "CalculatedVariable",
     placeholderOverrides: {
-      units: "uatm, ppm, etc."
-    }
+      units: "uatm, ppm, etc.",
+    },
   },
   hplc: {
     measured: {
-      discrete: "HPLCVariable"
-    }
+      discrete: "HPLCVariable",
+    },
   },
   physiological: {
     measured: {
       discrete: "DiscretePhysiologicalVariable",
-      continuous: "ContinuousPhysiologicalVariable"
+      continuous: "ContinuousPhysiologicalVariable",
     },
-    calculated: "CalculatedVariable"
+    calculated: "CalculatedVariable",
   },
   // String value = direct mapping (no genesis/sampling sub-levels)
   socioeconomic: "SocioeconomicVariable",
-  non_measured: "NonMeasuredVariable"
+  non_measured: "NonMeasuredVariable",
 } as const;
 
 export type VariableTypeKey = keyof typeof VARIABLE_SCHEMA_MAP;
@@ -162,7 +162,7 @@ export const VARIABLE_TYPE_BEHAVIOR: Record<
 > = {
   hplc: { fixedGenesis: "measured", fixedSampling: "discrete" },
   socioeconomic: { directSchema: true },
-  non_measured: { directSchema: true }
+  non_measured: { directSchema: true },
 };
 
 /**
@@ -179,7 +179,7 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
       placeholderText: undefined,
       rows: undefined,
       gateLabel: undefined,
-      newRowAfter: false
+      newRowAfter: false,
     };
   }
   return {
@@ -190,7 +190,7 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
     placeholderText: field.placeholderText,
     rows: field.rows,
     gateLabel: field.gateLabel,
-    newRowAfter: field.newRowAfter ?? false
+    newRowAfter: field.newRowAfter ?? false,
   };
 }
 
@@ -207,7 +207,7 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
   { value: "hplc", label: "HPLC" },
   { value: "physiological", label: "Physiological Response" },
-  { value: "socioeconomic", label: "Socioeconomic" }
+  { value: "socioeconomic", label: "Socioeconomic" },
 ] as const;
 
 // =============================================================================
@@ -226,12 +226,7 @@ export interface FieldConfig {
    * - "boolean_select" - renders boolean as Yes/No dropdown instead of checkbox
    * - "optional_with_gate" - Yes/No gate question that shows text input when "Yes" selected
    */
-  inputType?:
-    | "text"
-    | "textarea"
-    | "enum_with_other"
-    | "boolean_select"
-    | "optional_with_gate";
+  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select" | "optional_with_gate";
   /** Show description in a modal popup instead of tooltip. Default is false (tooltip) */
   descriptionModal?: boolean;
   /** Placeholder text for the input field */
@@ -316,10 +311,7 @@ function getFieldPath(entry: FieldEntry): string {
  *   anchor → L2_fields → L1_fields
  * This is accounted for in VARIABLE_TYPE_LAYERS ordering.
  */
-export function buildSectionFields(
-  sectionKey: SectionKey,
-  layers: HierarchyLayer[]
-): FieldEntry[] {
+export function buildSectionFields(sectionKey: SectionKey, layers: HierarchyLayer[]): FieldEntry[] {
   let result: FieldEntry[] = [];
 
   for (const layer of layers) {
@@ -351,11 +343,7 @@ export function buildSectionFields(
         // Target not found — append as fallback
         result = [...result, ...fields];
       } else {
-        result = [
-          ...result.slice(0, idx + 1),
-          ...fields,
-          ...result.slice(idx + 1)
-        ];
+        result = [...result.slice(0, idx + 1), ...fields, ...result.slice(idx + 1)];
       }
     }
   }
@@ -376,84 +364,84 @@ const BASE: HierarchyLayer = {
       {
         path: "units",
         span: 6,
-        placeholderText: "e.g., umol/kg, dimensionless"
+        placeholderText: "e.g., umol/kg, dimensionless",
       },
       {
         path: "dataset_variable_name",
         span: 6,
         placeholderText: "e.g., pH_total, DIC, TA",
-        newRowAfter: true
+        newRowAfter: true,
       },
       {
         path: "concentration_basis",
-        span: 6
+        span: 6,
       },
       {
         path: "dataset_variable_name_qc_flag",
         inputType: "optional_with_gate",
         gateLabel: "Quality flag is included as a separate column",
-        placeholderText: "e.g., pH_flag"
+        placeholderText: "e.g., pH_flag",
       },
       {
         path: "dataset_variable_name_raw",
         inputType: "optional_with_gate",
         gateLabel: "Raw data is included as a separate column",
-        placeholderText: "e.g., pH_raw"
-      }
+        placeholderText: "e.g., pH_raw",
+      },
     ],
     sampling: [
       "observation_type",
       {
         path: "sampling_method",
-        placeholderText: "Describe how samples were collected"
+        placeholderText: "Describe how samples were collected",
       },
       {
         path: "sampling_instrument_type",
         span: 6,
-        inputType: "enum_with_other"
+        inputType: "enum_with_other",
       },
       {
         path: "field_replicate_information",
-        placeholderText: "e.g., triplicate samples"
-      }
+        placeholderText: "e.g., triplicate samples",
+      },
     ],
     analysis: [
       {
         path: "analyzing_method",
-        placeholderText: "Describe the analysis method used"
-      }
+        placeholderText: "Describe the analysis method used",
+      },
     ],
     instrument: [
       {
         path: "analyzing_instrument.instrument_type",
         span: 6,
-        inputType: "enum_with_other"
+        inputType: "enum_with_other",
       },
       {
         path: "analyzing_instrument.manufacturer",
         span: 6,
-        placeholderText: "e.g., Agilent"
+        placeholderText: "e.g., Agilent",
       },
       {
         path: "analyzing_instrument.model",
         span: 6,
-        placeholderText: "Model number"
+        placeholderText: "Model number",
       },
       {
         path: "analyzing_instrument.serial_number",
         span: 6,
-        placeholderText: "Instrument serial number"
+        placeholderText: "Instrument serial number",
       },
       {
         path: "analyzing_instrument.precision",
         span: 6,
-        placeholderText: "Instrument precision"
+        placeholderText: "Instrument precision",
       },
       {
         path: "analyzing_instrument.accuracy",
         span: 6,
-        placeholderText: "Instrument accuracy"
-      }
+        placeholderText: "Instrument accuracy",
+      },
     ],
     // Shared calibration fields from the base Calibration class, inherited by
     // every measured variable's analyzing_instrument.calibration. Type-specific
@@ -465,75 +453,75 @@ const BASE: HierarchyLayer = {
       {
         path: "analyzing_instrument.calibration.technique_description",
         span: 6,
-        placeholderText: "Details of the calibration technique"
+        placeholderText: "Details of the calibration technique",
       },
       {
         path: "analyzing_instrument.calibration.calibration_location",
-        span: 6
+        span: 6,
       },
       {
         path: "analyzing_instrument.calibration.frequency",
         span: 6,
-        placeholderText: "How often calibrated"
+        placeholderText: "How often calibrated",
       },
       {
         path: "analyzing_instrument.calibration.last_calibration_date",
         span: 6,
-        placeholderText: "YYYY-MM-DD"
+        placeholderText: "YYYY-MM-DD",
       },
       {
         path: "analyzing_instrument.calibration.method_reference",
-        placeholderText: "Citation for calibration method"
+        placeholderText: "Citation for calibration method",
       },
-      "analyzing_instrument.calibration.calibration_certificates"
+      "analyzing_instrument.calibration.calibration_certificates",
     ],
     qc: [
       {
         path: "qc_steps_taken",
         inputType: "textarea",
         placeholderText:
-          "If quality control procedures are described in a separate document uploaded with the data, provide the name of the document here."
+          "If quality control procedures are described in a separate document uploaded with the data, provide the name of the document here.",
       },
       { path: "uncertainty", span: 6, placeholderText: "e.g., ±0.01 pH units" },
       {
         path: "uncertainty_definition",
         span: 6,
-        placeholderText: "Description of uncertainty calculation"
+        placeholderText: "Description of uncertainty calculation",
       },
       { path: "qc_researcher", span: 6 },
       {
         path: "qc_researcher_institution",
         span: 6,
-        placeholderText: "Institution name"
-      }
+        placeholderText: "Institution name",
+      },
     ],
     additional: [
       {
         path: "missing_value_indicators",
         span: 6,
-        placeholderText: "e.g., -999, NaN, NA"
+        placeholderText: "e.g., -999, NaN, NA",
       },
       { path: "appropriate_use_quality", span: 6, descriptionModal: true },
       {
         path: "method_reference",
-        placeholderText: "Citation for the method used"
+        placeholderText: "Citation for the method used",
       },
       "measurement_researcher",
       {
         path: "other_detailed_information",
         inputType: "textarea",
-        placeholderText: "Any additional information about this variable"
-      }
-    ]
-  }
+        placeholderText: "Any additional information about this variable",
+      },
+    ],
+  },
 };
 
 /** ContinuousMeasuredVariable */
 const CONTINUOUS: HierarchyLayer = {
   name: "ContinuousMeasuredVariable",
   sections: {
-    analysis: ["raw_data_calculation_method", "calculation_software_version"]
-  }
+    analysis: ["raw_data_calculation_method", "calculation_software_version"],
+  },
 };
 
 /** CalculatedVariable */
@@ -543,11 +531,10 @@ const CALCULATED: HierarchyLayer = {
     calculation: [
       {
         path: "calculation_method_and_parameters",
-        placeholderText:
-          "e.g., Using CO2SYS with Lueker et al. (2000) constants"
-      }
-    ]
-  }
+        placeholderText: "e.g., Using CO2SYS with Lueker et al. (2000) constants",
+      },
+    ],
+  },
 };
 
 /** MeasuredSedimentFields ∪ DiscreteSedimentVariable */
@@ -558,25 +545,25 @@ const SEDIMENT: HierarchyLayer = {
       {
         path: "sediment_type",
         span: 6,
-        placeholderText: "e.g., mud, sand"
+        placeholderText: "e.g., mud, sand",
       },
       {
         path: "sediment_sampling_method",
         span: 6,
-        placeholderText: "e.g., sediment core, grab sampling, dredging"
+        placeholderText: "e.g., sediment core, grab sampling, dredging",
       },
       {
         path: "sediment_sampling_depth",
         span: 6,
-        placeholderText: "Depth below sediment surface"
+        placeholderText: "Depth below sediment surface",
       },
       {
         path: "sediment_sampling_water_depth",
         span: 6,
-        placeholderText: "Water depth where sediment was collected"
-      }
-    ]
-  }
+        placeholderText: "Water depth where sediment was collected",
+      },
+    ],
+  },
 };
 
 /** MeasuredTA/DICFields ∪ DiscreteTA/DICVariable */
@@ -587,56 +574,56 @@ const TA_DIC: HierarchyLayer = {
       {
         path: "sample_preservation.preservative",
         span: 6,
-        placeholderText: "e.g., Mercury Chloride"
+        placeholderText: "e.g., Mercury Chloride",
       },
       {
         path: "sample_preservation.volume",
         span: 6,
-        placeholderText: "Volume of preservative used"
+        placeholderText: "Volume of preservative used",
       },
       {
         path: "sample_preservation.correction_description",
-        placeholderText: "How the preservative effect was corrected for"
-      }
+        placeholderText: "How the preservative effect was corrected for",
+      },
     ],
     analysis: [
       {
         path: "titration_type",
         span: 6,
-        placeholderText: "Type of titration used"
+        placeholderText: "Type of titration used",
       },
       {
         path: "titration_cell_type",
-        span: 6
+        span: 6,
       },
       {
         path: "curve_fitting_method",
         span: 6,
-        placeholderText: "Curve fitting method for alkalinity"
+        placeholderText: "Curve fitting method for alkalinity",
       },
       {
         path: "blank_correction",
-        placeholderText: "Whether and how results were corrected for blank"
-      }
+        placeholderText: "Whether and how results were corrected for blank",
+      },
     ],
     calibration: {
       fields: [
         {
           path: "analyzing_instrument.calibration.crm_manufacturer",
           span: 6,
-          placeholderText: "e.g., Scripps, JAMSTEC"
+          placeholderText: "e.g., Scripps, JAMSTEC",
         },
         {
           path: "analyzing_instrument.calibration.crm_batch_number",
           span: 6,
-          placeholderText: "CRM batch number"
-        }
+          placeholderText: "CRM batch number",
+        },
       ],
       position: {
-        after: "analyzing_instrument.calibration.calibration_location"
-      }
-    }
-  }
+        after: "analyzing_instrument.calibration.calibration_location",
+      },
+    },
+  },
 };
 
 /** MeasuredPHFields ∪ DiscretePHVariable ∪ ContinuousPHVariable */
@@ -647,54 +634,54 @@ const PH: HierarchyLayer = {
       {
         path: "measurement_temperature",
         span: 6,
-        placeholderText: "Temperature at which pH was measured"
+        placeholderText: "Temperature at which pH was measured",
       },
       {
         path: "ph_reported_temperature",
         span: 6,
-        placeholderText: "Temperature at which pH is reported"
+        placeholderText: "Temperature at which pH is reported",
       },
       {
         path: "temperature_correction_method",
-        placeholderText: "Method used to correct pH for temperature"
-      }
+        placeholderText: "Method used to correct pH for temperature",
+      },
     ],
     calibration: {
       fields: [
         {
           path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
-          placeholderText: "e.g., m-cresol purple from Sigma-Aldrich"
+          placeholderText: "e.g., m-cresol purple from Sigma-Aldrich",
         },
         {
           path: "analyzing_instrument.calibration.dye_purified",
           span: 6,
-          inputType: "boolean_select"
+          inputType: "boolean_select",
         },
         {
           path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
           span: 6,
-          placeholderText: "Correction method applied"
+          placeholderText: "Correction method applied",
         },
         {
           path: "analyzing_instrument.calibration.dye_correction_method",
-          placeholderText: "Method used to correct for dye effects"
+          placeholderText: "Method used to correct for dye effects",
         },
         {
           path: "analyzing_instrument.calibration.ph_of_standards",
           span: 6,
-          placeholderText: "pH values of calibration standards"
+          placeholderText: "pH values of calibration standards",
         },
         {
           path: "analyzing_instrument.calibration.calibration_temperature",
           span: 6,
-          placeholderText: "Temperature of calibration"
-        }
+          placeholderText: "Temperature of calibration",
+        },
       ],
       position: {
-        after: "analyzing_instrument.calibration.calibration_location"
-      }
-    }
-  }
+        after: "analyzing_instrument.calibration.calibration_location",
+      },
+    },
+  },
 };
 
 /** MeasuredCO2Fields ∪ DiscreteCO2Variable */
@@ -704,70 +691,70 @@ const CO2: HierarchyLayer = {
     sampling: [
       {
         path: "storage_method",
-        placeholderText: "How samples were stored before measurement"
-      }
+        placeholderText: "How samples were stored before measurement",
+      },
     ],
     analysis: [
       {
         path: "headspace_volume",
         span: 6,
-        placeholderText: "Volume of headspace (mL)"
+        placeholderText: "Volume of headspace (mL)",
       },
       {
         path: "seawater_volume",
         span: 6,
-        placeholderText: "Volume of seawater in flask (mL)"
+        placeholderText: "Volume of seawater in flask (mL)",
       },
       {
         path: "water_vapor_correction_method",
-        placeholderText: "How water vapor pressure was determined"
-      }
+        placeholderText: "How water vapor pressure was determined",
+      },
     ],
     instrument: [
       {
         path: "analyzing_instrument.detector_type",
         span: 6,
-        placeholderText: "Type of CO2 gas detector"
+        placeholderText: "Type of CO2 gas detector",
       },
       {
         path: "analyzing_instrument.resolution",
         span: 6,
-        placeholderText: "Sensor resolution"
+        placeholderText: "Sensor resolution",
       },
       {
         path: "analyzing_instrument.uncertainty",
         span: 6,
-        placeholderText: "Sensor uncertainty"
-      }
+        placeholderText: "Sensor uncertainty",
+      },
     ],
     calibration: {
       fields: [
         {
           path: "analyzing_instrument.calibration.standard_gas_info.manufacturer",
           span: 6,
-          placeholderText: "Standard gas manufacturer"
+          placeholderText: "Standard gas manufacturer",
         },
         {
           path: "analyzing_instrument.calibration.standard_gas_info.concentration",
           span: 6,
-          placeholderText: "e.g., 260, 350, 510 ppm"
+          placeholderText: "e.g., 260, 350, 510 ppm",
         },
         {
           path: "analyzing_instrument.calibration.standard_gas_info.uncertainty",
           span: 6,
-          placeholderText: "e.g., 0.5%"
+          placeholderText: "e.g., 0.5%",
         },
         {
           path: "analyzing_instrument.calibration.calibration_temperature",
           span: 6,
-          placeholderText: "Temperature of calibration"
-        }
+          placeholderText: "Temperature of calibration",
+        },
       ],
       position: {
-        after: "analyzing_instrument.calibration.calibration_location"
-      }
-    }
-  }
+        after: "analyzing_instrument.calibration.calibration_location",
+      },
+    },
+  },
 };
 
 /** ContinuousCO2Variable — continuous-specific fields */
@@ -778,216 +765,209 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       {
         path: "seawater_intake_location",
         span: 6,
-        placeholderText: "Whereabouts of the seawater intake"
+        placeholderText: "Whereabouts of the seawater intake",
       },
       {
         path: "seawater_intake_depth",
         span: 6,
-        placeholderText: "Water depth of the seawater intake"
+        placeholderText: "Water depth of the seawater intake",
       },
       {
         path: "drying_method",
-        placeholderText:
-          "Method used to dry gas from equilibrator before CO2 sensor"
-      }
+        placeholderText: "Method used to dry gas from equilibrator before CO2 sensor",
+      },
     ],
     analysis: [
       {
         path: "pco2_reported_temperature",
         span: 6,
-        placeholderText:
-          "e.g., in-situ temperature, temperature of analysis, etc."
+        placeholderText: "e.g., in-situ temperature, temperature of analysis, etc.",
       },
       {
         path: "temperature_correction_method",
         span: 6,
-        placeholderText: "How the temperature effect was corrected"
-      }
+        placeholderText: "How the temperature effect was corrected",
+      },
     ],
     instrument: [
       {
         path: "analyzing_instrument.measurement_frequency",
         span: 6,
-        placeholderText: "e.g., every 140 seconds except during calibration"
-      }
+        placeholderText: "e.g., every 140 seconds except during calibration",
+      },
     ],
     calibration: {
       fields: [
         {
           path: "analyzing_instrument.calibration.standard_gas_info.number_of_nonzero_standards",
           span: 6,
-          placeholderText: "Number of non-zero standards"
+          placeholderText: "Number of non-zero standards",
         },
         {
           path: "analyzing_instrument.calibration.standard_gas_info.traceability_to_wmo_standards",
           span: 6,
-          placeholderText: "Traceability to WMO standards"
-        }
+          placeholderText: "Traceability to WMO standards",
+        },
       ],
       position: {
-        after:
-          "analyzing_instrument.calibration.standard_gas_info.uncertainty"
-      }
+        after: "analyzing_instrument.calibration.standard_gas_info.uncertainty",
+      },
     },
     equilibrator: [
       { path: "equilibrator.equilibrator_type", span: 6 },
       {
         path: "equilibrator.volume",
         span: 6,
-        placeholderText: "Total volume in liters"
+        placeholderText: "Total volume in liters",
       },
       {
         path: "equilibrator.vented",
         span: 6,
-        inputType: "boolean_select"
+        inputType: "boolean_select",
       },
       {
         path: "equilibrator.water_flow_rate",
         span: 6,
-        placeholderText: "Flow rate in L/min"
+        placeholderText: "Flow rate in L/min",
       },
       {
         path: "equilibrator.headspace_gas_flow_rate",
         span: 6,
-        placeholderText: "Flow rate in L/min"
-      }
+        placeholderText: "Flow rate in L/min",
+      },
     ],
     equilibrator_temp_sensor: [
       {
         path: "equilibrator_temperature_sensor.location",
-        placeholderText:
-          "e.g., Inserted into equilibrator ~5 cm below water level"
+        placeholderText: "e.g., Inserted into equilibrator ~5 cm below water level",
       },
       {
         path: "equilibrator_temperature_sensor.manufacturer",
         span: 6,
-        placeholderText: "e.g., Hart"
+        placeholderText: "e.g., Hart",
       },
       {
         path: "equilibrator_temperature_sensor.model",
         span: 6,
-        placeholderText: "e.g., 1523"
+        placeholderText: "e.g., 1523",
       },
       {
         path: "equilibrator_temperature_sensor.serial_number",
-        span: 6
+        span: 6,
       },
       {
         path: "equilibrator_temperature_sensor.accuracy",
         span: 6,
-        placeholderText: "In degrees Celsius"
+        placeholderText: "In degrees Celsius",
       },
       {
         path: "equilibrator_temperature_sensor.precision",
         span: 6,
-        placeholderText: "In degrees Celsius"
+        placeholderText: "In degrees Celsius",
       },
       {
         path: "equilibrator_temperature_sensor.calibration",
-        placeholderText: "e.g., Factory calibration"
+        placeholderText: "e.g., Factory calibration",
       },
       {
         path: "equilibrator_temperature_sensor.comments",
         inputType: "textarea",
-        placeholderText: "e.g., Resolution is taken as Precision"
-      }
+        placeholderText: "e.g., Resolution is taken as Precision",
+      },
     ],
     equilibrator_pressure_sensor: [
       {
         path: "equilibrator_pressure_sensor.location",
-        placeholderText: "e.g., Attached to equilibrator headspace"
+        placeholderText: "e.g., Attached to equilibrator headspace",
       },
       {
         path: "equilibrator_pressure_sensor.manufacturer",
         span: 6,
-        placeholderText: "e.g., Setra"
+        placeholderText: "e.g., Setra",
       },
       {
         path: "equilibrator_pressure_sensor.model",
         span: 6,
-        placeholderText: "e.g., 270"
+        placeholderText: "e.g., 270",
       },
       { path: "equilibrator_pressure_sensor.serial_number", span: 6 },
       {
         path: "equilibrator_pressure_sensor.accuracy",
         span: 6,
-        placeholderText: "In hPa"
+        placeholderText: "In hPa",
       },
       {
         path: "equilibrator_pressure_sensor.precision",
         span: 6,
-        placeholderText: "In hPa"
+        placeholderText: "In hPa",
       },
       {
         path: "equilibrator_pressure_sensor.calibration",
-        placeholderText: "e.g., Factory calibration"
+        placeholderText: "e.g., Factory calibration",
       },
       {
         path: "equilibrator_pressure_sensor.comments",
         inputType: "textarea",
-        placeholderText:
-          "e.g., Manufacturer's resolution is taken as Precision"
-      }
+        placeholderText: "e.g., Manufacturer's resolution is taken as Precision",
+      },
     ],
     atmospheric_pressure_sensor: [
       {
         path: "atmospheric_pressure_sensor.location",
-        placeholderText:
-          "e.g., At the base of the radar mast, 48 m above sea level"
+        placeholderText: "e.g., At the base of the radar mast, 48 m above sea level",
       },
       {
         path: "atmospheric_pressure_sensor.manufacturer",
         span: 6,
-        placeholderText: "e.g., RM Young"
+        placeholderText: "e.g., RM Young",
       },
       {
         path: "atmospheric_pressure_sensor.model",
         span: 6,
-        placeholderText: "e.g., 61202V"
+        placeholderText: "e.g., 61202V",
       },
       { path: "atmospheric_pressure_sensor.serial_number", span: 6 },
       {
         path: "atmospheric_pressure_sensor.accuracy",
         span: 6,
-        placeholderText: "In hPa"
+        placeholderText: "In hPa",
       },
       {
         path: "atmospheric_pressure_sensor.precision",
         span: 6,
-        placeholderText: "In hPa"
+        placeholderText: "In hPa",
       },
       {
         path: "atmospheric_pressure_sensor.calibration",
-        placeholderText: "e.g., Factory calibration"
+        placeholderText: "e.g., Factory calibration",
       },
       {
         path: "atmospheric_pressure_sensor.comments",
         inputType: "textarea",
-        placeholderText:
-          "e.g., Manufacturer's resolution is taken as Precision"
-      }
+        placeholderText: "e.g., Manufacturer's resolution is taken as Precision",
+      },
     ],
     marine_air: [
       {
         path: "marine_air_measurement.measured",
         span: 6,
-        inputType: "boolean_select"
+        inputType: "boolean_select",
       },
       {
         path: "marine_air_measurement.measurement_interval",
         span: 6,
-        placeholderText: "e.g., 5 readings in a group every 5 hours"
+        placeholderText: "e.g., 5 readings in a group every 5 hours",
       },
       {
         path: "marine_air_measurement.location_and_height",
-        placeholderText: "Location and height of the marine air intake"
+        placeholderText: "Location and height of the marine air intake",
       },
       {
         path: "marine_air_measurement.drying_method",
-        placeholderText: "Method used to dry the gas stream"
-      }
-    ]
-  }
+        placeholderText: "Method used to dry the gas stream",
+      },
+    ],
+  },
 };
 
 /** HPLCVariable */
@@ -999,10 +979,10 @@ const HPLC: HierarchyLayer = {
       {
         path: "hplc_lab_technician",
         span: 6,
-        placeholderText: "Name and contact info"
-      }
-    ]
-  }
+        placeholderText: "Name and contact info",
+      },
+    ],
+  },
 };
 
 /** MeasuredPhysiologicalFields mixin */
@@ -1012,24 +992,24 @@ const PHYSIOLOGICAL: HierarchyLayer = {
     biological: [
       {
         path: "biological_subject",
-        placeholderText: "e.g., Crassostrea gigas (Pacific oyster)"
+        placeholderText: "e.g., Crassostrea gigas (Pacific oyster)",
       },
       {
         path: "species_identification_code",
         span: 6,
-        placeholderText: "e.g., AphiaID 140656"
+        placeholderText: "e.g., AphiaID 140656",
       },
       {
         path: "taxonomic_code_system",
-        span: 6
+        span: 6,
       },
       {
         path: "life_stage",
         span: 6,
-        inputType: "enum_with_other"
-      }
-    ]
-  }
+        inputType: "enum_with_other",
+      },
+    ],
+  },
 };
 
 /** SocioeconomicVariable-specific fields */
@@ -1041,16 +1021,15 @@ const SOCIOECONOMIC: HierarchyLayer = {
       {
         path: "social_study_type",
         span: 6,
-        inputType: "enum_with_other"
+        inputType: "enum_with_other",
       },
       {
         path: "social_study_site_characterization",
         inputType: "textarea",
-        placeholderText:
-          "e.g., 2023-2024, coastal communities in Maine, USA"
-      }
-    ]
-  }
+        placeholderText: "e.g., 2023-2024, coastal communities in Maine, USA",
+      },
+    ],
+  },
 };
 
 // =============================================================================
@@ -1093,7 +1072,7 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   // Other
   CalculatedVariable: [BASE, CALCULATED],
   SocioeconomicVariable: [BASE, SOCIOECONOMIC],
-  NonMeasuredVariable: [BASE]
+  NonMeasuredVariable: [BASE],
 };
 
 // =============================================================================
@@ -1118,17 +1097,17 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   {
     key: "equilibrator_temp_sensor",
     label: "Equil. Temperature Sensor",
-    icon: IconTemperature
+    icon: IconTemperature,
   },
   {
     key: "equilibrator_pressure_sensor",
     label: "Equil. Pressure Sensor",
-    icon: IconGauge
+    icon: IconGauge,
   },
   {
     key: "atmospheric_pressure_sensor",
     label: "Atmospheric Pressure Sensor",
-    icon: IconCloud
+    icon: IconCloud,
   },
   { key: "marine_air", label: "CO₂ in Marine Air", icon: IconWind },
   { key: "calculation", label: "Calculation Details", icon: IconCalculator },
@@ -1136,8 +1115,8 @@ export const ACCORDION_SECTIONS: AccordionSectionDef[] = [
   {
     key: "additional",
     label: "Additional Information",
-    icon: IconFileDescription
-  }
+    icon: IconFileDescription,
+  },
 ];
 
 function deepFreeze<T>(obj: T): T {
@@ -1167,7 +1146,7 @@ export function getAccordionConfig(schemaKey: string): AccordionSection[] {
 
   const config = ACCORDION_SECTIONS.map((s) => ({
     ...s,
-    fields: buildSectionFields(s.key, layers)
+    fields: buildSectionFields(s.key, layers),
   })).filter((s) => s.fields.length > 0);
 
   deepFreeze(config);
@@ -1186,12 +1165,11 @@ export function getAccordionConfig(schemaKey: string): AccordionSection[] {
 export function getSchemaKey(
   variableType: string | undefined,
   genesis: string | undefined,
-  sampling: string | undefined
+  sampling: string | undefined,
 ): string | null {
   if (!variableType) return null;
 
-  const typeMap =
-    VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+  const typeMap = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
   if (!typeMap) return null;
 
   // String value = direct mapping, no genesis/sampling needed
@@ -1220,7 +1198,7 @@ export function getSchemaKey(
  */
 export function resolveVariableType(
   uiVariableType: string | undefined,
-  genesis: string | undefined
+  genesis: string | undefined,
 ): string | undefined {
   if (uiVariableType !== "other") return uiVariableType;
   if (!genesis) return undefined;
@@ -1253,7 +1231,9 @@ function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
           lookup[genesisValue] = { variable_type: varType, genesis: key };
         }
       } else if (typeof genesisValue === "object" && genesisValue !== null) {
-        for (const [samplingKey, schemaClass] of Object.entries(genesisValue as Record<string, string>)) {
+        for (const [samplingKey, schemaClass] of Object.entries(
+          genesisValue as Record<string, string>,
+        )) {
           if (typeof schemaClass === "string") {
             lookup[schemaClass] = { variable_type: varType, genesis: key, sampling: samplingKey };
           }
@@ -1276,7 +1256,7 @@ const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
  * variable_type is trusted if present.
  */
 export function normalizeVariableFields(
-  variable: Record<string, unknown>
+  variable: Record<string, unknown>,
 ): Record<string, unknown> {
   // Guard against non-object entries in imported data
   if (!variable || typeof variable !== "object" || Array.isArray(variable)) {
@@ -1286,9 +1266,7 @@ export function normalizeVariableFields(
   // Strip any _-prefixed UI-only fields (legacy _schemaKey, _variableType, etc.)
   const hasUnderscoreKeys = Object.keys(variable).some((k) => k.startsWith("_"));
   if (hasUnderscoreKeys) {
-    variable = Object.fromEntries(
-      Object.entries(variable).filter(([k]) => !k.startsWith("_"))
-    );
+    variable = Object.fromEntries(Object.entries(variable).filter(([k]) => !k.startsWith("_")));
   }
 
   let schemaClass = variable.schema_class as string | undefined;
@@ -1300,7 +1278,7 @@ export function normalizeVariableFields(
       ? getSchemaKey(
           varType,
           variable.genesis as string | undefined,
-          variable.sampling as string | undefined
+          variable.sampling as string | undefined,
         )
       : null;
     if (!derived) return variable;
@@ -1320,7 +1298,7 @@ export function normalizeVariableFields(
     const validCalculatedTypes = new Set(
       Object.entries(VARIABLE_SCHEMA_MAP)
         .filter(([, v]) => typeof v === "object" && "calculated" in v)
-        .map(([k]) => k)
+        .map(([k]) => k),
     );
     const currentType = variable.variable_type as string | undefined;
     if (!currentType || !validCalculatedTypes.has(currentType)) {
@@ -1367,11 +1345,10 @@ export function normalizeVariableFields(
 export function getSchemaKeyForUI(
   uiVariableType: string | undefined,
   genesis: string | undefined,
-  sampling: string | undefined
+  sampling: string | undefined,
 ): string | null {
   if (uiVariableType === "other") {
-    if (genesis === "contextual")
-      return getSchemaKey("non_measured", undefined, undefined);
+    if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
     return getSchemaKey("other", genesis, sampling);
   }
   return getSchemaKey(uiVariableType, genesis, sampling);
@@ -1383,15 +1360,13 @@ export function getSchemaKeyForUI(
  */
 export function getPlaceholderOverride(
   variableType: string | undefined,
-  fieldPath: string
+  fieldPath: string,
 ): string | undefined {
   if (!variableType) return undefined;
-  const typeConfig =
-    VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
-  if (!typeConfig || typeof typeConfig === "string" || !("placeholderOverrides" in typeConfig)) return undefined;
-  const overrides = typeConfig.placeholderOverrides as
-    | Record<string, string>
-    | undefined;
+  const typeConfig = VARIABLE_SCHEMA_MAP[variableType as keyof typeof VARIABLE_SCHEMA_MAP];
+  if (!typeConfig || typeof typeConfig === "string" || !("placeholderOverrides" in typeConfig))
+    return undefined;
+  const overrides = typeConfig.placeholderOverrides as Record<string, string> | undefined;
   return overrides?.[fieldPath];
 }
 
@@ -1401,10 +1376,7 @@ const stripAjv = new Ajv2019({ removeAdditional: true, strict: false });
 // WeakMap keyed by rootSchema object so validators are cache-correct when different
 // schemas are used (e.g., in tests). In production the app has one immutable bundled
 // schema, so the WeakMap always resolves to the same inner Map.
-const stripValidatorCache = new WeakMap<
-  object,
-  Map<string, ReturnType<typeof stripAjv.compile>>
->();
+const stripValidatorCache = new WeakMap<object, Map<string, ReturnType<typeof stripAjv.compile>>>();
 
 // AJV's removeAdditional is skipped when any required keyword fails — which happens
 // whenever the user switches variable types and required fields from the new type are
@@ -1436,12 +1408,12 @@ function dropRequired(value: unknown): unknown {
  */
 export function stripExtraVariableFields(
   variable: Record<string, unknown>,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): Record<string, unknown> {
   const schemaClass = variable.schema_class as string | undefined;
   if (!schemaClass) return variable;
 
-  const defs = (rootSchema as Record<string, unknown>)["$defs"] as
+  const defs = (rootSchema as Record<string, unknown>).$defs as
     | Record<string, JSONSchema>
     | undefined;
   if (!defs?.[schemaClass]) return variable;

@@ -32,12 +32,12 @@
  * including variables, and delete this file.
  */
 
+import type { RJSFSchema, RJSFValidationError } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { RJSFValidationError, RJSFSchema } from "@rjsf/utils";
-import { resolveRef, type JSONSchema } from "@/components/schemaUtils";
-import type { DatasetFormData, FormDataRecord } from "@/types/forms";
+import { type JSONSchema, resolveRef } from "@/components/schemaUtils";
 import { stripExtraVariableFields } from "@/components/VariableModal/variableModalConfig";
+import type { DatasetFormData, FormDataRecord } from "@/types/forms";
 import { cleanVariableData } from "@/utils/formDataCleanup";
 
 // Create validator with Draft 2019-09 support (same as rest of app)
@@ -98,16 +98,14 @@ function createDatasetSchemaWithoutVariables(schema: RJSFSchema): RJSFSchema {
 
   // Remove 'variables' from required array if present
   if (Array.isArray(modifiedSchema.required)) {
-    modifiedSchema.required = modifiedSchema.required.filter(
-      (field) => field !== "variables"
-    );
+    modifiedSchema.required = modifiedSchema.required.filter((field) => field !== "variables");
   }
 
   // Make variables property accept anything (avoid validation)
   if (modifiedSchema.properties && "variables" in modifiedSchema.properties) {
     modifiedSchema.properties = {
       ...modifiedSchema.properties,
-      variables: { type: "array" } // Accept any array, don't validate items
+      variables: { type: "array" }, // Accept any array, don't validate items
     };
   }
 
@@ -119,7 +117,7 @@ function createDatasetSchemaWithoutVariables(schema: RJSFSchema): RJSFSchema {
  */
 function validateDatasetFields(
   formData: DatasetFormData,
-  schema: RJSFSchema
+  schema: RJSFSchema,
 ): RJSFValidationError[] {
   const modifiedSchema = createDatasetSchemaWithoutVariables(schema);
 
@@ -147,10 +145,7 @@ function validateDatasetFields(
  * @param rootSchema - The root schema containing $defs
  * @returns Array of error messages, empty if valid
  */
-function validateVariable(
-  variable: FormDataRecord,
-  rootSchema: JSONSchema
-): string[] {
+function validateVariable(variable: FormDataRecord, rootSchema: JSONSchema): string[] {
   const errors: string[] = [];
 
   const schemaKey = variable.schema_class as string | undefined;
@@ -161,16 +156,13 @@ function validateVariable(
     return errors;
   }
 
-  if (!rootSchema.$defs || !rootSchema.$defs[schemaKey]) {
+  if (!rootSchema.$defs?.[schemaKey]) {
     errors.push(`Unknown variable schema: ${schemaKey}`);
     return errors;
   }
 
   // Resolve the schema for this variable type
-  const variableSchema = resolveRef(
-    rootSchema.$defs[schemaKey],
-    rootSchema
-  );
+  const variableSchema = resolveRef(rootSchema.$defs[schemaKey], rootSchema);
 
   if (!variableSchema) {
     errors.push(`Could not resolve schema for: ${schemaKey}`);
@@ -182,7 +174,7 @@ function validateVariable(
   // Our internal JSONSchema type uses string for 'type' but RJSF expects JSONSchema7TypeName
   const completeSchema = {
     ...variableSchema,
-    $defs: rootSchema.$defs
+    $defs: rootSchema.$defs,
   } as RJSFSchema;
 
   // Strip extra fields (including nested) before validation so orphaned fields
@@ -190,14 +182,11 @@ function validateVariable(
   // strings so AJV's `required` check treats "" the same as absent — Mantine
   // text inputs write "" when cleared, which otherwise passes required + type:string.
   const cleanedVariable = cleanVariableData(
-    stripExtraVariableFields(variable, rootSchema) as Record<string, unknown>
+    stripExtraVariableFields(variable, rootSchema) as Record<string, unknown>,
   );
 
   // Validate the variable against its specific schema
-  const result = validator.validateFormData(
-    cleanedVariable,
-    completeSchema
-  );
+  const result = validator.validateFormData(cleanedVariable, completeSchema);
 
   // Convert RJSF errors to simple messages
   result.errors.forEach((error) => {
@@ -217,7 +206,7 @@ function validateVariable(
  */
 function validateAllVariables(
   formData: DatasetFormData,
-  rootSchema: JSONSchema
+  rootSchema: JSONSchema,
 ): Map<number, VariableValidationError> {
   const variableErrors = new Map<number, VariableValidationError>();
 
@@ -236,7 +225,7 @@ function validateAllVariables(
           (variable.dataset_variable_name as string) ||
           (variable.long_name as string) ||
           `Variable ${index + 1}`,
-        errors
+        errors,
       });
     }
   });
@@ -273,7 +262,7 @@ function validateAllVariables(
  */
 export function validateDatasetWithVariables(
   formData: DatasetFormData,
-  schema: RJSFSchema
+  schema: RJSFSchema,
 ): DatasetValidationResult {
   // 1. Validate dataset-level fields (skip variables)
   const datasetErrors = validateDatasetFields(formData, schema);
@@ -286,7 +275,7 @@ export function validateDatasetWithVariables(
     datasetErrors,
     variableErrors,
     datasetErrorCount: datasetErrors.length,
-    invalidVariableCount: variableErrors.size
+    invalidVariableCount: variableErrors.size,
   };
 }
 
@@ -296,10 +285,7 @@ export function validateDatasetWithVariables(
  *
  * WORKAROUND: See oae-form-99i
  */
-export function hasDatasetValidationErrors(
-  formData: DatasetFormData,
-  schema: RJSFSchema
-): boolean {
+export function hasDatasetValidationErrors(formData: DatasetFormData, schema: RJSFSchema): boolean {
   const result = validateDatasetWithVariables(formData, schema);
   return !result.isValid;
 }
@@ -311,12 +297,12 @@ export function hasDatasetValidationErrors(
  */
 export function getDatasetValidationCounts(
   formData: DatasetFormData,
-  schema: RJSFSchema
+  schema: RJSFSchema,
 ): { datasetErrors: number; variableErrors: number; total: number } {
   const result = validateDatasetWithVariables(formData, schema);
   return {
     datasetErrors: result.datasetErrorCount,
     variableErrors: result.invalidVariableCount,
-    total: result.datasetErrorCount + result.invalidVariableCount
+    total: result.datasetErrorCount + result.invalidVariableCount,
   };
 }

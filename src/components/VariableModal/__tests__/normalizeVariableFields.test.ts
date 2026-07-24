@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { normalizeVariableFields } from "../variableModalConfig";
 
 describe("normalizeVariableFields", () => {
@@ -7,7 +7,7 @@ describe("normalizeVariableFields", () => {
       schema_class: "DiscretePHVariable",
       variable_type: "pH",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     expect(normalizeVariableFields(v)).toEqual(v);
   });
@@ -22,10 +22,10 @@ describe("normalizeVariableFields", () => {
       schema_class: "DiscretePHVariable",
       variable_type: "ta",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     expect(normalizeVariableFields(v)).toMatchObject({
-      variable_type: "pH"
+      variable_type: "pH",
     });
   });
 
@@ -34,10 +34,10 @@ describe("normalizeVariableFields", () => {
       schema_class: "DiscretePHVariable",
       variable_type: "pH",
       genesis: "calculated",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     expect(normalizeVariableFields(v)).toMatchObject({
-      genesis: "measured"
+      genesis: "measured",
     });
   });
 
@@ -46,10 +46,10 @@ describe("normalizeVariableFields", () => {
       schema_class: "DiscretePHVariable",
       variable_type: "pH",
       genesis: "measured",
-      sampling: "continuous"
+      sampling: "continuous",
     };
     expect(normalizeVariableFields(v)).toMatchObject({
-      sampling: "discrete"
+      sampling: "discrete",
     });
   });
 
@@ -58,7 +58,7 @@ describe("normalizeVariableFields", () => {
       schema_class: "NonMeasuredVariable",
       variable_type: "other",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("non_measured");
@@ -71,7 +71,7 @@ describe("normalizeVariableFields", () => {
       schema_class: "CalculatedVariable",
       variable_type: "pH",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("pH"); // trusted
@@ -83,7 +83,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       schema_class: "CalculatedVariable",
       variable_type: "dic",
-      genesis: "calculated"
+      genesis: "calculated",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("dic"); // kept
@@ -93,7 +93,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       schema_class: "CalculatedVariable",
       variable_type: "non_measured",
-      genesis: "calculated"
+      genesis: "calculated",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("other");
@@ -103,7 +103,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       schema_class: "CalculatedVariable",
       variable_type: "typo_value",
-      genesis: "calculated"
+      genesis: "calculated",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("other");
@@ -113,7 +113,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       schema_class: "CalculatedVariable",
       variable_type: "hplc",
-      genesis: "calculated"
+      genesis: "calculated",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("other");
@@ -122,7 +122,7 @@ describe("normalizeVariableFields", () => {
   it("fills missing fields from schema_class", () => {
     const v = {
       schema_class: "ContinuousTAVariable",
-      dataset_variable_name: "ta"
+      dataset_variable_name: "ta",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("ta");
@@ -135,7 +135,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "pH",
       genesis: "measured",
       sampling: "discrete",
-      dataset_variable_name: "pH_total"
+      dataset_variable_name: "pH_total",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("DiscretePHVariable");
@@ -145,7 +145,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       variable_type: "ta",
       genesis: "calculated",
-      dataset_variable_name: "ta_calc"
+      dataset_variable_name: "ta_calc",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("CalculatedVariable");
@@ -154,7 +154,7 @@ describe("normalizeVariableFields", () => {
   it("derives schema_class for non_measured when missing", () => {
     const v = {
       variable_type: "non_measured",
-      dataset_variable_name: "expocode"
+      dataset_variable_name: "expocode",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("NonMeasuredVariable");
@@ -187,7 +187,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "pH",
       genesis: "measured",
       sampling: "discrete",
-      dataset_variable_name: "pH_total"
+      dataset_variable_name: "pH_total",
     };
     const result = normalizeVariableFields(v);
     expect(result._schemaKey).toBeUndefined();
@@ -202,7 +202,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "other",
       genesis: "measured",
       sampling: "continuous",
-      dataset_variable_name: "Temperature"
+      dataset_variable_name: "Temperature",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("ContinuousMeasuredVariable");
@@ -212,7 +212,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       schema_class: "MeasuredVariable",
       variable_type: "non_measured",
-      dataset_variable_name: "Cruise_ID"
+      dataset_variable_name: "Cruise_ID",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("NonMeasuredVariable");
@@ -223,7 +223,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "ta",
       genesis: "calculated",
       sampling: "discrete", // stale — CalculatedVariable has no sampling
-      dataset_variable_name: "ta_calc"
+      dataset_variable_name: "ta_calc",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("CalculatedVariable");
@@ -235,7 +235,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "non_measured",
       genesis: "measured",
       sampling: "discrete",
-      dataset_variable_name: "Cruise_ID"
+      dataset_variable_name: "Cruise_ID",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("NonMeasuredVariable");
@@ -250,7 +250,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "other",
       genesis: "measured",
       sampling: "continuous",
-      dataset_variable_name: "Temperature"
+      dataset_variable_name: "Temperature",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("ContinuousMeasuredVariable");
@@ -262,7 +262,7 @@ describe("normalizeVariableFields", () => {
   it("returns unchanged when schema_class is unknown and siblings cannot derive", () => {
     const v = {
       schema_class: "BogusClass",
-      dataset_variable_name: "mystery"
+      dataset_variable_name: "mystery",
     };
     expect(normalizeVariableFields(v)).toBe(v);
   });
@@ -272,7 +272,7 @@ describe("normalizeVariableFields", () => {
       schema_class: "DiscretePhysiologicalVariable",
       variable_type: "physiological",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     expect(normalizeVariableFields(v)).toEqual(v);
   });
@@ -282,7 +282,7 @@ describe("normalizeVariableFields", () => {
       schema_class: "DiscretePhysiologicalVariable",
       variable_type: "other",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("physiological");
@@ -293,7 +293,7 @@ describe("normalizeVariableFields", () => {
       schema_class: "SocioeconomicVariable",
       variable_type: "socioeconomic",
       genesis: "measured",
-      sampling: "discrete"
+      sampling: "discrete",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("socioeconomic");
@@ -305,7 +305,7 @@ describe("normalizeVariableFields", () => {
     const v = {
       schema_class: "CalculatedVariable",
       variable_type: "physiological",
-      genesis: "calculated"
+      genesis: "calculated",
     };
     const result = normalizeVariableFields(v);
     expect(result.variable_type).toBe("physiological");
@@ -316,7 +316,7 @@ describe("normalizeVariableFields", () => {
       variable_type: "physiological",
       genesis: "measured",
       sampling: "discrete",
-      dataset_variable_name: "growth_rate"
+      dataset_variable_name: "growth_rate",
     };
     const result = normalizeVariableFields(v);
     expect(result.schema_class).toBe("DiscretePhysiologicalVariable");

@@ -1,14 +1,14 @@
 // completionCalculator.test.ts — filled-leaf + error dedupe approach.
 // No schema access; tests pass raw error arrays shaped like RJSF errors.
 
-import { describe, it, expect } from "vitest";
-import { computeCompletion } from "../completionCalculator";
 import type { RJSFValidationError } from "@rjsf/utils";
+import { describe, expect, it } from "vitest";
+import { computeCompletion } from "../completionCalculator";
 
 /** Build an RJSF-shaped error from a dotted/bracketed property path. */
 function err(
   property: string,
-  name: "required" | "format" | "type" = "required"
+  name: "required" | "format" | "type" = "required",
 ): RJSFValidationError {
   return {
     name,
@@ -16,7 +16,7 @@ function err(
     message: "x",
     params: {},
     stack: property,
-    schemaPath: ""
+    schemaPath: "",
   };
 }
 
@@ -25,7 +25,7 @@ describe("computeCompletion", () => {
     expect(computeCompletion({}, [])).toEqual({
       total: 0,
       filled: 0,
-      percentage: 0
+      percentage: 0,
     });
   });
 
@@ -34,7 +34,7 @@ describe("computeCompletion", () => {
     expect(computeCompletion(data, [])).toEqual({
       total: 3,
       filled: 3,
-      percentage: 100
+      percentage: 100,
     });
   });
 
@@ -86,7 +86,7 @@ describe("computeCompletion", () => {
     const errors = [
       err(".email", "format"),
       err(".email", "type"),
-      err(".email") // required
+      err(".email"), // required
     ];
     const result = computeCompletion(data, errors);
     // Still one unique error path
@@ -99,43 +99,36 @@ describe("computeCompletion", () => {
     // State 1: nothing filled, all required missing
     let result = computeCompletion(
       {},
-      ["A", "B", "C", "D", "E"].map((k) => err(`.${k}`))
+      ["A", "B", "C", "D", "E"].map((k) => err(`.${k}`)),
     );
     expect(result.percentage).toBe(0);
 
     // State 2: A filled, B-E missing
     result = computeCompletion(
       { A: "x" },
-      ["B", "C", "D", "E"].map((k) => err(`.${k}`))
+      ["B", "C", "D", "E"].map((k) => err(`.${k}`)),
     );
     expect(result.percentage).toBe(20);
 
     // State 3: A,B filled
     result = computeCompletion(
       { A: "x", B: "y" },
-      ["C", "D", "E"].map((k) => err(`.${k}`))
+      ["C", "D", "E"].map((k) => err(`.${k}`)),
     );
     expect(result.percentage).toBe(40);
 
     // State 4: all required filled, no optional → 100%
-    result = computeCompletion(
-      { A: "x", B: "y", C: "z", D: "w", E: "v" },
-      []
-    );
+    result = computeCompletion({ A: "x", B: "y", C: "z", D: "w", E: "v" }, []);
     expect(result.percentage).toBe(100);
 
     // State 5: +optional F valid → still 100%
-    result = computeCompletion(
-      { A: "x", B: "y", C: "z", D: "w", E: "v", F: "f" },
-      []
-    );
+    result = computeCompletion({ A: "x", B: "y", C: "z", D: "w", E: "v", F: "f" }, []);
     expect(result.percentage).toBe(100);
 
     // State 6: +optional F has format error → drops
-    result = computeCompletion(
-      { A: "x", B: "y", C: "z", D: "w", E: "v", F: "bad" },
-      [err(".F", "format")]
-    );
+    result = computeCompletion({ A: "x", B: "y", C: "z", D: "w", E: "v", F: "bad" }, [
+      err(".F", "format"),
+    ]);
     // filled = 5 (A-E), errors = 1 (F), total = 6 → 83%
     expect(result.filled).toBe(5);
     expect(result.total).toBe(6);
@@ -144,16 +137,10 @@ describe("computeCompletion", () => {
 
   it("erasing a valid required field drops percentage cleanly", () => {
     // All 5 required filled, then erase A
-    const before = computeCompletion(
-      { A: "x", B: "y", C: "z", D: "w", E: "v" },
-      []
-    );
+    const before = computeCompletion({ A: "x", B: "y", C: "z", D: "w", E: "v" }, []);
     expect(before.percentage).toBe(100);
 
-    const after = computeCompletion(
-      { B: "y", C: "z", D: "w", E: "v" },
-      [err(".A")]
-    );
+    const after = computeCompletion({ B: "y", C: "z", D: "w", E: "v" }, [err(".A")]);
     // 4 filled + 1 error = 5 → 80%
     expect(after.percentage).toBe(80);
   });
@@ -161,7 +148,7 @@ describe("computeCompletion", () => {
   it("nested objects: credit for partially-filled children", () => {
     const data = {
       name: "Root",
-      contact: { name: "Alice" } // contact.email missing
+      contact: { name: "Alice" }, // contact.email missing
     };
     const errors = [err(".contact.email")];
     const result = computeCompletion(data, errors);
@@ -175,8 +162,8 @@ describe("computeCompletion", () => {
     const data = {
       leads: [
         { name: "Alice", email: "a@b.com" },
-        { name: "Bob" } // missing email
-      ]
+        { name: "Bob" }, // missing email
+      ],
     };
     const errors = [err(".leads[1].email")];
     const result = computeCompletion(data, errors);
@@ -194,7 +181,7 @@ describe("computeCompletion", () => {
       err(".leads[0].name"),
       err(".leads[0].email"),
       err(".leads[1].name"),
-      err(".leads[1].email")
+      err(".leads[1].email"),
     ];
     const result = computeCompletion(data, errors);
     expect(result.filled).toBe(0);
@@ -217,9 +204,7 @@ describe("computeCompletion", () => {
     // Error at .data_submitter.email must not remove .data_submitter.name
     // from filled via the ancestor walk.
     const data = { data_submitter: { name: "X", email: "bad" } };
-    const result = computeCompletion(data, [
-      err(".data_submitter.email", "format")
-    ]);
+    const result = computeCompletion(data, [err(".data_submitter.email", "format")]);
     // filled: /data_submitter/name. errors: /data_submitter/email.
     expect(result.filled).toBe(1);
     expect(result.total).toBe(2);
@@ -237,7 +222,7 @@ describe("computeCompletion", () => {
     expect(computeCompletion(undefined, [])).toEqual({
       total: 0,
       filled: 0,
-      percentage: 0
+      percentage: 0,
     });
   });
 });

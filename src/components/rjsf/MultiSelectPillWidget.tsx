@@ -1,14 +1,7 @@
-import React from "react";
+import { Combobox, Group, Pill, PillsInput, Text, useCombobox } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
-import {
-  Combobox,
-  Group,
-  Pill,
-  PillsInput,
-  Text,
-  useCombobox
-} from "@mantine/core";
 import { IconCheck, IconX } from "@tabler/icons-react";
+import React from "react";
 
 type EnumOption = { value: string; label: string };
 const norm = (s: string) => (s || "").toLowerCase();
@@ -32,13 +25,13 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
   readonly,
   value,
   onChange,
-  options = {}
+  options = {},
 }) => {
   const enumOptions: EnumOption[] =
     (options as any).enumOptions ??
     (options as any).oneOf?.map((o: any) => ({
       value: o.const,
-      label: o.title ?? String(o.const)
+      label: o.title ?? String(o.const),
     })) ??
     [];
 
@@ -52,23 +45,18 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
 
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
-    onDropdownOpen: () => combobox.updateSelectedOptionIndex("active")
+    onDropdownOpen: () => combobox.updateSelectedOptionIndex("active"),
   });
 
-  const byValue = React.useMemo(
-    () => new Map(enumOptions.map((o) => [o.value, o])),
-    [enumOptions]
-  );
+  const byValue = React.useMemo(() => new Map(enumOptions.map((o) => [o.value, o])), [enumOptions]);
 
   const filtered = React.useMemo(() => {
     const q = norm(search.trim());
-    return enumOptions.filter(
-      (o) => norm(o.label).includes(q) || norm(o.value).includes(q)
-    );
+    return enumOptions.filter((o) => norm(o.label).includes(q) || norm(o.value).includes(q));
   }, [enumOptions, search]);
 
   const exact = enumOptions.some(
-    (o) => norm(o.label) === norm(search) || norm(o.value) === norm(search)
+    (o) => norm(o.label) === norm(search) || norm(o.value) === norm(search),
   );
 
   const commit = (next: string[]) => onChange(Array.from(new Set(next)));
@@ -79,28 +67,15 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
       if (creatable && search.trim()) commit([...selected, search.trim()]);
       return;
     }
-    commit(
-      selected.includes(val)
-        ? selected.filter((v) => v !== val)
-        : [...selected, val]
-    );
+    commit(selected.includes(val) ? selected.filter((v) => v !== val) : [...selected, val]);
   };
 
-  const handleRemove = (val: string) =>
-    commit(selected.filter((v) => v !== val));
+  const handleRemove = (val: string) => commit(selected.filter((v) => v !== val));
 
   const optionNodes = filtered.map((o) => (
-    <Combobox.Option
-      value={o.value}
-      key={o.value}
-      active={selected.includes(o.value)}
-    >
+    <Combobox.Option value={o.value} key={o.value} active={selected.includes(o.value)}>
       <Group gap="xs" wrap="nowrap">
-        {selected.includes(o.value) ? (
-          <IconCheck size={14} />
-        ) : (
-          <span style={{ width: 14 }} />
-        )}
+        {selected.includes(o.value) ? <IconCheck size={14} /> : <span style={{ width: 14 }} />}
         <Text lineClamp={1}>{o.label}</Text>
       </Group>
     </Combobox.Option>
@@ -110,7 +85,12 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
     <div id={id} style={{ maxWidth }}>
       {label && (
         <Text size="sm" fw={500} mb="xs">
-          {label} {required && <Text component="span" c="red">*</Text>}
+          {label}{" "}
+          {required && (
+            <Text component="span" c="red">
+              *
+            </Text>
+          )}
         </Text>
       )}
 
@@ -144,11 +124,7 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
                     setSearch(e.currentTarget.value);
                   }}
                   onKeyDown={(e) => {
-                    if (
-                      e.key === "Backspace" &&
-                      search.length === 0 &&
-                      selected.length > 0
-                    ) {
+                    if (e.key === "Backspace" && search.length === 0 && selected.length > 0) {
                       e.preventDefault();
                       handleRemove(selected[selected.length - 1]);
                     }
@@ -166,9 +142,7 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
               {optionNodes}
 
               {creatable && !exact && search.trim().length > 0 && (
-                <Combobox.Option value="$create">
-                  + Create {search}
-                </Combobox.Option>
+                <Combobox.Option value="$create">+ Create {search}</Combobox.Option>
               )}
 
               {search.trim().length > 0 && optionNodes.length === 0 && (
@@ -195,7 +169,7 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
             cursor: "pointer",
             padding: 0,
             fontSize: 12,
-            opacity: 0.8
+            opacity: 0.8,
           }}
         >
           <IconX size={14} />

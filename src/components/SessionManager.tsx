@@ -1,12 +1,11 @@
-import React, { useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useCallback } from "react";
+import SessionRestoreModal from "@/components/SessionRestoreModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
-import SessionRestoreModal from "@/components/SessionRestoreModal";
 
 export default function SessionManager() {
-  const { state, restoreFullState, setActiveExperiment, setActiveDataset } =
-    useAppState();
+  const { state, restoreFullState, setActiveExperiment, setActiveDataset } = useAppState();
   const { savedSession, isRestoreModalOpen, restoreSession, discardSession } =
     useSessionPersistence(state, restoreFullState);
   const navigate = useNavigate();
@@ -23,13 +22,7 @@ export default function SessionManager() {
       }
     }
     navigate({ to: "/overview" });
-  }, [
-    restoreSession,
-    savedSession,
-    setActiveExperiment,
-    setActiveDataset,
-    navigate
-  ]);
+  }, [restoreSession, savedSession, setActiveExperiment, setActiveDataset, navigate]);
 
   return (
     <>

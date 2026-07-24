@@ -1,32 +1,33 @@
-import React, { useEffect } from "react";
 import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Card,
-  Group,
-  Button,
   ActionIcon,
-  Progress,
-  Badge,
-  SimpleGrid,
   Alert,
-  Anchor
+  Anchor,
+  Badge,
+  Button,
+  Card,
+  Container,
+  Group,
+  Progress,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
 } from "@mantine/core";
 import {
-  IconPlus,
-  IconFolder,
-  IconFlask,
-  IconDatabase,
-  IconTrash,
-  IconCopy,
   IconAlertTriangle,
-  IconCircleCheck
+  IconCircleCheck,
+  IconCopy,
+  IconDatabase,
+  IconFlask,
+  IconFolder,
+  IconPlus,
+  IconTrash,
 } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useAppState } from "@/contexts/AppStateContext";
+import type React from "react";
+import { useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
+import { useAppState } from "@/contexts/AppStateContext";
 
 export default function OverviewPage() {
   const {
@@ -44,7 +45,7 @@ export default function OverviewPage() {
     addDataset,
     setActiveDataset,
     deleteDataset,
-    duplicateDataset
+    duplicateDataset,
   } = useAppState();
   const navigate = useNavigate();
 
@@ -65,7 +66,7 @@ export default function OverviewPage() {
     e.stopPropagation();
     if (
       confirm(
-        "Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets."
+        "Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets.",
       )
     ) {
       deleteProject();
@@ -132,9 +133,7 @@ export default function OverviewPage() {
   const getLinkedExperiment = (dataset: (typeof state.datasets)[0]) => {
     // First check linking metadata
     if (dataset.linking?.linkedExperimentInternalId) {
-      return state.experiments.find(
-        (e) => e.id === dataset.linking?.linkedExperimentInternalId
-      );
+      return state.experiments.find((e) => e.id === dataset.linking?.linkedExperimentInternalId);
     }
     // Fallback: match by experiment_id string
     const expId = dataset.formData.experiment_id;
@@ -163,21 +162,21 @@ export default function OverviewPage() {
       key: "project",
       icon: IconFolder,
       label: "Project",
-      onClick: handleCreateProject
+      onClick: handleCreateProject,
     });
   if (state.experiments.length === 0)
     uncreatedEntities.push({
       key: "experiment",
       icon: IconFlask,
       label: "Experiment",
-      onClick: handleCreateExperiment
+      onClick: handleCreateExperiment,
     });
   if (state.datasets.length === 0)
     uncreatedEntities.push({
       key: "dataset",
       icon: IconDatabase,
       label: "Dataset",
-      onClick: handleCreateDataset
+      onClick: handleCreateDataset,
     });
 
   return (
@@ -197,9 +196,8 @@ export default function OverviewPage() {
             title="Welcome to the OAE Metadata Builder"
           >
             <Text size="sm">
-              The metadata builder allows you to manage metadata for Ocean
-              Alkalinity Enhancement (OAE) projects, experiments, and datasets
-              in compliance with the{" "}
+              The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
+              (OAE) projects, experiments, and datasets in compliance with the{" "}
               <Anchor
                 href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
                 target="_blank"
@@ -210,13 +208,9 @@ export default function OverviewPage() {
               .
             </Text>
             <Text size="sm" mt="xs">
-              The metadata builder is currently in beta testing with a planned
-              Spring 2026 launch. If you have questions or concerns, please
-              contact{" "}
-              <Anchor href="mailto:data@carbontosea.org">
-                data@carbontosea.org
-              </Anchor>
-              .
+              The metadata builder is currently in beta testing with a planned Spring 2026 launch.
+              If you have questions or concerns, please contact{" "}
+              <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
             </Text>
             <Text size="sm" mt="xs">
               For more information, visit the{" "}
@@ -243,21 +237,9 @@ export default function OverviewPage() {
                 onClick={handleEditProject}
               >
                 <Stack gap="sm">
-                  <Group
-                    justify="space-between"
-                    wrap="nowrap"
-                    align="flex-start"
-                  >
-                    <Group
-                      gap="xs"
-                      wrap="nowrap"
-                      align="flex-start"
-                      style={{ minWidth: 0 }}
-                    >
-                      <IconFolder
-                        size={20}
-                        style={{ flexShrink: 0, marginTop: 2 }}
-                      />
+                  <Group justify="space-between" wrap="nowrap" align="flex-start">
+                    <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
+                      <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                       <div style={{ minWidth: 0 }}>
                         <Group gap={6} wrap="nowrap" align="center">
                           <Text fw={600}>Project Metadata</Text>
@@ -276,7 +258,7 @@ export default function OverviewPage() {
                           style={{
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            whiteSpace: "nowrap"
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {state.projectData?.project_id || "No project ID set"}
@@ -297,10 +279,7 @@ export default function OverviewPage() {
                   <Stack gap="xs">
                     <Group justify="space-between">
                       <Text size="xs">Progress</Text>
-                      <Badge
-                        size="xs"
-                        color={getCompletionColor(projectCompletion)}
-                      >
+                      <Badge size="xs" color={getCompletionColor(projectCompletion)}>
                         {projectCompletion}%
                       </Badge>
                     </Group>
@@ -327,10 +306,7 @@ export default function OverviewPage() {
                     {state.experiments.length !== 1 ? "s" : ""} created
                   </Text>
                 </div>
-                <Button
-                  leftSection={<IconPlus size={16} />}
-                  onClick={handleCreateExperiment}
-                >
+                <Button leftSection={<IconPlus size={16} />} onClick={handleCreateExperiment}>
                   New Experiment
                 </Button>
               </Group>
@@ -350,21 +326,9 @@ export default function OverviewPage() {
                       onClick={() => handleEditExperiment(experiment.id)}
                     >
                       <Stack gap="sm">
-                        <Group
-                          justify="space-between"
-                          wrap="nowrap"
-                          align="flex-start"
-                        >
-                          <Group
-                            gap="xs"
-                            wrap="nowrap"
-                            align="flex-start"
-                            style={{ minWidth: 0 }}
-                          >
-                            <IconFlask
-                              size={20}
-                              style={{ flexShrink: 0, marginTop: 2 }}
-                            />
+                        <Group justify="space-between" wrap="nowrap" align="flex-start">
+                          <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
+                            <IconFlask size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                             <Text
                               fw={600}
                               style={{
@@ -372,7 +336,7 @@ export default function OverviewPage() {
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
-                                wordBreak: "break-word"
+                                wordBreak: "break-word",
                               }}
                             >
                               {experiment.name}
@@ -393,9 +357,7 @@ export default function OverviewPage() {
                               size="md"
                               title="Duplicate experiment"
                               aria-label="Duplicate experiment"
-                              onClick={(e) =>
-                                handleDuplicateExperiment(experiment.id, e)
-                              }
+                              onClick={(e) => handleDuplicateExperiment(experiment.id, e)}
                             >
                               <IconCopy size={16} />
                             </ActionIcon>
@@ -405,9 +367,7 @@ export default function OverviewPage() {
                               size="md"
                               title="Delete experiment"
                               aria-label="Delete experiment"
-                              onClick={(e) =>
-                                handleDeleteExperiment(experiment.id, e)
-                              }
+                              onClick={(e) => handleDeleteExperiment(experiment.id, e)}
                             >
                               <IconTrash size={16} />
                             </ActionIcon>
@@ -429,10 +389,7 @@ export default function OverviewPage() {
                         <Stack gap="xs">
                           <Group justify="space-between">
                             <Text size="xs">Progress</Text>
-                            <Badge
-                              size="xs"
-                              color={getCompletionColor(completion)}
-                            >
+                            <Badge size="xs" color={getCompletionColor(completion)}>
                               {completion}%
                             </Badge>
                           </Group>
@@ -445,8 +402,7 @@ export default function OverviewPage() {
                         </Stack>
 
                         <Text size="xs" c="dimmed">
-                          Last updated:{" "}
-                          {new Date(experiment.updatedAt).toLocaleString()}
+                          Last updated: {new Date(experiment.updatedAt).toLocaleString()}
                         </Text>
                       </Stack>
                     </Card>
@@ -467,18 +423,14 @@ export default function OverviewPage() {
                     {state.datasets.length !== 1 ? "s" : ""} created
                   </Text>
                 </div>
-                <Button
-                  leftSection={<IconPlus size={16} />}
-                  onClick={handleCreateDataset}
-                >
+                <Button leftSection={<IconPlus size={16} />} onClick={handleCreateDataset}>
                   New Dataset
                 </Button>
               </Group>
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                 {state.datasets.map((dataset) => {
-                  const variableCount =
-                    (dataset.formData.variables?.length as number) || 0;
+                  const variableCount = (dataset.formData.variables?.length as number) || 0;
                   const linkedExperiment = getLinkedExperiment(dataset);
                   const status = getDatasetStatus(dataset.id);
                   const completion = status.percentage;
@@ -493,21 +445,9 @@ export default function OverviewPage() {
                       onClick={() => handleEditDataset(dataset.id)}
                     >
                       <Stack gap="sm">
-                        <Group
-                          justify="space-between"
-                          wrap="nowrap"
-                          align="flex-start"
-                        >
-                          <Group
-                            gap="xs"
-                            wrap="nowrap"
-                            align="flex-start"
-                            style={{ minWidth: 0 }}
-                          >
-                            <IconDatabase
-                              size={20}
-                              style={{ flexShrink: 0, marginTop: 2 }}
-                            />
+                        <Group justify="space-between" wrap="nowrap" align="flex-start">
+                          <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
+                            <IconDatabase size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                             <Text
                               fw={600}
                               style={{
@@ -515,7 +455,7 @@ export default function OverviewPage() {
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
-                                wordBreak: "break-word"
+                                wordBreak: "break-word",
                               }}
                             >
                               {dataset.name}
@@ -536,9 +476,7 @@ export default function OverviewPage() {
                               size="md"
                               title="Duplicate dataset"
                               aria-label="Duplicate dataset"
-                              onClick={(e) =>
-                                handleDuplicateDataset(dataset.id, e)
-                              }
+                              onClick={(e) => handleDuplicateDataset(dataset.id, e)}
                             >
                               <IconCopy size={16} />
                             </ActionIcon>
@@ -569,7 +507,7 @@ export default function OverviewPage() {
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
-                                wordBreak: "break-word"
+                                wordBreak: "break-word",
                               }}
                             >
                               {linkedExperiment.name}
@@ -589,10 +527,7 @@ export default function OverviewPage() {
                         <Stack gap="xs">
                           <Group justify="space-between">
                             <Text size="xs">Progress</Text>
-                            <Badge
-                              size="xs"
-                              color={getCompletionColor(completion)}
-                            >
+                            <Badge size="xs" color={getCompletionColor(completion)}>
                               {completion}%
                             </Badge>
                           </Group>
@@ -605,8 +540,7 @@ export default function OverviewPage() {
                         </Stack>
 
                         <Text size="xs" c="dimmed">
-                          Last updated:{" "}
-                          {new Date(dataset.updatedAt).toLocaleString()}
+                          Last updated: {new Date(dataset.updatedAt).toLocaleString()}
                         </Text>
                       </Stack>
                     </Card>
@@ -645,7 +579,7 @@ export default function OverviewPage() {
                     borderWidth: 2,
                     borderColor: "var(--mantine-color-gray-4)",
                     backgroundColor: "transparent",
-                    transition: "border-color 150ms, box-shadow 150ms"
+                    transition: "border-color 150ms, box-shadow 150ms",
                   }}
                   onClick={entity.onClick}
                   onKeyDown={(e) => {
@@ -655,13 +589,11 @@ export default function OverviewPage() {
                     }
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--mantine-color-gray-6)";
+                    e.currentTarget.style.borderColor = "var(--mantine-color-gray-6)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderStyle = "dashed";
-                    e.currentTarget.style.borderColor =
-                      "var(--mantine-color-gray-4)";
+                    e.currentTarget.style.borderColor = "var(--mantine-color-gray-4)";
                   }}
                 >
                   <Stack align="center" gap="xs">

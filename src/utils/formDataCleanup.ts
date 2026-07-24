@@ -71,9 +71,7 @@ function cleanRecursive(value: unknown, stripEmptyStrings: boolean, isRoot = fal
  * empty values as "not filled" — so auto-propagated `project_id: ""` or
  * `experiment_id: ""` don't count as user input.
  */
-export function isFormEmpty(
-  data: Record<string, unknown> | undefined | null
-): boolean {
+export function isFormEmpty(data: Record<string, unknown> | undefined | null): boolean {
   if (!data) return true;
   return !Object.values(data).some(isNonEmptyValue);
 }

@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { stripExtraVariableFields } from "../variableModalConfig";
-import { getBaseSchema } from "@/utils/schemaViews";
+import { describe, expect, it } from "vitest";
 import type { JSONSchema } from "@/components/schemaUtils";
+import { getBaseSchema } from "@/utils/schemaViews";
+import { stripExtraVariableFields } from "../variableModalConfig";
 
 // Minimal inline schema — no dependency on the bundled schema.
 // Two classes: SimpleVariable (flat) and NestedVariable (has a nested object).
@@ -13,8 +13,8 @@ const TEST_SCHEMA = {
       properties: {
         schema_class: { type: "string" },
         name: { type: "string" },
-        units: { type: "string" }
-      }
+        units: { type: "string" },
+      },
     },
     NestedVariable: {
       type: "object",
@@ -23,19 +23,19 @@ const TEST_SCHEMA = {
         schema_class: { type: "string" },
         name: { type: "string" },
         instrument: {
-          $ref: "#/$defs/SimpleInstrument"
-        }
-      }
+          $ref: "#/$defs/SimpleInstrument",
+        },
+      },
     },
     SimpleInstrument: {
       type: "object",
       additionalProperties: false,
       properties: {
         make: { type: "string" },
-        model: { type: "string" }
-      }
-    }
-  }
+        model: { type: "string" },
+      },
+    },
+  },
 };
 
 describe("stripExtraVariableFields", () => {
@@ -55,10 +55,10 @@ describe("stripExtraVariableFields", () => {
     const v = {
       schema_class: "NestedVariable",
       name: "pH",
-      instrument: { make: "SeaBird", calibration_date: "2024-01-01" }
+      instrument: { make: "SeaBird", calibration_date: "2024-01-01" },
     };
     const result = stripExtraVariableFields(v, TEST_SCHEMA);
-    expect((result.instrument as Record<string, unknown>)).not.toHaveProperty("calibration_date");
+    expect(result.instrument as Record<string, unknown>).not.toHaveProperty("calibration_date");
     expect((result.instrument as Record<string, unknown>).make).toBe("SeaBird");
   });
 
@@ -66,7 +66,7 @@ describe("stripExtraVariableFields", () => {
     const v = {
       schema_class: "NestedVariable",
       name: "pH",
-      instrument: { make: "SeaBird", model: "SBE18" }
+      instrument: { make: "SeaBird", model: "SBE18" },
     };
     expect(stripExtraVariableFields(v, TEST_SCHEMA)).toEqual(v);
   });
@@ -107,10 +107,10 @@ describe("stripExtraVariableFields", () => {
           properties: {
             schema_class: { type: "string" },
             must_have: { type: "string" },
-            name: { type: "string" }
-          }
-        }
-      }
+            name: { type: "string" },
+          },
+        },
+      },
     };
     const v = { schema_class: "StrictVar", name: "keep", orphan: "strip" };
     // 'must_have' is missing (required) — strip should still remove 'orphan'
@@ -127,10 +127,10 @@ describe("stripExtraVariableFields", () => {
           additionalProperties: false,
           properties: {
             schema_class: { type: "string" },
-            field_a: { type: "string" }
-          }
-        }
-      }
+            field_a: { type: "string" },
+          },
+        },
+      },
     };
     const schemaB = {
       $defs: {
@@ -139,10 +139,10 @@ describe("stripExtraVariableFields", () => {
           additionalProperties: false,
           properties: {
             schema_class: { type: "string" },
-            field_b: { type: "string" }
-          }
-        }
-      }
+            field_b: { type: "string" },
+          },
+        },
+      },
     };
 
     const v = { schema_class: "MyVar", field_a: "keep", field_b: "keep" };
@@ -164,8 +164,10 @@ describe("stripExtraVariableFields — real bundled schema", () => {
   const rootSchema = getBaseSchema() as unknown as JSONSchema;
 
   const calibrationOf = (v: Record<string, unknown>) =>
-    ((v.analyzing_instrument as Record<string, unknown>)?.calibration ??
-      {}) as Record<string, unknown>;
+    ((v.analyzing_instrument as Record<string, unknown>)?.calibration ?? {}) as Record<
+      string,
+      unknown
+    >;
 
   it("preserves pH-specific calibration fields on a DiscretePHVariable", () => {
     // DiscretePHVariable -> PHInstrument -> PHCalibration, which legitimately
@@ -177,9 +179,9 @@ describe("stripExtraVariableFields — real bundled schema", () => {
       analyzing_instrument: {
         calibration: {
           dye_type_and_manufacturer: "m-cresol purple, Sigma-Aldrich",
-          ph_of_standards: "7.0, 10.0"
-        }
-      }
+          ph_of_standards: "7.0, 10.0",
+        },
+      },
     };
 
     const result = stripExtraVariableFields(phVar, rootSchema);
@@ -202,9 +204,9 @@ describe("stripExtraVariableFields — real bundled schema", () => {
       analyzing_instrument: {
         calibration: {
           dye_type_and_manufacturer: "leftover from pH",
-          standard_gas_info: { manufacturer: "NOAA" }
-        }
-      }
+          standard_gas_info: { manufacturer: "NOAA" },
+        },
+      },
     };
 
     const result = stripExtraVariableFields(switchedVar, rootSchema);
@@ -212,16 +214,14 @@ describe("stripExtraVariableFields — real bundled schema", () => {
 
     expect(cal).not.toHaveProperty("dye_type_and_manufacturer");
     expect(cal).toHaveProperty("standard_gas_info");
-    expect((cal.standard_gas_info as Record<string, unknown>).manufacturer).toBe(
-      "NOAA"
-    );
+    expect((cal.standard_gas_info as Record<string, unknown>).manufacturer).toBe("NOAA");
   });
 
   it("strips an unknown top-level field but keeps schema_class and known fields", () => {
     const v = {
       schema_class: "DiscretePHVariable",
       long_name: "pH",
-      not_a_real_field: "remove me"
+      not_a_real_field: "remove me",
     };
     const result = stripExtraVariableFields(v, rootSchema);
     expect(result).not.toHaveProperty("not_a_real_field");

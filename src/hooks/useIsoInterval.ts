@@ -5,7 +5,7 @@
  * IsoIntervalWidgetVertical, allowing each to focus on layout.
  */
 import * as React from "react";
-import { parseInterval, buildInterval, validateDate } from "@/utils/dateUtils";
+import { buildInterval, parseInterval, validateDate } from "@/utils/dateUtils";
 
 interface UseIsoIntervalProps {
   id: string;
@@ -49,12 +49,9 @@ export function useIsoInterval({
   onChange,
   onBlur,
   onFocus,
-  hasError = false
+  hasError = false,
 }: UseIsoIntervalProps): UseIsoIntervalReturn {
-  const { start, end } = React.useMemo(
-    () => parseInterval(value),
-    [value]
-  );
+  const { start, end } = React.useMemo(() => parseInterval(value), [value]);
 
   const [startDate, setStartDate] = React.useState(start);
   const [endDate, setEndDate] = React.useState(end);
@@ -69,7 +66,7 @@ export function useIsoInterval({
 
   const emit = React.useCallback(
     (s: string, e: string) => onChange(buildInterval(s, e) ?? undefined),
-    [onChange]
+    [onChange],
   );
 
   // "Late to blame, eager to forgive":
@@ -83,7 +80,7 @@ export function useIsoInterval({
       setStartDate(v);
       if (hasError) emit(v, endDate);
     },
-    [hasError, emit, endDate]
+    [hasError, emit, endDate],
   );
 
   const handleEndChange = React.useCallback(
@@ -91,7 +88,7 @@ export function useIsoInterval({
       setEndDate(v);
       if (hasError) emit(startDate, v);
     },
-    [hasError, emit, startDate]
+    [hasError, emit, startDate],
   );
 
   const handleStartBlur = React.useCallback(() => {
@@ -119,7 +116,7 @@ export function useIsoInterval({
       setStartDate(formatted);
       emit(formatted, endDate);
     },
-    [emit, endDate]
+    [emit, endDate],
   );
 
   const handleEndDatePick = React.useCallback(
@@ -127,18 +124,14 @@ export function useIsoInterval({
       setEndDate(dateStr);
       emit(startDate, dateStr);
     },
-    [emit, startDate]
+    [emit, startDate],
   );
 
   const startError =
-    startTouched && startDate && !validateDate(startDate)
-      ? "Invalid date format"
-      : undefined;
+    startTouched && startDate && !validateDate(startDate) ? "Invalid date format" : undefined;
 
   const endError =
-    endTouched && endDate && !validateDate(endDate)
-      ? "Invalid date format"
-      : undefined;
+    endTouched && endDate && !validateDate(endDate) ? "Invalid date format" : undefined;
 
   return {
     startDate,
@@ -160,6 +153,6 @@ export function useIsoInterval({
     handleStartDatePick,
     handleEndDatePick,
     setStartTouched,
-    setEndTouched
+    setEndTouched,
   };
 }

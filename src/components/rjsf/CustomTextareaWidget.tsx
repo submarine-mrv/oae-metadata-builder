@@ -1,19 +1,20 @@
-import React, { useCallback, FocusEvent, useState } from 'react';
-import { Textarea, Group, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
-import DescriptionModal from './DescriptionModal';
+import { ActionIcon, Box, Text, Textarea, Tooltip } from "@mantine/core";
 import {
   ariaDescribedByIds,
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
-  WidgetProps,
-} from '@rjsf/utils';
+  type FormContextType,
+  type RJSFSchema,
+  type StrictRJSFSchema,
+  type WidgetProps,
+} from "@rjsf/utils";
+import { IconInfoCircle } from "@tabler/icons-react";
+import type React from "react";
+import { type FocusEvent, useCallback, useState } from "react";
+import DescriptionModal from "./DescriptionModal";
 
 export default function CustomTextareaWidget<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: WidgetProps<T, S, F>) {
   const {
     id,
@@ -31,7 +32,7 @@ export default function CustomTextareaWidget<
     onBlur,
     onFocus,
     schema,
-    uiSchema
+    uiSchema,
   } = props;
 
   const description = schema?.description;
@@ -42,10 +43,10 @@ export default function CustomTextareaWidget<
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       if (onChange) {
-        onChange(event.target.value === '' ? undefined : event.target.value);
+        onChange(event.target.value === "" ? undefined : event.target.value);
       }
     },
-    [onChange]
+    [onChange],
   );
 
   const handleBlur = useCallback(
@@ -54,7 +55,7 @@ export default function CustomTextareaWidget<
         onBlur(id, event.target.value);
       }
     },
-    [onBlur, id]
+    [onBlur, id],
   );
 
   const handleFocus = useCallback(
@@ -63,7 +64,7 @@ export default function CustomTextareaWidget<
         onFocus(id, event.target.value);
       }
     },
-    [onFocus, id]
+    [onFocus, id],
   );
 
   const renderLabel = () => {
@@ -73,50 +74,53 @@ export default function CustomTextareaWidget<
 
   return (
     <>
-      <Box style={{ position: 'relative' }}>
+      <Box style={{ position: "relative" }}>
         <Textarea
           id={id}
           label={renderLabel()}
           placeholder={placeholder}
-          value={value || ''}
+          value={value || ""}
           required={required}
           disabled={disabled}
           readOnly={readonly}
           autoFocus={autofocus}
           rows={rows}
-          error={rawErrors && rawErrors.length > 0 ? rawErrors.join(', ') : undefined}
+          error={rawErrors && rawErrors.length > 0 ? rawErrors.join(", ") : undefined}
           onChange={handleChange}
           onBlur={handleBlur}
           onFocus={handleFocus}
           aria-describedby={ariaDescribedByIds(id)}
         />
         {description && !hideLabel && (
-          <Box style={{
-            position: 'absolute',
-            top: '2px',
-            left: '0',
-            display: 'flex',
-            alignItems: 'center',
-            pointerEvents: 'none'
-          }}>
+          <Box
+            style={{
+              position: "absolute",
+              top: "2px",
+              left: "0",
+              display: "flex",
+              alignItems: "center",
+              pointerEvents: "none",
+            }}
+          >
             <Text
               size="sm"
               fw={500}
               style={{
-                visibility: 'hidden',
-                marginRight: '4px'
+                visibility: "hidden",
+                marginRight: "4px",
               }}
             >
-              {label}{required && ' *'}
+              {label}
+              {required && " *"}
             </Text>
-            <Box style={{ pointerEvents: 'auto' }}>
+            <Box style={{ pointerEvents: "auto" }}>
               {useModal ? (
                 <ActionIcon
                   variant="transparent"
                   size="xs"
                   color="gray"
                   onClick={() => setModalOpened(true)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
                   <IconInfoCircle size={14} />
                 </ActionIcon>

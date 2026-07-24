@@ -12,21 +12,17 @@
  * - Maintains proper focus, blur, and change event handling
  */
 
-import React, { useCallback, FocusEvent, useState } from 'react';
-import { TextInput, NumberInput, Tooltip, ActionIcon, Text, Box } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
-import DescriptionModal from './DescriptionModal';
-import {
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
-  WidgetProps,
-} from '@rjsf/utils';
+import { ActionIcon, Box, NumberInput, Text, TextInput, Tooltip } from "@mantine/core";
+import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
+import { IconInfoCircle } from "@tabler/icons-react";
+import type React from "react";
+import { type FocusEvent, useCallback, useState } from "react";
+import DescriptionModal from "./DescriptionModal";
 
 export default function BaseInputWidget<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: WidgetProps<T, S, F>) {
   const {
     id,
@@ -43,7 +39,7 @@ export default function BaseInputWidget<
     onBlur,
     onFocus,
     schema,
-    uiSchema
+    uiSchema,
   } = props;
 
   const description = schema?.description;
@@ -52,9 +48,9 @@ export default function BaseInputWidget<
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Simple check: use NumberInput for number/integer schema types
-  const isNumberType = schema.type === 'number' || schema.type === 'integer';
-  const schemaMin = typeof schema.minimum === 'number' ? schema.minimum : undefined;
-  const schemaMax = typeof schema.maximum === 'number' ? schema.maximum : undefined;
+  const isNumberType = schema.type === "number" || schema.type === "integer";
+  const schemaMin = typeof schema.minimum === "number" ? schema.minimum : undefined;
+  const schemaMax = typeof schema.maximum === "number" ? schema.maximum : undefined;
 
   const handleNumberChange = useCallback(
     (value: number | string) => {
@@ -63,23 +59,23 @@ export default function BaseInputWidget<
         onChange(value);
       }
     },
-    [onChange]
+    [onChange],
   );
 
   const handleTextChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (onChange) {
-        onChange(event.target.value === '' ? undefined : event.target.value);
+        onChange(event.target.value === "" ? undefined : event.target.value);
       }
     },
-    [onChange]
+    [onChange],
   );
 
   const handleBlur = useCallback(
     (event: FocusEvent<HTMLInputElement>) => {
       if (isNumberType) {
         const numVal = parseFloat(event.target.value);
-        if (!isNaN(numVal)) {
+        if (!Number.isNaN(numVal)) {
           if (schemaMax !== undefined && numVal > schemaMax) {
             setLocalError(`Must be ${schemaMax} or less`);
           } else if (schemaMin !== undefined && numVal < schemaMin) {
@@ -95,7 +91,7 @@ export default function BaseInputWidget<
         onBlur(id, event.target.value);
       }
     },
-    [onBlur, id, isNumberType, schemaMin, schemaMax]
+    [onBlur, id, isNumberType, schemaMin, schemaMax],
   );
 
   const handleFocus = useCallback(
@@ -104,7 +100,7 @@ export default function BaseInputWidget<
         onFocus(id, event.target.value);
       }
     },
-    [onFocus, id]
+    [onFocus, id],
   );
 
   const renderLabel = () => {
@@ -112,9 +108,8 @@ export default function BaseInputWidget<
     return label;
   };
 
-  const errorMessage = rawErrors && rawErrors.length > 0
-    ? rawErrors.join(', ')
-    : localError ?? undefined;
+  const errorMessage =
+    rawErrors && rawErrors.length > 0 ? rawErrors.join(", ") : (localError ?? undefined);
 
   // Choose NumberInput vs TextInput based on schema type
   const input = isNumberType ? (
@@ -122,7 +117,7 @@ export default function BaseInputWidget<
       id={id}
       label={renderLabel()}
       placeholder={placeholder}
-      value={value ?? ''}
+      value={value ?? ""}
       required={required}
       disabled={disabled}
       readOnly={readonly}
@@ -137,7 +132,7 @@ export default function BaseInputWidget<
       id={id}
       label={renderLabel()}
       placeholder={placeholder}
-      value={value ?? ''}
+      value={value ?? ""}
       required={required}
       disabled={disabled}
       readOnly={readonly}
@@ -151,35 +146,38 @@ export default function BaseInputWidget<
 
   return (
     <>
-      <Box style={{ position: 'relative' }}>
+      <Box style={{ position: "relative" }}>
         {input}
         {description && !hideLabel && (
-          <Box style={{
-            position: 'absolute',
-            top: '2px',
-            left: '0',
-            display: 'flex',
-            alignItems: 'center',
-            pointerEvents: 'none'
-          }}>
+          <Box
+            style={{
+              position: "absolute",
+              top: "2px",
+              left: "0",
+              display: "flex",
+              alignItems: "center",
+              pointerEvents: "none",
+            }}
+          >
             <Text
               size="sm"
               fw={500}
               style={{
-                visibility: 'hidden',
-                marginRight: '4px'
+                visibility: "hidden",
+                marginRight: "4px",
               }}
             >
-              {label}{required && ' *'}
+              {label}
+              {required && " *"}
             </Text>
-            <Box style={{ pointerEvents: 'auto' }}>
+            <Box style={{ pointerEvents: "auto" }}>
               {useModal ? (
                 <ActionIcon
                   variant="transparent"
                   size="xs"
                   color="gray"
                   onClick={() => setModalOpened(true)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
                   <IconInfoCircle size={14} />
                 </ActionIcon>
@@ -210,7 +208,6 @@ export default function BaseInputWidget<
           description={description}
         />
       )}
-
     </>
   );
 }

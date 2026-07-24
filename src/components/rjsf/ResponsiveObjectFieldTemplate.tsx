@@ -7,18 +7,18 @@
  * so existing `"ui:gridCols": 2` uiSchema entries work unchanged while
  * Mantine generates proper `@media` breakpoints — no CSS `!important` needed.
  */
-import { Box, Container, Group, MantineSpacing, SimpleGrid } from "@mantine/core";
+import { Box, Container, Group, type MantineSpacing, SimpleGrid } from "@mantine/core";
 import {
   buttonId,
   canExpand,
   descriptionId,
-  FormContextType,
+  type FormContextType,
   getTemplate,
   getUiOptions,
-  ObjectFieldTemplatePropertyType,
-  ObjectFieldTemplateProps,
-  RJSFSchema,
-  StrictRJSFSchema,
+  type ObjectFieldTemplatePropertyType,
+  type ObjectFieldTemplateProps,
+  type RJSFSchema,
+  type StrictRJSFSchema,
   titleId,
 } from "@rjsf/utils";
 
@@ -43,7 +43,11 @@ export default function ResponsiveObjectFieldTemplate<
     registry,
   } = props;
   const uiOptions = getUiOptions<T, S, F>(uiSchema);
-  const TitleFieldTemplate = getTemplate<"TitleFieldTemplate", T, S, F>("TitleFieldTemplate", registry, uiOptions);
+  const TitleFieldTemplate = getTemplate<"TitleFieldTemplate", T, S, F>(
+    "TitleFieldTemplate",
+    registry,
+    uiOptions,
+  );
   const DescriptionFieldTemplate = getTemplate<"DescriptionFieldTemplate", T, S, F>(
     "DescriptionFieldTemplate",
     registry,

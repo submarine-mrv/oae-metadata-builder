@@ -1,12 +1,12 @@
-import { Container, Title, Text, Stack, Button } from "@mantine/core";
+import { Button, Container, Stack, Text, Title } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import AppLayout from "./AppLayout";
 import { useAppState } from "@/contexts/AppStateContext";
+import AppLayout from "./AppLayout";
 
 export default function EmptyEntityPage({
   title,
-  description
+  description,
 }: {
   title: string;
   description: string;

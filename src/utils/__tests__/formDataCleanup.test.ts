@@ -1,6 +1,6 @@
 // formDataCleanup.test.ts - Tests for form data cleaning helpers
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { cleanFormData, cleanVariableData, isFormEmpty } from "../formDataCleanup";
 
 describe("cleanFormData", () => {
@@ -21,7 +21,7 @@ describe("cleanFormData", () => {
       a: "x",
       b: null,
       c: undefined,
-      d: 5
+      d: 5,
     } as Record<string, unknown>);
     expect(result).toEqual({ a: "x", d: 5 });
   });
@@ -29,7 +29,7 @@ describe("cleanFormData", () => {
   it("strips empty strings", () => {
     const result = cleanFormData({
       a: "kept",
-      b: ""
+      b: "",
     } as Record<string, unknown>);
     expect(result).toEqual({ a: "kept", b: "" });
     // NOTE: current cleanFormData does NOT strip empty strings — only
@@ -41,17 +41,17 @@ describe("cleanFormData", () => {
   it("strips empty arrays at the top level", () => {
     const result = cleanFormData({
       a: "x",
-      emptyList: []
+      emptyList: [],
     } as Record<string, unknown>);
     expect(result).toEqual({ a: "x" });
   });
 
   it("strips nested nulls inside arrays of objects", () => {
     const result = cleanFormData({
-      people: [{ name: "Alice", email: null }, { name: "Bob" }]
+      people: [{ name: "Alice", email: null }, { name: "Bob" }],
     } as Record<string, unknown>);
     expect(result).toEqual({
-      people: [{ name: "Alice" }, { name: "Bob" }]
+      people: [{ name: "Alice" }, { name: "Bob" }],
     });
   });
 
@@ -62,18 +62,18 @@ describe("cleanFormData", () => {
     // required object as missing.
     const result = cleanFormData({
       title: "Dataset 1",
-      data_submitter: { name: null, email: null, phone: "" }
+      data_submitter: { name: null, email: null, phone: "" },
     } as Record<string, unknown>);
     expect(result).toEqual({
       title: "Dataset 1",
-      data_submitter: { phone: "" }
+      data_submitter: { phone: "" },
     });
   });
 
   it("drops a nested object with all nulls entirely", () => {
     const result = cleanFormData({
       title: "Dataset 1",
-      data_submitter: { name: null, email: null }
+      data_submitter: { name: null, email: null },
     } as Record<string, unknown>);
     expect(result).toEqual({ title: "Dataset 1" });
   });
@@ -82,17 +82,17 @@ describe("cleanFormData", () => {
     const result = cleanFormData({
       project_leads: [
         { name: "Alice", phone: null },
-        { name: null, email: null }
-      ]
+        { name: null, email: null },
+      ],
     } as Record<string, unknown>);
     expect(result).toEqual({
-      project_leads: [{ name: "Alice" }]
+      project_leads: [{ name: "Alice" }],
     });
   });
 
   it("strips an array when all items become empty after cleanup", () => {
     const result = cleanFormData({
-      project_leads: [{ name: null }, { email: null }]
+      project_leads: [{ name: null }, { email: null }],
     } as Record<string, unknown>);
     expect(result).toEqual({});
   });
@@ -101,7 +101,7 @@ describe("cleanFormData", () => {
     const result = cleanFormData({
       count: 0,
       flag: false,
-      negative: -5
+      negative: -5,
     } as Record<string, unknown>);
     expect(result).toEqual({ count: 0, flag: false, negative: -5 });
   });
@@ -130,8 +130,8 @@ describe("isFormEmpty", () => {
       isFormEmpty({
         project_id: "",
         spatial_coverage: { geo: { box: "" } },
-        leads: []
-      })
+        leads: [],
+      }),
     ).toBe(true);
   });
 
@@ -145,8 +145,8 @@ describe("isFormEmpty", () => {
     expect(
       isFormEmpty({
         project_id: "",
-        spatial_coverage: { geo: { box: "1,2,3,4" } }
-      })
+        spatial_coverage: { geo: { box: "1,2,3,4" } },
+      }),
     ).toBe(false);
   });
 
@@ -160,7 +160,7 @@ describe("cleanVariableData", () => {
     const result = cleanVariableData({
       a: "x",
       b: null,
-      c: undefined
+      c: undefined,
     } as Record<string, unknown>);
     expect(result).toEqual({ a: "x" });
   });
@@ -169,7 +169,7 @@ describe("cleanVariableData", () => {
     const result = cleanVariableData({
       name: "kept",
       measurement_temperature: "",
-      ph_reported_temperature: ""
+      ph_reported_temperature: "",
     } as Record<string, unknown>);
     expect(result).toEqual({ name: "kept" });
   });
@@ -177,18 +177,18 @@ describe("cleanVariableData", () => {
   it("strips nested empty strings", () => {
     const result = cleanVariableData({
       schema_class: "DiscretePHVariable",
-      instrument: { make: "SeaBird", calibration_date: "" }
+      instrument: { make: "SeaBird", calibration_date: "" },
     } as Record<string, unknown>);
     expect(result).toEqual({
       schema_class: "DiscretePHVariable",
-      instrument: { make: "SeaBird" }
+      instrument: { make: "SeaBird" },
     });
   });
 
   it("drops a nested object that becomes empty after empty-string stripping", () => {
     const result = cleanVariableData({
       schema_class: "DiscretePHVariable",
-      instrument: { make: "", model: "" }
+      instrument: { make: "", model: "" },
     } as Record<string, unknown>);
     expect(result).toEqual({ schema_class: "DiscretePHVariable" });
   });
@@ -196,7 +196,7 @@ describe("cleanVariableData", () => {
   it("preserves falsy non-empty values (0, false)", () => {
     const result = cleanVariableData({
       count: 0,
-      flag: false
+      flag: false,
     } as Record<string, unknown>);
     expect(result).toEqual({ count: 0, flag: false });
   });

@@ -1,7 +1,8 @@
 // PlaceholderField.tsx - Placeholder for complex object fields not yet fully implemented
-import React from "react";
+
 import { Box, Text } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
+import type React from "react";
 
 const PlaceholderField: React.FC<FieldProps> = (props) => {
   const { schema } = props;
@@ -19,7 +20,7 @@ const PlaceholderField: React.FC<FieldProps> = (props) => {
         style={{
           backgroundColor: "#f1f3f5",
           border: "1px solid #dee2e6",
-          borderRadius: "4px"
+          borderRadius: "4px",
         }}
       >
         <Text size="sm" c="dimmed" ta="center">

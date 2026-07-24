@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from "react";
-import { Box, Group, Text, Button } from "@mantine/core";
+import { Box, Button, Group, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import { useAppState } from "@/contexts/AppStateContext";
 
 interface JsonPreviewSidebarProps {
@@ -60,7 +59,7 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
         borderLeft: "1px solid var(--mantine-color-gray-3)",
         display: "flex",
         flexDirection: "column",
-        position: "relative"
+        position: "relative",
       }}
     >
       {/* Resize handle */}
@@ -72,11 +71,9 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
           width: 4,
           height: "100%",
           backgroundColor:
-            isResizing || isHoveringHandle
-              ? "var(--mantine-color-gray-4)"
-              : "transparent",
+            isResizing || isHoveringHandle ? "var(--mantine-color-gray-4)" : "transparent",
           cursor: "col-resize",
-          transition: "background-color 150ms ease"
+          transition: "background-color 150ms ease",
         }}
         onMouseDown={() => setIsResizing(true)}
         onMouseEnter={() => setIsHoveringHandle(true)}
@@ -109,7 +106,7 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
             margin: 0,
             fontFamily: "monospace",
             whiteSpace: "pre-wrap",
-            wordBreak: "break-word"
+            wordBreak: "break-word",
           }}
         >
           {JSON.stringify(data, null, 2)}

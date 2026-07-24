@@ -11,15 +11,10 @@
  * - When linked experiment has no experiment_id, shows a warning error
  */
 
-import React, { useMemo, useState } from "react";
-import { Select, ComboboxItem, Box, Text, Tooltip, ActionIcon } from "@mantine/core";
+import { ActionIcon, Box, type ComboboxItem, Select, Text, Tooltip } from "@mantine/core";
+import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
 import { IconInfoCircle } from "@tabler/icons-react";
-import {
-  FormContextType,
-  RJSFSchema,
-  StrictRJSFSchema,
-  WidgetProps
-} from "@rjsf/utils";
+import { useMemo, useState } from "react";
 import { useAppState } from "@/contexts/AppStateContext";
 import DescriptionModal from "./DescriptionModal";
 
@@ -28,7 +23,7 @@ const NONE_OPTION_VALUE = "__none__";
 export default function LinkedExperimentIdWidget<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: WidgetProps<T, S, F>) {
   const {
     id,
@@ -42,7 +37,7 @@ export default function LinkedExperimentIdWidget<
     onChange,
     onBlur,
     schema,
-    uiSchema
+    uiSchema,
   } = props;
 
   const description = schema?.description;
@@ -62,8 +57,7 @@ export default function LinkedExperimentIdWidget<
   }, [datasetInternalId, state.datasets]);
 
   // Which experiment is currently linked (if any)
-  const linkedExperimentInternalId =
-    linkingMetadata?.linkedExperimentInternalId ?? null;
+  const linkedExperimentInternalId = linkingMetadata?.linkedExperimentInternalId ?? null;
 
   // Get the linked experiment object
   const linkedExperiment = useMemo(() => {
@@ -86,10 +80,10 @@ export default function LinkedExperimentIdWidget<
       const expName = exp.name || (exp.formData?.name as string | undefined) || "Experiment";
       return {
         value: String(exp.id),
-        label: expName
+        label: expName,
       };
     }),
-    { value: NONE_OPTION_VALUE, label: "None" }
+    { value: NONE_OPTION_VALUE, label: "None" },
   ];
 
   // Handle dropdown selection
@@ -99,7 +93,7 @@ export default function LinkedExperimentIdWidget<
     if (selectedValue === NONE_OPTION_VALUE) {
       // Clear experiment linking
       updateDatasetLinking(datasetInternalId, {
-        linkedExperimentInternalId: null
+        linkedExperimentInternalId: null,
       });
       onChange(undefined);
     } else if (selectedValue) {
@@ -108,7 +102,7 @@ export default function LinkedExperimentIdWidget<
       const expId = (exp?.formData?.experiment_id as string) || "";
 
       updateDatasetLinking(datasetInternalId, {
-        linkedExperimentInternalId: expInternalId
+        linkedExperimentInternalId: expInternalId,
       });
       onChange(expId || undefined);
     }
@@ -131,9 +125,7 @@ export default function LinkedExperimentIdWidget<
 
   // Determine the Select value: linked experiment, or "None" if explicitly unset
   const selectValue =
-    linkedExperimentInternalId !== null
-      ? String(linkedExperimentInternalId)
-      : null;
+    linkedExperimentInternalId !== null ? String(linkedExperimentInternalId) : null;
 
   return (
     <>
@@ -153,23 +145,26 @@ export default function LinkedExperimentIdWidget<
           allowDeselect={false}
         />
         {description && !hideLabel && (
-          <Box style={{
-            position: "absolute",
-            top: "2px",
-            left: "0",
-            display: "flex",
-            alignItems: "center",
-            pointerEvents: "none"
-          }}>
+          <Box
+            style={{
+              position: "absolute",
+              top: "2px",
+              left: "0",
+              display: "flex",
+              alignItems: "center",
+              pointerEvents: "none",
+            }}
+          >
             <Text
               size="sm"
               fw={500}
               style={{
                 visibility: "hidden",
-                marginRight: "4px"
+                marginRight: "4px",
               }}
             >
-              {label}{required && " *"}
+              {label}
+              {required && " *"}
             </Text>
             <Box style={{ pointerEvents: "auto" }}>
               {useModal ? (

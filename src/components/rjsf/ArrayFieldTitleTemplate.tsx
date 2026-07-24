@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
 import {
-  ArrayFieldTitleProps,
-  FormContextType,
+  type ArrayFieldTitleProps,
+  type FormContextType,
   getUiOptions,
-  RJSFSchema,
-  StrictRJSFSchema
+  type RJSFSchema,
+  type StrictRJSFSchema,
 } from "@rjsf/utils";
-import { Group, Text, ActionIcon, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useState } from "react";
 import DescriptionModal from "./DescriptionModal";
 
 /**
@@ -17,7 +17,7 @@ import DescriptionModal from "./DescriptionModal";
 export default function CustomArrayFieldTitleTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
-  F extends FormContextType = any
+  F extends FormContextType = any,
 >(props: ArrayFieldTitleProps<T, S, F>) {
   const { title, required, schema, uiSchema } = props;
   const [modalOpen, setModalOpen] = useState(false);

@@ -1,7 +1,7 @@
 // useFormValidation.test.ts - Tests for the validation badge hook
 
-import { describe, it, expect, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useFormValidation } from "../useFormValidation";
 
 describe("useFormValidation", () => {
@@ -11,8 +11,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 0,
           otherErrors: 0,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       expect(result.current.badgeState).toBe("passed");
     });
@@ -23,8 +23,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 0,
           otherErrors: 0,
-          isEmpty: true
-        })
+          isEmpty: true,
+        }),
       );
       expect(result.current.badgeState).toBe("passed");
     });
@@ -34,8 +34,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 3,
           otherErrors: 0,
-          isEmpty: true
-        })
+          isEmpty: true,
+        }),
       );
       expect(result.current.badgeState).toBe("empty");
     });
@@ -48,8 +48,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 3,
           otherErrors: 1,
-          isEmpty: true
-        })
+          isEmpty: true,
+        }),
       );
       expect(result.current.badgeState).toBe("missing-and-errors");
     });
@@ -59,8 +59,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 2,
           otherErrors: 0,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       expect(result.current.badgeState).toBe("missing-only");
     });
@@ -70,8 +70,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 0,
           otherErrors: 1,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       expect(result.current.badgeState).toBe("errors-only");
     });
@@ -81,8 +81,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 2,
           otherErrors: 1,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       expect(result.current.badgeState).toBe("missing-and-errors");
     });
@@ -94,8 +94,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 3,
           otherErrors: 0,
-          isEmpty: true
-        })
+          isEmpty: true,
+        }),
       );
       expect(result.current.showErrorList).toBe(false);
       act(() => {
@@ -109,8 +109,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 0,
           otherErrors: 0,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       act(() => {
         result.current.handleClick();
@@ -123,8 +123,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 2,
           otherErrors: 0,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       act(() => {
         result.current.handleClick();
@@ -137,8 +137,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 0,
           otherErrors: 1,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       act(() => {
         result.current.handleClick();
@@ -151,8 +151,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 2,
           otherErrors: 0,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       act(() => {
         result.current.handleClick();
@@ -171,8 +171,8 @@ describe("useFormValidation", () => {
         useFormValidation({
           missingRequired: 2,
           otherErrors: 0,
-          isEmpty: false
-        })
+          isEmpty: false,
+        }),
       );
       act(() => {
         result.current.handleClick();
@@ -193,8 +193,8 @@ describe("useFormValidation", () => {
           missingRequired: 0,
           otherErrors: 0,
           isEmpty: false,
-          onStatusChange
-        })
+          onStatusChange,
+        }),
       );
       expect(onStatusChange).toHaveBeenCalledWith(true);
     });
@@ -206,8 +206,8 @@ describe("useFormValidation", () => {
           missingRequired: 2,
           otherErrors: 0,
           isEmpty: false,
-          onStatusChange
-        })
+          onStatusChange,
+        }),
       );
       expect(onStatusChange).toHaveBeenCalledWith(null);
     });
@@ -220,9 +220,9 @@ describe("useFormValidation", () => {
             missingRequired: missing,
             otherErrors: 0,
             isEmpty: false,
-            onStatusChange
+            onStatusChange,
           }),
-        { initialProps: { missing: 2 } }
+        { initialProps: { missing: 2 } },
       );
       expect(onStatusChange).toHaveBeenLastCalledWith(null);
 
@@ -241,9 +241,9 @@ describe("useFormValidation", () => {
           useFormValidation({
             missingRequired: missing,
             otherErrors: 0,
-            isEmpty: false
+            isEmpty: false,
           }),
-        { initialProps: { missing: 2 } }
+        { initialProps: { missing: 2 } },
       );
       act(() => {
         result.current.handleClick();

@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type {
-  ProjectFormData,
-  ExperimentFormData,
   DatasetFormData,
+  DatasetState,
+  ExperimentFormData,
   ExperimentState,
-  DatasetState
+  ProjectFormData,
 } from "@/types/forms";
 
 export type ImportItemType = "project" | "experiment" | "dataset";
@@ -96,7 +96,7 @@ interface UseImportPreviewReturn {
     filename: string,
     projectData: ProjectFormData,
     experiments: ExperimentFormData[],
-    datasets: DatasetFormData[]
+    datasets: DatasetFormData[],
   ) => void;
   /** Close the preview */
   closePreview: () => void;
@@ -111,7 +111,7 @@ interface UseImportPreviewReturn {
     datasetKey: string,
     mode: "use-file" | "explicit",
     explicitExperimentInternalId?: number,
-    explicitImportKey?: string
+    explicitImportKey?: string,
   ) => void;
   /** Get available experiment link options for a specific dataset */
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
@@ -132,7 +132,7 @@ interface UseImportPreviewReturn {
 function resolveExperimentLink(
   datasetExperimentId: string | undefined,
   existingExperiments: ExperimentState[],
-  importingExperiments: Array<{ key: string; data: ExperimentFormData }>
+  importingExperiments: Array<{ key: string; data: ExperimentFormData }>,
 ): ResolvedExperimentLink {
   if (!datasetExperimentId) {
     return { type: "none" };
@@ -140,27 +140,27 @@ function resolveExperimentLink(
 
   // Check existing experiments first
   const existingMatch = existingExperiments.find(
-    (exp) => exp.formData.experiment_id === datasetExperimentId
+    (exp) => exp.formData.experiment_id === datasetExperimentId,
   );
   if (existingMatch) {
     return {
       type: "existing",
       experimentName: existingMatch.name,
       experimentId: datasetExperimentId,
-      internalId: existingMatch.id
+      internalId: existingMatch.id,
     };
   }
 
   // Check importing experiments
   const importingMatch = importingExperiments.find(
-    (exp) => (exp.data.experiment_id as string) === datasetExperimentId
+    (exp) => (exp.data.experiment_id as string) === datasetExperimentId,
   );
   if (importingMatch) {
     return {
       type: "importing",
       experimentName: (importingMatch.data.name as string) || importingMatch.key,
       experimentId: datasetExperimentId,
-      importKey: importingMatch.key
+      importKey: importingMatch.key,
     };
   }
 
@@ -175,13 +175,13 @@ function resolveExperimentLink(
 export function useImportPreview({
   currentProjectData,
   currentExperiments,
-  currentDatasets
+  currentDatasets,
 }: UseImportPreviewOptions): UseImportPreviewReturn {
   const [state, setState] = useState<ImportPreviewState>({
     isOpen: false,
     items: [],
     filename: "",
-    duplicateExperimentIdError: null
+    duplicateExperimentIdError: null,
   });
 
   const openPreview = useCallback(
@@ -189,7 +189,7 @@ export function useImportPreview({
       filename: string,
       projectData: ProjectFormData,
       experiments: ExperimentFormData[],
-      datasets: DatasetFormData[]
+      datasets: DatasetFormData[],
     ) => {
       const items: ImportItem[] = [];
 
@@ -197,9 +197,7 @@ export function useImportPreview({
       const experimentIds = experiments
         .map((exp) => exp.experiment_id as string)
         .filter((id) => id && id.trim() !== "");
-      const duplicateIds = experimentIds.filter(
-        (id, index) => experimentIds.indexOf(id) !== index
-      );
+      const duplicateIds = experimentIds.filter((id, index) => experimentIds.indexOf(id) !== index);
       const uniqueDuplicates = [...new Set(duplicateIds)];
       const duplicateExperimentIdError =
         uniqueDuplicates.length > 0
@@ -221,22 +219,18 @@ export function useImportPreview({
           conflict: hasExistingProject ? "override" : "add-new",
           conflictReason: hasExistingProject
             ? "Replace existing project metadata"
-            : "Will set project metadata"
+            : "Will set project metadata",
         });
       }
 
       // Add experiment items
       experiments.forEach((exp, index) => {
-        const expId =
-          (exp.experiment_id as string) || (exp.name as string) || null;
-        const expName =
-          (exp.name as string) || expId || `Experiment ${index + 1}`;
+        const expId = (exp.experiment_id as string) || (exp.name as string) || null;
+        const expName = (exp.name as string) || expId || `Experiment ${index + 1}`;
 
         // Check for conflict with existing experiments
         const existingExp = expId
-          ? currentExperiments.find(
-              (e) => e.formData.experiment_id === expId || e.name === expId
-            )
+          ? currentExperiments.find((e) => e.formData.experiment_id === expId || e.name === expId)
           : null;
 
         const hasConflict = Boolean(existingExp);
@@ -249,23 +243,19 @@ export function useImportPreview({
           name: expName,
           data: exp,
           selected: true,
-          conflict: isEmptyId
-            ? "add-new"
-            : hasConflict
-              ? "override"
-              : "add-new",
+          conflict: isEmptyId ? "add-new" : hasConflict ? "override" : "add-new",
           conflictReason: isEmptyId
             ? "Add as new experiment"
             : hasConflict
               ? `Replace existing experiment: "${existingExp?.name}"`
-              : "Add as new experiment"
+              : "Add as new experiment",
         });
       });
 
       // Prepare importing experiments for cross-import resolution
       const importingExperiments = experiments.map((exp, index) => ({
         key: `experiment-${index}`,
-        data: exp
+        data: exp,
       }));
 
       // Add dataset items with experiment linking
@@ -279,7 +269,7 @@ export function useImportPreview({
         const resolvedMatch = resolveExperimentLink(
           dsExperimentId,
           currentExperiments,
-          importingExperiments
+          importingExperiments,
         );
 
         items.push({
@@ -293,8 +283,8 @@ export function useImportPreview({
           conflictReason: "Add as new dataset",
           experimentLinking: {
             mode: "use-file",
-            resolvedMatch
-          }
+            resolvedMatch,
+          },
         });
       });
 
@@ -302,10 +292,10 @@ export function useImportPreview({
         isOpen: true,
         items,
         filename,
-        duplicateExperimentIdError
+        duplicateExperimentIdError,
       });
     },
-    [currentProjectData, currentExperiments, currentDatasets]
+    [currentProjectData, currentExperiments, currentDatasets],
   );
 
   const closePreview = useCallback(() => {
@@ -316,22 +306,22 @@ export function useImportPreview({
     setState((prev) => ({
       ...prev,
       items: prev.items.map((item) =>
-        item.key === key ? { ...item, selected: !item.selected } : item
-      )
+        item.key === key ? { ...item, selected: !item.selected } : item,
+      ),
     }));
   }, []);
 
   const selectAll = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      items: prev.items.map((item) => ({ ...item, selected: true }))
+      items: prev.items.map((item) => ({ ...item, selected: true })),
     }));
   }, []);
 
   const deselectAll = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      items: prev.items.map((item) => ({ ...item, selected: false }))
+      items: prev.items.map((item) => ({ ...item, selected: false })),
     }));
   }, []);
 
@@ -343,7 +333,7 @@ export function useImportPreview({
       datasetKey: string,
       mode: "use-file" | "explicit",
       explicitExperimentInternalId?: number,
-      explicitImportKey?: string
+      explicitImportKey?: string,
     ) => {
       setState((prev) => ({
         ...prev,
@@ -368,25 +358,25 @@ export function useImportPreview({
             resolvedMatch = resolveExperimentLink(
               dsExperimentId,
               currentExperiments,
-              importingExperiments
+              importingExperiments,
             );
           } else if (explicitExperimentInternalId !== undefined) {
             // Linking to existing experiment
             const existingExp = currentExperiments.find(
-              (e) => e.id === explicitExperimentInternalId
+              (e) => e.id === explicitExperimentInternalId,
             );
             resolvedMatch = existingExp
               ? {
                   type: "existing",
                   experimentName: existingExp.name,
                   experimentId: existingExp.formData.experiment_id as string,
-                  internalId: existingExp.id
+                  internalId: existingExp.id,
                 }
               : { type: "none" };
           } else if (explicitImportKey) {
             // Linking to importing experiment
             const importingExp = prev.items.find(
-              (i) => i.key === explicitImportKey && i.type === "experiment"
+              (i) => i.key === explicitImportKey && i.type === "experiment",
             );
             const expData = importingExp?.data as ExperimentFormData | undefined;
             resolvedMatch = importingExp
@@ -394,7 +384,7 @@ export function useImportPreview({
                   type: "importing",
                   experimentName: (expData?.name as string) || importingExp.name,
                   experimentId: expData?.experiment_id as string,
-                  importKey: explicitImportKey
+                  importKey: explicitImportKey,
                 }
               : { type: "none" };
           } else {
@@ -407,13 +397,13 @@ export function useImportPreview({
               mode,
               explicitExperimentInternalId,
               explicitImportKey,
-              resolvedMatch
-            }
+              resolvedMatch,
+            },
           };
-        })
+        }),
       }));
     },
-    [currentExperiments]
+    [currentExperiments],
   );
 
   /**
@@ -426,7 +416,7 @@ export function useImportPreview({
 
       // Find the dataset to get its experiment_id from file
       const dataset = state.items.find(
-        (item) => item.key === datasetKey && item.type === "dataset"
+        (item) => item.key === datasetKey && item.type === "dataset",
       );
       const dsData = dataset?.data as DatasetFormData | undefined;
       const fileExperimentId = dsData?.experiment_id as string | undefined;
@@ -435,13 +425,13 @@ export function useImportPreview({
       if (fileExperimentId && fileExperimentId.trim() !== "") {
         // Check if there's a matching experiment (existing or importing)
         const existingMatch = currentExperiments.find(
-          (exp) => exp.formData.experiment_id === fileExperimentId
+          (exp) => exp.formData.experiment_id === fileExperimentId,
         );
         const importingMatch = state.items.find(
           (item) =>
             item.type === "experiment" &&
             item.selected &&
-            (item.data as ExperimentFormData).experiment_id === fileExperimentId
+            (item.data as ExperimentFormData).experiment_id === fileExperimentId,
         );
 
         let firstLabel: string;
@@ -456,13 +446,13 @@ export function useImportPreview({
 
         options.push({
           value: "use-file",
-          label: firstLabel
+          label: firstLabel,
         });
       } else {
         // No experiment_id in file
         options.push({
           value: "use-file",
-          label: "(no experiment)"
+          label: "(no experiment)",
         });
       }
 
@@ -476,13 +466,13 @@ export function useImportPreview({
         const label = expId ? `${exp.name} (${expId})` : exp.name;
         options.push({
           value: `existing-${exp.id}`,
-          label
+          label,
         });
       });
 
       // Add remaining importing experiments (only selected ones, excluding file match)
       const importingExps = state.items.filter(
-        (item) => item.type === "experiment" && item.selected
+        (item) => item.type === "experiment" && item.selected,
       );
       importingExps.forEach((exp) => {
         const expData = exp.data as ExperimentFormData;
@@ -494,13 +484,13 @@ export function useImportPreview({
         const label = expId ? `${exp.name} (${expId})` : exp.name;
         options.push({
           value: `importing-${exp.key}`,
-          label
+          label,
         });
       });
 
       return options;
     },
-    [currentExperiments, state.items]
+    [currentExperiments, state.items],
   );
 
   const getSelectedItems = useCallback(() => {
@@ -514,13 +504,13 @@ export function useImportPreview({
       .filter((item) => item.type === "dataset")
       .map((item) => ({
         formData: item.data as DatasetFormData,
-        experimentLinking: item.experimentLinking
+        experimentLinking: item.experimentLinking,
       }));
 
     return {
       project: project ? (project.data as ProjectFormData) : null,
       experiments,
-      datasets
+      datasets,
     };
   }, [state.items]);
 
@@ -533,6 +523,6 @@ export function useImportPreview({
     deselectAll,
     setDatasetExperimentLinking,
     getExperimentLinkOptions,
-    getSelectedItems
+    getSelectedItems,
   };
 }

@@ -1,5 +1,5 @@
-import React from 'react';
-import { AppStateProvider } from '@/contexts/AppStateContext';
+import type React from "react";
+import { AppStateProvider } from "@/contexts/AppStateContext";
 
 /**
  * Test wrapper for AppStateProvider that allows passing initial state
@@ -7,7 +7,7 @@ import { AppStateProvider } from '@/contexts/AppStateContext';
  */
 export function TestAppStateProvider({
   children,
-  initialState
+  initialState,
 }: {
   children: React.ReactNode;
   initialState?: any;

@@ -4,11 +4,11 @@
  * For vertical layout, use IsoIntervalWidgetVertical instead.
  */
 
-import * as React from "react";
-import { WidgetProps } from "@rjsf/utils";
-import { TextInput, Text, Group } from "@mantine/core";
-import DatePickerPopover from "./DatePickerPopover";
+import { Group, Text, TextInput } from "@mantine/core";
+import type { WidgetProps } from "@rjsf/utils";
+import type * as React from "react";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
+import DatePickerPopover from "./DatePickerPopover";
 
 const IsoIntervalWidget: React.FC<WidgetProps> = ({
   id,
@@ -21,15 +21,14 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   onFocus,
   label,
   options,
-  rawErrors
+  rawErrors,
 }) => {
   // Surface RJSF-supplied errors on both date inputs. We display the
   // actual first message (which has been normalized by transformFormErrors
   // upstream — required errors become "Field is required", others retain
   // their specific text). Internal format errors take precedence so the
   // user sees the most specific message first.
-  const externalError =
-    rawErrors && rawErrors.length > 0 ? rawErrors[0] : undefined;
+  const externalError = rawErrors && rawErrors.length > 0 ? rawErrors[0] : undefined;
   // Check if end date is required via ui:options
   const endDateRequired = options?.endDateRequired === true;
 
@@ -39,7 +38,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     onChange,
     onBlur,
     onFocus,
-    hasError: !!externalError
+    hasError: !!externalError,
   });
 
   return (

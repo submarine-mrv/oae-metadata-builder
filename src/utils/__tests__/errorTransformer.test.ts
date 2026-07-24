@@ -1,9 +1,9 @@
 // errorTransformer.test.ts - Tests for error transformation utility
 
-import { describe, it, expect } from "vitest";
-import { transformFormErrors } from "../errorTransformer";
-import { MESSAGES } from "@/constants/messages";
 import type { RJSFValidationError } from "@rjsf/utils";
+import { describe, expect, it } from "vitest";
+import { MESSAGES } from "@/constants/messages";
+import { transformFormErrors } from "../errorTransformer";
 
 describe("transformFormErrors", () => {
   it("should transform temporal coverage pattern error", () => {
@@ -11,8 +11,8 @@ describe("transformFormErrors", () => {
       {
         property: ".temporal_coverage",
         name: "pattern",
-        message: "should match pattern"
-      }
+        message: "should match pattern",
+      },
     ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
@@ -24,21 +24,21 @@ describe("transformFormErrors", () => {
     const testCases = [
       {
         property: ".spatial_coverage.geo.box",
-        name: "required"
+        name: "required",
       },
       {
         property: ".spatial_coverage.geo",
-        name: "required"
+        name: "required",
       },
       {
         property: ".spatial_coverage",
-        name: "required"
+        name: "required",
       },
       {
         property: ".",
         name: "required",
-        params: { missingProperty: "spatial_coverage" }
-      }
+        params: { missingProperty: "spatial_coverage" },
+      },
     ];
 
     testCases.forEach((error) => {
@@ -57,8 +57,8 @@ describe("transformFormErrors", () => {
       {
         property: ".project_id",
         name: "required",
-        message: "must have required property 'project_id'"
-      }
+        message: "must have required property 'project_id'",
+      },
     ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
@@ -78,16 +78,16 @@ describe("transformFormErrors", () => {
       {
         property: ".temporal_coverage",
         name: "pattern",
-        message: "should match pattern"
+        message: "should match pattern",
       },
       {
         property: ".spatial_coverage",
-        name: "required"
+        name: "required",
       },
       {
         property: ".project_id",
-        name: "required"
-      }
+        name: "required",
+      },
     ] as RJSFValidationError[];
 
     const result = transformFormErrors(errors);
