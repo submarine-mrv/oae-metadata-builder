@@ -17,6 +17,7 @@ import {
 	IconHelp,
 	IconDownload,
 	IconFileImport,
+	IconDatabase,
 } from "@tabler/icons-react";
 import { useAppState } from "@/contexts/AppStateContext";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
@@ -58,9 +59,10 @@ export default function Navigation() {
 			project: "/project",
 			experiment: "/experiment",
 			dataset: "/dataset",
+			demo: "/supabase-demo",
 			"how-to": "/how-to",
 		} as const;
-		if (value !== "how-to") {
+		if (value !== "how-to" && value !== "demo") {
 			const tab = value as "overview" | "project" | "experiment" | "dataset";
 			setActiveTab(tab);
 		}
@@ -116,6 +118,7 @@ export default function Navigation() {
 		"/project": "project",
 		"/experiment": "experiment",
 		"/dataset": "dataset",
+		"/supabase-demo": "",
 		"/how-to": "how-to",
 	};
 	const currentTab = pathToTab[pathname] ?? "";
@@ -228,6 +231,12 @@ export default function Navigation() {
 									onClick={() => navigate({ to: "/how-to" })}
 								>
 									How-to Guide
+								</Menu.Item>
+								<Menu.Item
+									leftSection={<IconDatabase size={16} />}
+									onClick={() => navigate({ to: "/supabase-demo" })}
+								>
+									Supabase Demo
 								</Menu.Item>
 								<Menu.Item
 									leftSection={<IconInfoCircle size={16} />}

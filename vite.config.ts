@@ -10,14 +10,14 @@ export default defineConfig({
     // Must precede the React plugin so route files are transformed first.
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),
-    tailwindcss(),
+    tailwindcss()
   ],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
+      "@": fileURLToPath(new URL("./src", import.meta.url))
+    }
   },
   // Keep the dev/preview port on 3000 so Playwright + CI workflows are unchanged.
   server: { port: 3000 },
-  preview: { port: 3000 },
+  preview: { port: 3000 }
 });
