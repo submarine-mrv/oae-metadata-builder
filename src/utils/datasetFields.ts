@@ -81,3 +81,11 @@ export function cleanDatasetFormDataForType<T extends FormDataRecord>(
 
   return cleanedData;
 }
+
+/**
+ * The one dataset_type value the app branches on: "model_output" selects the
+ * ModelOutputDataset schema class; every other value is a FieldDataset.
+ */
+export function isModelOutputType(datasetType: unknown): boolean {
+  return datasetType === "model_output";
+}

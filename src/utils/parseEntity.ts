@@ -1,0 +1,101 @@
+import type { JSONSchema } from "@/components/schemaUtils";
+import type { DraftDataset, DraftExperiment, DraftProject, FormDataRecord } from "@/types/forms";
+import {
+  cleanupConditionalFields,
+  cleanupNestedConditionalFields,
+  DATASET_CONDITIONAL_FIELDS,
+  EXPERIMENT_CONDITIONAL_FIELDS,
+  MODEL_NESTED_CONDITIONAL_FIELDS,
+} from "@/utils/conditionalFields";
+import { cleanDatasetFormDataForType, isModelOutputType } from "@/utils/datasetFields";
+import {
+  cleanFormDataForType,
+  enforceModelExclusivity,
+  getExperimentSchemaType,
+} from "@/utils/experimentFields";
+import { cleanFormData } from "@/utils/formDataCleanup";
+import { parseVariables } from "@/utils/parseVariable";
+
+/**
+ * Per-entity parse boundaries, following the parseVariable pattern: every path
+ * where entity data enters application state (form onChange, import, session
+ * restore) funnels through the entity's parse function, which establishes the
+ * entity's own-invariants in one pass. Downstream code trusts the Draft type
+ * and does not re-clean or re-check.
+ *
+ * All three are total and lenient: malformed input degrades to {} or is passed
+ * through for AJV to reject at validation time — parsing never throws.
+ *
+ * Derived IDs (project_id on experiments/datasets, experiment_id on datasets)
+ * are NOT set here; they are denormalized copies synced by AppStateContext
+ * propagation.
+ */
+
+function asRecord(raw: unknown): FormDataRecord {
+  return raw !== null && typeof raw === "object" && !Array.isArray(raw)
+    ? (raw as FormDataRecord)
+    : {};
+}
+
+/**
+ * Projects have a single schema and no type selectors — parsing is just the
+ * shared cleanup (drop empty strings/objects/nulls).
+ */
+export function parseProject(raw: unknown): DraftProject {
+  return cleanFormData(asRecord(raw)) as DraftProject;
+}
+
+/**
+ * Establishes the experiment invariants:
+ * - model exclusivity on experiment_types (with `prev`, the form-transition
+ *   recency rule: latest selection wins; without `prev`, static resolution:
+ *   model wins);
+ * - only fields valid for the resolved schema type survive (closes the import/
+ *   restore hole where fields of another type — or a retired type — persist);
+ * - conditional custom fields are dropped when their trigger isn't met.
+ */
+export function parseExperiment(raw: unknown, prev?: DraftExperiment): DraftExperiment {
+  let data = asRecord(raw);
+
+  if (Array.isArray(data.experiment_types)) {
+    const rawTypes = data.experiment_types.filter((t): t is string => typeof t === "string");
+    const prevTypes = Array.isArray(prev?.experiment_types) ? prev.experiment_types : [];
+    data = { ...data, experiment_types: enforceModelExclusivity(rawTypes, prevTypes) };
+  }
+
+  const schemaType = getExperimentSchemaType(
+    Array.isArray(data.experiment_types) ? (data.experiment_types as string[]) : [],
+  );
+  data = cleanFormDataForType(data, schemaType);
+  data = cleanupConditionalFields(data, EXPERIMENT_CONDITIONAL_FIELDS);
+  data = cleanupNestedConditionalFields(data, MODEL_NESTED_CONDITIONAL_FIELDS);
+  return cleanFormData(data) as DraftExperiment;
+}
+
+/**
+ * Establishes the dataset invariants:
+ * - only fields valid for the dataset_type survive — in particular a
+ *   model_output dataset cannot carry `variables` (closes the import/restore
+ *   hole where a ModelOutputDataset kept a variables array);
+ * - field-dataset variables are themselves parsed (normalize → strip → clean);
+ * - model-output conditional custom fields are dropped when untriggered.
+ *
+ * rootSchema is the bundled schema (getBaseSchema()), threaded through to
+ * parseVariables like at the variable-modal boundary.
+ */
+export function parseDataset(raw: unknown, rootSchema: JSONSchema): DraftDataset {
+  let data = asRecord(raw);
+  const datasetType = typeof data.dataset_type === "string" ? data.dataset_type : undefined;
+
+  if (datasetType) {
+    data = cleanDatasetFormDataForType(data, datasetType);
+  }
+
+  if (isModelOutputType(datasetType)) {
+    data = cleanupConditionalFields(data, DATASET_CONDITIONAL_FIELDS);
+  } else if (data.variables !== undefined) {
+    data = { ...data, variables: parseVariables(data.variables, rootSchema) };
+  }
+
+  return cleanFormData(data) as DraftDataset;
+}

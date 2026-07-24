@@ -12,6 +12,7 @@
  */
 
 import type { CustomValidator } from "@rjsf/utils";
+import type { VerticalCoverage } from "@/types/forms";
 
 /**
  * Validate temporal_coverage end >= start. Used by the project page.
@@ -44,7 +45,7 @@ export const validateTemporalCoverageOrder: CustomValidator<any> = (data, errors
  * - min_height must be <= max_height
  */
 export const validateVerticalCoverage: CustomValidator<any> = (data, errors) => {
-  const vc = data?.vertical_coverage;
+  const vc = (data as { vertical_coverage?: VerticalCoverage } | undefined)?.vertical_coverage;
   if (!vc) return errors;
 
   const minDepth = vc.min_depth_in_m;

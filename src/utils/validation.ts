@@ -1,7 +1,7 @@
 import type { RJSFValidationError } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DatasetFormData, ExperimentFormData, ProjectFormData } from "@/types/forms";
+import type { DraftDataset, DraftExperiment, DraftProject } from "@/types/forms";
 import { experimentCustomValidate, projectCustomValidate } from "./customValidators";
 import { getExperimentSchemaType } from "./experimentFields";
 import {
@@ -51,7 +51,7 @@ export interface ValidationResult {
  * experiment_types selection.
  */
 export function getExperimentSchemaForData(
-  experimentData: ExperimentFormData,
+  experimentData: DraftExperiment,
 ): ReturnType<typeof getInSituExperimentSchema> {
   const schemaType = getExperimentSchemaType(experimentData.experiment_types ?? []);
   if (schemaType === "intervention") return getInterventionSchema();
@@ -66,7 +66,7 @@ export function getExperimentSchemaForData(
  * dataset_type selection.
  */
 export function getDatasetSchemaForData(
-  datasetData: DatasetFormData,
+  datasetData: DraftDataset,
 ): ReturnType<typeof getFieldDatasetSchema> {
   return datasetData.dataset_type === "model_output"
     ? getModelOutputDatasetSchema()
@@ -76,7 +76,7 @@ export function getDatasetSchemaForData(
 /**
  * Validates project data against the project schema
  */
-export function validateProject(projectData: ProjectFormData): ValidationResult {
+export function validateProject(projectData: DraftProject): ValidationResult {
   try {
     const schema = getProjectSchema();
     // Pass the same customValidate the form uses so badge counts include
@@ -102,7 +102,7 @@ export function validateProject(projectData: ProjectFormData): ValidationResult 
  * Validates experiment data against the appropriate experiment schema
  * based on the experiment_types field
  */
-export function validateExperiment(experimentData: ExperimentFormData): ValidationResult {
+export function validateExperiment(experimentData: DraftExperiment): ValidationResult {
   try {
     const schema = getExperimentSchemaForData(experimentData);
 
@@ -144,7 +144,7 @@ function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
  */
 function relabelVariableError(
   e: RJSFValidationError,
-  datasetData: DatasetFormData,
+  datasetData: DraftDataset,
 ): RJSFValidationError {
   const prop = e.property ?? "";
   const match = /^\.variables(?:\.|\[)(\d+)\]?(.*)$/.exec(prop);
@@ -186,7 +186,7 @@ function relabelVariableError(
  * errors, which are re-labeled per variable for the UI.
  */
 export function validateDataset(
-  datasetData: DatasetFormData,
+  datasetData: DraftDataset,
   options?: ValidateDatasetOptions,
 ): ValidationResult {
   try {

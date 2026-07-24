@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { DraftExperiment } from "@/types/forms";
 import { AppStateProvider, type ExperimentData, useAppState } from "../AppStateContext";
 
 describe("AppStateContext", () => {
@@ -260,7 +261,7 @@ describe("AppStateContext", () => {
         experimentId = result.current.addExperiment("Test");
       });
 
-      const newFormData = {
+      const newFormData: Partial<DraftExperiment> = {
         experiment_id: "exp-001",
         experiment_types: ["baseline"],
         description: "Updated description",

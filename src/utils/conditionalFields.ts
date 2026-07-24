@@ -131,3 +131,49 @@ export function cleanupConditionalFields<T extends FormDataRecord>(
 
   return cleanedData;
 }
+
+// -----------------------------------------------------------------------------
+// The conditional field pairs for each entity, used by the parse boundaries
+// (parseExperiment/parseDataset) so every inbound path gets the same cleanup.
+// -----------------------------------------------------------------------------
+
+// Conditional field pairs for experiment forms
+export const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
+  {
+    triggerField: "alkalinity_feedstock",
+    triggerValue: "other",
+    customField: "alkalinity_feedstock_custom",
+  },
+  {
+    triggerField: "alkalinity_feedstock_processing",
+    triggerValue: "other",
+    customField: "alkalinity_feedstock_processing_custom",
+  },
+  {
+    triggerField: "tracer_form",
+    triggerValue: "other",
+    customField: "tracer_form_custom",
+  },
+];
+
+// Conditional field pairs nested inside array fields (model experiments)
+export const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
+  {
+    arrayField: "model_components",
+    triggerField: "model_component_type",
+    triggerValue: "other",
+    customField: "model_component_type_custom",
+  },
+];
+
+// Conditional field pairs for model output dataset forms.
+// simulation_type is multivalued — mcdr_forcing_description should appear
+// when "perturbation" is one of the selected values.
+export const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
+  {
+    triggerField: "simulation_type",
+    triggerValue: "perturbation",
+    customField: "mcdr_forcing_description",
+    matchMode: "array-contains",
+  },
+];

@@ -3,12 +3,12 @@ import { createContext, useCallback, useContext, useState } from "react";
 import type { DatasetExperimentLinking } from "@/hooks/useImportPreview";
 import type {
   AppFormState,
-  DatasetFormData,
   DatasetLinkingMetadata,
   DatasetState,
-  ExperimentFormData,
+  DraftDataset,
+  DraftExperiment,
+  DraftProject,
   ExperimentState,
-  ProjectFormData,
 } from "@/types/forms";
 import { computeCompletion } from "@/utils/completionCalculator";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
@@ -22,7 +22,7 @@ export type AppState = AppFormState;
 import type { JSONSchema } from "@/components/schemaUtils";
 import { cleanFormData } from "@/utils/formDataCleanup";
 import { migrateFormData } from "@/utils/migrations";
-import { parseVariables } from "@/utils/parseVariable";
+import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
 import { getBaseSchema } from "@/utils/schemaViews";
 
 // =============================================================================
@@ -122,11 +122,11 @@ interface AppStateContextType {
   state: AppState;
   createProject: () => void;
   deleteProject: () => void;
-  updateProjectData: (data: ProjectFormData) => void;
+  updateProjectData: (data: DraftProject) => void;
   addExperiment: (name?: string) => number;
   updateExperiment: (
     id: number,
-    data: Partial<ExperimentFormData> & { name?: string; experiment_types?: string[] },
+    data: Partial<DraftExperiment> & { name?: string; experiment_types?: string[] },
   ) => void;
   /**
    * Full replacement of an experiment's formData. Use this from the
@@ -135,7 +135,7 @@ interface AppStateContextType {
    * therefore cannot distinguish "user cleared this field" from "user
    * didn't touch this field" once `cleanFormData` has stripped the key.
    */
-  replaceExperimentFormData: (id: number, data: ExperimentFormData) => void;
+  replaceExperimentFormData: (id: number, data: DraftExperiment) => void;
   deleteExperiment: (id: number) => void;
   /** Duplicate an experiment, appending " (Copy)" to its name. Returns the new ID. */
   duplicateExperiment: (id: number) => number;
@@ -150,16 +150,16 @@ interface AppStateContextType {
   getExperimentStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
   getDatasetStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
   importAllData: (
-    projectData: ProjectFormData,
+    projectData: DraftProject,
     experiments: ExperimentData[],
     datasets: DatasetData[],
   ) => void;
   /** Import selected data, merging with existing (replaces matching items, adds new ones) */
   importSelectedData: (
-    projectData: ProjectFormData | null,
-    experiments: ExperimentFormData[],
+    projectData: DraftProject | null,
+    experiments: DraftExperiment[],
     datasets: Array<{
-      formData: DatasetFormData;
+      formData: DraftDataset;
       experimentLinking?: DatasetExperimentLinking;
     }>,
   ) => void;
@@ -168,8 +168,8 @@ interface AppStateContextType {
   toggleJsonPreview: () => void;
   // Dataset methods
   addDataset: (name?: string) => number;
-  updateDataset: (id: number, data: Partial<DatasetFormData> & { name?: string }) => void;
-  replaceDatasetFormData: (id: number, data: DatasetFormData) => void;
+  updateDataset: (id: number, data: Partial<DraftDataset> & { name?: string }) => void;
+  replaceDatasetFormData: (id: number, data: DraftDataset) => void;
   deleteDataset: (id: number) => void;
   /** Duplicate a dataset, appending " (Copy)" to its name. Returns the new ID. */
   duplicateDataset: (id: number) => number;
@@ -184,7 +184,7 @@ interface AppStateContextType {
   // Session persistence
   restoreFullState: (saved: {
     hasProject: boolean;
-    projectData: ProjectFormData;
+    projectData: DraftProject;
     experiments: ExperimentState[];
     datasets: DatasetState[];
     nextExperimentId: number;
@@ -239,7 +239,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const updateProjectData = useCallback((data: ProjectFormData) => {
+  const updateProjectData = useCallback((data: DraftProject) => {
     setState((prev) => {
       data = cleanFormData(data);
       const newProjectId = data.project_id;
@@ -313,7 +313,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const updateExperiment = useCallback(
     (
       id: number,
-      data: Partial<ExperimentFormData> & { name?: string; experiment_types?: string[] },
+      data: Partial<DraftExperiment> & { name?: string; experiment_types?: string[] },
     ) => {
       setState((prev) => {
         // Find the existing experiment to check for experiment_id changes
@@ -326,7 +326,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           exp.id === id
             ? {
                 ...exp,
-                formData: cleanFormData({ ...exp.formData, ...data }) as ExperimentFormData,
+                formData: cleanFormData({ ...exp.formData, ...data }) as DraftExperiment,
                 // Use key-presence semantics: cleanFormData strips empty
                 // arrays so `data.experiment_types` may be undefined when
                 // the user explicitly cleared all types. Falling back via
@@ -375,7 +375,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
    * not as "unchanged". Use this from the experiment form page where the
    * page always has the complete current form state.
    */
-  const replaceExperimentFormData = useCallback((id: number, data: ExperimentFormData) => {
+  const replaceExperimentFormData = useCallback((id: number, data: DraftExperiment) => {
     setState((prev) => {
       const cleaned = cleanFormData(data);
       const existingExp = prev.experiments.find((exp) => exp.id === id);
@@ -386,10 +386,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         exp.id === id
           ? {
               ...exp,
-              formData: cleaned as ExperimentFormData,
+              formData: cleaned as DraftExperiment,
               // Derive top-level experiment_types from the cleaned
               // formData so a cleared array actually takes effect.
-              experiment_types: cleaned.experiment_types as string[] | undefined,
+              experiment_types: cleaned.experiment_types,
               name: (cleaned.name as string) || exp.name,
               updatedAt: Date.now(),
             }
@@ -579,14 +579,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateDataset = useCallback(
-    (id: number, data: Partial<DatasetFormData> & { name?: string }) => {
+    (id: number, data: Partial<DraftDataset> & { name?: string }) => {
       setState((prev) => ({
         ...prev,
         datasets: prev.datasets.map((ds) =>
           ds.id === id
             ? {
                 ...ds,
-                formData: { ...ds.formData, ...data } as DatasetFormData,
+                formData: { ...ds.formData, ...data } as DraftDataset,
                 name: data.name || ds.name,
                 updatedAt: Date.now(),
               }
@@ -597,7 +597,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const replaceDatasetFormData = useCallback((id: number, data: DatasetFormData) => {
+  const replaceDatasetFormData = useCallback((id: number, data: DraftDataset) => {
     setState((prev) => ({
       ...prev,
       datasets: prev.datasets.map((ds) =>
@@ -726,7 +726,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // Import all data (project + experiments + datasets) from imported file
   const importAllData = useCallback(
-    (projectData: ProjectFormData, experiments: ExperimentData[], datasets: DatasetData[] = []) => {
+    (projectData: DraftProject, experiments: ExperimentData[], datasets: DatasetData[] = []) => {
       // Normalize incoming data at the boundary. Imported JSON may contain
       // nulls for optional fields, empty arrays for cleared lists, etc. —
       // all of which the edit path already strips via cleanFormData. We
@@ -740,7 +740,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const experimentsWithNewIds = experiments.map((exp, index) => ({
         ...exp,
         id: nextExpId + index,
-        formData: cleanFormData(exp.formData) as ExperimentFormData,
+        formData: cleanFormData(exp.formData) as DraftExperiment,
       }));
 
       // Reassign dataset IDs to avoid conflicts
@@ -748,7 +748,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const datasetsWithNewIds = datasets.map((ds, index) => ({
         ...ds,
         id: nextDsId + index,
-        formData: cleanFormData(ds.formData) as DatasetFormData,
+        formData: cleanFormData(ds.formData) as DraftDataset,
       }));
 
       // Project has content if it has any keys with non-empty values
@@ -781,10 +781,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   //   - Also applies experiment linking configuration
   const importSelectedData = useCallback(
     (
-      projectData: ProjectFormData | null,
-      experiments: ExperimentFormData[],
+      projectData: DraftProject | null,
+      experiments: DraftExperiment[],
       datasets: Array<{
-        formData: DatasetFormData;
+        formData: DraftDataset;
         experimentLinking?: DatasetExperimentLinking;
       }>,
     ) => {
@@ -792,7 +792,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         // Normalize incoming data at the boundary — see importAllData
         // for the rationale.
         const cleanedProjectData = projectData
-          ? (cleanFormData(projectData) as ProjectFormData)
+          ? (cleanFormData(projectData) as DraftProject)
           : null;
 
         // Handle project - simply replace if provided
@@ -807,7 +807,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         let nextExpId = prev.nextExperimentId;
 
         experiments.forEach((rawExpData, index) => {
-          const expData = cleanFormData(rawExpData) as ExperimentFormData;
+          const expData = cleanFormData(rawExpData) as DraftExperiment;
           const expId = expData.experiment_id as string | undefined;
           const expName = (expData.name as string) || expId;
           const importKey = `experiment-${index}`;
@@ -853,7 +853,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
         for (const { formData: rawDsData, experimentLinking } of datasets) {
           // Normalize incoming dataset data at the boundary.
-          const dsData = cleanFormData(rawDsData) as DatasetFormData;
+          const dsData = cleanFormData(rawDsData) as DraftDataset;
           const dsName = dsData.name as string | undefined;
 
           // Resolve experiment linking to internal ID
@@ -889,7 +889,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Update formData with resolved experiment_id if linking is set
-          const finalFormData: DatasetFormData =
+          const finalFormData: DraftDataset =
             linkedExperimentInternalId !== null && experimentIdToSet
               ? { ...dsData, experiment_id: experimentIdToSet }
               : dsData;
@@ -992,37 +992,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const restoreFullState = useCallback(
     (saved: {
       hasProject: boolean;
-      projectData: ProjectFormData;
+      projectData: DraftProject;
       experiments: ExperimentState[];
       datasets: DatasetState[];
       nextExperimentId: number;
       nextDatasetId: number;
     }) => {
-      // Normalize restored data at the boundary — a session may have
-      // been saved before cleanFormData was applied, or under an older
-      // app version. Keeps the "form state is always clean" invariant.
-      // Also migrate legacy bounding box format (W S E N → S W N E).
+      // Parse restored data at the boundary — a session may have been saved
+      // before the current invariants existed, or under an older app version.
+      // parseExperiment/parseDataset re-establish model exclusivity,
+      // type-scoped fields, and clean variables; migrate handles the legacy
+      // bounding box format (W S E N → S W N E).
       const cleanedExperiments = saved.experiments.map((exp) => ({
         ...exp,
-        formData: cleanFormData(migrateFormData(exp.formData)) as ExperimentFormData,
+        formData: parseExperiment(migrateFormData(exp.formData)),
       }));
-      const cleanedDatasets = saved.datasets.map((ds) => {
-        const migrated = migrateFormData(ds.formData);
-        // Parse variables at the restore boundary so stored data is clean and
-        // can be validated directly (empty arrays are dropped by cleanFormData).
-        const withParsedVars = {
-          ...migrated,
-          variables: parseVariables(migrated.variables, getBaseSchema() as unknown as JSONSchema),
-        };
-        return {
-          ...ds,
-          formData: cleanFormData(withParsedVars) as DatasetFormData,
-        };
-      });
+      const cleanedDatasets = saved.datasets.map((ds) => ({
+        ...ds,
+        formData: parseDataset(
+          migrateFormData(ds.formData),
+          getBaseSchema() as unknown as JSONSchema,
+        ),
+      }));
       setState((prev) => ({
         ...prev,
         hasProject: saved.hasProject,
-        projectData: cleanFormData(migrateFormData(saved.projectData)) as ProjectFormData,
+        projectData: parseProject(migrateFormData(saved.projectData)),
         experiments: cleanedExperiments,
         datasets: cleanedDatasets,
         nextExperimentId: saved.nextExperimentId,

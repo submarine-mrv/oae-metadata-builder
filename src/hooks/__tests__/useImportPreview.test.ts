@@ -1,11 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type {
-  DatasetFormData,
-  DatasetState,
-  ExperimentFormData,
-  ExperimentState,
-} from "@/types/forms";
+import type { DatasetState, DraftDataset, DraftExperiment, ExperimentState } from "@/types/forms";
 import { useImportPreview } from "../useImportPreview";
 
 // Helper to create test experiments
@@ -46,8 +41,8 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [
-            { name: "Experiment 1", experiment_id: "EXP-001" } as ExperimentFormData,
-            { name: "Experiment 2", experiment_id: "EXP-001" } as ExperimentFormData, // duplicate
+            { name: "Experiment 1", experiment_id: "EXP-001" } as DraftExperiment,
+            { name: "Experiment 2", experiment_id: "EXP-001" } as DraftExperiment, // duplicate
           ],
           [],
         );
@@ -70,8 +65,8 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [
-            { name: "Experiment 1", experiment_id: "EXP-001" } as ExperimentFormData,
-            { name: "Experiment 2", experiment_id: "EXP-002" } as ExperimentFormData,
+            { name: "Experiment 1", experiment_id: "EXP-001" } as DraftExperiment,
+            { name: "Experiment 2", experiment_id: "EXP-002" } as DraftExperiment,
           ],
           [],
         );
@@ -94,8 +89,8 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [
-            { name: "Experiment 1", experiment_id: "" } as ExperimentFormData,
-            { name: "Experiment 2", experiment_id: "" } as ExperimentFormData, // both empty - should be ok
+            { name: "Experiment 1", experiment_id: "" } as DraftExperiment,
+            { name: "Experiment 2", experiment_id: "" } as DraftExperiment, // both empty - should be ok
           ],
           [],
         );
@@ -126,7 +121,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
         );
       });
 
@@ -157,9 +152,9 @@ describe("useImportPreview", () => {
             {
               name: "New Experiment",
               experiment_id: "EXP-NEW",
-            } as ExperimentFormData,
+            } as DraftExperiment,
           ],
-          [{ name: "Dataset 1", experiment_id: "EXP-NEW" } as DatasetFormData],
+          [{ name: "Dataset 1", experiment_id: "EXP-NEW" } as DraftDataset],
         );
       });
 
@@ -188,7 +183,7 @@ describe("useImportPreview", () => {
             {
               name: "Dataset 1",
               experiment_id: "EXP-NONEXISTENT",
-            } as DatasetFormData,
+            } as DraftDataset,
           ],
         );
       });
@@ -212,7 +207,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1" } as DatasetFormData],
+          [{ name: "Dataset 1" } as DraftDataset],
         );
       });
 
@@ -238,7 +233,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1" } as DatasetFormData],
+          [{ name: "Dataset 1" } as DraftDataset],
         );
       });
 
@@ -278,9 +273,9 @@ describe("useImportPreview", () => {
             {
               name: "New Experiment",
               experiment_id: "EXP-NEW",
-            } as ExperimentFormData,
+            } as DraftExperiment,
           ],
-          [{ name: "Dataset 1" } as DatasetFormData],
+          [{ name: "Dataset 1" } as DraftDataset],
         );
       });
 
@@ -314,7 +309,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
         );
       });
 
@@ -349,7 +344,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-123" } as DatasetFormData],
+          [{ name: "Dataset 1", experiment_id: "EXP-123" } as DraftDataset],
         );
       });
 
@@ -378,7 +373,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
         );
       });
 
@@ -405,7 +400,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1" } as DatasetFormData],
+          [{ name: "Dataset 1" } as DraftDataset],
         );
       });
 
@@ -431,9 +426,9 @@ describe("useImportPreview", () => {
             {
               name: "Importing Experiment",
               experiment_id: "EXP-IMP",
-            } as ExperimentFormData,
+            } as DraftExperiment,
           ],
-          [{ name: "Dataset 1" } as DatasetFormData],
+          [{ name: "Dataset 1" } as DraftDataset],
         );
       });
 
@@ -460,7 +455,7 @@ describe("useImportPreview", () => {
           "test.json",
           { project_id: "PROJ-001" },
           [],
-          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DatasetFormData],
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
         );
       });
 
