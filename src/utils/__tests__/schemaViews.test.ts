@@ -26,8 +26,8 @@ describe("Schema Views", () => {
     it("should have protocol version metadata", () => {
       const schema = getBaseSchema();
 
-      expect(schema["x-protocol-version"]).toBeDefined();
-      expect(typeof schema["x-protocol-version"]).toBe("string");
+      expect(schema["version"]).toBeDefined();
+      expect(typeof schema["version"]).toBe("string");
     });
 
     it("should have Container definition in $defs", () => {
@@ -89,8 +89,8 @@ describe("Schema Views", () => {
     it("should preserve protocol metadata", () => {
       const projectSchema = getProjectSchema();
 
-      expect(projectSchema["x-protocol-version"]).toBeDefined();
-      expect(typeof projectSchema["x-protocol-version"]).toBe("string");
+      expect(projectSchema["version"]).toBeDefined();
+      expect(typeof projectSchema["version"]).toBe("string");
     });
 
     it("should have experiments array in properties", () => {
@@ -123,7 +123,7 @@ describe("Schema Views", () => {
       const schema = getExperimentSchema();
 
       expect(schema.$defs).toBeDefined();
-      expect(schema["x-protocol-version"]).toBeDefined();
+      expect(schema["version"]).toBeDefined();
     });
   });
 

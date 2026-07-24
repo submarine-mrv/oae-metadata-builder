@@ -275,7 +275,7 @@ describe.skip('Bundle Schema Script', () => {
     it('should inject git hash into schema root', () => {
       const mockSchema = {
         $defs: {},
-        'x-protocol-version': 'v1.0.0'
+        version: '0.1.0'
       };
 
       const gitHash = 'a'.repeat(40);
@@ -286,13 +286,13 @@ describe.skip('Bundle Schema Script', () => {
       };
 
       expect(decorated['x-protocol-git-hash']).toBe(gitHash);
-      expect(decorated['x-protocol-version']).toBe('v1.0.0');
+      expect(decorated.version).toBe('0.1.0');
     });
 
-    it('should preserve other x- extension fields', () => {
+    it('should preserve other root/extension fields', () => {
       const mockSchema = {
         $defs: {},
-        'x-protocol-version': 'v1.0.0',
+        version: '0.1.0',
         'x-custom-field': 'custom-value'
       };
 
@@ -304,7 +304,7 @@ describe.skip('Bundle Schema Script', () => {
       };
 
       expect(decorated['x-custom-field']).toBe('custom-value');
-      expect(decorated['x-protocol-version']).toBe('v1.0.0');
+      expect(decorated.version).toBe('0.1.0');
       expect(decorated['x-protocol-git-hash']).toBe(gitHash);
     });
   });
@@ -427,7 +427,7 @@ describe.skip('Bundle Schema Script', () => {
       const mockSchema = {
         $id: 'test-schema',
         $defs: {},
-        'x-protocol-version': 'v1.0.0',
+        version: '0.1.0',
         'x-protocol-git-hash': 'a'.repeat(40)
       };
 
