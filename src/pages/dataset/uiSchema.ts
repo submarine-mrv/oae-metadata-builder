@@ -20,6 +20,7 @@ const datasetUiSchema = {
   "ui:order": [
     "name",
     "data_accessibility",
+    "data_access_link",
     "experiment_id",
     "description",
     "temporal_coverage",
@@ -45,6 +46,10 @@ const datasetUiSchema = {
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true,
+  },
+  data_access_link: {
+    ...halfWidthStyle,
+    "ui:placeholder": "https://doi.org/10.25921/...",
   },
   description: textAreaWidget,
   // Project ID - hidden, auto-inferred from parent project
