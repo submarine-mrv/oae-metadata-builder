@@ -208,6 +208,7 @@ function renderInput(
         value={currentValue ? String(currentValue) : null}
         onChange={(value) => handleChange(value)}
         clearable
+        searchable
       />
     );
   }

@@ -365,6 +365,7 @@ export default function VariableModal({
                   value={variableType}
                   onChange={handleVariableTypeChange}
                   required
+                  searchable
                 />
 
                 {/* Genesis Selector - appears after variable type selected, hidden for direct/fixed types */}

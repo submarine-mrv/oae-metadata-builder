@@ -93,6 +93,7 @@ export default function EnumWithOtherField({
           value={enumValue || null}
           onChange={handleEnumChange}
           clearable
+          searchable
         />
       </Grid.Col>
 
