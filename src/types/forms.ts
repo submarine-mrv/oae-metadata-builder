@@ -16,6 +16,7 @@
 
 import type { IChangeEvent } from "@rjsf/core";
 import type { ErrorSchema, RJSFSchema, UiSchema } from "@rjsf/utils";
+import type { DraftVariable } from "@/types/variable";
 
 // =============================================================================
 // Form Data Types
@@ -81,7 +82,7 @@ export interface DatasetFormData extends FormDataRecord {
   temporal_coverage?: string;
   dataset_type?: string;
   data_product_type?: string;
-  variables?: VariableFormData[];
+  variables?: DraftVariable[];
   // ... other known fields can be added as needed
 }
 
