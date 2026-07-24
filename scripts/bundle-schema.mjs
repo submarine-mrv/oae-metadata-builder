@@ -355,7 +355,7 @@ if (protocolGitHash) {
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log("✅ Bundled schema written to", OUTPUT);
 console.log(
-  `   - Protocol version: ${decorated["x-protocol-version"] || "unknown"}`
+  `   - Protocol version: ${decorated["version"] || "unknown"}`
 );
 console.log(
   `   - Protocol git hash: ${decorated["x-protocol-git-hash"]?.substring(0, 8) || "none"}...`
