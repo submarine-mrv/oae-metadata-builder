@@ -14,6 +14,8 @@ const BASE_DATASET_FIELDS = [
   "dataset_type",
   "dataset_type_custom",
   "data_submitter",
+  "data_accessibility",
+  "data_access_link",
   "filenames",
   "author_list_for_citation",
   "license",
