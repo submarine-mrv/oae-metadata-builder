@@ -1828,4 +1828,63 @@ describe("AppStateContext", () => {
       expect(result.current.state.validationStatus.datasets[dsOtherId]).toBe(true);
     });
   });
+
+  describe("restoreFullState", () => {
+    it("normalizes legacy invariant violations and re-derives the top-level experiment_types copy", () => {
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: AppStateProvider,
+      });
+
+      act(() => {
+        result.current.restoreFullState({
+          hasProject: true,
+          projectData: { project_id: "proj-1" },
+          experiments: [
+            {
+              id: 1,
+              name: "Legacy",
+              // Saved before model exclusivity was enforced at boundaries:
+              // both the formData and the duplicated top-level copy are stale.
+              formData: {
+                experiment_id: "exp-legacy",
+                experiment_types: ["model", "intervention"],
+                dosing_description: "should be dropped",
+              } as unknown as DraftExperiment,
+              experiment_types: [
+                "model",
+                "intervention",
+              ] as unknown as DraftExperiment["experiment_types"],
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          ],
+          datasets: [
+            {
+              id: 1,
+              name: "Legacy model output",
+              formData: {
+                dataset_type: "model_output",
+                variables: [{ schema_class: "DiscretePHVariable" }],
+              } as unknown as import("@/types/forms").DraftDataset,
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          ],
+          nextExperimentId: 2,
+          nextDatasetId: 2,
+        });
+      });
+
+      const exp = result.current.state.experiments[0];
+      expect(exp.formData.experiment_types).toEqual(["model"]);
+      // The duplicated top-level copy must match the parsed formData,
+      // not the stale saved value.
+      expect(exp.experiment_types).toEqual(["model"]);
+      expect(exp.formData.dosing_description).toBeUndefined();
+
+      const ds = result.current.state.datasets[0];
+      expect(ds.formData.dataset_type).toBe("model_output");
+      expect(ds.formData.variables).toBeUndefined();
+    });
+  });
 });

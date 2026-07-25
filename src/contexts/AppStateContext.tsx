@@ -1003,10 +1003,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       // parseExperiment/parseDataset re-establish model exclusivity,
       // type-scoped fields, and clean variables; migrate handles the legacy
       // bounding box format (W S E N → S W N E).
-      const cleanedExperiments = saved.experiments.map((exp) => ({
-        ...exp,
-        formData: parseExperiment(migrateFormData(exp.formData)),
-      }));
+      const cleanedExperiments = saved.experiments.map((exp) => {
+        const formData = parseExperiment(migrateFormData(exp.formData));
+        return {
+          ...exp,
+          formData,
+          // Re-derive the duplicated top-level copy from the parsed formData —
+          // a legacy session may carry a stale value (e.g. ["model",
+          // "intervention"]) that the parse just normalized.
+          experiment_types: formData.experiment_types,
+        };
+      });
       const cleanedDatasets = saved.datasets.map((ds) => ({
         ...ds,
         formData: parseDataset(
