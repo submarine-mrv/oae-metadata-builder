@@ -43,7 +43,7 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab, setProjectValidation } = useAppState();
+  const { state, updateProjectData, setActiveTab } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
   // Source of truth for badge counts: run AJV via validateProject, memoized
@@ -60,7 +60,6 @@ export default function ProjectPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: setProjectValidation,
   });
 
   // Hide required-field errors from inline display unless the user has

@@ -1,7 +1,7 @@
 // useFormValidation.test.ts - Tests for the validation badge hook
 
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { useFormValidation } from "../useFormValidation";
 
 describe("useFormValidation", () => {
@@ -185,75 +185,23 @@ describe("useFormValidation", () => {
     });
   });
 
-  describe("onStatusChange", () => {
-    it("fires with true when state is 'passed' on mount", () => {
-      const onStatusChange = vi.fn();
-      renderHook(() =>
-        useFormValidation({
-          missingRequired: 0,
-          otherErrors: 0,
-          isEmpty: false,
-          onStatusChange,
-        }),
-      );
-      expect(onStatusChange).toHaveBeenCalledWith(true);
-    });
-
-    it("fires with null when state is not 'passed' on mount", () => {
-      const onStatusChange = vi.fn();
-      renderHook(() =>
-        useFormValidation({
-          missingRequired: 2,
-          otherErrors: 0,
-          isEmpty: false,
-          onStatusChange,
-        }),
-      );
-      expect(onStatusChange).toHaveBeenCalledWith(null);
-    });
-
-    it("fires on badge state transitions", () => {
-      const onStatusChange = vi.fn();
-      const { rerender } = renderHook(
-        ({ missing }: { missing: number }) =>
-          useFormValidation({
-            missingRequired: missing,
-            otherErrors: 0,
-            isEmpty: false,
-            onStatusChange,
-          }),
-        { initialProps: { missing: 2 } },
-      );
-      expect(onStatusChange).toHaveBeenLastCalledWith(null);
-
-      // Transition to passed
-      rerender({ missing: 0 });
-      expect(onStatusChange).toHaveBeenLastCalledWith(true);
-
-      // Transition back
-      rerender({ missing: 1 });
-      expect(onStatusChange).toHaveBeenLastCalledWith(null);
-    });
-
-    it("auto-closes error list when transitioning to 'passed'", () => {
+  describe("error list auto-close", () => {
+    it("closes the open error list when validation transitions to 'passed'", () => {
       const { result, rerender } = renderHook(
-        ({ missing }: { missing: number }) =>
-          useFormValidation({
-            missingRequired: missing,
-            otherErrors: 0,
-            isEmpty: false,
-          }),
-        { initialProps: { missing: 2 } },
+        (props: { missingRequired: number; otherErrors: number; isEmpty: boolean }) =>
+          useFormValidation(props),
+        { initialProps: { missingRequired: 2, otherErrors: 0, isEmpty: false } },
       );
       act(() => {
         result.current.handleClick();
       });
       expect(result.current.showErrorList).toBe(true);
 
-      // Transition to passed
-      rerender({ missing: 0 });
-      expect(result.current.showErrorList).toBe(false);
+      // Fixing the last issue flips badgeState to "passed" — the hook
+      // auto-closes the list so the user isn't stuck on an empty panel.
+      rerender({ missingRequired: 0, otherErrors: 0, isEmpty: false });
       expect(result.current.badgeState).toBe("passed");
+      expect(result.current.showErrorList).toBe(false);
     });
   });
 });

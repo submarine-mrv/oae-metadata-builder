@@ -84,8 +84,7 @@ function createFieldDatasetFormSchema() {
 }
 
 export default function DatasetPage() {
-  const { state, replaceDatasetFormData, getDataset, setActiveTab, setDatasetValidation } =
-    useAppState();
+  const { state, replaceDatasetFormData, getDataset, setActiveTab } = useAppState();
 
   // Dynamic schema/uiSchema switching based on dataset_type
   const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
@@ -108,13 +107,6 @@ export default function DatasetPage() {
 
   const hasExperiments = state.experiments.length > 0;
 
-  const onValidationStatusChange = useCallback(
-    (status: boolean | null) => {
-      if (state.activeDatasetId) setDatasetValidation(state.activeDatasetId, status);
-    },
-    [state.activeDatasetId, setDatasetValidation],
-  );
-
   // AJV validation result, memoized on form data. Handles the polymorphic
   // variable workaround internally via validateDataset().
   const validationResult = useMemo(
@@ -132,7 +124,6 @@ export default function DatasetPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: onValidationStatusChange,
   });
 
   // Reset error-list visibility when switching active dataset so the
