@@ -91,33 +91,6 @@ function propagateExperimentIdToDatasets(
   });
 }
 
-/**
- * Null the validationStatus entries for datasets linked to the given
- * experiment. Used when experiment_id propagates and the linked datasets'
- * formData changes under them — their previous "passed" validation is
- * no longer accurate but the hook can't fix it because those datasets
- * aren't the active entity on this page.
- */
-function invalidateLinkedDatasetValidation(
-  validationStatus: AppFormState["validationStatus"],
-  datasets: DatasetState[],
-  experimentInternalId: number,
-): AppFormState["validationStatus"] {
-  const nextDatasets: Record<number, boolean | null> = {
-    ...validationStatus.datasets,
-  };
-  let changed = false;
-  for (const ds of datasets) {
-    if (ds.linking?.linkedExperimentInternalId === experimentInternalId) {
-      if (nextDatasets[ds.id] !== null) {
-        nextDatasets[ds.id] = null;
-        changed = true;
-      }
-    }
-  }
-  return changed ? { ...validationStatus, datasets: nextDatasets } : validationStatus;
-}
-
 interface AppStateContextType {
   state: AppState;
   createProject: () => void;
@@ -177,10 +150,6 @@ interface AppStateContextType {
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
-  // Validation status
-  setProjectValidation: (status: boolean | null) => void;
-  setExperimentValidation: (id: number, status: boolean | null) => void;
-  setDatasetValidation: (id: number, status: boolean | null) => void;
   // Session persistence
   restoreFullState: (saved: {
     hasProject: boolean;
@@ -207,15 +176,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     nextDatasetId: 1,
     triggerValidation: false,
     showJsonPreview: false,
-    validationStatus: { project: null, experiments: {}, datasets: {} },
   });
 
   const createProject = useCallback(() => {
     setState((prev) => ({
       ...prev,
       hasProject: true,
-      // New project starts unvalidated.
-      validationStatus: { ...prev.validationStatus, project: null },
     }));
   }, []);
 
@@ -231,10 +197,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         projectData: {},
         experiments: newExperiments,
         datasets: newDatasets,
-        // Project is gone — clear its validation status. Linked entities
-        // had their project_id stripped above, which makes them invalid,
-        // so clear their validation status too.
-        validationStatus: { project: null, experiments: {}, datasets: {} },
       };
     });
   }, []);
@@ -254,28 +216,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ? propagateProjectIdToDatasets(prev.datasets, newProjectId)
         : prev.datasets;
 
-      // Note: we intentionally do NOT reset validationStatus.project here.
-      // The hook's badgeState-transition effect owns project status syncing.
-      // If the edit doesn't change the badge state (e.g. still "passed"),
-      // the previous status is still accurate. If it does change, the hook
-      // fires onStatusChange to update it.
-      //
-      // HOWEVER: when project_id changes, linked experiments and datasets
-      // have their project_id overwritten in their formData. Their
-      // validation status is now stale because their data changed under
-      // them, and the hook can't help because they aren't the active
-      // entity on this page. Null their validation status so the overview
-      // cards no longer show a false-green checkmark.
-      const validationStatus = experimentsNeedUpdate
-        ? { ...prev.validationStatus, experiments: {}, datasets: {} }
-        : prev.validationStatus;
-
       return {
         ...prev,
         projectData: data,
         experiments: newExperiments,
         datasets: newDatasets,
-        validationStatus,
       };
     });
   }, []);
@@ -348,21 +293,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           ? propagateExperimentIdToDatasets(prev.datasets, id, (newExpId as string) || undefined)
           : prev.datasets;
 
-        // Note: we intentionally do NOT reset validationStatus.experiments[id]
-        // here — see updateProjectData for the reasoning.
-        //
-        // But: if experiment_id propagated to linked datasets, their
-        // data changed under them — null their validation status so the
-        // overview cards don't show a false-green checkmark.
-        const validationStatus = expIdChanged
-          ? invalidateLinkedDatasetValidation(prev.validationStatus, prev.datasets, id)
-          : prev.validationStatus;
-
         return {
           ...prev,
           experiments: newExperiments,
           datasets: newDatasets,
-          validationStatus,
         };
       });
     },
@@ -403,18 +337,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ? propagateExperimentIdToDatasets(prev.datasets, id, (newExpId as string) || undefined)
         : prev.datasets;
 
-      // Same stale-validation protection as updateExperiment: if
-      // experiment_id propagated to linked datasets, null their
-      // validation status.
-      const validationStatus = expIdChanged
-        ? invalidateLinkedDatasetValidation(prev.validationStatus, prev.datasets, id)
-        : prev.validationStatus;
-
       return {
         ...prev,
         experiments: newExperiments,
         datasets: newDatasets,
-        validationStatus,
       };
     });
   }, []);
@@ -610,8 +536,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             }
           : ds,
       ),
-      // Note: we intentionally do NOT reset validationStatus.datasets[id]
-      // here — see updateProjectData for the reasoning.
     }));
   }, []);
 
@@ -768,7 +692,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         nextDatasetId: nextDsId + datasets.length,
         triggerValidation: false,
         showJsonPreview: prev.showJsonPreview,
-        validationStatus: { project: null, experiments: {}, datasets: {} },
       }));
     },
     [state.nextExperimentId, state.nextDatasetId],
@@ -928,11 +851,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           nextExperimentId: nextExpId,
           nextDatasetId: nextDsId,
           activeTab: "overview" as const,
-          // Imported entities are unvalidated. We reset all of validation
-          // status because import can replace project data and add/replace
-          // experiments and datasets — any previously-green checkmark
-          // could now be inaccurate.
-          validationStatus: { project: null, experiments: {}, datasets: {} },
         };
       });
     },
@@ -957,34 +875,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       showJsonPreview: !prev.showJsonPreview,
-    }));
-  }, []);
-
-  // Validation status setters
-  const setProjectValidation = useCallback((status: boolean | null) => {
-    setState((prev) => ({
-      ...prev,
-      validationStatus: { ...prev.validationStatus, project: status },
-    }));
-  }, []);
-
-  const setExperimentValidation = useCallback((id: number, status: boolean | null) => {
-    setState((prev) => ({
-      ...prev,
-      validationStatus: {
-        ...prev.validationStatus,
-        experiments: { ...prev.validationStatus.experiments, [id]: status },
-      },
-    }));
-  }, []);
-
-  const setDatasetValidation = useCallback((id: number, status: boolean | null) => {
-    setState((prev) => ({
-      ...prev,
-      validationStatus: {
-        ...prev.validationStatus,
-        datasets: { ...prev.validationStatus.datasets, [id]: status },
-      },
     }));
   }, []);
 
@@ -1029,9 +919,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         datasets: cleanedDatasets,
         nextExperimentId: saved.nextExperimentId,
         nextDatasetId: saved.nextDatasetId,
-        // Restored sessions don't carry validation status — start fresh
-        // so the user can re-validate after seeing the loaded data.
-        validationStatus: { project: null, experiments: {}, datasets: {} },
       }));
     },
     [],
@@ -1072,9 +959,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     // ID Linking methods
     updateDatasetLinking,
     // Validation status
-    setProjectValidation,
-    setExperimentValidation,
-    setDatasetValidation,
     // Session persistence
     restoreFullState,
   };

@@ -56,20 +56,13 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ExperimentPage() {
-  const { state, replaceExperimentFormData, setActiveTab, setExperimentValidation } = useAppState();
+  const { state, replaceExperimentFormData, setActiveTab } = useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
 
   const activeExperimentId = state.activeExperimentId;
-
-  const onValidationStatusChange = useCallback(
-    (status: boolean | null) => {
-      if (activeExperimentId) setExperimentValidation(activeExperimentId, status);
-    },
-    [activeExperimentId, setExperimentValidation],
-  );
 
   // AJV validation result, memoized on form data. Split by err.name.
   const validationResult = useMemo(() => validateExperiment(formData), [formData]);
@@ -84,7 +77,6 @@ export default function ExperimentPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: onValidationStatusChange,
   });
 
   // Hide required-field errors from inline display unless the user has
