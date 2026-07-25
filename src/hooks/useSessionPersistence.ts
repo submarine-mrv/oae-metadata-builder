@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DatasetData, ExperimentData } from "@/contexts/AppStateContext";
-import type { AppFormState, ProjectFormData } from "@/types/forms";
+import type { AppFormState, DraftProject } from "@/types/forms";
 
 const STORAGE_KEY = "oae-metadata-builder-session";
 const DEBOUNCE_MS = 2000;
@@ -9,7 +9,7 @@ const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export interface SavedSession {
   savedAt: number;
   hasProject: boolean;
-  projectData: ProjectFormData;
+  projectData: DraftProject;
   experiments: ExperimentData[];
   datasets: DatasetData[];
   nextExperimentId: number;
@@ -68,7 +68,7 @@ export function useSessionPersistence(
   state: AppFormState,
   restoreFullState: (saved: {
     hasProject: boolean;
-    projectData: ProjectFormData;
+    projectData: DraftProject;
     experiments: ExperimentData[];
     datasets: DatasetData[];
     nextExperimentId: number;

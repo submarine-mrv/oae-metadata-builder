@@ -23,15 +23,20 @@ import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import type { JSONSchema } from "@/components/schemaUtils";
 import ValidationButton from "@/components/ValidationButton";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
-import { type ConditionalFieldPair, cleanupConditionalFields } from "@/utils/conditionalFields";
-import { cleanDatasetFormDataForType } from "@/utils/datasetFields";
+import { isModelOutputType } from "@/utils/datasetFields";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
-import { getFieldDatasetSchema, getModelOutputDatasetSchema } from "@/utils/schemaViews";
+import { isFormEmpty } from "@/utils/formDataCleanup";
+import { parseDataset } from "@/utils/parseEntity";
+import {
+  getBaseSchema,
+  getFieldDatasetSchema,
+  getModelOutputDatasetSchema,
+} from "@/utils/schemaViews";
 import { validateDataset } from "@/utils/validation";
 import modelOutputUiSchema from "./modelOutputUiSchema";
 import fieldDatasetUiSchema from "./uiSchema";
@@ -43,18 +48,6 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
-
-// Conditional field pairs for model output dataset forms
-// simulation_type is now multivalued — mcdr_forcing_description should appear
-// when "perturbation" is one of the selected values
-const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
-  {
-    triggerField: "simulation_type",
-    triggerValue: "perturbation",
-    customField: "mcdr_forcing_description",
-    matchMode: "array-contains",
-  },
-];
 
 /**
  * Builds the FieldDataset schema the RJSF *form* renders from.
@@ -88,10 +81,6 @@ function createFieldDatasetFormSchema() {
   }
 
   return schema;
-}
-
-function isModelOutputType(datasetType: string | undefined): boolean {
-  return datasetType === "model_output";
 }
 
 export default function DatasetPage() {
@@ -216,24 +205,10 @@ export default function DatasetPage() {
     (e: any) => {
       if (!state.activeDatasetId) return;
 
-      let newData = e.formData;
-
-      // Check if dataset_type changed
-      const oldType = formData.dataset_type;
-      const newType = newData.dataset_type;
-
-      if (newType && oldType !== newType) {
-        // Dataset type changed — clean fields that don't belong to new type.
-        // Note: oldType can be undefined on first selection (fresh dataset),
-        // so we don't guard on oldType being truthy.
-        newData = cleanDatasetFormDataForType(newData, newType);
-      }
-
-      // Clean up conditional custom fields for model output datasets
-      if (isModelOutputType(newData.dataset_type)) {
-        newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
-      }
-      newData = cleanFormData(newData);
+      // The parse boundary: type-scoped field cleanup (including dropping
+      // variables when dataset_type is model_output), conditional-field
+      // cleanup, variable parsing, and empty-value cleanup in one pass.
+      const newData = parseDataset(e.formData, getBaseSchema() as JSONSchema);
 
       // Update local state first (form sees cleaned data immediately),
       // then sync to context
