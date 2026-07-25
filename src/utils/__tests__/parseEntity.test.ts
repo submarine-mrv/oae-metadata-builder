@@ -185,6 +185,9 @@ describe("parseDataset", () => {
 
 describe("ExperimentTypes (type-level)", () => {
   it("makes model + intervention unconstructable", () => {
+    // Enforced by `tsc -b` (the CI Build job type-checks test files), not by
+    // vitest: if the union ever stops rejecting this, tsc fails with an
+    // "unused @ts-expect-error directive" error.
     // @ts-expect-error - model is exclusive; this combination must not typecheck
     const invalid: ExperimentTypes = ["model", "intervention"];
     const model: ExperimentTypes = ["model"];
