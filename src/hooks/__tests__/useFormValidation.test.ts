@@ -184,4 +184,24 @@ describe("useFormValidation", () => {
       expect(result.current.showErrorList).toBe(false);
     });
   });
+
+  describe("error list auto-close", () => {
+    it("closes the open error list when validation transitions to 'passed'", () => {
+      const { result, rerender } = renderHook(
+        (props: { missingRequired: number; otherErrors: number; isEmpty: boolean }) =>
+          useFormValidation(props),
+        { initialProps: { missingRequired: 2, otherErrors: 0, isEmpty: false } },
+      );
+      act(() => {
+        result.current.handleClick();
+      });
+      expect(result.current.showErrorList).toBe(true);
+
+      // Fixing the last issue flips badgeState to "passed" — the hook
+      // auto-closes the list so the user isn't stuck on an empty panel.
+      rerender({ missingRequired: 0, otherErrors: 0, isEmpty: false });
+      expect(result.current.badgeState).toBe("passed");
+      expect(result.current.showErrorList).toBe(false);
+    });
+  });
 });
