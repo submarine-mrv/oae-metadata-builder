@@ -393,6 +393,7 @@ const BASE: HierarchyLayer = {
       "observation_type",
       {
         path: "sampling_method",
+        inputType: "textarea",
         placeholderText: "Describe how samples were collected",
       },
       {
@@ -408,6 +409,7 @@ const BASE: HierarchyLayer = {
     analysis: [
       {
         path: "analyzing_method",
+        inputType: "textarea",
         placeholderText: "Describe the analysis method used",
       },
     ],
@@ -453,6 +455,7 @@ const BASE: HierarchyLayer = {
       {
         path: "analyzing_instrument.calibration.technique_description",
         span: 6,
+        inputType: "textarea",
         placeholderText: "Details of the calibration technique",
       },
       {
@@ -486,6 +489,7 @@ const BASE: HierarchyLayer = {
       {
         path: "uncertainty_definition",
         span: 6,
+        inputType: "textarea",
         placeholderText: "Description of uncertainty calculation",
       },
       { path: "qc_researcher", span: 6 },

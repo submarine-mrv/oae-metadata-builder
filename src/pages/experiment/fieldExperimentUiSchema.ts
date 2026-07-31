@@ -192,6 +192,7 @@ const fieldExperimentUiSchema = {
         "permit_type",
         "changes_to_evolution_of_permit_criteria",
       ],
+      changes_to_evolution_of_permit_criteria: textAreaWidget,
     },
   },
   meteorological_and_tidal_data: {
@@ -282,9 +283,7 @@ const fieldExperimentUiSchema = {
     ...halfWidthStyle,
     "ui:placeholder": "Specify other tracer form",
   },
-  tracer_details: {
-    ...halfWidthStyle,
-  },
+  tracer_details: textAreaWidget,
   tracer_concentration: {
     ...halfWidthStyle,
     "ui:field": "DosingConcentrationField",

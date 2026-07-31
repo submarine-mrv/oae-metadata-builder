@@ -134,7 +134,6 @@ const projectUiSchema = {
   },
   colocated_operations: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 3 },
   },
   research_project: {
     ...halfWidthStyle,
