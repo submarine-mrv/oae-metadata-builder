@@ -34,6 +34,7 @@ import {
   getAccordionConfig,
   getPlaceholderOverride,
   getSchemaKeyForUI,
+  MODEL_VARIABLE_TYPE_OPTIONS,
   normalizeFieldConfig,
   resolveVariableType,
   VARIABLE_SCHEMA_MAP,
@@ -96,6 +97,12 @@ interface VariableModalProps {
   initialData?: Record<string, unknown>;
   /** The root schema containing $defs for all variable types */
   rootSchema: JSONSchema;
+  /**
+   * Model-output mode: every variable uses the single ModelVariable class,
+   * genesis is fixed to "calculated", and the measured/calculated and
+   * discrete/continuous selectors are hidden.
+   */
+  isModelOutput?: boolean;
 }
 
 /**
@@ -115,6 +122,7 @@ export default function VariableModal({
   onSave,
   initialData,
   rootSchema,
+  isModelOutput = false,
 }: VariableModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -172,8 +180,9 @@ export default function VariableModal({
       variableType || undefined,
       genesis || undefined,
       sampling || undefined,
+      isModelOutput,
     );
-  }, [variableType, genesis, sampling]);
+  }, [variableType, genesis, sampling, isModelOutput]);
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
@@ -208,8 +217,18 @@ export default function VariableModal({
       .filter((section) => section.visibleFields.length > 0);
   }, [schemaKey, variableSchema, rootSchema]);
 
-  // Check if variable type selection is complete
-  const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
+  // Check if variable type selection is complete.
+  // Model output is always calculated, so every type behaves as fixedGenesis —
+  // which the existing machinery uses to auto-set the value and hide the
+  // measured/calculated (and therefore discrete/continuous) selectors.
+  const baseTypeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
+  const typeBehavior = useMemo(
+    () =>
+      isModelOutput
+        ? { ...baseTypeBehavior, fixedGenesis: "calculated", fixedSampling: undefined }
+        : baseTypeBehavior,
+    [isModelOutput, baseTypeBehavior],
+  );
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
     genesis === "calculated" ||
@@ -231,8 +250,9 @@ export default function VariableModal({
     setVariableType(value);
     const behavior = value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
 
-    const newGenesis = behavior?.fixedGenesis ?? null;
-    const newSampling = behavior?.fixedSampling ?? null;
+    // Model output: genesis is always "calculated" and there is no sampling.
+    const newGenesis = isModelOutput ? "calculated" : (behavior?.fixedGenesis ?? null);
+    const newSampling = isModelOutput ? null : (behavior?.fixedSampling ?? null);
     setGenesis(newGenesis);
     setSampling(newSampling);
     setFormData((prev) => ({
@@ -359,10 +379,12 @@ export default function VariableModal({
                 <Select
                   label="What is the variable type?"
                   placeholder="Select variable type"
-                  data={VARIABLE_TYPE_OPTIONS.map((opt) => ({
-                    value: opt.value,
-                    label: opt.label,
-                  }))}
+                  data={(isModelOutput ? MODEL_VARIABLE_TYPE_OPTIONS : VARIABLE_TYPE_OPTIONS).map(
+                    (opt) => ({
+                      value: opt.value,
+                      label: opt.label,
+                    }),
+                  )}
                   value={variableType}
                   onChange={handleVariableTypeChange}
                   required

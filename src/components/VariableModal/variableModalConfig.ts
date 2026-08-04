@@ -210,6 +210,20 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "socioeconomic", label: "Socioeconomic" },
 ] as const;
 
+/** The single schema class backing every model-output variable. */
+export const MODEL_VARIABLE_SCHEMA_KEY = "ModelVariable";
+
+/**
+ * Variable types offered for model output. Same specific + generic options as
+ * field datasets, minus the types that are inherently field-only: hplc (a lab
+ * pigment analysis, always measured), socioeconomic (survey data), and
+ * non_measured/contextual (which maps to a class not allowed under
+ * ModelOutputDataset.variables).
+ */
+export const MODEL_VARIABLE_TYPE_OPTIONS = VARIABLE_TYPE_OPTIONS.filter(
+  (opt) => !["hplc", "socioeconomic"].includes(opt.value),
+);
+
 // =============================================================================
 // Accordion Configuration
 // =============================================================================
@@ -1073,6 +1087,11 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   CalculatedVariable: [BASE, CALCULATED],
   SocioeconomicVariable: [BASE, SOCIOECONOMIC],
   NonMeasuredVariable: [BASE],
+  // Model output. ModelVariable mirrors CalculatedVariable in the schema minus
+  // the in-situ attribution fields (method_reference, measurement_researcher),
+  // so it reuses the same layers — those two fields are dropped automatically by
+  // the fieldExistsInSchema() filter since they aren't on ModelVariable.
+  ModelVariable: [BASE, CALCULATED],
 };
 
 // =============================================================================
@@ -1241,10 +1260,19 @@ function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
       }
     }
   }
+  // ModelVariable is not part of VARIABLE_SCHEMA_MAP (it isn't reachable via the
+  // variable_type → genesis → sampling tree; every model variable uses it). It
+  // must still be registered here or normalizeVariableFields would treat it as
+  // an unknown class and re-derive schema_class into CalculatedVariable.
+  // Like CalculatedVariable it is a shared class, so variable_type is trusted.
+  lookup[MODEL_VARIABLE_SCHEMA_KEY] = { variable_type: "other", genesis: "calculated" };
   return lookup;
 }
 
 const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
+
+/** Classes used by more than one variable_type — variable_type is trusted as-is. */
+const SHARED_SCHEMA_CLASSES = new Set(["CalculatedVariable", MODEL_VARIABLE_SCHEMA_KEY]);
 
 /**
  * Normalizes variable fields to be consistent with schema_class.
@@ -1293,7 +1321,7 @@ export function normalizeVariableFields(
 
   // For shared classes (CalculatedVariable), trust existing variable_type
   // if it's a type that supports calculated variables
-  const isSharedClass = schemaClass === "CalculatedVariable";
+  const isSharedClass = SHARED_SCHEMA_CLASSES.has(schemaClass);
   if (isSharedClass) {
     const validCalculatedTypes = new Set(
       Object.entries(VARIABLE_SCHEMA_MAP)
@@ -1346,7 +1374,14 @@ export function getSchemaKeyForUI(
   uiVariableType: string | undefined,
   genesis: string | undefined,
   sampling: string | undefined,
+  isModelOutput = false,
 ): string | null {
+  // Model output datasets have exactly one variable class. The variable_type
+  // dropdown still classifies the quantity (pH, TA, …) but never changes which
+  // schema is used, and genesis is always "calculated".
+  if (isModelOutput) {
+    return uiVariableType ? MODEL_VARIABLE_SCHEMA_KEY : null;
+  }
   if (uiVariableType === "other") {
     if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
     return getSchemaKey("other", genesis, sampling);

@@ -1,4 +1,5 @@
 import type { JSONSchema } from "@/components/schemaUtils";
+import { MODEL_VARIABLE_SCHEMA_KEY } from "@/components/VariableModal/variableModalConfig";
 import type { DraftDataset, DraftExperiment, DraftProject, FormDataRecord } from "@/types/forms";
 import {
   cleanupConditionalFields,
@@ -74,10 +75,15 @@ export function parseExperiment(raw: unknown, prev?: DraftExperiment): DraftExpe
 
 /**
  * Establishes the dataset invariants:
- * - only fields valid for the dataset_type survive — in particular a
- *   model_output dataset cannot carry `variables` (closes the import/restore
- *   hole where a ModelOutputDataset kept a variables array);
- * - field-dataset variables are themselves parsed (normalize → strip → clean);
+ * - only fields valid for the dataset_type survive;
+ * - variables are themselves parsed (normalize → strip → clean). Both dataset
+ *   types carry `variables`: FieldDataset holds Variable subclasses, while
+ *   ModelOutputDataset holds ModelVariable. Variables on a model dataset are
+ *   coerced to ModelVariable — legacy/imported data (or a dataset_type switch)
+ *   can carry a field class like DiscretePHVariable, which the model schema
+ *   does not allow. Coercing rather than dropping keeps the user's work
+ *   (name, units, …); normalize/strip then fix genesis and remove the
+ *   in-situ-only fields that ModelVariable has no place for.
  * - model-output conditional custom fields are dropped when untriggered.
  *
  * rootSchema is the bundled schema (getBaseSchema()), threaded through to
@@ -86,16 +92,30 @@ export function parseExperiment(raw: unknown, prev?: DraftExperiment): DraftExpe
 export function parseDataset(raw: unknown, rootSchema: JSONSchema): DraftDataset {
   let data = asRecord(raw);
   const datasetType = typeof data.dataset_type === "string" ? data.dataset_type : undefined;
+  const isModelOutput = isModelOutputType(datasetType);
 
   if (datasetType) {
     data = cleanDatasetFormDataForType(data, datasetType);
   }
 
-  if (isModelOutputType(datasetType)) {
+  if (isModelOutput) {
     data = cleanupConditionalFields(data, DATASET_CONDITIONAL_FIELDS);
-  } else if (data.variables !== undefined) {
-    data = { ...data, variables: parseVariables(data.variables, rootSchema) };
+  }
+
+  if (data.variables !== undefined) {
+    const raws = isModelOutput ? coerceToModelVariables(data.variables) : data.variables;
+    data = { ...data, variables: parseVariables(raws, rootSchema) };
   }
 
   return cleanFormData(data) as DraftDataset;
+}
+
+/** Forces schema_class to ModelVariable — the only class a model dataset allows. */
+function coerceToModelVariables(variables: unknown): unknown {
+  if (!Array.isArray(variables)) return variables;
+  return variables.map((v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? { ...(v as Record<string, unknown>), schema_class: MODEL_VARIABLE_SCHEMA_KEY }
+      : v,
+  );
 }

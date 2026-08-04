@@ -29,10 +29,16 @@ function getVariableDisplayLabel(variable: VariableData): string {
  * Integrates with VariableModal for adding and editing variables.
  */
 const VariablesField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, registry, fieldPathId } = props;
+  const { formData, onChange, disabled, readonly, registry, fieldPathId, uiSchema } = props;
 
   // Get the root schema from RJSF registry
   const rootSchema = registry.rootSchema as JSONSchema;
+
+  // Model-output datasets render the same variables table, but every variable
+  // uses the single ModelVariable class (see modelOutputUiSchema).
+  const isModelOutput = Boolean(
+    (uiSchema?.["ui:options"] as { modelOutput?: boolean } | undefined)?.modelOutput,
+  );
 
   // Per-variable errors come from the single validateDataset() pass (via the
   // dataset page's formContext), so the (!) here matches the badge and overview.
@@ -195,6 +201,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
         onSave={handleSave}
         initialData={editingIndex !== null ? variables[editingIndex] : undefined}
         rootSchema={rootSchema}
+        isModelOutput={isModelOutput}
       />
     </>
   );
