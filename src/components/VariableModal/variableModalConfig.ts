@@ -219,22 +219,24 @@ export const MODEL_VARIABLE_SCHEMA_KEY = "ModelVariable";
  * above, because model output covers quantities field measurement does not
  * (velocities, fluxes) and omits sampling-based ones (HPLC, socioeconomic).
  *
- * Order and labels mirror `ModelVariableType` in the protocol's variable.yaml;
+ * Order follows `ModelVariableType` in the protocol's variable.yaml, and
  * `variableModalConfig.test.ts` asserts the values stay in sync with the schema.
+ * Labels are Title Case UI copy matching VARIABLE_TYPE_OPTIONS above rather than
+ * the schema's sentence-case descriptions, so the two dropdowns read alike.
  */
 export const MODEL_VARIABLE_TYPE_OPTIONS = [
-  { value: "air_sea_co2_flux", label: "Air-sea exchange of carbon dioxide" },
-  { value: "dissolved_inorganic_carbon", label: "Dissolved inorganic carbon (DIC)" },
-  { value: "total_alkalinity", label: "Total alkalinity (TA)" },
+  { value: "air_sea_co2_flux", label: "Air-sea CO₂ Flux" },
+  { value: "dissolved_inorganic_carbon", label: "Dissolved Inorganic Carbon (DIC)" },
+  { value: "total_alkalinity", label: "Total Alkalinity (TA)" },
   { value: "temperature", label: "Temperature" },
   { value: "salinity", label: "Salinity" },
-  { value: "ph", label: "pH of seawater" },
+  { value: "ph", label: "pH" },
   {
     value: "biological_tracers",
-    label: "Phytoplankton, chlorophyll, zooplankton, etc. biomass or concentration",
+    label: "Biological Tracers (phytoplankton, chlorophyll, zooplankton)",
   },
-  { value: "horizontal_velocity", label: "Horizontal velocity components (u, v)" },
-  { value: "vertical_velocity", label: "Vertical velocity component (w)" },
+  { value: "horizontal_velocity", label: "Horizontal Velocity (u, v)" },
+  { value: "vertical_velocity", label: "Vertical Velocity (w)" },
   { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
   { value: "other", label: "Generic Variable" },
 ] as const;
@@ -274,8 +276,8 @@ export const MODEL_VARIABLE_TYPE_SHORT_LABELS: Record<string, string> = {
   salinity: "Salinity",
   ph: "pH",
   biological_tracers: "Biological Tracers",
-  horizontal_velocity: "Horizontal Velocity",
-  vertical_velocity: "Vertical Velocity",
+  horizontal_velocity: "Horizontal Velocity (u, v)",
+  vertical_velocity: "Vertical Velocity (w)",
   co2: "CO₂",
   other: "Generic Variable",
 };
