@@ -35,6 +35,7 @@ import {
   getPlaceholderOverride,
   getSchemaKeyForUI,
   MODEL_VARIABLE_TYPE_OPTIONS,
+  MODEL_VARIABLE_TYPE_SHORT_LABELS,
   normalizeFieldConfig,
   resolveVariableType,
   VARIABLE_SCHEMA_MAP,
@@ -98,9 +99,10 @@ interface VariableModalProps {
   /** The root schema containing $defs for all variable types */
   rootSchema: JSONSchema;
   /**
-   * Model-output mode: every variable uses the single ModelVariable class,
-   * genesis is fixed to "calculated", and the measured/calculated and
-   * discrete/continuous selectors are hidden.
+   * Model-output mode: every variable uses the single ModelVariable class, the
+   * type dropdown offers ModelVariableType instead of VariableType, and the
+   * measured/calculated and discrete/continuous selectors are hidden — model
+   * variables have neither genesis nor sampling.
    */
   isModelOutput?: boolean;
 }
@@ -218,16 +220,18 @@ export default function VariableModal({
   }, [schemaKey, variableSchema, rootSchema]);
 
   // Check if variable type selection is complete.
-  // Model output is always calculated, so every type behaves as fixedGenesis —
-  // which the existing machinery uses to auto-set the value and hide the
-  // measured/calculated (and therefore discrete/continuous) selectors.
-  const baseTypeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
+  // Model output resolves straight to ModelVariable from variable_type alone —
+  // it has no genesis or sampling — so it behaves like a directSchema type. Its
+  // variable_type values come from ModelVariableType, which shares no keys with
+  // VARIABLE_TYPE_BEHAVIOR, so that map must not be consulted in model mode.
   const typeBehavior = useMemo(
     () =>
       isModelOutput
-        ? { ...baseTypeBehavior, fixedGenesis: "calculated", fixedSampling: undefined }
-        : baseTypeBehavior,
-    [isModelOutput, baseTypeBehavior],
+        ? { directSchema: true }
+        : variableType
+          ? VARIABLE_TYPE_BEHAVIOR[variableType]
+          : undefined,
+    [isModelOutput, variableType],
   );
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
@@ -248,11 +252,12 @@ export default function VariableModal({
   // Handle selection changes
   const handleVariableTypeChange = (value: string | null) => {
     setVariableType(value);
-    const behavior = value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
+    // Model output has neither genesis nor sampling on ModelVariable, and its
+    // type values are not keys of VARIABLE_TYPE_BEHAVIOR — leave both unset.
+    const behavior = !isModelOutput && value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
 
-    // Model output: genesis is always "calculated" and there is no sampling.
-    const newGenesis = isModelOutput ? "calculated" : (behavior?.fixedGenesis ?? null);
-    const newSampling = isModelOutput ? null : (behavior?.fixedSampling ?? null);
+    const newGenesis = behavior?.fixedGenesis ?? null;
+    const newSampling = behavior?.fixedSampling ?? null;
     setGenesis(newGenesis);
     setSampling(newSampling);
     setFormData((prev) => ({
@@ -286,9 +291,14 @@ export default function VariableModal({
 
   const handleSave = () => {
     if (!schemaKey) return;
+    // Model output stores the selected ModelVariableType verbatim — there is no
+    // genesis to resolve against, and "other" is a real value there, not the
+    // "needs genesis to disambiguate" placeholder it is for field variables.
     // For "non_measured" the UI uses variableType directly;
     // for "other" with contextual genesis, resolveVariableType maps to "non_measured"
-    const effectiveType = resolveVariableType(variableType || undefined, genesis || undefined);
+    const effectiveType = isModelOutput
+      ? variableType || undefined
+      : resolveVariableType(variableType || undefined, genesis || undefined);
     const rawVariable = {
       ...formData,
       schema_class: schemaKey,
@@ -362,7 +372,11 @@ export default function VariableModal({
                   (variableType || genesis || sampling) && (
                     <Group gap={4} ml="xs">
                       {variableType && (
-                        <Pill size="sm">{VARIABLE_TYPE_LABELS[variableType] || variableType}</Pill>
+                        <Pill size="sm">
+                          {(isModelOutput
+                            ? MODEL_VARIABLE_TYPE_SHORT_LABELS
+                            : VARIABLE_TYPE_LABELS)[variableType] || variableType}
+                        </Pill>
                       )}
                       {genesis && genesis !== "contextual" && (
                         <Pill size="sm">{GENESIS_LABELS[genesis] || genesis}</Pill>
@@ -377,8 +391,14 @@ export default function VariableModal({
               <Stack gap="sm">
                 {/* Variable Type Selector */}
                 <Select
-                  label="What is the variable type?"
-                  placeholder="Select variable type"
+                  label={
+                    isModelOutput
+                      ? "Which model output variable is this?"
+                      : "What is the variable type?"
+                  }
+                  placeholder={
+                    isModelOutput ? "Select model output variable" : "Select variable type"
+                  }
                   data={(isModelOutput ? MODEL_VARIABLE_TYPE_OPTIONS : VARIABLE_TYPE_OPTIONS).map(
                     (opt) => ({
                       value: opt.value,

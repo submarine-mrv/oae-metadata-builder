@@ -214,15 +214,71 @@ export const VARIABLE_TYPE_OPTIONS = [
 export const MODEL_VARIABLE_SCHEMA_KEY = "ModelVariable";
 
 /**
- * Variable types offered for model output. Same specific + generic options as
- * field datasets, minus the types that are inherently field-only: hplc (a lab
- * pigment analysis, always measured), socioeconomic (survey data), and
- * non_measured/contextual (which maps to a class not allowed under
- * ModelOutputDataset.variables).
+ * Variable types offered for model output. These are the ModelVariableType enum
+ * values from the protocol schema — a different vocabulary from VARIABLE_TYPE_OPTIONS
+ * above, because model output covers quantities field measurement does not
+ * (velocities, fluxes) and omits sampling-based ones (HPLC, socioeconomic).
+ *
+ * Order and labels mirror `ModelVariableType` in the protocol's variable.yaml;
+ * `variableModalConfig.test.ts` asserts the values stay in sync with the schema.
  */
-export const MODEL_VARIABLE_TYPE_OPTIONS = VARIABLE_TYPE_OPTIONS.filter(
-  (opt) => !["hplc", "socioeconomic"].includes(opt.value),
+export const MODEL_VARIABLE_TYPE_OPTIONS = [
+  { value: "air_sea_co2_flux", label: "Air-sea exchange of carbon dioxide" },
+  { value: "dissolved_inorganic_carbon", label: "Dissolved inorganic carbon (DIC)" },
+  { value: "total_alkalinity", label: "Total alkalinity (TA)" },
+  { value: "temperature", label: "Temperature" },
+  { value: "salinity", label: "Salinity" },
+  { value: "ph", label: "pH of seawater" },
+  {
+    value: "biological_tracers",
+    label: "Phytoplankton, chlorophyll, zooplankton, etc. biomass or concentration",
+  },
+  { value: "horizontal_velocity", label: "Horizontal velocity components (u, v)" },
+  { value: "vertical_velocity", label: "Vertical velocity component (w)" },
+  { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
+  { value: "other", label: "Generic Variable" },
+] as const;
+
+/** Lookup form of MODEL_VARIABLE_TYPE_OPTIONS, for validating a stored value. */
+export const MODEL_VARIABLE_TYPE_VALUES: ReadonlySet<string> = new Set(
+  MODEL_VARIABLE_TYPE_OPTIONS.map((opt) => opt.value),
 );
+
+/**
+ * VariableType → ModelVariableType for the handful of quantities both
+ * vocabularies name. Used when a dataset switches to model output; anything
+ * absent here has no model equivalent and becomes "other".
+ */
+export const FIELD_TO_MODEL_VARIABLE_TYPE: Record<string, string> = {
+  pH: "ph",
+  ta: "total_alkalinity",
+  dic: "dissolved_inorganic_carbon",
+  co2: "co2",
+};
+
+/** The inverse of FIELD_TO_MODEL_VARIABLE_TYPE, for switching back to a field dataset. */
+export const MODEL_TO_FIELD_VARIABLE_TYPE: Record<string, string> = Object.fromEntries(
+  Object.entries(FIELD_TO_MODEL_VARIABLE_TYPE).map(([field, model]) => [model, field]),
+);
+
+/**
+ * Short labels for the model variable types, for the variables table and the
+ * collapsed-accordion pill — the dropdown labels are full sentences and too
+ * long for either. Keys must cover every MODEL_VARIABLE_TYPE_OPTIONS value.
+ */
+export const MODEL_VARIABLE_TYPE_SHORT_LABELS: Record<string, string> = {
+  air_sea_co2_flux: "Air-sea CO₂ Flux",
+  dissolved_inorganic_carbon: "DIC",
+  total_alkalinity: "Total Alkalinity",
+  temperature: "Temperature",
+  salinity: "Salinity",
+  ph: "pH",
+  biological_tracers: "Biological Tracers",
+  horizontal_velocity: "Horizontal Velocity",
+  vertical_velocity: "Vertical Velocity",
+  co2: "CO₂",
+  other: "Generic Variable",
+};
 
 // =============================================================================
 // Accordion Configuration
@@ -1087,11 +1143,13 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   CalculatedVariable: [BASE, CALCULATED],
   SocioeconomicVariable: [BASE, SOCIOECONOMIC],
   NonMeasuredVariable: [BASE],
-  // Model output. ModelVariable mirrors CalculatedVariable in the schema minus
-  // the in-situ attribution fields (method_reference, measurement_researcher),
-  // so it reuses the same layers — those two fields are dropped automatically by
-  // the fieldExistsInSchema() filter since they aren't on ModelVariable.
-  ModelVariable: [BASE, CALCULATED],
+  // Model output. ModelVariable sits directly under Variable in the schema and
+  // carries none of the in-situ metadata, so BASE alone is enough: everything
+  // BASE declares beyond long_name / units / dataset_variable_name (the QC-flag
+  // and raw-data column gates, and the whole Quality Control and Additional
+  // Information sections) is dropped by the fieldExistsInSchema() filter, and
+  // the emptied sections are dropped by getAccordionConfig().
+  ModelVariable: [BASE],
 };
 
 // =============================================================================
@@ -1264,15 +1322,39 @@ function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
   // variable_type → genesis → sampling tree; every model variable uses it). It
   // must still be registered here or normalizeVariableFields would treat it as
   // an unknown class and re-derive schema_class into CalculatedVariable.
-  // Like CalculatedVariable it is a shared class, so variable_type is trusted.
-  lookup[MODEL_VARIABLE_SCHEMA_KEY] = { variable_type: "other", genesis: "calculated" };
+  // It has no genesis or sampling, so both are cleared; variable_type is checked
+  // against ModelVariableType rather than taken from here.
+  lookup[MODEL_VARIABLE_SCHEMA_KEY] = { variable_type: "other" };
   return lookup;
 }
 
 const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
 
 /** Classes used by more than one variable_type — variable_type is trusted as-is. */
-const SHARED_SCHEMA_CLASSES = new Set(["CalculatedVariable", MODEL_VARIABLE_SCHEMA_KEY]);
+const SHARED_SCHEMA_CLASSES = new Set(["CalculatedVariable"]);
+
+/**
+ * The field variable_type a variable really has, applying the same precedence
+ * normalizeVariableFields does: schema_class is the source of truth, so a
+ * concrete class pins the type (DiscretePHVariable → "pH") even when a stored
+ * variable_type disagrees. Shared classes (CalculatedVariable) pin nothing, so
+ * their stored value is trusted; SCHEMA_CLASS_LOOKUP holds an arbitrary entry
+ * for them (whichever type reached the class first) which must not be used.
+ *
+ * Returns undefined when nothing determines it — callers pick their own default.
+ *
+ * Needed when coercing between the field and model vocabularies, which runs
+ * before normalizeVariableFields has reconciled the two fields.
+ */
+export function resolveFieldVariableType(variable: Record<string, unknown>): string | undefined {
+  const schemaClass = variable.schema_class;
+  const stored = typeof variable.variable_type === "string" ? variable.variable_type : undefined;
+  if (typeof schemaClass === "string" && !SHARED_SCHEMA_CLASSES.has(schemaClass)) {
+    const pinned = SCHEMA_CLASS_LOOKUP[schemaClass]?.variable_type;
+    if (pinned) return pinned;
+  }
+  return stored;
+}
 
 /**
  * Normalizes variable fields to be consistent with schema_class.
@@ -1319,10 +1401,16 @@ export function normalizeVariableFields(
 
   const changes: Record<string, unknown> = {};
 
-  // For shared classes (CalculatedVariable), trust existing variable_type
-  // if it's a type that supports calculated variables
-  const isSharedClass = SHARED_SCHEMA_CLASSES.has(schemaClass);
-  if (isSharedClass) {
+  // ModelVariable draws variable_type from ModelVariableType, a different
+  // vocabulary from VariableType, so it is validated against its own values.
+  if (schemaClass === MODEL_VARIABLE_SCHEMA_KEY) {
+    const currentType = variable.variable_type as string | undefined;
+    if (!currentType || !MODEL_VARIABLE_TYPE_VALUES.has(currentType)) {
+      changes.variable_type = "other";
+    }
+  } else if (SHARED_SCHEMA_CLASSES.has(schemaClass)) {
+    // For shared classes (CalculatedVariable), trust existing variable_type
+    // if it's a type that supports calculated variables
     const validCalculatedTypes = new Set(
       Object.entries(VARIABLE_SCHEMA_MAP)
         .filter(([, v]) => typeof v === "object" && "calculated" in v)
@@ -1377,8 +1465,8 @@ export function getSchemaKeyForUI(
   isModelOutput = false,
 ): string | null {
   // Model output datasets have exactly one variable class. The variable_type
-  // dropdown still classifies the quantity (pH, TA, …) but never changes which
-  // schema is used, and genesis is always "calculated".
+  // dropdown classifies the quantity using ModelVariableType but never changes
+  // which schema is used; ModelVariable has no genesis or sampling to consider.
   if (isModelOutput) {
     return uiVariableType ? MODEL_VARIABLE_SCHEMA_KEY : null;
   }

@@ -6,7 +6,10 @@ import { useState } from "react";
 import { brandColors } from "@/theme";
 import type { JSONSchema } from "./schemaUtils";
 import VariableModal from "./VariableModal/VariableModal";
-import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
+import {
+  MODEL_VARIABLE_TYPE_SHORT_LABELS,
+  VARIABLE_TYPE_OPTIONS,
+} from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
@@ -17,10 +20,13 @@ const VARIABLE_TYPE_LABEL_MAP: Record<string, string> = {
   non_measured: "Contextual",
 };
 
-function getVariableDisplayLabel(variable: VariableData): string {
+function getVariableDisplayLabel(variable: VariableData, isModelOutput: boolean): string {
   const varType = variable.variable_type as string | undefined;
   if (!varType) return "(no type)";
-  return VARIABLE_TYPE_LABEL_MAP[varType] || varType;
+  // Model variables draw variable_type from ModelVariableType, a separate
+  // vocabulary whose values would otherwise render raw here.
+  const labels = isModelOutput ? MODEL_VARIABLE_TYPE_SHORT_LABELS : VARIABLE_TYPE_LABEL_MAP;
+  return labels[varType] || varType;
 }
 
 /**
@@ -157,7 +163,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                       })()}
                     </Group>
                   </Table.Td>
-                  <Table.Td>{getVariableDisplayLabel(variable)}</Table.Td>
+                  <Table.Td>{getVariableDisplayLabel(variable, isModelOutput)}</Table.Td>
                   <Table.Td>{(variable.units as string) || "-"}</Table.Td>
                   <Table.Td>
                     <Group gap={4} wrap="nowrap">

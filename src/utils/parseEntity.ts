@@ -1,5 +1,11 @@
 import type { JSONSchema } from "@/components/schemaUtils";
-import { MODEL_VARIABLE_SCHEMA_KEY } from "@/components/VariableModal/variableModalConfig";
+import {
+  FIELD_TO_MODEL_VARIABLE_TYPE,
+  MODEL_TO_FIELD_VARIABLE_TYPE,
+  MODEL_VARIABLE_SCHEMA_KEY,
+  MODEL_VARIABLE_TYPE_VALUES,
+  resolveFieldVariableType,
+} from "@/components/VariableModal/variableModalConfig";
 import type { DraftDataset, DraftExperiment, DraftProject, FormDataRecord } from "@/types/forms";
 import {
   cleanupConditionalFields,
@@ -103,19 +109,79 @@ export function parseDataset(raw: unknown, rootSchema: JSONSchema): DraftDataset
   }
 
   if (data.variables !== undefined) {
-    const raws = isModelOutput ? coerceToModelVariables(data.variables) : data.variables;
+    const raws = isModelOutput
+      ? coerceToModelVariables(data.variables)
+      : coerceOutOfModelVariables(data.variables);
     data = { ...data, variables: parseVariables(raws, rootSchema) };
   }
 
   return cleanFormData(data) as DraftDataset;
 }
 
-/** Forces schema_class to ModelVariable — the only class a model dataset allows. */
-function coerceToModelVariables(variables: unknown): unknown {
+function mapVariables(
+  variables: unknown,
+  fn: (v: Record<string, unknown>) => Record<string, unknown>,
+): unknown {
   if (!Array.isArray(variables)) return variables;
   return variables.map((v) =>
-    v && typeof v === "object" && !Array.isArray(v)
-      ? { ...(v as Record<string, unknown>), schema_class: MODEL_VARIABLE_SCHEMA_KEY }
-      : v,
+    v && typeof v === "object" && !Array.isArray(v) ? fn(v as Record<string, unknown>) : v,
   );
+}
+
+/**
+ * Forces schema_class to ModelVariable — the only class a model dataset allows —
+ * and translates variable_type from VariableType into ModelVariableType, since
+ * the two classes draw on different vocabularies.
+ */
+function coerceToModelVariables(variables: unknown): unknown {
+  return mapVariables(variables, (v) => ({
+    ...v,
+    schema_class: MODEL_VARIABLE_SCHEMA_KEY,
+    variable_type: toModelVariableType(v),
+  }));
+}
+
+/**
+ * The ModelVariableType for a variable arriving in a model dataset, whatever
+ * shape it comes in: a field variable being switched over, a hand-authored
+ * import with no schema_class, or an entry already classed ModelVariable but
+ * still carrying a field-vocabulary type.
+ */
+function toModelVariableType(v: Record<string, unknown>): string {
+  const stored = typeof v.variable_type === "string" ? v.variable_type : undefined;
+
+  // A concrete field class pins the type, and schema_class is the source of
+  // truth, so it wins over a conflicting stored value. ModelVariable pins
+  // nothing here — it is the class being coerced *to*, so for those entries
+  // only the stored value carries meaning.
+  if (v.schema_class !== MODEL_VARIABLE_SCHEMA_KEY) {
+    const pinned = resolveFieldVariableType(v);
+    if (pinned && pinned !== stored) return FIELD_TO_MODEL_VARIABLE_TYPE[pinned] ?? "other";
+  }
+
+  // Nothing overrides the stored value: keep it when it is already a model type
+  // — most (temperature, horizontal_velocity, …) have no field equivalent to
+  // translate through — otherwise translate it out of the field vocabulary.
+  if (stored && MODEL_VARIABLE_TYPE_VALUES.has(stored)) return stored;
+  return (stored && FIELD_TO_MODEL_VARIABLE_TYPE[stored]) ?? "other";
+}
+
+/**
+ * The mirror of coerceToModelVariables: a ModelVariable that lands in a field
+ * dataset (via a dataset_type switch, or imported data) carries a schema_class
+ * and a variable_type the field vocabulary does not have. CalculatedVariable is
+ * the closest field class — model output is derived, never sampled — so genesis
+ * is set alongside it and normalize/strip fill in the rest.
+ */
+function coerceOutOfModelVariables(variables: unknown): unknown {
+  return mapVariables(variables, (v) => {
+    if (v.schema_class !== MODEL_VARIABLE_SCHEMA_KEY) return v;
+    const varType = typeof v.variable_type === "string" ? v.variable_type : undefined;
+    return {
+      ...v,
+      schema_class: "CalculatedVariable",
+      genesis: "calculated",
+      variable_type: (varType && MODEL_TO_FIELD_VARIABLE_TYPE[varType]) ?? "other",
+    };
+  });
 }

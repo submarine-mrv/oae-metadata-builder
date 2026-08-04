@@ -1762,7 +1762,12 @@ describe("AppStateContext", () => {
 
       const ds = result.current.state.datasets[0];
       expect(ds.formData.dataset_type).toBe("model_output");
-      expect(ds.formData.variables).toBeUndefined();
+      // A saved model dataset holding a field variable class is coerced to
+      // ModelVariable rather than dropped, so the user's work survives restore.
+      const dsVariables = ds.formData.variables as unknown as Record<string, unknown>[];
+      expect(dsVariables).toHaveLength(1);
+      expect(dsVariables[0].schema_class).toBe("ModelVariable");
+      expect(dsVariables[0].variable_type).toBe("ph");
     });
   });
 });

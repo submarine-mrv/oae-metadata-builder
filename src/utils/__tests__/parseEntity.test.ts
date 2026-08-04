@@ -98,7 +98,7 @@ describe("parseExperiment", () => {
 });
 
 describe("parseDataset", () => {
-  it("drops variables from model_output datasets (import hole)", () => {
+  it("coerces field variables on a model_output dataset to ModelVariable", () => {
     const parsed = parseDataset(
       {
         name: "Model run",
@@ -108,9 +108,148 @@ describe("parseDataset", () => {
       },
       rootSchema,
     );
-    expect(parsed.variables).toBeUndefined();
     expect(parsed.dataset_type).toBe("model_output");
     expect(parsed.simulation_type).toEqual(["hindcast"]);
+
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables).toHaveLength(1);
+    // The user's work is kept, re-classed and re-typed into the model vocabulary.
+    expect(variables[0].schema_class).toBe("ModelVariable");
+    expect(variables[0].variable_type).toBe("ph");
+    expect(variables[0].dataset_variable_name).toBe("pH");
+    // ModelVariable has neither, so strip must have removed them.
+    expect(variables[0].genesis).toBeUndefined();
+    expect(variables[0].sampling).toBeUndefined();
+  });
+
+  // schema_class is the source of truth, so a concrete class pins the type even
+  // when a stored variable_type disagrees.
+  it("coerces from the class, not a conflicting variable_type", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "model_output",
+        variables: [{ schema_class: "DiscretePHVariable", variable_type: "dic" }],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables[0].variable_type).toBe("ph");
+  });
+
+  // CalculatedVariable is shared across types, so it pins nothing — an untyped
+  // one must not inherit whichever type happens to reach it first in the map.
+  it("coerces an untyped shared class to other, not an arbitrary type", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "model_output",
+        variables: [{ schema_class: "CalculatedVariable" }],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables[0].variable_type).toBe("other");
+  });
+
+  it("honours a stored variable_type on a shared class", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "model_output",
+        variables: [{ schema_class: "CalculatedVariable", variable_type: "ta" }],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables[0].variable_type).toBe("total_alkalinity");
+  });
+
+  // Hand-authored imports omit schema_class (it is auto-populated), and most
+  // model types have no field equivalent to translate through.
+  it("keeps a model-vocabulary variable_type on an import with no schema_class", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "model_output",
+        variables: [
+          { variable_type: "horizontal_velocity", dataset_variable_name: "uo" },
+          { variable_type: "temperature", dataset_variable_name: "thetao" },
+          { variable_type: "ph", dataset_variable_name: "ph" },
+        ],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables.map((v) => v.variable_type)).toEqual([
+      "horizontal_velocity",
+      "temperature",
+      "ph",
+    ]);
+    expect(variables.every((v) => v.schema_class === "ModelVariable")).toBe(true);
+  });
+
+  // Already classed ModelVariable, but carrying a field-vocabulary type.
+  it("translates a field-vocabulary variable_type on an existing ModelVariable", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "model_output",
+        variables: [
+          { schema_class: "ModelVariable", variable_type: "pH" },
+          { schema_class: "ModelVariable", variable_type: "ta" },
+          { schema_class: "ModelVariable", variable_type: "vertical_velocity" },
+        ],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables.map((v) => v.variable_type)).toEqual([
+      "ph",
+      "total_alkalinity",
+      "vertical_velocity",
+    ]);
+  });
+
+  // A field-vocabulary value with no schema_class still translates.
+  it("translates a field-vocabulary variable_type on an import with no schema_class", () => {
+    const parsed = parseDataset(
+      { dataset_type: "model_output", variables: [{ variable_type: "pH" }] },
+      rootSchema,
+    );
+    expect((parsed.variables as Record<string, unknown>[])[0].variable_type).toBe("ph");
+  });
+
+  it("maps a model variable_type with no field equivalent to other", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "model_output",
+        variables: [{ schema_class: "HPLCVariable", variable_type: "hplc" }],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables[0].schema_class).toBe("ModelVariable");
+    expect(variables[0].variable_type).toBe("other");
+  });
+
+  it("coerces model variables back out when switching to a field dataset", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "cast",
+        variables: [
+          {
+            schema_class: "ModelVariable",
+            variable_type: "air_sea_co2_flux",
+            dataset_variable_name: "fgco2",
+            long_name: "Air-sea CO2 flux",
+            units: "mol m-2 s-1",
+          },
+        ],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    // air_sea_co2_flux has no VariableType equivalent, so it falls back to other.
+    expect(variables[0].schema_class).toBe("CalculatedVariable");
+    expect(variables[0].variable_type).toBe("other");
+    expect(variables[0].genesis).toBe("calculated");
+    expect(variables[0].dataset_variable_name).toBe("fgco2");
   });
 
   it("drops field-dataset-only fields from model_output datasets", () => {

@@ -57,10 +57,14 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
 - Each concrete variable class emits `schema_class` as a **required, single-value enum**
   (`DiscretePHVariable.schema_class = { enum: ["DiscretePHVariable"] }`) — i.e. a real
   discriminator tag.
-- `FieldDataset.variables.items` is an `anyOf` of all 18 concrete variable classes. This union is
-  produced because `Variable` is `abstract: true` — **not** by `include_range_class_descendants`.
-  (An abstract range has no instantiable base, so LinkML expands it to concrete descendants in
-  every generation mode.)
+- `FieldDataset.variables.items` is an `anyOf` of all 18 concrete **field** variable classes. This
+  union is produced because the slot's range, `FieldVariable`, is `abstract: true` — **not** by
+  `include_range_class_descendants`. (An abstract range has no instantiable base, so LinkML expands
+  it to concrete descendants in every generation mode.)
+- The range is `FieldVariable`, not `Variable`, on purpose. `ModelVariable` descends from `Variable`
+  but *not* from `FieldVariable`, so it is excluded from this union and a model variable is invalid
+  inside a `FieldDataset`. Ranging over `Variable` would silently admit it. See
+  "Model output variables" below.
 - Each concrete class already pins its **nested** `analyzing_instrument` / `calibration` to the
   correct subtype, with `additionalProperties: false` at each level:
   - `DiscretePHVariable` → `PHInstrument` → `PHCalibration` (has `dye_type_and_manufacturer`,
@@ -76,6 +80,32 @@ Corollary: `oae_data_protocol.validation.schema.json` (generated with
 `include_range_class_descendants=True`) is intentionally **not** used in oae-form. For these nested
 slots it is *looser* than the form schema (it turns `analyzing_instrument` into an `anyOf` of all
 instrument subtypes). It exists for other programmatic-validation use cases, not the builder.
+
+### Model output variables
+
+`ModelOutputDataset.variables` ranges over the single concrete class `ModelVariable` — no union, no
+discriminator needed. A model variable is produced by the simulation, so it carries none of the
+sampling, instrument, calibration or in-situ QC metadata a field variable does; it has only
+`variable_type`, `long_name`, `dataset_variable_name`, `units` and an optional `standard_identifier`.
+
+The two families are disjoint in both directions:
+
+| | field dataset | model dataset |
+|---|---|---|
+| slot range | `FieldVariable` (abstract, 18 concrete) | `ModelVariable` (1 concrete) |
+| `variable_type` vocabulary | `VariableType` (`pH`, `ta`, `dic`, …) | `ModelVariableType` (`air_sea_co2_flux`, `ph`, `horizontal_velocity`, …) |
+
+Because the vocabularies share almost no values, switching a dataset's `dataset_type` cannot just
+re-stamp `schema_class` — it has to translate `variable_type` too. `parseDataset` does this in both
+directions (`coerceToModelVariables` / `coerceOutOfModelVariables` in `parseEntity.ts`), mapping the
+four overlapping quantities (pH, TA, DIC, CO₂) and falling back to `other`. `schema_class` remains
+the source of truth: a concrete field class pins `variable_type` even when a stored value disagrees.
+
+In the UI, `VariablesField` / `VariableModal` switch to model mode via
+`ui:options.modelOutput: true` in `modelOutputUiSchema.ts`. Model mode swaps the type dropdown to
+`MODEL_VARIABLE_TYPE_OPTIONS` and hides the genesis and sampling selects — `ModelVariable` has
+neither. The accordion still uses the shared `BASE` layer; the sections that do not apply empty
+themselves out through the normal `fieldExistsInSchema()` filter rather than being special-cased.
 
 ## 4. The one real gap: the union has no discriminator
 
