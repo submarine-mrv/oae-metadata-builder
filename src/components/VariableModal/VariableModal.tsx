@@ -391,11 +391,7 @@ export default function VariableModal({
               <Stack gap="sm">
                 {/* Variable Type Selector */}
                 <Select
-                  label={
-                    isModelOutput
-                      ? "Which model output variable is this?"
-                      : "What is the variable type?"
-                  }
+                  label={"What is the variable type?"}
                   placeholder={
                     isModelOutput ? "Select model output variable" : "Select variable type"
                   }
