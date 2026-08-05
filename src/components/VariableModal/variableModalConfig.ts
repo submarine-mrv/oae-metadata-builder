@@ -276,8 +276,8 @@ export const MODEL_VARIABLE_TYPE_SHORT_LABELS: Record<string, string> = {
   salinity: "Salinity",
   ph: "pH",
   biological_tracers: "Biological Tracers",
-  horizontal_velocity: "Horizontal Velocity (u, v)",
-  vertical_velocity: "Vertical Velocity (w)",
+  horizontal_velocity: "Horizontal Velocity",
+  vertical_velocity: "Vertical Velocity",
   co2: "CO₂",
   other: "Generic Variable",
 };
