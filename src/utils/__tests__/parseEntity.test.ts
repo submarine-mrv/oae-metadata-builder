@@ -252,6 +252,29 @@ describe("parseDataset", () => {
     expect(variables[0].dataset_variable_name).toBe("fgco2");
   });
 
+  // temperature and salinity look like they should map across, but VariableType
+  // has no such members — its `other` member is explicitly documented as covering
+  // "temperature, salinity, conductivity, pressure, fluorescence". Mapping them
+  // to themselves would write a value no field variable class accepts, so `other`
+  // is the correct — and only valid — target. Do not "fix" this with an identity
+  // mapping in FIELD_TO_MODEL_VARIABLE_TYPE.
+  it("maps model temperature and salinity to the field vocabulary's other", () => {
+    const parsed = parseDataset(
+      {
+        dataset_type: "cast",
+        variables: [
+          { schema_class: "ModelVariable", variable_type: "temperature", long_name: "SST" },
+          { schema_class: "ModelVariable", variable_type: "salinity", long_name: "SSS" },
+        ],
+      },
+      rootSchema,
+    );
+    const variables = parsed.variables as Record<string, unknown>[];
+    expect(variables.map((v) => v.variable_type)).toEqual(["other", "other"]);
+    // The identifying metadata the user typed survives the reclassification.
+    expect(variables.map((v) => v.long_name)).toEqual(["SST", "SSS"]);
+  });
+
   it("drops field-dataset-only fields from model_output datasets", () => {
     const parsed = parseDataset(
       {
