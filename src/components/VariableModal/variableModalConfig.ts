@@ -251,8 +251,8 @@ export const MODEL_DATA_PROTOCOL_URL =
   "https://www.carbontosea.org/oae-data-protocol/1-0-0/#model-data";
 
 /**
- * The model outputs the protocol asks for at minimum (§Model Data): a 2D air-sea
- * CO₂ flux time series, and 3D time series for DIC, TA, temperature and salinity.
+ * The model outputs the protocol requires (§Model Data): a 2D air-sea CO₂ flux
+ * time series, and 3D time series for DIC, TA, temperature and salinity.
  * Shown bold in the model variable dropdown. Presentational only — nothing
  * blocks saving a dataset that omits them.
  */

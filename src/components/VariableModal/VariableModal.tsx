@@ -117,7 +117,7 @@ function renderModelVariableOption({ option }: ComboboxLikeRenderOptionInput<Com
  */
 const protocolRequirementNote = (
   <>
-    Bolded variables are required at minimum by the OAE Data Protocol.{" "}
+    Bolded variables are required by the OAE Data Protocol.{" "}
     <Anchor
       href={MODEL_DATA_PROTOCOL_URL}
       target="_blank"
