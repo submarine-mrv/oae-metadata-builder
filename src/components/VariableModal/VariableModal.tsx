@@ -1,8 +1,11 @@
 import {
   Accordion,
+  Anchor,
   Badge,
   Box,
   Button,
+  type ComboboxItem,
+  type ComboboxLikeRenderOptionInput,
   Grid,
   Group,
   Modal,
@@ -13,7 +16,7 @@ import {
   Text,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconCategory, IconCheck, IconChevronDown } from "@tabler/icons-react";
+import { IconCategory, IconCheck, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DraftVariable } from "@/types/variable";
@@ -34,9 +37,11 @@ import {
   getAccordionConfig,
   getPlaceholderOverride,
   getSchemaKeyForUI,
+  MODEL_DATA_PROTOCOL_URL,
   MODEL_VARIABLE_TYPE_OPTIONS,
   MODEL_VARIABLE_TYPE_SHORT_LABELS,
   normalizeFieldConfig,
+  PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES,
   resolveVariableType,
   VARIABLE_SCHEMA_MAP,
   VARIABLE_TYPE_BEHAVIOR,
@@ -90,6 +95,41 @@ const SAMPLING_LABELS: Record<string, string> = {
   discrete: "Discrete",
   continuous: "Continuous",
 };
+
+/**
+ * Model output options the protocol asks for at minimum render bold. Styles the
+ * dropdown rows only — Mantine builds the closed input from the plain label
+ * string, so the emphasis is a picker affordance, not a persistent marker.
+ */
+function renderModelVariableOption({ option }: ComboboxLikeRenderOptionInput<ComboboxItem>) {
+  return (
+    <Text size="sm" fw={PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES.has(option.value) ? 700 : undefined}>
+      {option.label}
+    </Text>
+  );
+}
+
+/**
+ * Explains the bold options. Lives in the Select's `description`, not its
+ * `label`: description is wired through aria-describedby, so the input keeps
+ * "What is the variable type?" as its accessible name (which the e2e spec
+ * selects on).
+ */
+const protocolRequirementNote = (
+  <>
+    Bolded variables are required at minimum by the OAE Data Protocol.{" "}
+    <Anchor
+      href={MODEL_DATA_PROTOCOL_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      size="xs"
+      style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+    >
+      View requirements
+      <IconExternalLink size={11} />
+    </Anchor>
+  </>
+);
 
 interface VariableModalProps {
   opened: boolean;
@@ -392,6 +432,7 @@ export default function VariableModal({
                 {/* Variable Type Selector */}
                 <Select
                   label={"What is the variable type?"}
+                  description={isModelOutput ? protocolRequirementNote : undefined}
                   placeholder={
                     isModelOutput ? "Select model output variable" : "Select variable type"
                   }
@@ -401,6 +442,7 @@ export default function VariableModal({
                       label: opt.label,
                     }),
                   )}
+                  renderOption={isModelOutput ? renderModelVariableOption : undefined}
                   value={variableType}
                   onChange={handleVariableTypeChange}
                   required

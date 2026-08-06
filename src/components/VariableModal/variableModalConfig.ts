@@ -246,6 +246,24 @@ export const MODEL_VARIABLE_TYPE_VALUES: ReadonlySet<string> = new Set(
   MODEL_VARIABLE_TYPE_OPTIONS.map((opt) => opt.value),
 );
 
+/** The OAE Data Protocol section listing what model output should include. */
+export const MODEL_DATA_PROTOCOL_URL =
+  "https://www.carbontosea.org/oae-data-protocol/1-0-0/#model-data";
+
+/**
+ * The model outputs the protocol asks for at minimum (§Model Data): a 2D air-sea
+ * CO₂ flux time series, and 3D time series for DIC, TA, temperature and salinity.
+ * Shown bold in the model variable dropdown. Presentational only — nothing
+ * blocks saving a dataset that omits them.
+ */
+export const PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
+  "air_sea_co2_flux",
+  "dissolved_inorganic_carbon",
+  "total_alkalinity",
+  "temperature",
+  "salinity",
+]);
+
 /**
  * VariableType → ModelVariableType for the handful of quantities both
  * vocabularies name. Used when a dataset switches to model output; anything
