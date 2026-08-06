@@ -14,6 +14,7 @@ import {
   Select,
   Stack,
   Text,
+  VisuallyHidden,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconCategory, IconCheck, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
@@ -97,14 +98,17 @@ const SAMPLING_LABELS: Record<string, string> = {
 };
 
 /**
- * Model output options the protocol asks for at minimum render bold. Styles the
- * dropdown rows only — Mantine builds the closed input from the plain label
+ * Model output options the protocol requires render bold, with a screen-reader
+ * -only suffix so the requirement is not conveyed by font weight alone. Styles
+ * the dropdown rows only — Mantine builds the closed input from the plain label
  * string, so the emphasis is a picker affordance, not a persistent marker.
  */
 function renderModelVariableOption({ option }: ComboboxLikeRenderOptionInput<ComboboxItem>) {
+  const isRequired = PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES.has(option.value);
   return (
-    <Text size="sm" fw={PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES.has(option.value) ? 700 : undefined}>
+    <Text size="sm" fw={isRequired ? 700 : undefined}>
       {option.label}
+      {isRequired && <VisuallyHidden> — required by the OAE Data Protocol</VisuallyHidden>}
     </Text>
   );
 }
