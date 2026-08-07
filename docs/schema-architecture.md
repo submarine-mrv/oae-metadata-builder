@@ -93,7 +93,7 @@ The two families are disjoint in both directions:
 | | field dataset | model dataset |
 |---|---|---|
 | slot range | `FieldVariable` (abstract, 18 concrete) | `ModelVariable` (1 concrete) |
-| `variable_type` vocabulary | `VariableType` (`pH`, `ta`, `dic`, …) | `ModelVariableType` (`air_sea_co2_flux`, `ph`, `horizontal_velocity`, …) |
+| `variable_type` vocabulary | `VariableType` (`pH`, `ta`, `dic`, …) | `ModelVariableType` (`air_sea_co2_flux`, `ph`, `zonal_velocity`, …) |
 
 Because the vocabularies share almost no values, switching a dataset's `dataset_type` cannot just
 re-stamp `schema_class` — it has to translate `variable_type` too. `parseDataset` does this in both

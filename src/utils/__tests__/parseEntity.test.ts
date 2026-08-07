@@ -169,7 +169,8 @@ describe("parseDataset", () => {
       {
         dataset_type: "model_output",
         variables: [
-          { variable_type: "horizontal_velocity", dataset_variable_name: "uo" },
+          { variable_type: "zonal_velocity", dataset_variable_name: "uo" },
+          { variable_type: "meridional_velocity", dataset_variable_name: "vo" },
           { variable_type: "temperature", dataset_variable_name: "thetao" },
           { variable_type: "ph", dataset_variable_name: "ph" },
         ],
@@ -178,7 +179,8 @@ describe("parseDataset", () => {
     );
     const variables = parsed.variables as Record<string, unknown>[];
     expect(variables.map((v) => v.variable_type)).toEqual([
-      "horizontal_velocity",
+      "zonal_velocity",
+      "meridional_velocity",
       "temperature",
       "ph",
     ]);

@@ -160,7 +160,7 @@ function toModelVariableType(v: Record<string, unknown>): string {
   }
 
   // Nothing overrides the stored value: keep it when it is already a model type
-  // — most (temperature, horizontal_velocity, …) have no field equivalent to
+  // — most (temperature, zonal_velocity, …) have no field equivalent to
   // translate through — otherwise translate it out of the field vocabulary.
   if (stored && MODEL_VARIABLE_TYPE_VALUES.has(stored)) return stored;
   return (stored && FIELD_TO_MODEL_VARIABLE_TYPE[stored]) ?? "other";
