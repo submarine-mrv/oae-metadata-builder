@@ -1,8 +1,11 @@
 import {
   Accordion,
+  Anchor,
   Badge,
   Box,
   Button,
+  type ComboboxItem,
+  type ComboboxLikeRenderOptionInput,
   Grid,
   Group,
   Modal,
@@ -11,9 +14,10 @@ import {
   Select,
   Stack,
   Text,
+  VisuallyHidden,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconCategory, IconCheck, IconChevronDown } from "@tabler/icons-react";
+import { IconCategory, IconCheck, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DraftVariable } from "@/types/variable";
@@ -34,7 +38,11 @@ import {
   getAccordionConfig,
   getPlaceholderOverride,
   getSchemaKeyForUI,
+  MODEL_DATA_PROTOCOL_URL,
+  MODEL_VARIABLE_TYPE_OPTIONS,
+  MODEL_VARIABLE_TYPE_SHORT_LABELS,
   normalizeFieldConfig,
+  PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES,
   resolveVariableType,
   VARIABLE_SCHEMA_MAP,
   VARIABLE_TYPE_BEHAVIOR,
@@ -89,6 +97,44 @@ const SAMPLING_LABELS: Record<string, string> = {
   continuous: "Continuous",
 };
 
+/**
+ * Model output options the protocol requires render bold, with a screen-reader
+ * -only suffix so the requirement is not conveyed by font weight alone. Styles
+ * the dropdown rows only — Mantine builds the closed input from the plain label
+ * string, so the emphasis is a picker affordance, not a persistent marker.
+ */
+function renderModelVariableOption({ option }: ComboboxLikeRenderOptionInput<ComboboxItem>) {
+  const isRequired = PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES.has(option.value);
+  return (
+    <Text size="sm" fw={isRequired ? 700 : undefined}>
+      {option.label}
+      {isRequired && <VisuallyHidden> — required by the OAE Data Protocol</VisuallyHidden>}
+    </Text>
+  );
+}
+
+/**
+ * Explains the bold options. Lives in the Select's `description`, not its
+ * `label`: description is wired through aria-describedby, so the input keeps
+ * "What is the variable type?" as its accessible name (which the e2e spec
+ * selects on).
+ */
+const protocolRequirementNote = (
+  <>
+    Bolded variables are required by the OAE Data Protocol.{" "}
+    <Anchor
+      href={MODEL_DATA_PROTOCOL_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      size="xs"
+      style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+    >
+      View requirements
+      <IconExternalLink size={11} />
+    </Anchor>
+  </>
+);
+
 interface VariableModalProps {
   opened: boolean;
   onClose: () => void;
@@ -96,6 +142,13 @@ interface VariableModalProps {
   initialData?: Record<string, unknown>;
   /** The root schema containing $defs for all variable types */
   rootSchema: JSONSchema;
+  /**
+   * Model-output mode: every variable uses the single ModelVariable class, the
+   * type dropdown offers ModelVariableType instead of VariableType, and the
+   * measured/calculated and discrete/continuous selectors are hidden — model
+   * variables have neither genesis nor sampling.
+   */
+  isModelOutput?: boolean;
 }
 
 /**
@@ -115,6 +168,7 @@ export default function VariableModal({
   onSave,
   initialData,
   rootSchema,
+  isModelOutput = false,
 }: VariableModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -172,8 +226,9 @@ export default function VariableModal({
       variableType || undefined,
       genesis || undefined,
       sampling || undefined,
+      isModelOutput,
     );
-  }, [variableType, genesis, sampling]);
+  }, [variableType, genesis, sampling, isModelOutput]);
 
   // Filter sampling options to only those available for the selected variable type
   const availableSamplingOptions = useMemo(() => {
@@ -208,8 +263,20 @@ export default function VariableModal({
       .filter((section) => section.visibleFields.length > 0);
   }, [schemaKey, variableSchema, rootSchema]);
 
-  // Check if variable type selection is complete
-  const typeBehavior = variableType ? VARIABLE_TYPE_BEHAVIOR[variableType] : undefined;
+  // Check if variable type selection is complete.
+  // Model output resolves straight to ModelVariable from variable_type alone —
+  // it has no genesis or sampling — so it behaves like a directSchema type. Its
+  // variable_type values come from ModelVariableType, which shares no keys with
+  // VARIABLE_TYPE_BEHAVIOR, so that map must not be consulted in model mode.
+  const typeBehavior = useMemo(
+    () =>
+      isModelOutput
+        ? { directSchema: true }
+        : variableType
+          ? VARIABLE_TYPE_BEHAVIOR[variableType]
+          : undefined,
+    [isModelOutput, variableType],
+  );
   const isTypeSelectionComplete =
     (typeBehavior?.directSchema && !!variableType) ||
     genesis === "calculated" ||
@@ -229,7 +296,9 @@ export default function VariableModal({
   // Handle selection changes
   const handleVariableTypeChange = (value: string | null) => {
     setVariableType(value);
-    const behavior = value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
+    // Model output has neither genesis nor sampling on ModelVariable, and its
+    // type values are not keys of VARIABLE_TYPE_BEHAVIOR — leave both unset.
+    const behavior = !isModelOutput && value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
 
     const newGenesis = behavior?.fixedGenesis ?? null;
     const newSampling = behavior?.fixedSampling ?? null;
@@ -266,9 +335,14 @@ export default function VariableModal({
 
   const handleSave = () => {
     if (!schemaKey) return;
+    // Model output stores the selected ModelVariableType verbatim — there is no
+    // genesis to resolve against, and "other" is a real value there, not the
+    // "needs genesis to disambiguate" placeholder it is for field variables.
     // For "non_measured" the UI uses variableType directly;
     // for "other" with contextual genesis, resolveVariableType maps to "non_measured"
-    const effectiveType = resolveVariableType(variableType || undefined, genesis || undefined);
+    const effectiveType = isModelOutput
+      ? variableType || undefined
+      : resolveVariableType(variableType || undefined, genesis || undefined);
     const rawVariable = {
       ...formData,
       schema_class: schemaKey,
@@ -342,7 +416,11 @@ export default function VariableModal({
                   (variableType || genesis || sampling) && (
                     <Group gap={4} ml="xs">
                       {variableType && (
-                        <Pill size="sm">{VARIABLE_TYPE_LABELS[variableType] || variableType}</Pill>
+                        <Pill size="sm">
+                          {(isModelOutput
+                            ? MODEL_VARIABLE_TYPE_SHORT_LABELS
+                            : VARIABLE_TYPE_LABELS)[variableType] || variableType}
+                        </Pill>
                       )}
                       {genesis && genesis !== "contextual" && (
                         <Pill size="sm">{GENESIS_LABELS[genesis] || genesis}</Pill>
@@ -357,12 +435,18 @@ export default function VariableModal({
               <Stack gap="sm">
                 {/* Variable Type Selector */}
                 <Select
-                  label="What is the variable type?"
-                  placeholder="Select variable type"
-                  data={VARIABLE_TYPE_OPTIONS.map((opt) => ({
-                    value: opt.value,
-                    label: opt.label,
-                  }))}
+                  label={"What is the variable type?"}
+                  description={isModelOutput ? protocolRequirementNote : undefined}
+                  placeholder={
+                    isModelOutput ? "Select model output variable" : "Select variable type"
+                  }
+                  data={(isModelOutput ? MODEL_VARIABLE_TYPE_OPTIONS : VARIABLE_TYPE_OPTIONS).map(
+                    (opt) => ({
+                      value: opt.value,
+                      label: opt.label,
+                    }),
+                  )}
+                  renderOption={isModelOutput ? renderModelVariableOption : undefined}
                   value={variableType}
                   onChange={handleVariableTypeChange}
                   required

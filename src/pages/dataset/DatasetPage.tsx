@@ -50,20 +50,19 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 /**
- * Builds the FieldDataset schema the RJSF *form* renders from.
+ * Replaces the `variables` item schema with a plain `array`.
  *
  * The `variables` array is rendered by the custom VariablesField (and edited via
  * the Variable Modal), not by RJSF's generic array/oneOf rendering — so the form
- * schema replaces `variables` with a plain `array` to keep RJSF from rendering
- * the polymorphic item schema. Variable *validation* is not skipped: it happens
- * in the unified validateDataset() pass against the discriminated schema, and
- * those per-variable errors are injected into the form's error list below.
+ * schema drops the item schema to keep RJSF from rendering it. Variable
+ * *validation* is not skipped: it happens in the unified validateDataset() pass
+ * against the discriminated schema, and those per-variable errors are injected
+ * into the form's error list below.
+ *
+ * Applies to both dataset types: FieldDataset variables are Variable subclasses,
+ * ModelOutputDataset variables are ModelVariable.
  */
-function createFieldDatasetFormSchema() {
-  const schema = getFieldDatasetSchema();
-
-  // Render variables via VariablesField, not RJSF's generic array UI, so replace
-  // the item schema with a plain array. Validation stays in validateDataset().
+function withVariablesAsPlainArray(schema: any) {
   if (schema.properties?.variables) {
     const originalVars = schema.properties.variables;
     // Extract title/description if they exist (handle boolean schema case)
@@ -81,6 +80,16 @@ function createFieldDatasetFormSchema() {
   }
 
   return schema;
+}
+
+/** Builds the FieldDataset schema the RJSF *form* renders from. */
+function createFieldDatasetFormSchema() {
+  return withVariablesAsPlainArray(getFieldDatasetSchema());
+}
+
+/** Builds the ModelOutputDataset schema the RJSF *form* renders from. */
+function createModelOutputFormSchema() {
+  return withVariablesAsPlainArray(getModelOutputDatasetSchema());
 }
 
 export default function DatasetPage() {
@@ -142,7 +151,7 @@ export default function DatasetPage() {
     const datasetType = formData.dataset_type;
 
     if (isModelOutputType(datasetType)) {
-      setActiveSchema(getModelOutputDatasetSchema());
+      setActiveSchema(createModelOutputFormSchema());
       setActiveUiSchema(modelOutputUiSchema);
     } else {
       setActiveSchema(createFieldDatasetFormSchema());
@@ -174,14 +183,12 @@ export default function DatasetPage() {
 
       // Inject per-variable errors into RJSF's error list. The form schema omits
       // the variable item schema (variables are rendered by VariablesField), so
-      // validateDataset is the source of variable validation.
-      // Only applies to FieldDataset (ModelOutputDataset has no variables field).
-      if (!isModelOutputType(formDataRef.current.dataset_type)) {
-        const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
-        const variableErrors = datasetResult.errors.filter((e) => e.name === "variable");
-        if (variableErrors.length > 0) {
-          transformed = [...transformed, ...variableErrors];
-        }
+      // validateDataset is the source of variable validation. Applies to both
+      // dataset types — model output datasets carry ModelVariable entries.
+      const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
+      const variableErrors = datasetResult.errors.filter((e) => e.name === "variable");
+      if (variableErrors.length > 0) {
+        transformed = [...transformed, ...variableErrors];
       }
 
       return transformed;

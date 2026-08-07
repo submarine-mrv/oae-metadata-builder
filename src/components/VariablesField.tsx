@@ -6,7 +6,10 @@ import { useState } from "react";
 import { brandColors } from "@/theme";
 import type { JSONSchema } from "./schemaUtils";
 import VariableModal from "./VariableModal/VariableModal";
-import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
+import {
+  MODEL_VARIABLE_TYPE_SHORT_LABELS,
+  VARIABLE_TYPE_OPTIONS,
+} from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
@@ -17,10 +20,13 @@ const VARIABLE_TYPE_LABEL_MAP: Record<string, string> = {
   non_measured: "Contextual",
 };
 
-function getVariableDisplayLabel(variable: VariableData): string {
+function getVariableDisplayLabel(variable: VariableData, isModelOutput: boolean): string {
   const varType = variable.variable_type as string | undefined;
   if (!varType) return "(no type)";
-  return VARIABLE_TYPE_LABEL_MAP[varType] || varType;
+  // Model variables draw variable_type from ModelVariableType, a separate
+  // vocabulary whose values would otherwise render raw here.
+  const labels = isModelOutput ? MODEL_VARIABLE_TYPE_SHORT_LABELS : VARIABLE_TYPE_LABEL_MAP;
+  return labels[varType] || varType;
 }
 
 /**
@@ -29,10 +35,16 @@ function getVariableDisplayLabel(variable: VariableData): string {
  * Integrates with VariableModal for adding and editing variables.
  */
 const VariablesField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, registry, fieldPathId } = props;
+  const { formData, onChange, disabled, readonly, registry, fieldPathId, uiSchema } = props;
 
   // Get the root schema from RJSF registry
   const rootSchema = registry.rootSchema as JSONSchema;
+
+  // Model-output datasets render the same variables table, but every variable
+  // uses the single ModelVariable class (see modelOutputUiSchema).
+  const isModelOutput = Boolean(
+    (uiSchema?.["ui:options"] as { modelOutput?: boolean } | undefined)?.modelOutput,
+  );
 
   // Per-variable errors come from the single validateDataset() pass (via the
   // dataset page's formContext), so the (!) here matches the badge and overview.
@@ -151,7 +163,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                       })()}
                     </Group>
                   </Table.Td>
-                  <Table.Td>{getVariableDisplayLabel(variable)}</Table.Td>
+                  <Table.Td>{getVariableDisplayLabel(variable, isModelOutput)}</Table.Td>
                   <Table.Td>{(variable.units as string) || "-"}</Table.Td>
                   <Table.Td>
                     <Group gap={4} wrap="nowrap">
@@ -195,6 +207,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
         onSave={handleSave}
         initialData={editingIndex !== null ? variables[editingIndex] : undefined}
         rootSchema={rootSchema}
+        isModelOutput={isModelOutput}
       />
     </>
   );
