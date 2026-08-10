@@ -9,8 +9,11 @@ import {
   checkCsv,
   checkExcel,
   checkNetCdf,
+  type ParsedColumn,
   parseCsvHeaders,
+  parseDelimitedColumns,
   RECOMMENDED_VARIABLES,
+  unitsLabel,
 } from "../complianceChecker";
 
 // Fixtures in tests/samples/ are also the files you drag onto /checker by hand,
@@ -25,6 +28,9 @@ const sampleBytes = (name: string): ArrayBuffer => {
 
 const messages = (report: ComplianceReport, severity: string) =>
   report.checks.filter((c) => c.severity === severity).map((c) => c.message);
+
+const unitsOf = (columns: ParsedColumn[], name: string) =>
+  unitsLabel(columns.find((c) => c.name === name)?.units ?? { kind: "missing" });
 
 describe("parseCsvHeaders", () => {
   it("parses simple comma-separated headers", () => {
@@ -87,13 +93,61 @@ describe("RECOMMENDED_VARIABLES", () => {
   });
 });
 
+describe("comment preamble and units row", () => {
+  it("skips # lines and takes the first real row as the header", () => {
+    const columns = parseDelimitedColumns(
+      ["# Project ID: X", "# Template version: 1.0.1", "a,b", "m,degC", "1,2"].join("\n"),
+    );
+
+    expect(columns.map((c) => c.name)).toEqual(["a", "b"]);
+  });
+
+  it("reads the row under the header as units", () => {
+    const columns = parseDelimitedColumns("depth,temperature\nm,deg_C\n5.0,13.4");
+
+    expect(unitsOf(columns, "depth")).toBe("m");
+    expect(unitsOf(columns, "temperature")).toBe("deg_C");
+  });
+
+  it("treats n.a. spellings as not applicable rather than a unit", () => {
+    const columns = parseDelimitedColumns("a,b,c,d\nn.a.,N/A,none,-\n1,2,3,4");
+
+    expect(columns.map((c) => c.units.kind)).toEqual(Array(4).fill("not-applicable"));
+  });
+
+  it("does not mistake a first data row for units", () => {
+    // A plain CSV goes straight to data. Reading row 2 as units regardless would
+    // label every column with a measurement.
+    const columns = parseDelimitedColumns("depth,temperature\n5.0,13.4\n25.0,12.1");
+
+    expect(columns.map((c) => c.units.kind)).toEqual(["missing", "missing"]);
+  });
+
+  it("keeps units aligned with headers when a units cell is blank", () => {
+    const columns = parseDelimitedColumns("a,b,c\nm,,umol/kg\n1,2,3");
+
+    expect(columns.map((c) => unitsLabel(c.units))).toEqual(["m", "not declared", "umol/kg"]);
+  });
+});
+
 describe("checkCsv", () => {
   it("passes a fully compliant file with no warnings", () => {
     const report = checkCsv("compliant.csv", sampleText("compliant.csv"));
 
     expect(report.fileType).toBe("csv");
-    expect(report.summary).toEqual({ pass: 3, warn: 0, fail: 0 });
-    expect(report.columnHeaders).toHaveLength(20);
+    expect(report.summary.warn).toBe(0);
+    expect(report.summary.fail).toBe(0);
+    expect(report.columns).toHaveLength(20);
+  });
+
+  it("reads units past the # preamble of a protocol template", () => {
+    const report = checkCsv("bottle_template.csv", sampleText("bottle_template.csv"));
+
+    // Before the preamble was skipped this parsed as one column, "# Project ID:".
+    expect(report.columns).toHaveLength(29);
+    expect(unitsOf(report.columns, "DIC")).toBe("umol/kg");
+    expect(unitsOf(report.columns, "Exp_ID")).toBe("not applicable");
+    expect(messages(report, "pass")).toContain("11 of 20 columns declare units");
   });
 
   it("warns about unrecognized headers, missing QC flags, and orphan flags", () => {
@@ -104,6 +158,7 @@ describe("checkCsv", () => {
       "6 columns not in recommended list",
       "1 variable missing QC flag columns",
       "1 QC flag column without matching variable",
+      "No units declared for any column",
     ]);
   });
 
@@ -112,7 +167,6 @@ describe("checkCsv", () => {
 
     expect(report.summary.fail).toBe(1);
     expect(messages(report, "fail")).toEqual(["No column headers detected"]);
-    // The header checks are skipped rather than reported against an empty list.
     expect(report.checks).toHaveLength(1);
   });
 });
@@ -122,17 +176,27 @@ describe("checkExcel", () => {
     const report = await checkExcel("compliant.xlsx", sampleBytes("compliant.xlsx"));
 
     expect(report.fileType).toBe("xlsx");
-    expect(report.columnHeaders).toHaveLength(20);
+    expect(report.columns).toHaveLength(20);
     expect(report.summary.warn).toBe(0);
+  });
+
+  it("produces the same columns and units as the CSV it was built from", async () => {
+    // Presentation is shared across formats, so the parsed shape must be too.
+    const csv = checkCsv("compliant.csv", sampleText("compliant.csv"));
+    const xlsx = await checkExcel("compliant.xlsx", sampleBytes("compliant.xlsx"));
+
+    expect(xlsx.columns).toEqual(csv.columns);
+    expect(messages(xlsx, "pass")).toEqual(messages(csv, "pass"));
   });
 });
 
 describe("checkNetCdf", () => {
-  it("reads variables and their units from a NetCDF v3 file", async () => {
+  it("reports units from variable attributes in the same shape as a spreadsheet", async () => {
     const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
 
     expect(report.fileType).toBe("netcdf");
-    expect(messages(report, "pass")).toContain("11 variables have units defined");
+    expect(unitsOf(report.columns, "dic")).toBe("umol/kg");
+    expect(messages(report, "pass")).toContain("11 of 11 columns declare units");
   });
 
   it("warns that protocol-required model variables are unrecognized", async () => {

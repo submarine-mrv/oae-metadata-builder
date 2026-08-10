@@ -102,7 +102,7 @@ export interface CheckResult {
 export interface ComplianceReport {
   filename: string;
   fileType: "csv" | "xlsx" | "netcdf";
-  columnHeaders: string[];
+  columns: ParsedColumn[];
   checks: CheckResult[];
   summary: {
     pass: number;
@@ -112,78 +112,137 @@ export interface ComplianceReport {
 }
 
 // ---------------------------------------------------------------------------
-// File parsing
+// Columns and units
+//
+// Spreadsheets and NetCDF both reduce to ParsedColumn[] so the checks and the
+// report look the same whichever format the file came in as.
 // ---------------------------------------------------------------------------
 
+/** Units as the file declares them, which is not the same as units we know. */
+export type Units =
+  | { kind: "declared"; value: string }
+  /** The file says units don't apply here, e.g. the templates' "n.a.". */
+  | { kind: "not-applicable" }
+  /** The file says nothing either way. */
+  | { kind: "missing" };
+
+export interface ParsedColumn {
+  name: string;
+  units: Units;
+}
+
+/** Spellings the protocol templates use for "no units apply". */
+const NOT_APPLICABLE = new Set(["n.a.", "n.a", "na", "n/a", "none", "-", "--"]);
+
+export function toUnits(raw: string | undefined | null): Units {
+  const value = String(raw ?? "").trim();
+  if (value === "") return { kind: "missing" };
+  if (NOT_APPLICABLE.has(value.toLowerCase())) return { kind: "not-applicable" };
+  return { kind: "declared", value };
+}
+
+/** Label for a units value, used by both the report UI and check details. */
+export function unitsLabel(units: Units): string {
+  if (units.kind === "declared") return units.value;
+  return units.kind === "not-applicable" ? "not applicable" : "not declared";
+}
+
+// ---------------------------------------------------------------------------
+// Tabular parsing (CSV, TSV, Excel)
+// ---------------------------------------------------------------------------
+
+const isCommentRow = (row: string[]) => (row[0] ?? "").trim().startsWith("#");
+const isBlankRow = (row: string[]) => row.every((cell) => cell.trim() === "");
+
 /**
- * Parse column headers from an Excel file's first sheet, first row.
+ * True when a row reads as units rather than data. The protocol templates put
+ * units directly under the header, but a plain CSV goes straight to data, and
+ * mistaking the first record for units would mislabel every column. Data rows
+ * in these files are overwhelmingly numeric; units rows are not.
  */
-export async function parseExcelHeaders(buffer: ArrayBuffer): Promise<string[]> {
+function looksLikeUnitsRow(row: string[]): boolean {
+  const filled = row.map((c) => c.trim()).filter((c) => c !== "");
+  if (filled.length === 0) return false;
+  const numeric = filled.filter((c) => c !== "" && Number.isFinite(Number(c)));
+  return numeric.length * 2 <= filled.length;
+}
+
+/**
+ * Reduce raw rows to columns. Rows beginning with "#" are metadata comments and
+ * are skipped; the first row left is the header, and the one after it is the
+ * units row when it reads as one.
+ */
+export function parseTabularColumns(rows: string[][]): ParsedColumn[] {
+  const body = rows.filter((row) => !isBlankRow(row) && !isCommentRow(row));
+  const header = body[0];
+  if (!header) return [];
+
+  const unitsRow = body[1] && looksLikeUnitsRow(body[1]) ? body[1] : undefined;
+
+  // Positions are kept while pairing header to units, then unnamed columns drop.
+  return header
+    .map((name, i) => ({ name: name.trim(), units: toUnits(unitsRow?.[i]) }))
+    .filter((c) => c.name !== "");
+}
+
+/** Split one delimited line, honouring double quotes. */
+function splitLine(line: string, delimiter: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (const char of line) {
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+export function parseDelimitedColumns(text: string, delimiter = ","): ParsedColumn[] {
+  const rows = text.split(/\r?\n/).map((line) => splitLine(line, delimiter));
+  return parseTabularColumns(rows);
+}
+
+export async function parseExcelColumns(buffer: ArrayBuffer): Promise<ParsedColumn[]> {
   const XLSX = await import("xlsx");
   // type "array" means Uint8Array. Handed a bare ArrayBuffer, SheetJS falls
   // back to reading the zip bytes as text and yields one garbage column.
   const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
   if (!firstSheet) return [];
-  const rows = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
-  const firstRow = rows[0];
-  if (!Array.isArray(firstRow)) return [];
-  return firstRow.map((h) => String(h).trim()).filter((h) => h.length > 0);
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
+    header: 1,
+    blankrows: false,
+    defval: "",
+  });
+  return parseTabularColumns(rows.map((row) => row.map((cell) => String(cell ?? ""))));
 }
 
-/**
- * Parse column headers from a CSV file's first line.
- */
+/** Column headers only. Kept for callers that don't care about units. */
 export function parseCsvHeaders(text: string): string[] {
-  const firstLine = text.split(/\r?\n/).find((line) => line.trim() !== "");
-  if (!firstLine) return [];
-
-  // Handle quoted CSV headers
-  const headers: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (const char of firstLine) {
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      headers.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  headers.push(current.trim());
-
-  return headers.filter((h) => h.length > 0);
+  return parseDelimitedColumns(text).map((c) => c.name);
 }
 
-/**
- * Extract variable names from a NetCDF file buffer.
- * Returns variable names and any units attributes found.
- */
-export interface NetCdfVariableInfo {
-  name: string;
-  units?: string;
-  attributes: Array<{ name: string; value: string | number }>;
-}
+// ---------------------------------------------------------------------------
+// NetCDF parsing
+// ---------------------------------------------------------------------------
 
-export async function parseNetCdfVariables(buffer: ArrayBuffer): Promise<NetCdfVariableInfo[]> {
+export async function parseNetCdfColumns(buffer: ArrayBuffer): Promise<ParsedColumn[]> {
   // Dynamic import to keep netcdfjs out of the initial bundle
   const { NetCDFReader } = await import("netcdfjs");
   const reader = new NetCDFReader(buffer);
 
   return reader.variables.map((v) => {
-    const attrs = (v.attributes || []) as Array<{
-      name: string;
-      value: string | number;
-    }>;
+    const attrs = (v.attributes || []) as Array<{ name: string; value: string | number }>;
     const unitsAttr = attrs.find((a) => a.name.toLowerCase() === "units");
-    return {
-      name: v.name,
-      units: unitsAttr ? String(unitsAttr.value) : undefined,
-      attributes: attrs,
-    };
+    return { name: v.name, units: toUnits(unitsAttr?.value as string | undefined) };
   });
 }
 
@@ -313,34 +372,68 @@ function checkQcFlags(headers: string[]): CheckResult[] {
 }
 
 /**
- * Check 4: Units information (NetCDF only — CSV files don't carry units metadata)
+ * Check 4: Units, from a spreadsheet's units row or a NetCDF units attribute.
+ *
+ * QC flag columns are excluded — a flag is a code, not a measurement.
  */
-function checkUnitsNetCdf(variables: NetCdfVariableInfo[]): CheckResult[] {
+function checkUnits(columns: ParsedColumn[]): CheckResult[] {
   const results: CheckResult[] = [];
+  const measured = columns.filter((c) => !isQcFlagColumn(c.name));
+  if (measured.length === 0) return results;
 
-  // Skip dimension/coordinate variables for units check
-  const dataVars = variables.filter((v) => !isQcFlagColumn(v.name));
+  const declared = measured.filter((c) => c.units.kind === "declared");
+  const notApplicable = measured.filter((c) => c.units.kind === "not-applicable");
+  const missing = measured.filter((c) => c.units.kind === "missing");
 
-  const withUnits = dataVars.filter((v) => v.units);
-  const withoutUnits = dataVars.filter((v) => !v.units);
+  if (declared.length === 0 && notApplicable.length === 0) {
+    results.push({
+      severity: "warn",
+      message: "No units declared for any column",
+      details:
+        "Spreadsheets should carry a units row directly under the header; " +
+        "NetCDF variables should carry a units attribute.",
+    });
+    return results;
+  }
 
-  if (withUnits.length > 0) {
+  if (declared.length > 0) {
     results.push({
       severity: "pass",
-      message: `${withUnits.length} variable${withUnits.length === 1 ? "" : "s"} have units defined`,
-      details: withUnits.map((v) => `${v.name} (${v.units})`).join(", "),
+      message: `${declared.length} of ${measured.length} column${measured.length === 1 ? "" : "s"} declare units`,
+      details: tallyUnits(declared),
     });
   }
 
-  if (withoutUnits.length > 0) {
+  if (notApplicable.length > 0) {
+    results.push({
+      severity: "pass",
+      message: `${notApplicable.length} column${notApplicable.length === 1 ? "" : "s"} marked not applicable`,
+      details: notApplicable.map((c) => c.name).join(", "),
+    });
+  }
+
+  if (missing.length > 0) {
     results.push({
       severity: "warn",
-      message: `${withoutUnits.length} variable${withoutUnits.length === 1 ? "" : "s"} missing units attribute`,
-      details: withoutUnits.map((v) => v.name).join(", "),
+      message: `${missing.length} column${missing.length === 1 ? "" : "s"} missing units`,
+      details: missing.map((c) => c.name).join(", "),
     });
   }
 
   return results;
+}
+
+/** "umol/kg (4), deg_C (2)" — repeated spellings of one unit stand out here. */
+function tallyUnits(columns: ParsedColumn[]): string {
+  const counts = new Map<string, number>();
+  for (const c of columns) {
+    const label = unitsLabel(c.units);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([label, n]) => `${label} (${n})`)
+    .join(", ");
 }
 
 // ---------------------------------------------------------------------------
@@ -351,28 +444,19 @@ function checkUnitsNetCdf(variables: NetCdfVariableInfo[]): CheckResult[] {
 // ---------------------------------------------------------------------------
 
 export function checkCsv(filename: string, text: string): ComplianceReport {
-  const headers = filename.toLowerCase().endsWith(".tsv")
-    ? parseTsvHeaders(text)
-    : parseCsvHeaders(text);
-  return buildReport(filename, "csv", headers, checkHeaders(headers));
+  const delimiter = filename.toLowerCase().endsWith(".tsv") ? "\t" : ",";
+  return buildReport(filename, "csv", parseDelimitedColumns(text, delimiter));
 }
 
 export async function checkExcel(filename: string, buffer: ArrayBuffer): Promise<ComplianceReport> {
-  const headers = await parseExcelHeaders(buffer);
-  return buildReport(filename, "xlsx", headers, checkHeaders(headers));
+  return buildReport(filename, "xlsx", await parseExcelColumns(buffer));
 }
 
 export async function checkNetCdf(
   filename: string,
   buffer: ArrayBuffer,
 ): Promise<ComplianceReport> {
-  const variables = await parseNetCdfVariables(buffer);
-  const headers = variables.map((v) => v.name);
-  const checks = checkHeaders(headers);
-  if (headers.length > 0) {
-    checks.push(...checkUnitsNetCdf(variables));
-  }
-  return buildReport(filename, "netcdf", headers, checks);
+  return buildReport(filename, "netcdf", await parseNetCdfColumns(buffer));
 }
 
 export async function runComplianceChecks(file: File): Promise<ComplianceReport> {
@@ -393,9 +477,9 @@ export async function runComplianceChecks(file: File): Promise<ComplianceReport>
   );
 }
 
-/** Checks that apply to any format's column/variable names. */
-function checkHeaders(headers: string[]): CheckResult[] {
-  if (headers.length === 0) {
+/** Every format runs the same checks, so the reports read the same. */
+function runChecks(columns: ParsedColumn[]): CheckResult[] {
+  if (columns.length === 0) {
     return [
       {
         severity: "fail",
@@ -405,10 +489,12 @@ function checkHeaders(headers: string[]): CheckResult[] {
     ];
   }
 
+  const headers = columns.map((c) => c.name);
   return [
     ...checkRecommendedHeaders(headers),
     ...checkUnrecognizedHeaders(headers),
     ...checkQcFlags(headers),
+    ...checkUnits(columns),
   ];
 }
 
@@ -432,24 +518,15 @@ function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   });
 }
 
-function parseTsvHeaders(text: string): string[] {
-  const firstLine = text.split(/\r?\n/).find((line) => line.trim() !== "");
-  if (!firstLine) return [];
-  return firstLine
-    .split("\t")
-    .map((h) => h.trim())
-    .filter((h) => h.length > 0);
-}
-
 function buildReport(
   filename: string,
   fileType: ComplianceReport["fileType"],
-  columnHeaders: string[],
-  checks: CheckResult[],
+  columns: ParsedColumn[],
 ): ComplianceReport {
+  const checks = runChecks(columns);
   const summary = { pass: 0, warn: 0, fail: 0 };
   for (const c of checks) {
     summary[c.severity]++;
   }
-  return { filename, fileType, columnHeaders, checks, summary };
+  return { filename, fileType, columns, checks, summary };
 }

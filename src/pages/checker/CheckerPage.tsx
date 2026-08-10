@@ -8,6 +8,7 @@ import {
   Group,
   Paper,
   Stack,
+  Table,
   Text,
   ThemeIcon,
   Title,
@@ -23,8 +24,13 @@ import {
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import type { CheckResult, CheckSeverity, ComplianceReport } from "@/utils/complianceChecker";
-import { runComplianceChecks } from "@/utils/complianceChecker";
+import type {
+  CheckResult,
+  CheckSeverity,
+  ComplianceReport,
+  ParsedColumn,
+} from "@/utils/complianceChecker";
+import { runComplianceChecks, unitsLabel } from "@/utils/complianceChecker";
 
 const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
 
@@ -100,6 +106,41 @@ function SummaryBadges({ summary }: { summary: ComplianceReport["summary"] }) {
   );
 }
 
+/**
+ * One table for every format: a NetCDF units attribute and a spreadsheet units
+ * row are both just a column's units by the time they reach here.
+ */
+function ColumnsTable({ columns }: { columns: ParsedColumn[] }) {
+  return (
+    <Table striped withTableBorder verticalSpacing={4} fz="sm">
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Column</Table.Th>
+          <Table.Th w="45%">Units</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {columns.map((c) => (
+          <Table.Tr key={c.name}>
+            <Table.Td>
+              <Code fz="xs">{c.name}</Code>
+            </Table.Td>
+            <Table.Td>
+              {c.units.kind === "declared" ? (
+                <Code fz="xs">{c.units.value}</Code>
+              ) : (
+                <Text size="xs" c="dimmed" fs="italic">
+                  {unitsLabel(c.units)}
+                </Text>
+              )}
+            </Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
+}
+
 function ReportDisplay({ report }: { report: ComplianceReport }) {
   const groupedChecks = {
     fail: report.checks.filter((c) => c.severity === "fail"),
@@ -118,8 +159,8 @@ function ReportDisplay({ report }: { report: ComplianceReport }) {
             <div>
               <Text fw={600}>{report.filename}</Text>
               <Text size="xs" c="dimmed">
-                {report.fileType.toUpperCase()} file &middot; {report.columnHeaders.length} column
-                {report.columnHeaders.length !== 1 ? "s" : ""} detected
+                {report.fileType.toUpperCase()} file &middot; {report.columns.length} column
+                {report.columns.length !== 1 ? "s" : ""} detected
               </Text>
             </div>
           </Group>
@@ -145,11 +186,9 @@ function ReportDisplay({ report }: { report: ComplianceReport }) {
           </Accordion.Item>
 
           <Accordion.Item value="columns">
-            <Accordion.Control>Detected Columns ({report.columnHeaders.length})</Accordion.Control>
+            <Accordion.Control>Columns and Units ({report.columns.length})</Accordion.Control>
             <Accordion.Panel>
-              <Code block style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
-                {report.columnHeaders.join("\n")}
-              </Code>
+              <ColumnsTable columns={report.columns} />
             </Accordion.Panel>
           </Accordion.Item>
         </Accordion>
