@@ -44,7 +44,11 @@ export const RECOMMENDED_VARIABLES: RecommendedVariable[] = [
   // Carbonate chemistry
   { name: "dic", description: "Dissolved inorganic carbon", expectQcFlag: true },
   { name: "ta", description: "Total alkalinity", expectQcFlag: true },
-  { name: "ph_t_insitu", description: "pH on total scale at in-situ conditions", expectQcFlag: true },
+  {
+    name: "ph_t_insitu",
+    description: "pH on total scale at in-situ conditions",
+    expectQcFlag: true,
+  },
   { name: "ph_t_25", description: "pH on total scale at 25C", expectQcFlag: true },
   { name: "pco2", description: "Partial pressure of CO2", expectQcFlag: true },
   { name: "fco2", description: "Fugacity of CO2", expectQcFlag: true },
@@ -72,14 +76,16 @@ export const RECOMMENDED_VARIABLES: RecommendedVariable[] = [
   { name: "fluorescence", description: "Fluorescence", expectQcFlag: true },
 
   // OAE-specific
-  { name: "alkalinity_excess", description: "Excess alkalinity from OAE intervention", expectQcFlag: true },
+  {
+    name: "alkalinity_excess",
+    description: "Excess alkalinity from OAE intervention",
+    expectQcFlag: true,
+  },
   { name: "tracer_concentration", description: "Tracer concentration", expectQcFlag: true },
 ];
 
 /** Set of all recommended variable names (lowercase) for fast lookup */
-const RECOMMENDED_NAMES_SET = new Set(
-  RECOMMENDED_VARIABLES.map((v) => v.name.toLowerCase())
-);
+const RECOMMENDED_NAMES_SET = new Set(RECOMMENDED_VARIABLES.map((v) => v.name.toLowerCase()));
 
 // ---------------------------------------------------------------------------
 // Check result types
@@ -95,7 +101,7 @@ export interface CheckResult {
 
 export interface ComplianceReport {
   filename: string;
-  fileType: "csv" | "netcdf";
+  fileType: "csv" | "xlsx" | "netcdf";
   columnHeaders: string[];
   checks: CheckResult[];
   summary: {
@@ -114,7 +120,9 @@ export interface ComplianceReport {
  */
 export async function parseExcelHeaders(buffer: ArrayBuffer): Promise<string[]> {
   const XLSX = await import("xlsx");
-  const workbook = XLSX.read(buffer, { type: "array" });
+  // type "array" means Uint8Array. Handed a bare ArrayBuffer, SheetJS falls
+  // back to reading the zip bytes as text and yields one garbage column.
+  const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
   if (!firstSheet) return [];
   const rows = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
@@ -160,9 +168,7 @@ export interface NetCdfVariableInfo {
   attributes: Array<{ name: string; value: string | number }>;
 }
 
-export async function parseNetCdfVariables(
-  buffer: ArrayBuffer
-): Promise<NetCdfVariableInfo[]> {
+export async function parseNetCdfVariables(buffer: ArrayBuffer): Promise<NetCdfVariableInfo[]> {
   // Dynamic import to keep netcdfjs out of the initial bundle
   const { NetCDFReader } = await import("netcdfjs");
   const reader = new NetCDFReader(buffer);
@@ -172,9 +178,7 @@ export async function parseNetCdfVariables(
       name: string;
       value: string | number;
     }>;
-    const unitsAttr = attrs.find(
-      (a) => a.name.toLowerCase() === "units"
-    );
+    const unitsAttr = attrs.find((a) => a.name.toLowerCase() === "units");
     return {
       name: v.name,
       units: unitsAttr ? String(unitsAttr.value) : undefined,
@@ -196,12 +200,7 @@ function isQcFlagColumn(name: string): boolean {
 
 function findQcFlagFor(variableName: string, allHeaders: string[]): string | undefined {
   const lower = variableName.toLowerCase();
-  const candidates = [
-    `${lower}_flag`,
-    `${lower}_qc`,
-    `${lower}_quality`,
-    `qc_${lower}`,
-  ];
+  const candidates = [`${lower}_flag`, `${lower}_qc`, `${lower}_quality`, `qc_${lower}`];
   return allHeaders.find((h) => candidates.includes(h.toLowerCase()));
 }
 
@@ -211,9 +210,7 @@ function findQcFlagFor(variableName: string, allHeaders: string[]): string | und
 function checkRecommendedHeaders(headers: string[]): CheckResult[] {
   const results: CheckResult[] = [];
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
-  const matched = nonQcHeaders.filter((h) =>
-    RECOMMENDED_NAMES_SET.has(h.toLowerCase())
-  );
+  const matched = nonQcHeaders.filter((h) => RECOMMENDED_NAMES_SET.has(h.toLowerCase()));
 
   if (matched.length > 0) {
     results.push({
@@ -232,9 +229,7 @@ function checkRecommendedHeaders(headers: string[]): CheckResult[] {
 function checkUnrecognizedHeaders(headers: string[]): CheckResult[] {
   const results: CheckResult[] = [];
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
-  const unrecognized = nonQcHeaders.filter(
-    (h) => !RECOMMENDED_NAMES_SET.has(h.toLowerCase())
-  );
+  const unrecognized = nonQcHeaders.filter((h) => !RECOMMENDED_NAMES_SET.has(h.toLowerCase()));
 
   if (unrecognized.length > 0) {
     results.push({
@@ -262,9 +257,7 @@ function checkQcFlags(headers: string[]): CheckResult[] {
 
   // Only check recommended variables that expect QC flags and are present in the file
   const varsNeedingQc = nonQcHeaders.filter((h) => {
-    const rec = RECOMMENDED_VARIABLES.find(
-      (v) => v.name.toLowerCase() === h.toLowerCase()
-    );
+    const rec = RECOMMENDED_VARIABLES.find((v) => v.name.toLowerCase() === h.toLowerCase());
     return rec?.expectQcFlag;
   });
 
@@ -326,9 +319,7 @@ function checkUnitsNetCdf(variables: NetCdfVariableInfo[]): CheckResult[] {
   const results: CheckResult[] = [];
 
   // Skip dimension/coordinate variables for units check
-  const dataVars = variables.filter(
-    (v) => !isQcFlagColumn(v.name)
-  );
+  const dataVars = variables.filter((v) => !isQcFlagColumn(v.name));
 
   const withUnits = dataVars.filter((v) => v.units);
   const withoutUnits = dataVars.filter((v) => !v.units);
@@ -352,90 +343,109 @@ function checkUnitsNetCdf(variables: NetCdfVariableInfo[]): CheckResult[] {
   return results;
 }
 
-function checkUnitsCsv(): CheckResult[] {
-  return [
-    {
-      severity: "warn",
-      message:
-        "CSV files do not carry units metadata. Ensure units are documented in the accompanying metadata JSON.",
-    },
-  ];
-}
-
 // ---------------------------------------------------------------------------
-// Main entry point
+// Entry points
+//
+// These take already-read bytes rather than a File so they can be exercised
+// directly by tests. runComplianceChecks is the thin File adapter over them.
 // ---------------------------------------------------------------------------
 
-export interface CheckFileInput {
-  file: File;
+export function checkCsv(filename: string, text: string): ComplianceReport {
+  const headers = filename.toLowerCase().endsWith(".tsv")
+    ? parseTsvHeaders(text)
+    : parseCsvHeaders(text);
+  return buildReport(filename, "csv", headers, checkHeaders(headers));
 }
 
-export async function runComplianceChecks(
-  input: CheckFileInput
+export async function checkExcel(filename: string, buffer: ArrayBuffer): Promise<ComplianceReport> {
+  const headers = await parseExcelHeaders(buffer);
+  return buildReport(filename, "xlsx", headers, checkHeaders(headers));
+}
+
+export async function checkNetCdf(
+  filename: string,
+  buffer: ArrayBuffer,
 ): Promise<ComplianceReport> {
-  const { file } = input;
-  const filename = file.name;
-  const ext = filename.split(".").pop()?.toLowerCase();
+  const variables = await parseNetCdfVariables(buffer);
+  const headers = variables.map((v) => v.name);
+  const checks = checkHeaders(headers);
+  if (headers.length > 0) {
+    checks.push(...checkUnitsNetCdf(variables));
+  }
+  return buildReport(filename, "netcdf", headers, checks);
+}
+
+export async function runComplianceChecks(file: File): Promise<ComplianceReport> {
+  const ext = file.name.split(".").pop()?.toLowerCase();
 
   if (ext === "csv" || ext === "tsv") {
-    const text = await file.text();
-    const headers = ext === "tsv" ? parseTsvHeaders(text) : parseCsvHeaders(text);
-
-    const checks: CheckResult[] = [
-      ...checkRecommendedHeaders(headers),
-      ...checkUnrecognizedHeaders(headers),
-      ...checkQcFlags(headers),
-      ...checkUnitsCsv(),
-    ];
-
-    return buildReport(filename, "csv", headers, checks);
+    return checkCsv(file.name, await readAsText(file));
   }
-
   if (ext === "xlsx" || ext === "xls") {
-    const buffer = await file.arrayBuffer();
-    const headers = await parseExcelHeaders(buffer);
-
-    const checks: CheckResult[] = [
-      ...checkRecommendedHeaders(headers),
-      ...checkUnrecognizedHeaders(headers),
-      ...checkQcFlags(headers),
-      ...checkUnitsCsv(),
-    ];
-
-    return buildReport(filename, "csv", headers, checks);
+    return checkExcel(file.name, await readAsArrayBuffer(file));
   }
-
   if (ext === "nc" || ext === "netcdf") {
-    const buffer = await file.arrayBuffer();
-    const variables = await parseNetCdfVariables(buffer);
-    const headers = variables.map((v) => v.name);
-
-    const checks: CheckResult[] = [
-      ...checkRecommendedHeaders(headers),
-      ...checkUnrecognizedHeaders(headers),
-      ...checkQcFlags(headers),
-      ...checkUnitsNetCdf(variables),
-    ];
-
-    return buildReport(filename, "netcdf", headers, checks);
+    return checkNetCdf(file.name, await readAsArrayBuffer(file));
   }
 
   throw new Error(
-    `Unsupported file type: .${ext}. Please upload a CSV, Excel (.xlsx), or NetCDF (.nc) file.`
+    `Unsupported file type: .${ext}. Please upload a CSV, Excel (.xlsx), or NetCDF (.nc) file.`,
   );
+}
+
+/** Checks that apply to any format's column/variable names. */
+function checkHeaders(headers: string[]): CheckResult[] {
+  if (headers.length === 0) {
+    return [
+      {
+        severity: "fail",
+        message: "No column headers detected",
+        details: "The file appears to be empty or could not be parsed.",
+      },
+    ];
+  }
+
+  return [
+    ...checkRecommendedHeaders(headers),
+    ...checkUnrecognizedHeaders(headers),
+    ...checkQcFlags(headers),
+  ];
+}
+
+// FileReader rather than file.text() / file.arrayBuffer(): jsdom implements
+// neither, and this matches importMetadata in exportImport.ts.
+function readAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+    reader.readAsText(file);
+  });
+}
+
+function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 function parseTsvHeaders(text: string): string[] {
   const firstLine = text.split(/\r?\n/).find((line) => line.trim() !== "");
   if (!firstLine) return [];
-  return firstLine.split("\t").map((h) => h.trim()).filter((h) => h.length > 0);
+  return firstLine
+    .split("\t")
+    .map((h) => h.trim())
+    .filter((h) => h.length > 0);
 }
 
 function buildReport(
   filename: string,
-  fileType: "csv" | "netcdf",
+  fileType: ComplianceReport["fileType"],
   columnHeaders: string[],
-  checks: CheckResult[]
+  checks: CheckResult[],
 ): ComplianceReport {
   const summary = { pass: 0, warn: 0, fail: 0 };
   for (const c of checks) {

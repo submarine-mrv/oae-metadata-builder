@@ -1,33 +1,29 @@
-import type React from "react";
-import { useCallback, useRef, useState } from "react";
 import {
-  Container,
-  Title,
-  Text,
-  Stack,
-  Paper,
-  Group,
-  Button,
-  Badge,
-  ThemeIcon,
   Accordion,
-  Code,
   Alert,
+  Badge,
+  Button,
+  Code,
+  Container,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
 } from "@mantine/core";
 import {
-  IconUpload,
-  IconCircleCheck,
   IconAlertTriangle,
+  IconCircleCheck,
   IconCircleX,
   IconFileCheck,
+  IconUpload,
   IconX,
 } from "@tabler/icons-react";
+import type React from "react";
+import { useCallback, useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import type {
-  ComplianceReport,
-  CheckResult,
-  CheckSeverity,
-} from "@/utils/complianceChecker";
+import type { CheckResult, CheckSeverity, ComplianceReport } from "@/utils/complianceChecker";
 import { runComplianceChecks } from "@/utils/complianceChecker";
 
 const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
@@ -77,11 +73,7 @@ function CheckResultItem({ result }: { result: CheckResult }) {
   );
 }
 
-function SummaryBadges({
-  summary,
-}: {
-  summary: ComplianceReport["summary"];
-}) {
+function SummaryBadges({ summary }: { summary: ComplianceReport["summary"] }) {
   return (
     <Group gap="xs">
       {summary.pass > 0 && (
@@ -121,8 +113,7 @@ function ReportDisplay({ report }: { report: ComplianceReport }) {
             <div>
               <Text fw={600}>{report.filename}</Text>
               <Text size="xs" c="dimmed">
-                {report.fileType.toUpperCase()} file &middot;{" "}
-                {report.columnHeaders.length} column
+                {report.fileType.toUpperCase()} file &middot; {report.columnHeaders.length} column
                 {report.columnHeaders.length !== 1 ? "s" : ""} detected
               </Text>
             </div>
@@ -149,9 +140,7 @@ function ReportDisplay({ report }: { report: ComplianceReport }) {
           </Accordion.Item>
 
           <Accordion.Item value="columns">
-            <Accordion.Control>
-              Detected Columns ({report.columnHeaders.length})
-            </Accordion.Control>
+            <Accordion.Control>Detected Columns ({report.columnHeaders.length})</Accordion.Control>
             <Accordion.Panel>
               <Code block style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
                 {report.columnHeaders.join("\n")}
@@ -175,12 +164,10 @@ export default function CheckerPage() {
     setReport(null);
 
     try {
-      const result = await runComplianceChecks({ file });
+      const result = await runComplianceChecks(file);
       setReport(result);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred."
-      );
+      setError(err instanceof Error ? err.message : "An unknown error occurred.");
     }
   }, []);
 
@@ -190,7 +177,7 @@ export default function CheckerPage() {
       if (file) handleFile(file);
       e.target.value = "";
     },
-    [handleFile]
+    [handleFile],
   );
 
   const handleDrop = useCallback(
@@ -200,7 +187,7 @@ export default function CheckerPage() {
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
-    [handleFile]
+    [handleFile],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -225,8 +212,8 @@ export default function CheckerPage() {
           <div>
             <Title order={2}>Compliance Checker</Title>
             <Text c="dimmed" mt="xs">
-              Upload a CSV, Excel, or NetCDF data file to check column headers
-              against the OAE Data Protocol&apos;s recommended variable names.
+              Upload a CSV, Excel, or NetCDF data file to check column headers against the OAE Data
+              Protocol&apos;s recommended variable names.
             </Text>
           </div>
 
@@ -238,12 +225,8 @@ export default function CheckerPage() {
             style={{
               borderStyle: "dashed",
               borderWidth: 2,
-              borderColor: isDragging
-                ? "var(--mantine-color-blue-5)"
-                : undefined,
-              backgroundColor: isDragging
-                ? "var(--mantine-color-blue-0)"
-                : undefined,
+              borderColor: isDragging ? "var(--mantine-color-blue-5)" : undefined,
+              backgroundColor: isDragging ? "var(--mantine-color-blue-0)" : undefined,
               cursor: "pointer",
               transition: "border-color 150ms, background-color 150ms",
             }}
