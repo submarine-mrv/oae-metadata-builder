@@ -1,0 +1,4 @@
+sample_id,station_id,date,time,latitude,longitude,depth,depth_flag,temperature,temperature_flag,salinity,salinity_flag,dic,dic_flag,ta,ta_flag,ph_t_insitu,ph_t_insitu_flag,omega_ar,omega_ar_flag
+OAE-001,ST01,2026-03-14,09:15:00,36.8021,-121.7876,5.0,1,13.42,1,33.51,1,2045.3,1,2231.8,1,8.062,1,2.41,1
+OAE-002,ST01,2026-03-14,09:15:00,36.8021,-121.7876,25.0,1,12.10,1,33.62,1,2078.9,1,2240.1,1,8.011,1,2.18,1
+OAE-003,ST02,2026-03-14,11:40:00,36.7955,-121.8102,5.0,1,13.38,1,33.49,2,2051.7,1,2312.4,1,8.144,1,2.87,1
