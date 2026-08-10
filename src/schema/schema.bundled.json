@@ -3599,7 +3599,7 @@
           "uniqueItems": true
         },
         "name": {
-          "description": "Optional common name for experiment.",
+          "description": "Common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -3626,6 +3626,7 @@
         }
       },
       "required": [
+        "name",
         "description",
         "spatial_coverage",
         "project_id",
@@ -4306,7 +4307,7 @@
           ]
         },
         "name": {
-          "description": "Optional common name for experiment.",
+          "description": "Common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -4349,6 +4350,7 @@
         }
       },
       "required": [
+        "name",
         "description",
         "spatial_coverage",
         "project_id",
@@ -4559,7 +4561,7 @@
           ]
         },
         "name": {
-          "description": "Optional common name for experiment.",
+          "description": "Common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -4615,6 +4617,7 @@
         "dosing_depth",
         "dosing_regimen",
         "dosing_description",
+        "name",
         "description",
         "spatial_coverage",
         "project_id",
@@ -4849,7 +4852,7 @@
           ]
         },
         "name": {
-          "description": "Optional common name for experiment.",
+          "description": "Common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -4923,6 +4926,7 @@
         "dosing_depth",
         "dosing_regimen",
         "dosing_description",
+        "name",
         "description",
         "spatial_coverage",
         "project_id",
@@ -5104,7 +5108,7 @@
           ]
         },
         "name": {
-          "description": "Optional common name for experiment.",
+          "description": "Common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -5141,6 +5145,7 @@
         }
       },
       "required": [
+        "name",
         "description",
         "spatial_coverage",
         "project_id",
@@ -6882,7 +6887,8 @@
         "temporal_coverage",
         "spatial_coverage",
         "project_leads",
-        "mcdr_pathway"
+        "mcdr_pathway",
+        "research_project"
       ],
       "title": "Project",
       "type": "object"
@@ -7454,7 +7460,7 @@
           ]
         },
         "name": {
-          "description": "Optional common name for experiment.",
+          "description": "Common name for experiment.",
           "title": "Name",
           "type": "string"
         },
@@ -7521,6 +7527,7 @@
         "dosing_depth",
         "dosing_regimen",
         "dosing_description",
+        "name",
         "description",
         "spatial_coverage",
         "project_id",
@@ -7669,6 +7676,6 @@
   },
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
-  "version": "0.1.0",
-  "x-protocol-git-hash": "e48c48b9995213e5e8f71d4cc4d718fe2ea56d19"
+  "version": "0.1.1",
+  "x-protocol-git-hash": "dbbe993d531e98ec01fb3bb25ae788585f8b45a3"
 }
