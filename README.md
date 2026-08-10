@@ -152,6 +152,28 @@ SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
 - **UI Layout**: Update the page's `uiSchema.ts` (e.g. `/src/pages/project/uiSchema.ts`) for field ordering and presentation
 - **Components**: Add new widgets/fields in `/src/components/`
 
+### Analytics
+
+GA4 lives in `/src/utils/analytics.ts`, initialized once from `/src/main.tsx`. Page views come
+from TanStack Router's `onResolved` event, including the initial load. Funnel events
+(`metadata_export`, `metadata_import`, `session_restore`, `session_discard`) are sent via
+`trackEvent`.
+
+Tracking is gated on one build-time variable:
+
+```bash
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+Unset (the default for local dev and tests), gtag.js is never loaded. The production value is
+set in Netlify under **Site settings → Environment variables**. See `.env.example`.
+
+The measurement ID and Data Stream are shared with
+[oae-data-web](https://github.com/submarine-mrv/oae-data-web); the subdomains are split in the
+GA UI by the **Hostname** dimension.
+
+Only page paths and counts are sent — never pass form field values to `trackEvent`.
+
 ## Related Repositories
 
 - [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol) - Source schema definition and protocol specification
