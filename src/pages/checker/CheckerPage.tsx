@@ -28,6 +28,11 @@ import { runComplianceChecks } from "@/utils/complianceChecker";
 
 const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
 
+/** Whole files are read into memory and parsed on the main thread. */
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+
+const formatMb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
+
 const SEVERITY_CONFIG: Record<
   CheckSeverity,
   { color: string; icon: React.ReactNode; label: string }
@@ -158,16 +163,31 @@ export default function CheckerPage() {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const latestUpload = useRef(0);
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
     setReport(null);
 
+    if (file.size > MAX_FILE_BYTES) {
+      setError(
+        `${file.name} is ${formatMb(file.size)}, over the ${formatMb(MAX_FILE_BYTES)} limit. ` +
+          "Parsing runs in the browser on the main thread; check a subset instead.",
+      );
+      return;
+    }
+
+    // Parsing is async, so a second upload can resolve before the first.
+    // Only the most recent one may write to state.
+    const upload = ++latestUpload.current;
+
     try {
       const result = await runComplianceChecks(file);
-      setReport(result);
+      if (upload === latestUpload.current) setReport(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred.");
+      if (upload === latestUpload.current) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred.");
+      }
     }
   }, []);
 
