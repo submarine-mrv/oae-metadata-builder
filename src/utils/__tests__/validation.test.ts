@@ -7,6 +7,7 @@ describe("Validation", () => {
     it("should validate valid project data", () => {
       const validData = {
         project_id: "test-project-001",
+        research_project: "Test OAE Research Project",
         description: "A comprehensive test project for OAE research",
         mcdr_pathway: "ocean_alkalinity_enhancement",
         sea_names: ["http://vocab.nerc.ac.uk/collection/C16/current/26/"],
@@ -69,6 +70,7 @@ describe("Validation", () => {
     it("should validate experiment with baseline type", () => {
       const validExperiment: DraftExperiment = {
         experiment_id: "exp-baseline-001",
+        name: "Baseline Experiment",
         project_id: "", // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
         experiment_types: ["baseline"],
         description: "Baseline measurements before intervention",
