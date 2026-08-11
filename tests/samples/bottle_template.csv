@@ -5,8 +5,15 @@
 # File last updated on: YYYY-MM-DD
 # File prepared by: Firstname Lastname (Institution)
 # Lead PI: Firstname Lastname (institution)
-# Flag scheme: 0 = interpolated, 1 = not evaluated, 2 = acceptable, 9 = missing
+"# Chief Scientist: For research cruise only, Firstname Lastname (institution)"
+# DIC: Who - B.Tilbrook; Status - Final
+# Notes:
+"# Flag scheme: 0 = interpolated, 1 = not evaluated/quality unknown, 2- acceptable, 9 = missing value"
+# Link to the metadata:
+#
 Exp_ID,Cruise_ID,Station_ID,Sample_ID,Year_UTC,Month_UTC,Day_UTC,Time_UTC,Latitude,Longitude,Depth,TEMP_ITS90,TEMP_flag,SAL_PSS78,SAL_flag,Doxy,Doxy_flag,DIC,DIC_flag,TA,TA_flag,pH_T_measured,pH_flag,Silicate,Silicate_flag,Phosphate,Phosphate_flag,Nitrate,Nitrate_flag
 n.a.,n.a.,n.a.,n.a.,n.a.,n.a.,n.a.,hh:mm:ss,decimal degrees,decimal degrees,m,deg_C,n.a.,n.a.,n.a.,umol/kg,n.a.,umol/kg,n.a.,umol/kg,n.a.,n.a.,n.a.,umol/kg,n.a.,umol/kg,n.a.,umol/kg,n.a.
 33RO20200318,A16N2020,1,10112,2020,3,18,15:41,24.4673,-82.866,9.9,29.73,2,35.98,2,196.1,2,2037.6,6,2378.9,6,8.084,2,0.40,2,0.03,2,0.00,2
 33RO20200318,A16N2020,1,10108,2020,3,18,15:15,24.4673,-82.866,26.8,27.73,2,35.98,2,196.3,2,-999.0,9,-999.0,9,-999.000,9,-999.00,9,-999.00,9,-999.00,9
+"(For reference, below are their corresponding WOCE WHP column headers, please feel free to delete them when you prepare your data files)"
+EXPOCODE,N/A,STNNBR,SAMPNO,DATE,DATE,DATE,TIME,LATITUDE,LONGITUDE,N/A,CTDTMP (ITS-90),N/A,CTDSAL (PSS-78),CTDSAL_FLAG_W,CTDOXY (UMOL/KG),CTDOXY_FLAG_W,TCARBN (UMOL/kg),TCARBN_FLAG_W,ALKALI (UMOL/kg),ALKALI_FLAG_W,PH_TOT,PH_TOT_FLAG_W,SILCAT (UMOL/KG),SILCAT_FLAG_W,PHSPHT (UMOL/KG),PHSPHT_FLAG_W,NITRAT (UMOL/KG),NITRAT_FLAG_W

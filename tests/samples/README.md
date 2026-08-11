@@ -8,7 +8,7 @@ menu — go to the URL directly). The same files back the unit tests in
 |---|---|
 | `compliant.csv` | 5 passes, no warnings. 20 columns; 8 declare units, 5 marked not applicable. |
 | `bottle_template.csv` | Protocol template shape. 29 columns past the `#` preamble, 4 passes, 3 warnings. |
-| `noncompliant.csv` | 1 pass, 4 warnings: unrecognized columns, missing QC flag, orphan flag, no units row. |
+| `noncompliant.csv` | 1 pass, 3 warnings, **1 failure** — it has no units row. |
 | `empty.csv` | 1 failure: "No column headers detected". |
 | `compliant.xlsx` | Byte-for-byte the same columns and units as `compliant.csv`, typed **XLSX**. |
 | `model_output_v3.nc` | 2 passes, 2 warnings. All 11 variables declare units. |
@@ -16,22 +16,31 @@ menu — go to the URL directly). The same files back the unit tests in
 
 ## Tabular file shape
 
-The protocol's Excel templates (`bottle`, `underway`, `autonomous`, `physiological`) all look like this,
-and the parser follows the same rules for CSV, TSV, and XLSX:
+The protocol's Excel templates (`bottle`, `flow through`, `autonomous`, `physiological`) all look like
+this, and the parser follows the same rules for CSV, TSV, and XLSX:
 
 ```
-# Project ID: OAE-DEMO-01          <- "#" lines are metadata, skipped
+# Project ID: OAE-DEMO-01          <- "#" in column 1 marks a comment row, skipped
 # Template version: 1.0.1
+#                                  <- the templates end the preamble with a bare "#"
 sample_id, latitude,         depth, temperature    <- first row that isn't "#" or blank
-n.a.,      decimal degrees,  m,     deg_C          <- units row
+n.a.,      decimal degrees,  m,     deg_C          <- units row, immediately below
 OAE-001,   36.8021,          5.0,   13.42          <- data
 ```
 
-`n.a.`, `n/a`, `none`, and `-` all mean "no units apply" and display as *not applicable*, which is
-distinct from a blank cell (*not declared*).
+Comment rows may appear anywhere, including between the header and units rows, but the `#` must be in
+the first column. A comment containing commas is quoted, as in
+`"# Flag scheme: 0 = interpolated, 2 = acceptable"`.
 
-A plain CSV with no units row still works: the row under the header is only read as units when it
-doesn't look like data. `noncompliant.csv` covers that path.
+`n.a.`, `n/a`, `none`, and `-` all mean "no units apply" and display as *not applicable*, distinct
+from a blank cell (*not declared*).
+
+**The units row is required.** Since no unit is a bare number, a numeric value directly below the
+header means that row is the first data record and the file has no units row — that's a failure, not
+a warning. `noncompliant.csv` covers it.
+
+Anything below the data is ignored, including the WOCE reference block the `bottle` template appends
+under its records.
 
 ## Why two NetCDF files
 

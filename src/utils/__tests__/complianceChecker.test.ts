@@ -93,40 +93,93 @@ describe("RECOMMENDED_VARIABLES", () => {
   });
 });
 
-describe("comment preamble and units row", () => {
-  it("skips # lines and takes the first real row as the header", () => {
-    const columns = parseDelimitedColumns(
-      ["# Project ID: X", "# Template version: 1.0.1", "a,b", "m,degC", "1,2"].join("\n"),
+describe("comment rows and the units row", () => {
+  it("skips # and blank rows wherever they appear, not just at the top", () => {
+    const parsed = parseDelimitedColumns(
+      [
+        "# Project ID: X",
+        "",
+        "# Template version: 1.0.1",
+        "depth,temperature",
+        "",
+        "# a stray note between the header and the units",
+        "m,deg_C",
+        "5.0,13.4",
+      ].join("\n"),
     );
 
-    expect(columns.map((c) => c.name)).toEqual(["a", "b"]);
+    expect(parsed.unitsRow.kind).toBe("ok");
+    expect(unitsOf(parsed.columns, "depth")).toBe("m");
+    expect(unitsOf(parsed.columns, "temperature")).toBe("deg_C");
   });
 
-  it("reads the row under the header as units", () => {
-    const columns = parseDelimitedColumns("depth,temperature\nm,deg_C\n5.0,13.4");
+  it("handles the comment shapes the templates actually use", () => {
+    // A quoted comment containing commas, and the bare "#" row that sits
+    // immediately above the header in bottle.xlsx.
+    const parsed = parseDelimitedColumns(
+      [
+        '"# Flag scheme: 0 = interpolated, 2 = acceptable"',
+        "#",
+        "depth,temperature",
+        "m,deg_C",
+        "5.0,13.4",
+      ].join("\n"),
+    );
 
-    expect(unitsOf(columns, "depth")).toBe("m");
-    expect(unitsOf(columns, "temperature")).toBe("deg_C");
+    expect(parsed.columns.map((c) => c.name)).toEqual(["depth", "temperature"]);
+    expect(unitsOf(parsed.columns, "temperature")).toBe("deg_C");
+  });
+
+  it("only treats # as a comment in the first column", () => {
+    const parsed = parseDelimitedColumns("depth,# not a comment\nm,n.a.\n5.0,x");
+
+    expect(parsed.columns.map((c) => c.name)).toEqual(["depth", "# not a comment"]);
   });
 
   it("treats n.a. spellings as not applicable rather than a unit", () => {
-    const columns = parseDelimitedColumns("a,b,c,d\nn.a.,N/A,none,-\n1,2,3,4");
+    const parsed = parseDelimitedColumns("a,b,c,d\nn.a.,N/A,none,-\n1,2,3,4");
 
-    expect(columns.map((c) => c.units.kind)).toEqual(Array(4).fill("not-applicable"));
-  });
-
-  it("does not mistake a first data row for units", () => {
-    // A plain CSV goes straight to data. Reading row 2 as units regardless would
-    // label every column with a measurement.
-    const columns = parseDelimitedColumns("depth,temperature\n5.0,13.4\n25.0,12.1");
-
-    expect(columns.map((c) => c.units.kind)).toEqual(["missing", "missing"]);
+    expect(parsed.columns.map((c) => c.units.kind)).toEqual(Array(4).fill("not-applicable"));
   });
 
   it("keeps units aligned with headers when a units cell is blank", () => {
-    const columns = parseDelimitedColumns("a,b,c\nm,,umol/kg\n1,2,3");
+    const parsed = parseDelimitedColumns("a,b,c\nm,,umol/kg\n1,2,3");
 
-    expect(columns.map((c) => unitsLabel(c.units))).toEqual(["m", "not declared", "umol/kg"]);
+    expect(parsed.columns.map((c) => unitsLabel(c.units))).toEqual([
+      "m",
+      "not declared",
+      "umol/kg",
+    ]);
+  });
+});
+
+describe("units row validation", () => {
+  it("fails when the row below the header holds numbers", () => {
+    // No unit is a bare number, so this row is the first data record and the
+    // file has no units row at all.
+    const report = checkCsv("x.csv", "depth,temperature\n5.0,13.4\n25.0,12.1");
+
+    expect(report.summary.fail).toBe(1);
+    expect(messages(report, "fail")).toEqual(["Units row contains 2 numeric values"]);
+  });
+
+  it("names the offending columns and values", () => {
+    const report = checkCsv("x.csv", "depth,temperature\n5.0,deg_C\n25.0,12.1");
+
+    const failure = report.checks.find((c) => c.severity === "fail");
+    expect(failure?.details).toContain("depth = 5.0");
+  });
+
+  it("does not label columns with values taken from a data row", () => {
+    const report = checkCsv("x.csv", "sample_id,depth\nOAE-001,5.0\nOAE-002,25.0");
+
+    expect(report.columns.map((c) => c.units.kind)).toEqual(["missing", "missing"]);
+  });
+
+  it("fails when there is nothing below the header at all", () => {
+    const report = checkCsv("x.csv", "depth,temperature");
+
+    expect(messages(report, "fail")).toEqual(["No units row"]);
   });
 });
 
@@ -153,13 +206,13 @@ describe("checkCsv", () => {
   it("warns about unrecognized headers, missing QC flags, and orphan flags", () => {
     const report = checkCsv("noncompliant.csv", sampleText("noncompliant.csv"));
 
-    expect(report.summary.fail).toBe(0);
     expect(messages(report, "warn")).toEqual([
       "6 columns not in recommended list",
       "1 variable missing QC flag columns",
       "1 QC flag column without matching variable",
-      "No units declared for any column",
     ]);
+    // It also has no units row, which the protocol requires.
+    expect(report.summary.fail).toBe(1);
   });
 
   it("fails a file with no detectable headers", () => {

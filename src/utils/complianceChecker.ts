@@ -151,38 +151,74 @@ export function unitsLabel(units: Units): string {
 // Tabular parsing (CSV, TSV, Excel)
 // ---------------------------------------------------------------------------
 
-const isCommentRow = (row: string[]) => (row[0] ?? "").trim().startsWith("#");
 const isBlankRow = (row: string[]) => row.every((cell) => cell.trim() === "");
 
 /**
- * True when a row reads as units rather than data. The protocol templates put
- * units directly under the header, but a plain CSV goes straight to data, and
- * mistaking the first record for units would mislabel every column. Data rows
- * in these files are overwhelmingly numeric; units rows are not.
+ * Comment rows can sit anywhere above or between the header and units rows, but
+ * the "#" is always in the first column — that is how every protocol template
+ * writes them, including the bare "#" row that sits just above the header.
  */
-function looksLikeUnitsRow(row: string[]): boolean {
-  const filled = row.map((c) => c.trim()).filter((c) => c !== "");
-  if (filled.length === 0) return false;
-  const numeric = filled.filter((c) => c !== "" && Number.isFinite(Number(c)));
-  return numeric.length * 2 <= filled.length;
+const isCommentRow = (row: string[]) => (row[0] ?? "").trim().startsWith("#");
+
+/**
+ * The protocol requires a units row: "the column header name in the top cell,
+ * and the units in one cell immediately below the column header name, with data
+ * values following". So the row under the header is the units row by position,
+ * and a file without one is non-conformant rather than merely undocumented.
+ */
+export type UnitsRow =
+  | { kind: "ok" }
+  /** Nothing below the header at all. */
+  | { kind: "absent" }
+  /** Numbers below the header, so that row is data — the units row is missing. */
+  | { kind: "numeric"; cells: Array<{ column: string; value: string }> };
+
+export interface TabularParse {
+  columns: ParsedColumn[];
+  unitsRow: UnitsRow;
 }
+
+/** No unit is a bare number, so a numeric cell means we are looking at data. */
+const isNumericCell = (cell: string) => cell.trim() !== "" && Number.isFinite(Number(cell));
 
 /**
  * Reduce raw rows to columns. Rows beginning with "#" are metadata comments and
- * are skipped; the first row left is the header, and the one after it is the
- * units row when it reads as one.
+ * are skipped; the first row left is the header and the next one is the units row.
  */
-export function parseTabularColumns(rows: string[][]): ParsedColumn[] {
+export function parseTabularColumns(rows: string[][]): TabularParse {
   const body = rows.filter((row) => !isBlankRow(row) && !isCommentRow(row));
   const header = body[0];
-  if (!header) return [];
+  if (!header) return { columns: [], unitsRow: { kind: "absent" } };
 
-  const unitsRow = body[1] && looksLikeUnitsRow(body[1]) ? body[1] : undefined;
-
-  // Positions are kept while pairing header to units, then unnamed columns drop.
-  return header
-    .map((name, i) => ({ name: name.trim(), units: toUnits(unitsRow?.[i]) }))
+  // Positions are kept while pairing header to units; unnamed columns drop after.
+  const named = header
+    .map((name, i) => ({ name: name.trim(), index: i }))
     .filter((c) => c.name !== "");
+
+  const row = body[1];
+  if (!row) {
+    return {
+      columns: named.map((c) => ({ name: c.name, units: { kind: "missing" } })),
+      unitsRow: { kind: "absent" },
+    };
+  }
+
+  const numeric = named
+    .filter((c) => isNumericCell(row[c.index] ?? ""))
+    .map((c) => ({ column: c.name, value: (row[c.index] ?? "").trim() }));
+
+  if (numeric.length > 0) {
+    // Don't label columns with values from a data row.
+    return {
+      columns: named.map((c) => ({ name: c.name, units: { kind: "missing" } })),
+      unitsRow: { kind: "numeric", cells: numeric },
+    };
+  }
+
+  return {
+    columns: named.map((c) => ({ name: c.name, units: toUnits(row[c.index]) })),
+    unitsRow: { kind: "ok" },
+  };
 }
 
 /** Split one delimited line, honouring double quotes. */
@@ -205,18 +241,18 @@ function splitLine(line: string, delimiter: string): string[] {
   return cells;
 }
 
-export function parseDelimitedColumns(text: string, delimiter = ","): ParsedColumn[] {
+export function parseDelimitedColumns(text: string, delimiter = ","): TabularParse {
   const rows = text.split(/\r?\n/).map((line) => splitLine(line, delimiter));
   return parseTabularColumns(rows);
 }
 
-export async function parseExcelColumns(buffer: ArrayBuffer): Promise<ParsedColumn[]> {
+export async function parseExcelColumns(buffer: ArrayBuffer): Promise<TabularParse> {
   const XLSX = await import("xlsx");
   // type "array" means Uint8Array. Handed a bare ArrayBuffer, SheetJS falls
   // back to reading the zip bytes as text and yields one garbage column.
   const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (!firstSheet) return [];
+  if (!firstSheet) return { columns: [], unitsRow: { kind: "absent" } };
   const rows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
     header: 1,
     blankrows: false,
@@ -227,7 +263,7 @@ export async function parseExcelColumns(buffer: ArrayBuffer): Promise<ParsedColu
 
 /** Column headers only. Kept for callers that don't care about units. */
 export function parseCsvHeaders(text: string): string[] {
-  return parseDelimitedColumns(text).map((c) => c.name);
+  return parseDelimitedColumns(text).columns.map((c) => c.name);
 }
 
 // ---------------------------------------------------------------------------
@@ -376,10 +412,13 @@ function checkQcFlags(headers: string[]): CheckResult[] {
  *
  * QC flag columns are excluded — a flag is a code, not a measurement.
  */
-function checkUnits(columns: ParsedColumn[]): CheckResult[] {
+function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[] {
   const results: CheckResult[] = [];
   const measured = columns.filter((c) => !isQcFlagColumn(c.name));
   if (measured.length === 0) return results;
+
+  const rowProblem = unitsRow && unitsRow.kind !== "ok" ? describeUnitsRow(unitsRow) : undefined;
+  if (rowProblem) return [rowProblem];
 
   const declared = measured.filter((c) => c.units.kind === "declared");
   const notApplicable = measured.filter((c) => c.units.kind === "not-applicable");
@@ -389,9 +428,7 @@ function checkUnits(columns: ParsedColumn[]): CheckResult[] {
     results.push({
       severity: "warn",
       message: "No units declared for any column",
-      details:
-        "Spreadsheets should carry a units row directly under the header; " +
-        "NetCDF variables should carry a units attribute.",
+      details: "NetCDF variables should carry a units attribute.",
     });
     return results;
   }
@@ -423,6 +460,30 @@ function checkUnits(columns: ParsedColumn[]): CheckResult[] {
   return results;
 }
 
+/** A missing or data-filled units row fails the file outright. */
+function describeUnitsRow(unitsRow: Exclude<UnitsRow, { kind: "ok" }>): CheckResult {
+  if (unitsRow.kind === "absent") {
+    return {
+      severity: "fail",
+      message: "No units row",
+      details:
+        "The row immediately below the column headers must hold the units for each column. " +
+        'Use "n.a." where units do not apply.',
+    };
+  }
+
+  const shown = unitsRow.cells.slice(0, 8).map((c) => `${c.column} = ${c.value}`);
+  const extra = unitsRow.cells.length - shown.length;
+  return {
+    severity: "fail",
+    message: `Units row contains ${unitsRow.cells.length} numeric value${unitsRow.cells.length === 1 ? "" : "s"}`,
+    details:
+      `${shown.join(", ")}${extra > 0 ? `, and ${extra} more` : ""}. ` +
+      "Numbers are data, not units, so the row below the headers looks like the first record. " +
+      'Insert a units row, using "n.a." where units do not apply.',
+  };
+}
+
 /** "umol/kg (4), deg_C (2)" — repeated spellings of one unit stand out here. */
 function tallyUnits(columns: ParsedColumn[]): string {
   const counts = new Map<string, number>();
@@ -445,17 +506,20 @@ function tallyUnits(columns: ParsedColumn[]): string {
 
 export function checkCsv(filename: string, text: string): ComplianceReport {
   const delimiter = filename.toLowerCase().endsWith(".tsv") ? "\t" : ",";
-  return buildReport(filename, "csv", parseDelimitedColumns(text, delimiter));
+  const parsed = parseDelimitedColumns(text, delimiter);
+  return buildReport(filename, "csv", parsed.columns, parsed.unitsRow);
 }
 
 export async function checkExcel(filename: string, buffer: ArrayBuffer): Promise<ComplianceReport> {
-  return buildReport(filename, "xlsx", await parseExcelColumns(buffer));
+  const parsed = await parseExcelColumns(buffer);
+  return buildReport(filename, "xlsx", parsed.columns, parsed.unitsRow);
 }
 
 export async function checkNetCdf(
   filename: string,
   buffer: ArrayBuffer,
 ): Promise<ComplianceReport> {
+  // NetCDF carries units per variable attribute; there is no units row.
   return buildReport(filename, "netcdf", await parseNetCdfColumns(buffer));
 }
 
@@ -478,7 +542,7 @@ export async function runComplianceChecks(file: File): Promise<ComplianceReport>
 }
 
 /** Every format runs the same checks, so the reports read the same. */
-function runChecks(columns: ParsedColumn[]): CheckResult[] {
+function runChecks(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[] {
   if (columns.length === 0) {
     return [
       {
@@ -494,7 +558,7 @@ function runChecks(columns: ParsedColumn[]): CheckResult[] {
     ...checkRecommendedHeaders(headers),
     ...checkUnrecognizedHeaders(headers),
     ...checkQcFlags(headers),
-    ...checkUnits(columns),
+    ...checkUnits(columns, unitsRow),
   ];
 }
 
@@ -522,8 +586,9 @@ function buildReport(
   filename: string,
   fileType: ComplianceReport["fileType"],
   columns: ParsedColumn[],
+  unitsRow?: UnitsRow,
 ): ComplianceReport {
-  const checks = runChecks(columns);
+  const checks = runChecks(columns, unitsRow);
   const summary = { pass: 0, warn: 0, fail: 0 };
   for (const c of checks) {
     summary[c.severity]++;
