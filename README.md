@@ -159,10 +159,6 @@ Google Analytics is gated on one build-time variable, set in the deploy environm
 ```bash
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
-
-Unset — the default for local dev and tests — gtag.js is never loaded. Implementation is in
-`/src/utils/analytics.ts`. Only page paths and counts are sent, never form field values.
-
 ## Related Repositories
 
 - [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol) - Source schema definition and protocol specification
