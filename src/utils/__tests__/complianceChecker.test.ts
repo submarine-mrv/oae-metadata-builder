@@ -208,7 +208,7 @@ describe("checkCsv", () => {
 
     expect(messages(report, "warn")).toEqual([
       "6 columns not in recommended list",
-      "1 variable missing QC flag columns",
+      "1 variable is missing a QC flag column",
       "1 QC flag column without matching variable",
     ]);
     // It also has no units row, which the protocol requires.
@@ -221,6 +221,60 @@ describe("checkCsv", () => {
     expect(report.summary.fail).toBe(1);
     expect(messages(report, "fail")).toEqual(["No column headers detected"]);
     expect(report.checks).toHaveLength(1);
+  });
+});
+
+describe("QC flag pairing", () => {
+  // The templates suffix the variable but not the flag, so exact matching alone
+  // reported these correctly-paired columns as orphans.
+  const pairs = [
+    ["TEMP_ITS90", "TEMP_flag"],
+    ["Salinity_PSS78", "Salinity_flag"],
+    ["fCO2_SW_SST", "fCO2_SW_flag"],
+    ["doxy", "doxygen_flag"],
+  ];
+
+  it.each(pairs)("pairs %s with %s", (variable, flag) => {
+    const report = checkCsv("x.csv", `${variable},${flag}\nn.a.,n.a.\n1,2`);
+
+    expect(messages(report, "warn")).not.toContain("1 QC flag column without matching variable");
+  });
+
+  it("gives each flag to its most specific variable", () => {
+    // SAL_ is a prefix of Salinity_, so the shorter base must not win.
+    const report = checkCsv(
+      "x.csv",
+      "SAL_PSS78,SAL_flag,Salinity_PSS78,Salinity_flag\nn.a.,n.a.,n.a.,n.a.\n1,2,3,4",
+    );
+
+    expect(report.checks.some((c) => c.message.includes("without matching variable"))).toBe(false);
+  });
+
+  it("still reports a genuinely orphaned flag", () => {
+    const report = checkCsv("x.csv", "depth,oxygen_flag\nm,n.a.\n1,2");
+
+    expect(messages(report, "warn")).toContain("1 QC flag column without matching variable");
+  });
+});
+
+describe("stray note above the header", () => {
+  it("fails rather than treating the note as the header row", () => {
+    // physiological.xlsx puts "(example response variables)" between the
+    // preamble and the header, with no "#". Users are expected to delete it.
+    const report = checkCsv(
+      "physiological.csv",
+      [
+        "# Notes: For pH, T stands for total scale.",
+        ",,,,,,(example response variables),,,,",
+        "Exp_ID,Measurement_ID,Temperature_ITS90,DIC",
+        "n.a.,n.a.,deg_C,umol/kg",
+        "1,2,25.7,2037.6",
+      ].join("\n"),
+    );
+
+    expect(report.summary.fail).toBe(1);
+    expect(messages(report, "fail")).toEqual(["Unexpected row above the column headers"]);
+    expect(report.checks[0].details).toContain("(example response variables)");
   });
 });
 

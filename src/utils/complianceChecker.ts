@@ -171,7 +171,9 @@ export type UnitsRow =
   /** Nothing below the header at all. */
   | { kind: "absent" }
   /** Numbers below the header, so that row is data — the units row is missing. */
-  | { kind: "numeric"; cells: Array<{ column: string; value: string }> };
+  | { kind: "numeric"; cells: Array<{ column: string; value: string }> }
+  /** A stray note sits above the header, so we never reached the real one. */
+  | { kind: "stray-note"; note: string };
 
 export interface TabularParse {
   columns: ParsedColumn[];
@@ -196,6 +198,17 @@ export function parseTabularColumns(rows: string[][]): TabularParse {
     .filter((c) => c.name !== "");
 
   const row = body[1];
+
+  // physiological.xlsx carries an unprefixed "(example response variables)" note
+  // between the preamble and the header. A header row narrower than the row
+  // under it means we stopped on a note like that rather than the real header.
+  const filled = (r: string[]) => r.filter((cell) => cell.trim() !== "").length;
+  if (row && filled(header) < filled(row)) {
+    return {
+      columns: [],
+      unitsRow: { kind: "stray-note", note: named.map((c) => c.name).join(", ") },
+    };
+  }
   if (!row) {
     return {
       columns: named.map((c) => ({ name: c.name, units: { kind: "missing" } })),
@@ -293,10 +306,45 @@ function isQcFlagColumn(name: string): boolean {
   return QC_FLAG_PATTERNS.some((p) => p.test(name));
 }
 
+/** Strip the flag affix to get the variable name a QC column refers to. */
+function qcFlagBase(name: string): string {
+  return name
+    .replace(/_flag$/i, "")
+    .replace(/_qc$/i, "")
+    .replace(/_quality$/i, "")
+    .replace(/^qc_/i, "")
+    .toLowerCase();
+}
+
+/**
+ * Pair a variable with its QC flag column.
+ *
+ * The exact forms (`depth` + `depth_flag`) are tried first. The templates then
+ * need a looser rule, because they suffix the variable but not the flag:
+ * `TEMP_flag` belongs to `TEMP_ITS90`, `Salinity_flag` to `Salinity_PSS78`,
+ * `fCO2_SW_flag` to `fCO2_SW_SST`. And occasionally the flag is the longer name,
+ * as with `doxygen_flag` for `doxy`.
+ */
 function findQcFlagFor(variableName: string, allHeaders: string[]): string | undefined {
   const lower = variableName.toLowerCase();
-  const candidates = [`${lower}_flag`, `${lower}_qc`, `${lower}_quality`, `qc_${lower}`];
-  return allHeaders.find((h) => candidates.includes(h.toLowerCase()));
+  const exact = [`${lower}_flag`, `${lower}_qc`, `${lower}_quality`, `qc_${lower}`];
+
+  const flags = allHeaders.filter((h) => isQcFlagColumn(h));
+  const exactMatch = flags.find((h) => exact.includes(h.toLowerCase()));
+  if (exactMatch) return exactMatch;
+
+  // Longest base first, so Salinity_PSS78 takes Salinity_flag rather than
+  // SAL_flag, leaving SAL_flag for SAL_PSS78.
+  return flags
+    .map((h) => ({ header: h, base: qcFlagBase(h) }))
+    .filter(({ base }) => {
+      if (base === "") return false;
+      // The variable carries a scale or method suffix the flag omits.
+      if (lower.startsWith(base)) return true;
+      // The flag spells the variable out more fully than the column does.
+      return lower.length >= 3 && base.startsWith(lower);
+    })
+    .sort((a, b) => b.base.length - a.base.length)[0]?.header;
 }
 
 /**
@@ -347,7 +395,6 @@ function checkUnrecognizedHeaders(headers: string[]): CheckResult[] {
  */
 function checkQcFlags(headers: string[]): CheckResult[] {
   const results: CheckResult[] = [];
-  const lowerHeaders = headers.map((h) => h.toLowerCase());
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
 
   // Only check recommended variables that expect QC flags and are present in the file
@@ -360,7 +407,7 @@ function checkQcFlags(headers: string[]): CheckResult[] {
   const presentQc: string[] = [];
 
   for (const v of varsNeedingQc) {
-    const qcCol = findQcFlagFor(v, lowerHeaders);
+    const qcCol = findQcFlagFor(v, headers);
     if (qcCol) {
       presentQc.push(v);
     } else {
@@ -371,7 +418,10 @@ function checkQcFlags(headers: string[]): CheckResult[] {
   if (presentQc.length > 0) {
     results.push({
       severity: "pass",
-      message: `${presentQc.length} variable${presentQc.length === 1 ? "" : "s"} have QC flag columns`,
+      message:
+        presentQc.length === 1
+          ? "1 variable has a QC flag column"
+          : `${presentQc.length} variables have QC flag columns`,
       details: presentQc.join(", "),
     });
   }
@@ -379,22 +429,21 @@ function checkQcFlags(headers: string[]): CheckResult[] {
   if (missingQc.length > 0) {
     results.push({
       severity: "warn",
-      message: `${missingQc.length} variable${missingQc.length === 1 ? "" : "s"} missing QC flag columns`,
+      message:
+        missingQc.length === 1
+          ? "1 variable is missing a QC flag column"
+          : `${missingQc.length} variables are missing QC flag columns`,
       details: missingQc.join(", "),
     });
   }
 
-  // Check for orphan QC flag columns (QC flags without matching variables)
+  // Orphans are QC flags no variable claims. Uses the same pairing rule as
+  // above, so the two checks cannot disagree about a given column.
   const qcHeaders = headers.filter((h) => isQcFlagColumn(h));
-  const orphanQc = qcHeaders.filter((qcH) => {
-    // Strip suffixes to find the base variable name
-    const base = qcH
-      .replace(/_flag$/i, "")
-      .replace(/_qc$/i, "")
-      .replace(/_quality$/i, "")
-      .replace(/^qc_/i, "");
-    return !lowerHeaders.includes(base.toLowerCase());
-  });
+  const claimed = new Set(
+    nonQcHeaders.map((h) => findQcFlagFor(h, headers)).filter((h): h is string => h !== undefined),
+  );
+  const orphanQc = qcHeaders.filter((h) => !claimed.has(h));
 
   if (orphanQc.length > 0) {
     results.push({
@@ -462,6 +511,17 @@ function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[]
 
 /** A missing or data-filled units row fails the file outright. */
 function describeUnitsRow(unitsRow: Exclude<UnitsRow, { kind: "ok" }>): CheckResult {
+  if (unitsRow.kind === "stray-note") {
+    return {
+      severity: "fail",
+      message: "Unexpected row above the column headers",
+      details:
+        `Found "${unitsRow.note}" where the column headers should be. ` +
+        "Delete any note above the header row, or prefix it with # in the first column, " +
+        "so the header row comes first.",
+    };
+  }
+
   if (unitsRow.kind === "absent") {
     return {
       severity: "fail",
@@ -543,6 +603,10 @@ export async function runComplianceChecks(file: File): Promise<ComplianceReport>
 
 /** Every format runs the same checks, so the reports read the same. */
 function runChecks(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[] {
+  // A stray note means we never found the header row, so say that rather than
+  // reporting the note itself as a missing header.
+  if (unitsRow?.kind === "stray-note") return [describeUnitsRow(unitsRow)];
+
   if (columns.length === 0) {
     return [
       {
