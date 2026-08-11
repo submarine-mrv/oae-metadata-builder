@@ -278,6 +278,40 @@ describe("stray note above the header", () => {
   });
 });
 
+describe("template selection", () => {
+  const bottle = [
+    "Exp_ID,Cruise_ID,Station_ID,Latitude",
+    "n.a.,n.a.,n.a.,decimal degrees",
+    "1,2,3,4",
+  ].join("\n");
+
+  it("auto-detects the template and checks against it", () => {
+    const report = checkCsv("x.csv", bottle);
+
+    expect(report.template?.id).toBe("bottle");
+    expect(messages(report, "pass")).toContain("4 of 54 Bottle template columns present");
+  });
+
+  it("honours an explicit template over detection", () => {
+    const report = checkCsv("x.csv", bottle, "physiological");
+
+    expect(report.template?.id).toBe("physiological");
+  });
+
+  it("falls back to the generic recommended list when told it is not a template", () => {
+    const report = checkCsv("x.csv", bottle, "none");
+
+    expect(report.template).toBeUndefined();
+    expect(report.checks.some((c) => c.message.includes("template"))).toBe(false);
+  });
+
+  it("does not apply a template to NetCDF, which has no template layout", async () => {
+    const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
+
+    expect(report.template).toBeUndefined();
+  });
+});
+
 describe("checkExcel", () => {
   it("reports xlsx as its own file type, not csv", async () => {
     const report = await checkExcel("compliant.xlsx", sampleBytes("compliant.xlsx"));

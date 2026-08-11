@@ -5,6 +5,15 @@
  * recommended variable naming conventions, QC flag presence, and units.
  */
 
+import {
+  type DataFileTemplate,
+  detectTemplate,
+  getTemplate,
+  matchTemplate,
+  type TemplateId,
+  type TemplateMatch,
+} from "@/utils/dataFileTemplates";
+
 // ---------------------------------------------------------------------------
 // Recommended column header names from the OAE Data Protocol
 // See: https://www.carbontosea.org/oae-data-protocol/1-0-0/#column-header-name
@@ -103,6 +112,8 @@ export interface ComplianceReport {
   filename: string;
   fileType: "csv" | "xlsx" | "netcdf";
   columns: ParsedColumn[];
+  /** The template the file was checked against, if any. */
+  template?: DataFileTemplate;
   checks: CheckResult[];
   summary: {
     pass: number;
@@ -117,6 +128,12 @@ export interface ComplianceReport {
 // Spreadsheets and NetCDF both reduce to ParsedColumn[] so the checks and the
 // report look the same whichever format the file came in as.
 // ---------------------------------------------------------------------------
+
+/**
+ * Which template to check against. "auto" detects one from the column names,
+ * "none" skips template checks and uses the generic recommended-name list.
+ */
+export type TemplateSelection = TemplateId | "auto" | "none";
 
 /** Units as the file declares them, which is not the same as units we know. */
 export type Units =
@@ -509,6 +526,39 @@ function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[]
   return results;
 }
 
+/**
+ * Check the file's columns against a specific template. Replaces the generic
+ * recommended-name check, which uses a different vocabulary from the templates.
+ */
+function checkTemplate(match: TemplateMatch): CheckResult[] {
+  const { template, matched, extra, absent } = match;
+  const results: CheckResult[] = [
+    {
+      severity: "pass",
+      message: `${matched.length} of ${template.columns.length} ${template.label} template columns present`,
+      details: matched.join(", "),
+    },
+  ];
+
+  if (extra.length > 0) {
+    results.push({
+      severity: "warn",
+      message: `${extra.length} column${extra.length === 1 ? "" : "s"} not in the ${template.label} template`,
+      details: extra.join(", "),
+    });
+  }
+
+  if (absent.length > 0) {
+    results.push({
+      severity: "warn",
+      message: `${absent.length} ${template.label} template column${absent.length === 1 ? "" : "s"} not present`,
+      details: absent.join(", "),
+    });
+  }
+
+  return results;
+}
+
 /** A missing or data-filled units row fails the file outright. */
 function describeUnitsRow(unitsRow: Exclude<UnitsRow, { kind: "ok" }>): CheckResult {
   if (unitsRow.kind === "stray-note") {
@@ -564,33 +614,45 @@ function tallyUnits(columns: ParsedColumn[]): string {
 // directly by tests. runComplianceChecks is the thin File adapter over them.
 // ---------------------------------------------------------------------------
 
-export function checkCsv(filename: string, text: string): ComplianceReport {
+export function checkCsv(
+  filename: string,
+  text: string,
+  selection: TemplateSelection = "auto",
+): ComplianceReport {
   const delimiter = filename.toLowerCase().endsWith(".tsv") ? "\t" : ",";
   const parsed = parseDelimitedColumns(text, delimiter);
-  return buildReport(filename, "csv", parsed.columns, parsed.unitsRow);
+  return buildReport(filename, "csv", parsed.columns, parsed.unitsRow, selection);
 }
 
-export async function checkExcel(filename: string, buffer: ArrayBuffer): Promise<ComplianceReport> {
+export async function checkExcel(
+  filename: string,
+  buffer: ArrayBuffer,
+  selection: TemplateSelection = "auto",
+): Promise<ComplianceReport> {
   const parsed = await parseExcelColumns(buffer);
-  return buildReport(filename, "xlsx", parsed.columns, parsed.unitsRow);
+  return buildReport(filename, "xlsx", parsed.columns, parsed.unitsRow, selection);
 }
 
 export async function checkNetCdf(
   filename: string,
   buffer: ArrayBuffer,
 ): Promise<ComplianceReport> {
-  // NetCDF carries units per variable attribute; there is no units row.
-  return buildReport(filename, "netcdf", await parseNetCdfColumns(buffer));
+  // NetCDF carries units per variable attribute; there is no units row, and the
+  // templates are spreadsheet layouts, so no template check applies.
+  return buildReport(filename, "netcdf", await parseNetCdfColumns(buffer), undefined, "none");
 }
 
-export async function runComplianceChecks(file: File): Promise<ComplianceReport> {
+export async function runComplianceChecks(
+  file: File,
+  selection: TemplateSelection = "auto",
+): Promise<ComplianceReport> {
   const ext = file.name.split(".").pop()?.toLowerCase();
 
   if (ext === "csv" || ext === "tsv") {
-    return checkCsv(file.name, await readAsText(file));
+    return checkCsv(file.name, await readAsText(file), selection);
   }
   if (ext === "xlsx" || ext === "xls") {
-    return checkExcel(file.name, await readAsArrayBuffer(file));
+    return checkExcel(file.name, await readAsArrayBuffer(file), selection);
   }
   if (ext === "nc" || ext === "netcdf") {
     return checkNetCdf(file.name, await readAsArrayBuffer(file));
@@ -602,7 +664,11 @@ export async function runComplianceChecks(file: File): Promise<ComplianceReport>
 }
 
 /** Every format runs the same checks, so the reports read the same. */
-function runChecks(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[] {
+function runChecks(
+  columns: ParsedColumn[],
+  unitsRow?: UnitsRow,
+  match?: TemplateMatch,
+): CheckResult[] {
   // A stray note means we never found the header row, so say that rather than
   // reporting the note itself as a missing header.
   if (unitsRow?.kind === "stray-note") return [describeUnitsRow(unitsRow)];
@@ -618,12 +684,11 @@ function runChecks(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[] 
   }
 
   const headers = columns.map((c) => c.name);
-  return [
-    ...checkRecommendedHeaders(headers),
-    ...checkUnrecognizedHeaders(headers),
-    ...checkQcFlags(headers),
-    ...checkUnits(columns, unitsRow),
-  ];
+  const naming = match
+    ? checkTemplate(match)
+    : [...checkRecommendedHeaders(headers), ...checkUnrecognizedHeaders(headers)];
+
+  return [...naming, ...checkQcFlags(headers), ...checkUnits(columns, unitsRow)];
 }
 
 // FileReader rather than file.text() / file.arrayBuffer(): jsdom implements
@@ -646,16 +711,31 @@ function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   });
 }
 
+function resolveTemplate(
+  headers: string[],
+  selection: TemplateSelection,
+): TemplateMatch | undefined {
+  if (selection === "none") return undefined;
+  if (selection === "auto") return detectTemplate(headers);
+  const template = getTemplate(selection);
+  return template ? matchTemplate(headers, template) : undefined;
+}
+
 function buildReport(
   filename: string,
   fileType: ComplianceReport["fileType"],
   columns: ParsedColumn[],
   unitsRow?: UnitsRow,
+  selection: TemplateSelection = "auto",
 ): ComplianceReport {
-  const checks = runChecks(columns, unitsRow);
+  const match = resolveTemplate(
+    columns.map((c) => c.name),
+    selection,
+  );
+  const checks = runChecks(columns, unitsRow, match);
   const summary = { pass: 0, warn: 0, fail: 0 };
   for (const c of checks) {
     summary[c.severity]++;
   }
-  return { filename, fileType, columns, checks, summary };
+  return { filename, fileType, columns, template: match?.template, checks, summary };
 }

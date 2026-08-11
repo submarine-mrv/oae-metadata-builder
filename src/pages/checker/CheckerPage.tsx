@@ -7,6 +7,7 @@ import {
   Container,
   Group,
   Paper,
+  Select,
   Stack,
   Table,
   Text,
@@ -29,8 +30,10 @@ import type {
   CheckSeverity,
   ComplianceReport,
   ParsedColumn,
+  TemplateSelection,
 } from "@/utils/complianceChecker";
 import { runComplianceChecks, unitsLabel } from "@/utils/complianceChecker";
+import { DATA_FILE_TEMPLATES } from "@/utils/dataFileTemplates";
 
 const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
 
@@ -38,6 +41,12 @@ const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 const formatMb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
+
+const TEMPLATE_OPTIONS = [
+  { value: "auto", label: "Auto-detect" },
+  ...DATA_FILE_TEMPLATES.map((t) => ({ value: t.id, label: t.label })),
+  { value: "none", label: "Not a template file" },
+];
 
 const SEVERITY_CONFIG: Record<
   CheckSeverity,
@@ -161,6 +170,7 @@ function ReportDisplay({ report }: { report: ComplianceReport }) {
               <Text size="xs" c="dimmed">
                 {report.fileType.toUpperCase()} file &middot; {report.columns.length} column
                 {report.columns.length !== 1 ? "s" : ""} detected
+                {report.template ? ` · ${report.template.label} template` : ""}
               </Text>
             </div>
           </Group>
@@ -201,12 +211,16 @@ export default function CheckerPage() {
   const [report, setReport] = useState<ComplianceReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [selection, setSelection] = useState<TemplateSelection>("auto");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const latestUpload = useRef(0);
+  // Kept so changing the data type re-checks without re-picking the file.
+  const lastFile = useRef<File | null>(null);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = useCallback(async (file: File, template: TemplateSelection) => {
     setError(null);
     setReport(null);
+    lastFile.current = file;
 
     if (file.size > MAX_FILE_BYTES) {
       setError(
@@ -221,7 +235,7 @@ export default function CheckerPage() {
     const upload = ++latestUpload.current;
 
     try {
-      const result = await runComplianceChecks(file);
+      const result = await runComplianceChecks(file, template);
       if (upload === latestUpload.current) setReport(result);
     } catch (err) {
       if (upload === latestUpload.current) {
@@ -230,13 +244,22 @@ export default function CheckerPage() {
     }
   }, []);
 
+  const handleTemplateChange = useCallback(
+    (value: string | null) => {
+      const next = (value ?? "auto") as TemplateSelection;
+      setSelection(next);
+      if (lastFile.current) handleFile(lastFile.current, next);
+    },
+    [handleFile],
+  );
+
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) handleFile(file);
+      if (file) handleFile(file, selection);
       e.target.value = "";
     },
-    [handleFile],
+    [handleFile, selection],
   );
 
   const handleDrop = useCallback(
@@ -244,9 +267,9 @@ export default function CheckerPage() {
       e.preventDefault();
       setIsDragging(false);
       const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (file) handleFile(file, selection);
     },
-    [handleFile],
+    [handleFile, selection],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -275,6 +298,16 @@ export default function CheckerPage() {
               Protocol&apos;s recommended variable names.
             </Text>
           </div>
+
+          <Select
+            label="Data type"
+            description="Which protocol template this file follows. Auto-detect matches on column names."
+            data={TEMPLATE_OPTIONS}
+            value={selection}
+            onChange={handleTemplateChange}
+            allowDeselect={false}
+            maw={360}
+          />
 
           {/* Drop zone */}
           <Paper
