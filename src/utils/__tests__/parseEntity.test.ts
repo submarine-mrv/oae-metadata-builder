@@ -3,6 +3,7 @@ import type { JSONSchema } from "@/components/schemaUtils";
 import bundled from "@/schema/schema.bundled.json";
 import type { DraftExperiment, ExperimentTypes } from "@/types/forms";
 import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
+import { validateDataset } from "@/utils/validation";
 
 const rootSchema = bundled as unknown as JSONSchema;
 
@@ -98,6 +99,57 @@ describe("parseExperiment", () => {
 });
 
 describe("parseDataset", () => {
+  // Pre-0.2.0 model datasets stored a multivalued enum checklist in
+  // `model_output_variables`. The field is gone from the schema, so importing or
+  // restoring one must drop it silently rather than error. Users re-add their
+  // variables through the UI.
+  it("drops the retired model_output_variables checklist without erroring", () => {
+    const parsed = parseDataset(
+      {
+        name: "Legacy model run",
+        dataset_type: "model_output",
+        simulation_type: ["perturbation"],
+        model_output_variables: ["phytoplankton", "horizontal_velocity", "ph"],
+      },
+      rootSchema,
+    );
+
+    expect(parsed.model_output_variables).toBeUndefined();
+    // Everything else on the dataset survives untouched.
+    expect(parsed.name).toBe("Legacy model run");
+    expect(parsed.dataset_type).toBe("model_output");
+    expect(parsed.simulation_type).toEqual(["perturbation"]);
+    // No variables are invented in its place — the user adds them in the UI.
+    expect(parsed.variables).toBeUndefined();
+  });
+
+  // An otherwise-complete legacy model dataset must come out of parse fully
+  // valid, so the only work left for the user is adding variables. Asserting the
+  // whole error list (not just model_output_variables ones) keeps this honest —
+  // a filtered assertion would pass even if the fixture were invalid elsewhere.
+  it("leaves a legacy model dataset fully valid once the retired field is dropped", () => {
+    const parsed = parseDataset(
+      {
+        name: "Legacy model run",
+        description: "A model run saved before 0.2.0",
+        project_id: "proj-1",
+        experiment_id: "exp-1",
+        dataset_type: "model_output",
+        data_accessibility: "open_access",
+        data_submitter: { name: "A Researcher", email: "researcher@example.org" },
+        filenames: ["output.nc"],
+        simulation_type: ["counterfactual"],
+        start_datetime: "2026-01-01T00:00:00Z",
+        end_datetime: "2026-02-01T00:00:00Z",
+        model_output_variables: ["phytoplankton"],
+      },
+      rootSchema,
+    );
+
+    expect(parsed.model_output_variables).toBeUndefined();
+    expect(validateDataset(parsed).errors).toEqual([]);
+  });
+
   it("coerces field variables on a model_output dataset to ModelOutputVariable", () => {
     const parsed = parseDataset(
       {
