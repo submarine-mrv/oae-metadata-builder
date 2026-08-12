@@ -1,0 +1,10 @@
+# Project ID: OAE-DEMO-01
+# Experiment ID: OAE-DEMO-01-EXP-A
+# mCDR experiment type: Alkalinization
+# Template version: 1.0.1
+# File last updated on: 2026-03-14
+# File prepared by: Firstname Lastname (Institution)
+Exp_ID,Station_ID,Sample_ID,Year_UTC,Month_UTC,Day_UTC,Time_UTC,Latitude,Longitude,Depth,TEMP_ITS90,TEMP_flag,SAL_PSS78,SAL_flag,DIC,DIC_flag,TA,TA_flag
+n.a.,n.a.,n.a.,n.a.,n.a.,n.a.,hh:mm:ss,decimal degrees,decimal degrees,m,deg_C,n.a.,n.a.,n.a.,umol/kg,n.a.,umol/kg,n.a.
+OAE-DEMO-01-EXP-A,ST01,10112,2026,3,14,09:15:00,36.8021,-121.7876,5.0,13.42,2,33.51,2,2045.3,2,2231.8,2
+OAE-DEMO-01-EXP-A,ST01,10113,2026,3,14,09:15:00,36.8021,-121.7876,25.0,12.10,2,33.62,2,2078.9,2,2240.1,2
