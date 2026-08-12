@@ -8,7 +8,7 @@
  */
 
 import { PROTOCOL_COLUMN_STANDARDS } from "@/utils/protocolColumnStandards";
-import { findQcFlagFor, isQcFlagColumn } from "@/utils/qcFlags";
+import { isQcFlagColumn, pairQcFlags } from "@/utils/qcFlags";
 
 export type TemplateId = "bottle" | "flow_through" | "autonomous" | "physiological";
 
@@ -253,18 +253,45 @@ export function matchTemplate(headers: string[], template: DataFileTemplate): Te
   };
 }
 
+/** Columns that belong to exactly one template, so they identify it. */
+const distinctiveColumns = new Map<TemplateId, Set<string>>(
+  DATA_FILE_TEMPLATES.map((t) => [
+    t.id,
+    new Set(
+      t.columns
+        .map(normalize)
+        .filter(
+          (c) =>
+            DATA_FILE_TEMPLATES.filter((o) => o.columns.some((x) => normalize(x) === c)).length ===
+            1,
+        ),
+    ),
+  ]),
+);
+
 /**
- * Guess which template a file follows. Requires a clear majority of the file's
- * columns to belong to one template, so an unrelated CSV matches nothing.
+ * Guess which template a file follows.
+ *
+ * Three conditions, because the templates share a lot of columns. Most of the
+ * file's columns must belong to the template; the file must carry at least one
+ * column unique to it; and it must beat the runner-up outright. Without the
+ * last two, a file holding only Exp_ID and coordinates matched whichever
+ * template happened to be first in the list.
  */
 export function detectTemplate(headers: string[]): TemplateMatch | undefined {
   if (headers.length === 0) return undefined;
 
-  const best = DATA_FILE_TEMPLATES.map((t) => matchTemplate(headers, t)).sort(
+  const ranked = DATA_FILE_TEMPLATES.map((t) => matchTemplate(headers, t)).sort(
     (a, b) => b.matched.length - a.matched.length,
-  )[0];
+  );
 
-  return best && best.matched.length * 2 > headers.length ? best : undefined;
+  const best = ranked[0];
+  if (!best || best.matched.length * 2 <= headers.length) return undefined;
+  if (ranked[1] && ranked[1].matched.length === best.matched.length) return undefined;
+
+  const distinctive = distinctiveColumns.get(best.template.id);
+  const hasDistinctive = best.matched.some((c) => distinctive?.has(normalize(c)));
+  return hasDistinctive ? best : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -291,12 +318,13 @@ function deriveRecommendedColumns(): RecommendedColumn[] {
   const byName = new Map<string, RecommendedColumn>();
 
   for (const template of DATA_FILE_TEMPLATES) {
+    const pairs = pairQcFlags(template.columns);
     for (const column of template.columns) {
       if (isQcFlagColumn(column)) continue;
 
       const key = normalize(column);
       const existing = byName.get(key);
-      const hasFlag = findQcFlagFor(column, template.columns) !== undefined;
+      const hasFlag = pairs.has(column);
 
       if (existing) {
         existing.expectQcFlag ||= hasFlag;

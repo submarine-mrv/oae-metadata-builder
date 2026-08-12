@@ -14,7 +14,8 @@ import {
   type TemplateId,
   type TemplateMatch,
 } from "@/utils/dataFileTemplates";
-import { findQcFlagFor, isQcFlagColumn } from "@/utils/qcFlags";
+import { PROTOCOL_COLUMN_STANDARDS } from "@/utils/protocolColumnStandards";
+import { isQcFlagColumn, pairQcFlags } from "@/utils/qcFlags";
 
 // ---------------------------------------------------------------------------
 // Check result types
@@ -112,7 +113,9 @@ export type UnitsRow =
   /** Numbers below the header, so that row is data — the units row is missing. */
   | { kind: "numeric"; cells: Array<{ column: string; value: string }> }
   /** A stray note sits above the header, so we never reached the real one. */
-  | { kind: "stray-note"; note: string };
+  | { kind: "stray-note"; note: string }
+  /** Nothing in the row reads as a unit, so it is probably the first record. */
+  | { kind: "unrecognized"; sample: string[] };
 
 export interface TabularParse {
   columns: ParsedColumn[];
@@ -121,6 +124,26 @@ export interface TabularParse {
 
 /** No unit is a bare number, so a numeric cell means we are looking at data. */
 const isNumericCell = (cell: string) => cell.trim() !== "" && Number.isFinite(Number(cell));
+
+/** Units the protocol's column header standards tables name. */
+const KNOWN_UNITS = new Set(
+  PROTOCOL_COLUMN_STANDARDS.map((c) => c.unit.trim().toLowerCase()).filter(
+    (u) => u !== "" && !NOT_APPLICABLE.has(u),
+  ),
+);
+
+/**
+ * A units row has to look like units, not just avoid looking like data.
+ *
+ * Numbers alone don't catch a file whose first record is all text — identifiers,
+ * dates, operator names — which would otherwise be read as units for every
+ * column. So we also want one positive signal: a unit the protocol names, or an
+ * explicit "no units apply" marker, both of which every template's units row has.
+ */
+const looksLikeUnits = (cell: string) => {
+  const value = cell.trim().toLowerCase();
+  return value !== "" && (NOT_APPLICABLE.has(value) || KNOWN_UNITS.has(value));
+};
 
 /**
  * Reduce raw rows to columns. Rows beginning with "#" are metadata comments and
@@ -164,6 +187,13 @@ export function parseTabularColumns(rows: string[][]): TabularParse {
     return {
       columns: named.map((c) => ({ name: c.name, units: { kind: "missing" } })),
       unitsRow: { kind: "numeric", cells: numeric },
+    };
+  }
+
+  if (!row.some(looksLikeUnits)) {
+    return {
+      columns: named.map((c) => ({ name: c.name, units: { kind: "missing" } })),
+      unitsRow: { kind: "unrecognized", sample: row.filter((c) => c.trim() !== "").slice(0, 6) },
     };
   }
 
@@ -298,18 +328,19 @@ function checkQcFlags(headers: string[], template?: DataFileTemplate): CheckResu
   // columns carry a flag. The union across templates would expect one wherever
   // any template pairs it, and warn about a pristine file — flow through and
   // autonomous have no flag for temp_ITS90, physiological has none at all.
+  const templatePairs = template ? pairQcFlags(template.columns) : undefined;
   const expectsFlag = (h: string) =>
-    template
-      ? findQcFlagFor(h, template.columns) !== undefined
-      : Boolean(findRecommendedColumn(h)?.expectQcFlag);
+    templatePairs ? templatePairs.has(h) : Boolean(findRecommendedColumn(h)?.expectQcFlag);
 
   const varsNeedingQc = nonQcHeaders.filter(expectsFlag);
+  // One pairing drives present, missing and orphan alike, so they agree.
+  const pairs = pairQcFlags(headers);
 
   const missingQc: string[] = [];
   const presentQc: string[] = [];
 
   for (const v of varsNeedingQc) {
-    const qcCol = findQcFlagFor(v, headers);
+    const qcCol = pairs.get(v);
     if (qcCol) {
       presentQc.push(v);
     } else {
@@ -342,9 +373,7 @@ function checkQcFlags(headers: string[], template?: DataFileTemplate): CheckResu
   // Orphans are QC flags no variable claims. Uses the same pairing rule as
   // above, so the two checks cannot disagree about a given column.
   const qcHeaders = headers.filter((h) => isQcFlagColumn(h));
-  const claimed = new Set(
-    nonQcHeaders.map((h) => findQcFlagFor(h, headers)).filter((h): h is string => h !== undefined),
-  );
+  const claimed = new Set(pairs.values());
   const orphanQc = qcHeaders.filter((h) => !claimed.has(h));
 
   if (orphanQc.length > 0) {
@@ -449,6 +478,17 @@ function describeUnitsRow(unitsRow: Exclude<UnitsRow, { kind: "ok" }>): CheckRes
         `Found "${unitsRow.note}" where the column headers should be. ` +
         "Delete any note above the header row, or prefix it with # in the first column, " +
         "so the header row comes first.",
+    };
+  }
+
+  if (unitsRow.kind === "unrecognized") {
+    return {
+      severity: "fail",
+      message: "No recognizable units below the column headers",
+      details:
+        `Found ${unitsRow.sample.map((c) => `"${c}"`).join(", ")}. ` +
+        "The row immediately below the headers must hold units. " +
+        'Use "n.a." where units do not apply.',
     };
   }
 

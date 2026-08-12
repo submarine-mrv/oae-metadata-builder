@@ -222,6 +222,11 @@ export default function CheckerPage() {
     setReport(null);
     lastFile.current = file;
 
+    // Claim the slot before anything can return early. Parsing is async, so a
+    // parse already in flight must be invalidated even when this upload is
+    // rejected outright — otherwise it resolves and overwrites the rejection.
+    const upload = ++latestUpload.current;
+
     if (file.size > MAX_FILE_BYTES) {
       setError(
         `${file.name} is ${formatMb(file.size)}, over the ${formatMb(MAX_FILE_BYTES)} limit. ` +
@@ -229,10 +234,6 @@ export default function CheckerPage() {
       );
       return;
     }
-
-    // Parsing is async, so a second upload can resolve before the first.
-    // Only the most recent one may write to state.
-    const upload = ++latestUpload.current;
 
     try {
       const result = await runComplianceChecks(file, template);

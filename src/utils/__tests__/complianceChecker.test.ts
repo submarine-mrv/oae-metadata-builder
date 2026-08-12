@@ -14,7 +14,8 @@ import {
   parseDelimitedColumns,
   unitsLabel,
 } from "../complianceChecker";
-import { findRecommendedColumn } from "../dataFileTemplates";
+import { findRecommendedColumn, getTemplate } from "../dataFileTemplates";
+import { pairQcFlags } from "../qcFlags";
 
 // Fixtures in tests/samples/ are also the files you drag onto /checker by hand,
 // so these assertions and the manual results stay in step. Vitest runs from the
@@ -322,6 +323,39 @@ describe("template selection", () => {
     const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
 
     expect(report.template).toBeUndefined();
+  });
+});
+
+describe("regressions from the branch review", () => {
+  it("fails a text-only first record instead of reading it as units", () => {
+    // Numbers alone missed this: identifiers, notes and names look nothing like
+    // data to a numeric test, so every column got a bogus unit.
+    const report = checkCsv(
+      "t.csv",
+      "sample_id,station_id,notes,operator\nOAE-001,ST01,clear skies,J. Smith",
+    );
+
+    expect(messages(report, "fail")).toEqual(["No recognizable units below the column headers"]);
+    expect(report.columns.every((c) => c.units.kind === "missing")).toBe(true);
+  });
+
+  it("accepts a units row of real units with no n.a. marker", () => {
+    const report = checkCsv("t.csv", "depth,ctdpres\nm,dbar\n5.0,10.0");
+
+    expect(report.summary.fail).toBe(0);
+    expect(unitsOf(report.columns, "depth")).toBe("m");
+  });
+
+  it("gives each QC flag to exactly one variable", () => {
+    // Bottle has TEMP_flag beside TEMP_ITS90, TEMP_PH, TEMP_Carbonate and
+    // TEMP_fCO2; scoring variables independently handed it to all four.
+    const bottle = getTemplate("bottle");
+    const pairs = pairQcFlags(bottle!.columns);
+
+    const flags = [...pairs.values()];
+    expect(new Set(flags).size).toBe(flags.length);
+    expect(pairs.get("TEMP_ITS90")).toBe("TEMP_flag");
+    expect(pairs.get("TEMP_PH")).toBeUndefined();
   });
 });
 

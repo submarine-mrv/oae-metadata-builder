@@ -27,24 +27,54 @@ export function qcFlagBase(name: string): string {
  * `fCO2_SW_flag` to `fCO2_SW_SST`. And occasionally the flag is the longer name,
  * as with `doxygen_flag` for `doxy`.
  */
-export function findQcFlagFor(variableName: string, allHeaders: string[]): string | undefined {
-  const lower = variableName.toLowerCase();
+/** How well a flag column fits a variable, or 0 for no fit. */
+function pairScore(variable: string, flag: string): number {
+  const lower = variable.toLowerCase();
+  const base = qcFlagBase(flag);
+  if (base === "") return 0;
+
   const exact = [`${lower}_flag`, `${lower}_qc`, `${lower}_quality`, `qc_${lower}`];
+  if (exact.includes(flag.toLowerCase())) return 1000;
 
-  const flags = allHeaders.filter((h) => isQcFlagColumn(h));
-  const exactMatch = flags.find((h) => exact.includes(h.toLowerCase()));
-  if (exactMatch) return exactMatch;
+  // The variable carries a scale or method suffix the flag omits, as with
+  // TEMP_flag for TEMP_ITS90. Longer bases are more specific, so Salinity_flag
+  // beats SAL_flag for Salinity_PSS78.
+  if (lower.startsWith(base)) return 100 + base.length;
 
-  // Longest base first, so Salinity_PSS78 takes Salinity_flag rather than
-  // SAL_flag, leaving SAL_flag for SAL_PSS78.
-  return flags
-    .map((h) => ({ header: h, base: qcFlagBase(h) }))
-    .filter(({ base }) => {
-      if (base === "") return false;
-      // The variable carries a scale or method suffix the flag omits.
-      if (lower.startsWith(base)) return true;
-      // The flag spells the variable out more fully than the column does.
-      return lower.length >= 3 && base.startsWith(lower);
-    })
-    .sort((a, b) => b.base.length - a.base.length)[0]?.header;
+  // The flag spells the variable out more fully, as with doxygen_flag for doxy.
+  if (lower.length >= 3 && base.startsWith(lower)) return 10 + lower.length;
+
+  return 0;
+}
+
+/**
+ * Assign each QC flag column to at most one variable.
+ *
+ * Bottle has TEMP_flag alongside TEMP_ITS90, TEMP_PH, TEMP_Carbonate and
+ * TEMP_fCO2; scoring each variable independently hands the same flag to all
+ * four. Pairing greedily from the best fit down keeps it one-to-one.
+ */
+export function pairQcFlags(headers: string[]): Map<string, string> {
+  const flags = headers.filter(isQcFlagColumn);
+  const variables = headers.filter((h) => !isQcFlagColumn(h));
+
+  const candidates = variables
+    .flatMap((variable) =>
+      flags.map((flag) => ({ variable, flag, score: pairScore(variable, flag) })),
+    )
+    .filter((c) => c.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const pairs = new Map<string, string>();
+  const claimed = new Set<string>();
+  for (const { variable, flag } of candidates) {
+    if (pairs.has(variable) || claimed.has(flag)) continue;
+    pairs.set(variable, flag);
+    claimed.add(flag);
+  }
+  return pairs;
+}
+
+export function findQcFlagFor(variableName: string, allHeaders: string[]): string | undefined {
+  return pairQcFlags(allHeaders).get(variableName);
 }

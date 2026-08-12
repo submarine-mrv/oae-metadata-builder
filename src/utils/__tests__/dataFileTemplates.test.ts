@@ -64,4 +64,16 @@ describe("detectTemplate", () => {
   it("returns nothing for an empty file", () => {
     expect(detectTemplate([])).toBeUndefined();
   });
+
+  it("requires a column unique to the template, not just shared ones", () => {
+    // Exp_ID is in all four and the coordinates are in three, so these identify
+    // nothing. Previously they matched whichever template came first.
+    expect(detectTemplate(["Exp_ID", "Latitude", "Longitude"])).toBeUndefined();
+    expect(detectTemplate(["Exp_ID"])).toBeUndefined();
+  });
+
+  it("still identifies a partial file that carries a distinctive column", () => {
+    // Rosette_position and Niskin_ID appear only in bottle.
+    expect(detectTemplate(["Exp_ID", "Rosette_position", "Niskin_ID"])?.template.id).toBe("bottle");
+  });
 });
