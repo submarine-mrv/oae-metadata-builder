@@ -1,4 +1,4 @@
-# Sample data files
+# Compliance Checker Sample Files
 
 Test files for the compliance checker at https://metadata.oaedata.org/checker, or
 http://localhost:3000/checker if running the app locally.
