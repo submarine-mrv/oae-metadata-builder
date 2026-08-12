@@ -5626,7 +5626,7 @@
       "type": "object"
     },
     "ModelVariableType": {
-      "description": "Classification of a variable output by a model simulation. Used in place of VariableType on ModelOutputVariable — model output covers a different set of quantities than field measurement (velocities and fluxes rather than sampling-based observations), and there is exactly one model variable class, so this enum identifies the variable rather than selecting a class.",
+      "description": "Classification of a variable output by a model simulation. Used in place of VariableType on ModelOutputVariable. Model output covers a different set of quantities than field measurement (velocities and fluxes rather than sampling-based observations), so this enum is different than VariableType.",
       "enum": [
         "air_sea_co2_flux",
         "dissolved_inorganic_carbon",
@@ -7689,5 +7689,5 @@
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
   "version": "0.1.1",
-  "x-protocol-git-hash": "29aa5a955fa8d52e2bd2f2103bbcc520987c6c58"
+  "x-protocol-git-hash": "8c90a387fb6ddf90c952357504096a3a26ef1b6a"
 }
