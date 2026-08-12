@@ -2,7 +2,7 @@
 
 Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the minor version.
 
-## [0.2.0] — Unreleased
+## [0.2.0] — 2026-08-12
 
 Built against oae-data-protocol v0.2.0 (`33424d83`).
 
