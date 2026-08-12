@@ -1,7 +1,7 @@
 # Release Process
 
-`dev` is the integration branch — every PR targets it. `main` is what has been released, and is
-always an ancestor of `dev`, so a release fast-forwards `main` to `dev`.
+`dev` is the integration branch — every PR targets it. `main` is what has been released. A ruleset
+protects `main`, so there are no direct pushes to it: a release goes through its own PR from `dev`.
 
 1. Confirm `dev` is green: `npm run check`, `npm test`, `npm run build`.
 2. In `CHANGELOG.md`, replace `Unreleased` on the top section with today's date. Each entry is one
@@ -9,15 +9,24 @@ always an ancestor of `dev`, so a release fast-forwards `main` to `dev`.
    refactors can be included at the author's discretion.
 3. Bump the version: `npm version X.Y.Z --no-git-tag-version`. That updates `package.json` and both
    `version` fields in `package-lock.json`, and nothing else. The flag matters — without it npm
-   commits and tags on the spot, and the tag belongs on `main` in step 5.
-4. Commit as `chore(release): vX.Y.Z` and merge the PR into `dev`.
-5. Fast-forward and tag:
+   commits and tags on the spot, and the tag belongs on `main` in step 6.
+4. Commit as `chore(release): vX.Y.Z` and merge that PR into `dev`.
+5. Open a PR from `dev` into `main` titled `release: vX.Y.Z`, and merge it with **Create a merge
+   commit**. Not squash, which would collapse the whole release into one new commit on `main` and
+   leave the two histories permanently unrelated, and not rebase, which rewrites every commit with
+   a fresh SHA. The ruleset asks for an approving review; you cannot approve your own PR, so
+   merging your own release PR relies on your bypass entry in the ruleset.
+6. Tag the merge commit and push the tag (the rulesets cover branches, not tags):
 
    ```bash
-   git checkout main && git merge --ff-only origin/dev
-   git push origin main
-   git tag vX.Y.Z && git push origin vX.Y.Z
+   git fetch origin
+   git tag vX.Y.Z origin/main
+   git push origin vX.Y.Z
    ```
+
+7. Merge `main` back into `dev`. Step 5 leaves a merge commit on `main` that `dev` does not have,
+   and the ruleset requires the head branch to be up to date with the base, so skipping this blocks
+   the *next* release PR rather than this one.
 
 Pre-1.0, breaking changes bump the minor (0.1.x → 0.2.0). A change is breaking if metadata saved by
 the previous version no longer loads unchanged.
