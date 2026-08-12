@@ -24,9 +24,17 @@ protects `main`, so there are no direct pushes to it: a release goes through its
    git push origin vX.Y.Z
    ```
 
-7. Merge `main` back into `dev`. Step 5 leaves a merge commit on `main` that `dev` does not have,
-   and the ruleset requires the head branch to be up to date with the base, so skipping this blocks
-   the *next* release PR rather than this one.
+There is no back-merge into `dev`, and no way to do one: `dev`'s ruleset sets
+`required_linear_history`, which rejects the merge commit that merging `main` would create. Nothing
+is lost by that — `main` is an ancestor of `dev` at step 5, so the merge commit has the same tree as
+`dev` and carries no content `dev` lacks.
+
+It does leave `dev` permanently one commit "behind" `main` in GitHub's view. Because `main`'s ruleset
+sets `strict_required_status_checks_policy`, the next release PR is flagged as out of date and needs
+the same bypass to merge. That friction repeats every release and cannot be cleared while `dev`
+requires linear history. The fix is to drop the `pull_request` rule on `main` and fast-forward it
+instead (`git push origin origin/dev:main`), which removes the merge commit, the flag, and this
+paragraph.
 
 Pre-1.0, breaking changes bump the minor (0.1.x → 0.2.0). A change is breaking if metadata saved by
 the previous version no longer loads unchanged.
