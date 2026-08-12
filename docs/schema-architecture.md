@@ -61,7 +61,7 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
   union is produced because the slot's range, `FieldVariable`, is `abstract: true` — **not** by
   `include_range_class_descendants`. (An abstract range has no instantiable base, so LinkML expands
   it to concrete descendants in every generation mode.)
-- The range is `FieldVariable`, not `Variable`, on purpose. `ModelVariable` descends from `Variable`
+- The range is `FieldVariable`, not `Variable`, on purpose. `ModelOutputVariable` descends from `Variable`
   but *not* from `FieldVariable`, so it is excluded from this union and a model variable is invalid
   inside a `FieldDataset`. Ranging over `Variable` would silently admit it. See
   "Model output variables" below.
@@ -83,7 +83,7 @@ instrument subtypes). It exists for other programmatic-validation use cases, not
 
 ### Model output variables
 
-`ModelOutputDataset.variables` ranges over the single concrete class `ModelVariable` — no union, no
+`ModelOutputDataset.variables` ranges over the single concrete class `ModelOutputVariable` — no union, no
 discriminator needed. A model variable is produced by the simulation, so it carries none of the
 sampling, instrument, calibration or in-situ QC metadata a field variable does; it has only
 `variable_type`, `long_name`, `dataset_variable_name`, `units` and an optional `standard_identifier`.
@@ -92,7 +92,7 @@ The two families are disjoint in both directions:
 
 | | field dataset | model dataset |
 |---|---|---|
-| slot range | `FieldVariable` (abstract, 18 concrete) | `ModelVariable` (1 concrete) |
+| slot range | `FieldVariable` (abstract, 18 concrete) | `ModelOutputVariable` (1 concrete) |
 | `variable_type` vocabulary | `VariableType` (`pH`, `ta`, `dic`, …) | `ModelVariableType` (`air_sea_co2_flux`, `ph`, `zonal_velocity`, …) |
 
 Because the vocabularies share almost no values, switching a dataset's `dataset_type` cannot just
@@ -103,7 +103,7 @@ the source of truth: a concrete field class pins `variable_type` even when a sto
 
 In the UI, `VariablesField` / `VariableModal` switch to model mode via
 `ui:options.modelOutput: true` in `modelOutputUiSchema.ts`. Model mode swaps the type dropdown to
-`MODEL_VARIABLE_TYPE_OPTIONS` and hides the genesis and sampling selects — `ModelVariable` has
+`MODEL_VARIABLE_TYPE_OPTIONS` and hides the genesis and sampling selects — `ModelOutputVariable` has
 neither. The accordion still uses the shared `BASE` layer; the sections that do not apply empty
 themselves out through the normal `fieldExistsInSchema()` filter rather than being special-cased.
 

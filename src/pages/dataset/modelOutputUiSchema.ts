@@ -91,7 +91,7 @@ const modelOutputUiSchema = {
     "ui:description": "End date and time of simulation in UTC",
   },
   // Variables field — same table + modal as field datasets, but every variable
-  // is a ModelOutputVariable (genesis auto-set to "calculated" and hidden).
+  // is a ModelOutputVariable, which has neither genesis nor sampling.
   variables: {
     "ui:field": "VariablesField",
     "ui:options": {
