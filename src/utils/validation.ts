@@ -1,9 +1,8 @@
 import type { RJSFValidationError } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
-import type { DatasetFormData, ExperimentFormData, ProjectFormData } from "@/types/forms";
+import type { DraftDataset, DraftExperiment, DraftProject } from "@/types/forms";
 import { experimentCustomValidate, projectCustomValidate } from "./customValidators";
-import { validateDatasetWithVariables } from "./datasetValidation";
 import { getExperimentSchemaType } from "./experimentFields";
 import {
   getFieldDatasetSchema,
@@ -16,13 +15,29 @@ import {
   getTracerSchema,
 } from "./schemaViews";
 
-// Create validator with Draft 2019-09 support
-const validator = customizeValidator({ AjvClass: Ajv2019 });
+// Create validator with Draft 2019-09 support. `discriminator: true` lets AJV
+// route each polymorphic variable to its schema_class branch (oneOf +
+// discriminator) and report branch-targeted errors. Harmless for schemas
+// without a discriminator keyword (project, experiment). `discriminator` is an
+// OpenAPI/AJV extension; its standards-track long-term replacement is JSON Schema
+// `propertyDependencies` (JSON Schema v1, ~2026) — full rationale in
+// scripts/bundle-schema.mjs.
+const validator = customizeValidator({
+  AjvClass: Ajv2019,
+  ajvOptionsOverrides: { discriminator: true },
+});
 
 export interface ValidationResult {
   isValid: boolean;
   errors: RJSFValidationError[];
   errorCount: number;
+  /**
+   * Per-variable errors keyed by index in the dataset's `variables` array,
+   * grouped from the single validation pass. Only populated by validateDataset.
+   * An index absent from the map means that variable has no errors. This is the
+   * one source the badge, the overview check, and the variable-table (!) all read.
+   */
+  errorsByVariableIndex?: Map<number, RJSFValidationError[]>;
 }
 
 // =============================================================================
@@ -36,7 +51,7 @@ export interface ValidationResult {
  * experiment_types selection.
  */
 export function getExperimentSchemaForData(
-  experimentData: ExperimentFormData,
+  experimentData: DraftExperiment,
 ): ReturnType<typeof getInSituExperimentSchema> {
   const schemaType = getExperimentSchemaType(experimentData.experiment_types ?? []);
   if (schemaType === "intervention") return getInterventionSchema();
@@ -51,7 +66,7 @@ export function getExperimentSchemaForData(
  * dataset_type selection.
  */
 export function getDatasetSchemaForData(
-  datasetData: DatasetFormData,
+  datasetData: DraftDataset,
 ): ReturnType<typeof getFieldDatasetSchema> {
   return datasetData.dataset_type === "model_output"
     ? getModelOutputDatasetSchema()
@@ -61,7 +76,7 @@ export function getDatasetSchemaForData(
 /**
  * Validates project data against the project schema
  */
-export function validateProject(projectData: ProjectFormData): ValidationResult {
+export function validateProject(projectData: DraftProject): ValidationResult {
   try {
     const schema = getProjectSchema();
     // Pass the same customValidate the form uses so badge counts include
@@ -87,7 +102,7 @@ export function validateProject(projectData: ProjectFormData): ValidationResult 
  * Validates experiment data against the appropriate experiment schema
  * based on the experiment_types field
  */
-export function validateExperiment(experimentData: ExperimentFormData): ValidationResult {
+export function validateExperiment(experimentData: DraftExperiment): ValidationResult {
   try {
     const schema = getExperimentSchemaForData(experimentData);
 
@@ -123,38 +138,62 @@ function isExperimentIdRequiredError(e: RJSFValidationError): boolean {
 }
 
 /**
- * Validates dataset data against the dataset schema.
- *
- * Delegates to validateDatasetWithVariables() to handle polymorphic variable
- * types correctly. See datasetValidation.ts for details on the workaround.
+ * Re-labels an AJV error that lands inside the `variables` array into the
+ * "Variable '<name>': <message>" form the dataset UI expects, so the error list
+ * groups problems by variable. Non-variable errors pass through unchanged.
+ */
+function relabelVariableError(
+  e: RJSFValidationError,
+  datasetData: DraftDataset,
+): RJSFValidationError {
+  const prop = e.property ?? "";
+  const match = /^\.variables(?:\.|\[)(\d+)\]?(.*)$/.exec(prop);
+  if (!match) return e;
+
+  const index = Number(match[1]);
+  // Required errors already path the field (".variables.0.measurement_temperature").
+  let fieldPath = match[2] ?? "";
+  // additionalProperties errors report on the parent object — the offending key
+  // is in params, not the path — so append it.
+  if (e.name === "additionalProperties") {
+    const extra = (e.params as { additionalProperty?: string } | undefined)?.additionalProperty;
+    if (extra) fieldPath = fieldPath ? `${fieldPath}.${extra}` : `.${extra}`;
+  }
+
+  const variables = datasetData.variables as Array<Record<string, unknown>> | undefined;
+  const variable = variables?.[index];
+  const variableName =
+    (variable?.dataset_variable_name as string) ||
+    (variable?.long_name as string) ||
+    `Variable ${index + 1}`;
+
+  const field = fieldPath.replace(/^\./, "");
+  const baseMessage = e.message ?? "is invalid";
+  const message = field
+    ? `Variable '${variableName}': ${field}: ${baseMessage}`
+    : `Variable '${variableName}': ${baseMessage}`;
+
+  // name "variable" matches the contract the dataset page relies on: it injects
+  // only `name === "variable"` errors and excludes them from the required-error
+  // hide-filter and the missing-required count.
+  return { ...e, name: "variable", property: `.variables[${index}]`, message };
+}
+
+/**
+ * Validates dataset data — including its polymorphic variables — in a single AJV
+ * pass. The bundled schema discriminates `variables` on `schema_class`, so AJV
+ * validates each variable against exactly its type and reports branch-targeted
+ * errors, which are re-labeled per variable for the UI.
  */
 export function validateDataset(
-  datasetData: DatasetFormData,
+  datasetData: DraftDataset,
   options?: ValidateDatasetOptions,
 ): ValidationResult {
   try {
     const schema = getDatasetSchemaForData(datasetData);
-    const result = validateDatasetWithVariables(datasetData, schema);
+    const result = validator.validateFormData(datasetData, schema);
 
-    let errors = result.datasetErrors;
-
-    // Surface per-variable validation errors so the UI can display them
-    const variableErrorEntries: RJSFValidationError[] = [];
-    for (const [, varError] of result.variableErrors) {
-      for (const msg of varError.errors) {
-        variableErrorEntries.push({
-          name: "variable",
-          property: `.variables[${varError.index}]`,
-          message: `Variable '${varError.variableName}': ${msg}`,
-          params: {},
-          stack: `variables[${varError.index}]: ${msg}`,
-          schemaPath: "#/properties/variables",
-        });
-      }
-    }
-    if (variableErrorEntries.length > 0) {
-      errors = [...errors, ...variableErrorEntries];
-    }
+    let errors = result.errors.map((e) => relabelVariableError(e, datasetData));
 
     // Catch empty/missing experiment_id that JSON schema "required" may not flag.
     // Scenarios: propagation sets "" or undefined while property key still exists in object.
@@ -180,12 +219,25 @@ export function validateDataset(
       errors = errors.filter((e) => !isExperimentIdRequiredError(e));
     }
 
+    // Group per-variable errors by index from this same pass, so the variable
+    // table's (!) indicator derives from the same validation as the badge.
+    const errorsByVariableIndex = new Map<number, RJSFValidationError[]>();
+    for (const e of errors) {
+      const match = /^\.variables\[(\d+)\]/.exec(e.property ?? "");
+      if (!match) continue;
+      const i = Number(match[1]);
+      const list = errorsByVariableIndex.get(i) ?? [];
+      list.push(e);
+      errorsByVariableIndex.set(i, list);
+    }
+
     const errorCount = errors.length;
 
     return {
       isValid: errorCount === 0,
       errors,
       errorCount,
+      errorsByVariableIndex,
     };
   } catch (error) {
     console.error("Error validating dataset:", error);

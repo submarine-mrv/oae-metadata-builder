@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import type {
-  DatasetFormData,
   DatasetState,
-  ExperimentFormData,
+  DraftDataset,
+  DraftExperiment,
+  DraftProject,
   ExperimentState,
-  ProjectFormData,
 } from "@/types/forms";
 
 export type ImportItemType = "project" | "experiment" | "dataset";
@@ -49,7 +49,7 @@ export interface ImportItem {
   /** Display name */
   name: string;
   /** The raw form data */
-  data: ProjectFormData | ExperimentFormData | DatasetFormData;
+  data: DraftProject | DraftExperiment | DraftDataset;
   /** Whether this item is selected for import */
   selected: boolean;
   /** What will happen when imported */
@@ -73,7 +73,7 @@ interface ImportPreviewState {
 
 interface UseImportPreviewOptions {
   /** Current project data in session */
-  currentProjectData: ProjectFormData;
+  currentProjectData: DraftProject;
   /** Current experiments in session */
   currentExperiments: ExperimentState[];
   /** Current datasets in session */
@@ -94,9 +94,9 @@ interface UseImportPreviewReturn {
   /** Open the preview with parsed import data */
   openPreview: (
     filename: string,
-    projectData: ProjectFormData,
-    experiments: ExperimentFormData[],
-    datasets: DatasetFormData[],
+    projectData: DraftProject,
+    experiments: DraftExperiment[],
+    datasets: DraftDataset[],
   ) => void;
   /** Close the preview */
   closePreview: () => void;
@@ -117,10 +117,10 @@ interface UseImportPreviewReturn {
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
   /** Get selected items for import with linking config */
   getSelectedItems: () => {
-    project: ProjectFormData | null;
-    experiments: ExperimentFormData[];
+    project: DraftProject | null;
+    experiments: DraftExperiment[];
     datasets: Array<{
-      formData: DatasetFormData;
+      formData: DraftDataset;
       experimentLinking?: DatasetExperimentLinking;
     }>;
   };
@@ -132,7 +132,7 @@ interface UseImportPreviewReturn {
 function resolveExperimentLink(
   datasetExperimentId: string | undefined,
   existingExperiments: ExperimentState[],
-  importingExperiments: Array<{ key: string; data: ExperimentFormData }>,
+  importingExperiments: Array<{ key: string; data: DraftExperiment }>,
 ): ResolvedExperimentLink {
   if (!datasetExperimentId) {
     return { type: "none" };
@@ -187,9 +187,9 @@ export function useImportPreview({
   const openPreview = useCallback(
     (
       filename: string,
-      projectData: ProjectFormData,
-      experiments: ExperimentFormData[],
-      datasets: DatasetFormData[],
+      projectData: DraftProject,
+      experiments: DraftExperiment[],
+      datasets: DraftDataset[],
     ) => {
       const items: ImportItem[] = [];
 
@@ -347,13 +347,13 @@ export function useImportPreview({
 
           if (mode === "use-file") {
             // Re-resolve from file's experiment_id
-            const dsData = item.data as DatasetFormData;
+            const dsData = item.data as DraftDataset;
             const dsExperimentId = dsData.experiment_id as string | undefined;
 
             // Get importing experiments from current items
             const importingExperiments = prev.items
               .filter((i) => i.type === "experiment")
-              .map((i) => ({ key: i.key, data: i.data as ExperimentFormData }));
+              .map((i) => ({ key: i.key, data: i.data as DraftExperiment }));
 
             resolvedMatch = resolveExperimentLink(
               dsExperimentId,
@@ -378,7 +378,7 @@ export function useImportPreview({
             const importingExp = prev.items.find(
               (i) => i.key === explicitImportKey && i.type === "experiment",
             );
-            const expData = importingExp?.data as ExperimentFormData | undefined;
+            const expData = importingExp?.data as DraftExperiment | undefined;
             resolvedMatch = importingExp
               ? {
                   type: "importing",
@@ -418,7 +418,7 @@ export function useImportPreview({
       const dataset = state.items.find(
         (item) => item.key === datasetKey && item.type === "dataset",
       );
-      const dsData = dataset?.data as DatasetFormData | undefined;
+      const dsData = dataset?.data as DraftDataset | undefined;
       const fileExperimentId = dsData?.experiment_id as string | undefined;
 
       // Build the first option: the file's experiment_id
@@ -431,7 +431,7 @@ export function useImportPreview({
           (item) =>
             item.type === "experiment" &&
             item.selected &&
-            (item.data as ExperimentFormData).experiment_id === fileExperimentId,
+            (item.data as DraftExperiment).experiment_id === fileExperimentId,
         );
 
         let firstLabel: string;
@@ -475,7 +475,7 @@ export function useImportPreview({
         (item) => item.type === "experiment" && item.selected,
       );
       importingExps.forEach((exp) => {
-        const expData = exp.data as ExperimentFormData;
+        const expData = exp.data as DraftExperiment;
         const expId = expData.experiment_id as string;
         // Skip if this matches the file's experiment_id (already shown as first option)
         if (fileExperimentId && expId === fileExperimentId) {
@@ -499,16 +499,16 @@ export function useImportPreview({
     const project = selectedItems.find((item) => item.type === "project");
     const experiments = selectedItems
       .filter((item) => item.type === "experiment")
-      .map((item) => item.data as ExperimentFormData);
+      .map((item) => item.data as DraftExperiment);
     const datasets = selectedItems
       .filter((item) => item.type === "dataset")
       .map((item) => ({
-        formData: item.data as DatasetFormData,
+        formData: item.data as DraftDataset,
         experimentLinking: item.experimentLinking,
       }));
 
     return {
-      project: project ? (project.data as ProjectFormData) : null,
+      project: project ? (project.data as DraftProject) : null,
       experiments,
       datasets,
     };

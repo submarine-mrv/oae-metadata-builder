@@ -23,15 +23,20 @@ import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
+import type { JSONSchema } from "@/components/schemaUtils";
 import ValidationButton from "@/components/ValidationButton";
 import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
-import { type ConditionalFieldPair, cleanupConditionalFields } from "@/utils/conditionalFields";
-import { cleanDatasetFormDataForType } from "@/utils/datasetFields";
+import { isModelOutputType } from "@/utils/datasetFields";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
-import { getFieldDatasetSchema, getModelOutputDatasetSchema } from "@/utils/schemaViews";
+import { isFormEmpty } from "@/utils/formDataCleanup";
+import { parseDataset } from "@/utils/parseEntity";
+import {
+  getBaseSchema,
+  getFieldDatasetSchema,
+  getModelOutputDatasetSchema,
+} from "@/utils/schemaViews";
 import { validateDataset } from "@/utils/validation";
 import modelOutputUiSchema from "./modelOutputUiSchema";
 import fieldDatasetUiSchema from "./uiSchema";
@@ -44,41 +49,21 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
 
-// Conditional field pairs for model output dataset forms
-// simulation_type is now multivalued — mcdr_forcing_description should appear
-// when "perturbation" is one of the selected values
-const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
-  {
-    triggerField: "simulation_type",
-    triggerValue: "perturbation",
-    customField: "mcdr_forcing_description",
-    matchMode: "array-contains",
-  },
-];
-
 /**
- * Creates a modified FieldDataset schema for RJSF form validation.
+ * Builds the FieldDataset schema the RJSF *form* renders from.
  *
- * ============================================================================
- * WORKAROUND: See beads issue oae-form-99i, GitHub #47
- * ============================================================================
- *
- * This modifies the schema to skip validation of variable array items.
- * Without this, RJSF validation fails for variables with type-specific fields
- * (e.g., pH calibration) because the base Variable schema has
- * `additionalProperties: false`.
- *
- * Variables are validated separately using their `schema_class` to select the
- * correct type-specific schema. See `src/utils/datasetValidation.ts`.
- *
- * REMOVE THIS when oae-form-c0s is complete (proper polymorphism via
- * LinkML type_designator and two-schema approach).
+ * The `variables` array is rendered by the custom VariablesField (and edited via
+ * the Variable Modal), not by RJSF's generic array/oneOf rendering — so the form
+ * schema replaces `variables` with a plain `array` to keep RJSF from rendering
+ * the polymorphic item schema. Variable *validation* is not skipped: it happens
+ * in the unified validateDataset() pass against the discriminated schema, and
+ * those per-variable errors are injected into the form's error list below.
  */
 function createFieldDatasetFormSchema() {
   const schema = getFieldDatasetSchema();
 
-  // Replace variables schema to skip item validation
-  // Variables are rendered by custom VariablesField and validated separately
+  // Render variables via VariablesField, not RJSF's generic array UI, so replace
+  // the item schema with a plain array. Validation stays in validateDataset().
   if (schema.properties?.variables) {
     const originalVars = schema.properties.variables;
     // Extract title/description if they exist (handle boolean schema case)
@@ -98,13 +83,8 @@ function createFieldDatasetFormSchema() {
   return schema;
 }
 
-function isModelOutputType(datasetType: string | undefined): boolean {
-  return datasetType === "model_output";
-}
-
 export default function DatasetPage() {
-  const { state, replaceDatasetFormData, getDataset, setActiveTab, setDatasetValidation } =
-    useAppState();
+  const { state, replaceDatasetFormData, getDataset, setActiveTab } = useAppState();
 
   // Dynamic schema/uiSchema switching based on dataset_type
   const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
@@ -127,13 +107,6 @@ export default function DatasetPage() {
 
   const hasExperiments = state.experiments.length > 0;
 
-  const onValidationStatusChange = useCallback(
-    (status: boolean | null) => {
-      if (state.activeDatasetId) setDatasetValidation(state.activeDatasetId, status);
-    },
-    [state.activeDatasetId, setDatasetValidation],
-  );
-
   // AJV validation result, memoized on form data. Handles the polymorphic
   // variable workaround internally via validateDataset().
   const validationResult = useMemo(
@@ -151,7 +124,6 @@ export default function DatasetPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: onValidationStatusChange,
   });
 
   // Reset error-list visibility when switching active dataset so the
@@ -180,8 +152,8 @@ export default function DatasetPage() {
 
   // Wrap error transformer to:
   // 1. Suppress experiment_id errors when no experiments exist
-  // 2. Inject variable validation errors (RJSF skips variable items
-  //    validation due to polymorphism workaround — see oae-form-99i)
+  // 2. Inject per-variable validation errors from validateDataset (the form
+  //    schema renders variables via VariablesField and omits their item schema)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
       // Hide required-field errors from inline display unless the user has
@@ -200,9 +172,9 @@ export default function DatasetPage() {
         );
       }
 
-      // Run variable validation and inject errors into RJSF's error list.
-      // This is needed because RJSF uses a simplified schema that skips
-      // variable item validation (polymorphism workaround - oae-form-99i).
+      // Inject per-variable errors into RJSF's error list. The form schema omits
+      // the variable item schema (variables are rendered by VariablesField), so
+      // validateDataset is the source of variable validation.
       // Only applies to FieldDataset (ModelOutputDataset has no variables field).
       if (!isModelOutputType(formDataRef.current.dataset_type)) {
         const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
@@ -224,24 +196,10 @@ export default function DatasetPage() {
     (e: any) => {
       if (!state.activeDatasetId) return;
 
-      let newData = e.formData;
-
-      // Check if dataset_type changed
-      const oldType = formData.dataset_type;
-      const newType = newData.dataset_type;
-
-      if (newType && oldType !== newType) {
-        // Dataset type changed — clean fields that don't belong to new type.
-        // Note: oldType can be undefined on first selection (fresh dataset),
-        // so we don't guard on oldType being truthy.
-        newData = cleanDatasetFormDataForType(newData, newType);
-      }
-
-      // Clean up conditional custom fields for model output datasets
-      if (isModelOutputType(newData.dataset_type)) {
-        newData = cleanupConditionalFields(newData, DATASET_CONDITIONAL_FIELDS);
-      }
-      newData = cleanFormData(newData);
+      // The parse boundary: type-scoped field cleanup (including dropping
+      // variables when dataset_type is model_output), conditional-field
+      // cleanup, variable parsing, and empty-value cleanup in one pass.
+      const newData = parseDataset(e.formData, getBaseSchema() as JSONSchema);
 
       // Update local state first (form sees cleaned data immediately),
       // then sync to context
@@ -298,7 +256,10 @@ export default function DatasetPage() {
             liveOmit={false}
             liveValidate
             noHtml5Validate
-            formContext={{ onCloseErrorList: validation.closeErrorList }}
+            formContext={{
+              onCloseErrorList: validation.closeErrorList,
+              variableErrors: validationResult.errorsByVariableIndex,
+            }}
             experimental_defaultFormStateBehavior={{
               arrayMinItems: { populate: "never" },
               emptyObjectFields: "skipEmptyDefaults",

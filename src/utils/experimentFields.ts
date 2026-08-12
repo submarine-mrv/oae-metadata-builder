@@ -5,7 +5,7 @@
  * See docs/experiment-type-multi-select.md for schema selection rules.
  */
 
-import type { FormDataRecord } from "@/types/forms";
+import type { ExperimentTypes, FormDataRecord, NonModelType } from "@/types/forms";
 
 // Fields present in the base Experiment class (shared by all types)
 const BASE_EXPERIMENT_FIELDS = [
@@ -95,11 +95,17 @@ export function getExperimentSchemaType(experimentType: string[]): string {
 }
 
 /**
- * Enforces model exclusivity on the experiment_types array.
+ * Enforces model exclusivity on the experiment_types array — the parser that
+ * turns a raw selection into the invariant-carrying ExperimentTypes type.
  * - If model was just added (not previously selected), remove all other types.
  * - If a non-model type was added while model was selected, remove model.
+ * With previousTypes = [] (import/restore, no transition context) this resolves
+ * statically: any selection containing model collapses to ["model"].
  */
-export function enforceModelExclusivity(newTypes: string[], previousTypes: string[]): string[] {
+export function enforceModelExclusivity(
+  newTypes: string[],
+  previousTypes: string[],
+): ExperimentTypes {
   const hadModel = previousTypes.includes("model");
   const hasModel = newTypes.includes("model");
 
@@ -107,9 +113,12 @@ export function enforceModelExclusivity(newTypes: string[], previousTypes: strin
     return ["model"];
   }
   if (hasModel && hadModel && newTypes.length > 1) {
-    return newTypes.filter((t) => t !== "model");
+    return newTypes.filter((t) => t !== "model") as NonModelType[];
   }
-  return newTypes;
+  // Unchanged by the rules above: either exactly ["model"] or a model-free
+  // selection. The sanctioned cast at this boundary — enum membership of the
+  // individual values is AJV's job, not ours.
+  return newTypes as ExperimentTypes;
 }
 
 /**

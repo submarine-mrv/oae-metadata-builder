@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { DraftExperiment } from "@/types/forms";
 import { validateDataset, validateExperiment, validateProject } from "../validation";
 
 describe("Validation", () => {
@@ -6,6 +7,7 @@ describe("Validation", () => {
     it("should validate valid project data", () => {
       const validData = {
         project_id: "test-project-001",
+        research_project: "Test OAE Research Project",
         description: "A comprehensive test project for OAE research",
         mcdr_pathway: "ocean_alkalinity_enhancement",
         sea_names: ["http://vocab.nerc.ac.uk/collection/C16/current/26/"],
@@ -66,8 +68,9 @@ describe("Validation", () => {
 
   describe("validateExperiment", () => {
     it("should validate experiment with baseline type", () => {
-      const validExperiment = {
+      const validExperiment: DraftExperiment = {
         experiment_id: "exp-baseline-001",
+        name: "Baseline Experiment",
         project_id: "", // Workaround: project_id is required by the JSON schema but left empty in tests because the form auto-populates it from context
         experiment_types: ["baseline"],
         description: "Baseline measurements before intervention",
@@ -90,7 +93,7 @@ describe("Validation", () => {
     });
 
     it("should select Intervention schema for intervention type", () => {
-      const interventionExperiment = {
+      const interventionExperiment: DraftExperiment = {
         experiment_id: "exp-intervention-001",
         project_id: "",
         experiment_types: ["intervention"],
@@ -127,7 +130,7 @@ describe("Validation", () => {
     });
 
     it("should select Tracer schema for tracer_study type", () => {
-      const tracerExperiment = {
+      const tracerExperiment: DraftExperiment = {
         experiment_id: "exp-tracer-001",
         project_id: "",
         experiment_types: ["tracer_study"],
@@ -149,7 +152,7 @@ describe("Validation", () => {
     });
 
     it("should fail validation for missing required experiment fields", () => {
-      const invalidExperiment = {
+      const invalidExperiment: DraftExperiment = {
         experiment_types: ["baseline"],
         // Missing experiment_id and other required fields
       };
@@ -161,7 +164,7 @@ describe("Validation", () => {
     });
 
     it("should use base Experiment schema for control type", () => {
-      const controlExperiment = {
+      const controlExperiment: DraftExperiment = {
         experiment_id: "exp-control-001",
         project_id: "",
         experiment_types: ["control"],

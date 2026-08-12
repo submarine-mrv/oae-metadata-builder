@@ -1,22 +1,12 @@
 import { ActionIcon, Button, Group, Paper, Table, Text, Title, Tooltip } from "@mantine/core";
-import type { FieldProps } from "@rjsf/utils";
+import type { FieldProps, RJSFValidationError } from "@rjsf/utils";
 import { IconAlertCircle, IconCopy, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
 import { brandColors } from "@/theme";
-import {
-  fieldExistsInSchema,
-  getNestedValue,
-  isFieldRequired,
-  type JSONSchema,
-  resolveRef,
-} from "./schemaUtils";
+import type { JSONSchema } from "./schemaUtils";
 import VariableModal from "./VariableModal/VariableModal";
-import {
-  getAccordionConfig,
-  normalizeFieldConfig,
-  VARIABLE_TYPE_OPTIONS,
-} from "./VariableModal/variableModalConfig";
+import { VARIABLE_TYPE_OPTIONS } from "./VariableModal/variableModalConfig";
 
 // Variable data type (flexible for schema-driven approach)
 type VariableData = Record<string, unknown>;
@@ -34,51 +24,6 @@ function getVariableDisplayLabel(variable: VariableData): string {
 }
 
 /**
- * Counts the number of missing required fields for a variable.
- * Uses the variable's type selections to determine the appropriate schema,
- * then checks all fields defined in ACCORDION_CONFIG.
- */
-function countMissingRequiredFields(variable: VariableData, rootSchema: JSONSchema): number {
-  // Get schema key from variable's type selections
-  const schemaKey = variable.schema_class as string | undefined;
-
-  if (!schemaKey || !rootSchema.$defs) return 1; // No type = incomplete
-
-  const schemaDef = rootSchema.$defs[schemaKey];
-  if (!schemaDef) return 1; // Unknown schema_class = incomplete
-
-  const variableSchema = resolveRef(schemaDef, rootSchema);
-  if (!variableSchema) return 0;
-
-  // Count missing required fields across all accordion sections
-  let missingCount = 0;
-
-  for (const section of getAccordionConfig(schemaKey)) {
-    for (const fieldEntry of section.fields) {
-      const field = normalizeFieldConfig(fieldEntry);
-
-      // Skip fields that don't exist in this schema
-      if (!fieldExistsInSchema(field.path, variableSchema, rootSchema)) {
-        continue;
-      }
-
-      // Check if field is required
-      if (!isFieldRequired(field.path, variableSchema, rootSchema)) {
-        continue;
-      }
-
-      // Check if field is missing
-      const value = getNestedValue(variable, field.path);
-      if (value === undefined || value === null || value === "") {
-        missingCount++;
-      }
-    }
-  }
-
-  return missingCount;
-}
-
-/**
  * VariablesField - A custom RJSF field for managing dataset variables.
  * Renders as a bordered section with a table of variables and Add/Edit/Delete actions.
  * Integrates with VariableModal for adding and editing variables.
@@ -88,6 +33,12 @@ const VariablesField: React.FC<FieldProps> = (props) => {
 
   // Get the root schema from RJSF registry
   const rootSchema = registry.rootSchema as JSONSchema;
+
+  // Per-variable errors come from the single validateDataset() pass (via the
+  // dataset page's formContext), so the (!) here matches the badge and overview.
+  const formContext = registry.formContext as
+    | { variableErrors?: Map<number, RJSFValidationError[]> }
+    | undefined;
 
   // Ensure formData is an array
   const variables: VariableData[] = Array.isArray(formData) ? formData : [];
@@ -186,11 +137,11 @@ const VariablesField: React.FC<FieldProps> = (props) => {
                     <Group gap="xs">
                       {(variable.dataset_variable_name as string) || "(unnamed)"}
                       {(() => {
-                        const missing = countMissingRequiredFields(variable, rootSchema);
-                        if (missing > 0) {
+                        const issues = formContext?.variableErrors?.get(index)?.length ?? 0;
+                        if (issues > 0) {
                           return (
                             <Tooltip
-                              label={`${missing} required field${missing > 1 ? "s" : ""} missing`}
+                              label={`${issues} validation issue${issues > 1 ? "s" : ""} — see error list`}
                             >
                               <IconAlertCircle size={16} color="var(--mantine-color-orange-6)" />
                             </Tooltip>

@@ -31,20 +31,11 @@ import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
-import {
-  type ConditionalFieldPair,
-  cleanupConditionalFields,
-  cleanupNestedConditionalFields,
-  type NestedConditionalFieldPair,
-} from "@/utils/conditionalFields";
 import { experimentCustomValidate } from "@/utils/customValidators";
 import { transformFormErrors } from "@/utils/errorTransformer";
-import {
-  cleanFormDataForType,
-  enforceModelExclusivity,
-  getExperimentSchemaType,
-} from "@/utils/experimentFields";
-import { cleanFormData, isFormEmpty } from "@/utils/formDataCleanup";
+import { getExperimentSchemaType } from "@/utils/experimentFields";
+import { isFormEmpty } from "@/utils/formDataCleanup";
+import { parseExperiment } from "@/utils/parseEntity";
 import {
   getInSituExperimentSchema,
   getInterventionSchema,
@@ -64,51 +55,14 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
 
-// Conditional field pairs for experiment forms
-// These define which custom fields should be cleaned up when their trigger conditions are not met
-const EXPERIMENT_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
-  {
-    triggerField: "alkalinity_feedstock",
-    triggerValue: "other",
-    customField: "alkalinity_feedstock_custom",
-  },
-  {
-    triggerField: "alkalinity_feedstock_processing",
-    triggerValue: "other",
-    customField: "alkalinity_feedstock_processing_custom",
-  },
-  {
-    triggerField: "tracer_form",
-    triggerValue: "other",
-    customField: "tracer_form_custom",
-  },
-];
-
-// Conditional field pairs nested inside array fields
-const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
-  {
-    arrayField: "model_components",
-    triggerField: "model_component_type",
-    triggerValue: "other",
-    customField: "model_component_type_custom",
-  },
-];
-
 export default function ExperimentPage() {
-  const { state, replaceExperimentFormData, setActiveTab, setExperimentValidation } = useAppState();
+  const { state, replaceExperimentFormData, setActiveTab } = useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
 
   const activeExperimentId = state.activeExperimentId;
-
-  const onValidationStatusChange = useCallback(
-    (status: boolean | null) => {
-      if (activeExperimentId) setExperimentValidation(activeExperimentId, status);
-    },
-    [activeExperimentId, setExperimentValidation],
-  );
 
   // AJV validation result, memoized on form data. Split by err.name.
   const validationResult = useMemo(() => validateExperiment(formData), [formData]);
@@ -123,7 +77,6 @@ export default function ExperimentPage() {
     missingRequired,
     otherErrors,
     isEmpty,
-    onStatusChange: onValidationStatusChange,
   });
 
   // Hide required-field errors from inline display unless the user has
@@ -178,32 +131,10 @@ export default function ExperimentPage() {
     (e: any) => {
       if (!activeExperimentId) return;
 
-      let newData = e.formData;
-
-      // Enforce model exclusivity (model can't combine with other types)
-      if (Array.isArray(newData.experiment_types)) {
-        const previousTypes = Array.isArray(formData.experiment_types)
-          ? formData.experiment_types
-          : [];
-        const cleaned = enforceModelExclusivity(newData.experiment_types, previousTypes);
-        if (cleaned !== newData.experiment_types) {
-          newData = { ...newData, experiment_types: cleaned };
-        }
-      }
-
-      // Check if schema type changed and clean fields that don't belong
-      const oldSchemaType = getExperimentSchemaType(formData.experiment_types ?? []);
-      const newSchemaType = getExperimentSchemaType(newData.experiment_types ?? []);
-
-      if (oldSchemaType !== newSchemaType) {
-        newData = cleanFormDataForType(newData, newSchemaType);
-      }
-
-      // Clean up conditional custom fields when trigger conditions are not met
-      // This prevents orphaned fields from rendering as "additional properties"
-      newData = cleanupConditionalFields(newData, EXPERIMENT_CONDITIONAL_FIELDS);
-      newData = cleanupNestedConditionalFields(newData, MODEL_NESTED_CONDITIONAL_FIELDS);
-      newData = cleanFormData(newData);
+      // The parse boundary: model exclusivity, type-scoped field cleanup,
+      // conditional-field cleanup, and empty-value cleanup in one pass.
+      // `formData` as prev enables the type-transition recency rule.
+      const newData = parseExperiment(e.formData, formData);
 
       setFormData(newData);
       if (activeExperimentId) {

@@ -86,6 +86,14 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
       };
     }
 
+    // Improve data access link URL pattern error message
+    if (e.name === "pattern" && e.property?.endsWith(".data_access_link")) {
+      return {
+        ...e,
+        message: "Must be a valid URL starting with http:// or https://",
+      };
+    }
+
     // Improve phone pattern error message
     if (e.name === "pattern" && e.property?.endsWith(".phone")) {
       return {

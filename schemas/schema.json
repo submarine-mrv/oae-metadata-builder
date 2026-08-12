@@ -2069,6 +2069,12 @@
                     "title": "Author List (for citation)",
                     "type": "string"
                 },
+                "data_access_link": {
+                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
+                    "pattern": "^https?://.+",
+                    "title": "Data access link",
+                    "type": "string"
+                },
                 "data_accessibility": {
                     "$ref": "#/$defs/DataAccessibility",
                     "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
@@ -3567,7 +3573,7 @@
                     "type": "array"
                 },
                 "name": {
-                    "description": "Optional common name for experiment.",
+                    "description": "Common name for experiment.",
                     "title": "Name",
                     "type": "string"
                 },
@@ -3594,6 +3600,7 @@
                 }
             },
             "required": [
+                "name",
                 "description",
                 "spatial_coverage",
                 "project_id",
@@ -3698,11 +3705,17 @@
                     "items": {
                         "type": "string"
                     },
-                    "title": "Calibration Files",
+                    "title": "Calibration Files (required if providing sensor data)",
                     "type": [
                         "array",
                         "null"
                     ]
+                },
+                "data_access_link": {
+                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
+                    "pattern": "^https?://.+",
+                    "title": "Data access link",
+                    "type": "string"
                 },
                 "data_accessibility": {
                     "$ref": "#/$defs/DataAccessibility",
@@ -4239,7 +4252,7 @@
                     ]
                 },
                 "name": {
-                    "description": "Optional common name for experiment.",
+                    "description": "Common name for experiment.",
                     "title": "Name",
                     "type": "string"
                 },
@@ -4282,6 +4295,7 @@
                 }
             },
             "required": [
+                "name",
                 "description",
                 "spatial_coverage",
                 "project_id",
@@ -4468,7 +4482,7 @@
                     ]
                 },
                 "name": {
-                    "description": "Optional common name for experiment.",
+                    "description": "Common name for experiment.",
                     "title": "Name",
                     "type": "string"
                 },
@@ -4524,6 +4538,7 @@
                 "dosing_depth",
                 "dosing_regimen",
                 "dosing_description",
+                "name",
                 "description",
                 "spatial_coverage",
                 "project_id",
@@ -4730,7 +4745,7 @@
                     ]
                 },
                 "name": {
-                    "description": "Optional common name for experiment.",
+                    "description": "Common name for experiment.",
                     "title": "Name",
                     "type": "string"
                 },
@@ -4809,6 +4824,7 @@
                 "dosing_depth",
                 "dosing_regimen",
                 "dosing_description",
+                "name",
                 "description",
                 "spatial_coverage",
                 "project_id",
@@ -4964,7 +4980,7 @@
                     ]
                 },
                 "name": {
-                    "description": "Optional common name for experiment.",
+                    "description": "Common name for experiment.",
                     "title": "Name",
                     "type": "string"
                 },
@@ -5001,6 +5017,7 @@
                 }
             },
             "required": [
+                "name",
                 "description",
                 "spatial_coverage",
                 "project_id",
@@ -5280,6 +5297,12 @@
                 "author_list_for_citation": {
                     "description": "Author list in the format of Lastname1, Firstname1 Middlename1; Lastname2, Firstname2 Middlename2; ...",
                     "title": "Author List (for citation)",
+                    "type": "string"
+                },
+                "data_access_link": {
+                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
+                    "pattern": "^https?://.+",
+                    "title": "Data access link",
                     "type": "string"
                 },
                 "data_accessibility": {
@@ -6054,7 +6077,8 @@
                 "temporal_coverage",
                 "spatial_coverage",
                 "project_leads",
-                "mcdr_pathway"
+                "mcdr_pathway",
+                "research_project"
             ],
             "title": "Project",
             "type": "object"
@@ -6600,7 +6624,7 @@
                     ]
                 },
                 "name": {
-                    "description": "Optional common name for experiment.",
+                    "description": "Common name for experiment.",
                     "title": "Name",
                     "type": "string"
                 },
@@ -6672,6 +6696,7 @@
                 "dosing_depth",
                 "dosing_regimen",
                 "dosing_description",
+                "name",
                 "description",
                 "spatial_coverage",
                 "project_id",
@@ -6816,5 +6841,5 @@
     },
     "title": "OAE Data Protocol - Technical Documentation",
     "type": "object",
-    "version": "0.1.0"
+    "version": "0.1.1"
 }

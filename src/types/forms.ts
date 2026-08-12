@@ -16,6 +16,7 @@
 
 import type { IChangeEvent } from "@rjsf/core";
 import type { ErrorSchema, RJSFSchema, UiSchema } from "@rjsf/utils";
+import type { DraftVariable } from "@/types/variable";
 
 // =============================================================================
 // Form Data Types
@@ -28,10 +29,34 @@ import type { ErrorSchema, RJSFSchema, UiSchema } from "@rjsf/utils";
 export type FormDataRecord = Record<string, unknown>;
 
 /**
- * Project form data - schema-driven content
+ * Experiment types that may be combined with each other. `model` is deliberately
+ * absent: it is exclusive, which `ExperimentTypes` encodes structurally.
+ * Kept as a runtime constant so the schema-sync test can assert this list
+ * (plus "model") matches the bundled schema's experiment_types vocabulary.
+ */
+export const NON_MODEL_TYPES = [
+  "baseline",
+  "control",
+  "intervention",
+  "tracer_study",
+  "other",
+] as const;
+
+export type NonModelType = (typeof NON_MODEL_TYPES)[number];
+
+/**
+ * The experiment_types selection with model exclusivity built into the type:
+ * either exactly ["model"] or any combination of non-model types. A value like
+ * ["model", "intervention"] is unconstructable in checked code; parseExperiment
+ * establishes the invariant for data arriving from forms, imports, and restores.
+ */
+export type ExperimentTypes = ["model"] | NonModelType[];
+
+/**
+ * Project draft - schema-driven content
  * Known fields are typed, unknown fields allowed via index signature
  */
-export interface ProjectFormData extends FormDataRecord {
+export interface DraftProject extends FormDataRecord {
   project_id?: string;
   name?: string;
   description?: string;
@@ -39,12 +64,15 @@ export interface ProjectFormData extends FormDataRecord {
 }
 
 /**
- * Experiment form data - schema-driven content
- * Known fields are typed, unknown fields allowed via index signature
+ * Experiment draft - schema-driven content
+ * Known fields are typed, unknown fields allowed via index signature.
+ * experiment_types carries the model-exclusivity invariant; parseExperiment is
+ * the only sanctioned producer of this type from raw data.
  */
-export interface ExperimentFormData extends FormDataRecord {
+export interface DraftExperiment extends FormDataRecord {
   project_id?: string;
-  experiment_types?: string[];
+  experiment_id?: string;
+  experiment_types?: ExperimentTypes;
   description?: string;
   // Spatial coverage has a known structure
   spatial_coverage?: {
@@ -58,22 +86,15 @@ export interface ExperimentFormData extends FormDataRecord {
 }
 
 /**
- * Variable form data - schema-driven content
- * All variable types share these common fields
+ * Dataset draft - schema-driven content.
+ * dataset_type stays a plain string on purpose: only "model_output" changes any
+ * behavior (ModelOutputDataset vs FieldDataset schema selection), and the other
+ * values are schema vocabulary the app never branches on — see
+ * isModelOutputType() in utils/datasetFields. Invariant enforced by
+ * parseDataset, not the type system: when dataset_type is "model_output",
+ * `variables` is absent (ModelOutputDataset has no variables property).
  */
-export interface VariableFormData extends FormDataRecord {
-  schema_class?: string; // Type designator (e.g., "DiscretePHVariable")
-  variable_type?: string; // High-level classification (e.g., "pH", "ta", "non_measured")
-  dataset_variable_name?: string;
-  long_name?: string;
-  variable_unit?: string;
-  // ... other fields are type-specific and handled via FormDataRecord
-}
-
-/**
- * Dataset form data - schema-driven content
- */
-export interface DatasetFormData extends FormDataRecord {
+export interface DraftDataset extends FormDataRecord {
   project_id?: string;
   experiment_id?: string;
   name?: string;
@@ -81,7 +102,7 @@ export interface DatasetFormData extends FormDataRecord {
   temporal_coverage?: string;
   dataset_type?: string;
   data_product_type?: string;
-  variables?: VariableFormData[];
+  variables?: DraftVariable[];
   // ... other known fields can be added as needed
 }
 
@@ -112,9 +133,9 @@ export interface ExperimentState {
   /** Display name */
   name: string;
   /** Form data (schema-driven) */
-  formData: ExperimentFormData;
+  formData: DraftExperiment;
   /** Experiment type for conditional schema selection */
-  experiment_types?: string[];
+  experiment_types?: ExperimentTypes;
   /** Creation timestamp */
   createdAt: number;
   /** Last update timestamp */
@@ -130,7 +151,7 @@ export interface DatasetState {
   /** Display name */
   name: string;
   /** Form data (schema-driven) */
-  formData: DatasetFormData;
+  formData: DraftDataset;
   /** ID linking metadata - controls how experiment_id syncs from a parent experiment */
   linking?: DatasetLinkingMetadata;
   /** Creation timestamp */
@@ -142,15 +163,9 @@ export interface DatasetState {
 /**
  * Main application state
  */
-export interface ValidationStatus {
-  project: boolean | null;
-  experiments: Record<number, boolean | null>;
-  datasets: Record<number, boolean | null>;
-}
-
 export interface AppFormState {
   hasProject: boolean;
-  projectData: ProjectFormData;
+  projectData: DraftProject;
   experiments: ExperimentState[];
   datasets: DatasetState[];
   activeTab: "overview" | "project" | "experiment" | "dataset";
@@ -160,7 +175,6 @@ export interface AppFormState {
   nextDatasetId: number;
   triggerValidation: boolean;
   showJsonPreview: boolean;
-  validationStatus: ValidationStatus;
 }
 
 // =============================================================================
@@ -175,16 +189,16 @@ export interface ExportContainer {
   version?: string;
   protocol_git_hash?: string;
   metadata_builder_git_hash?: string;
-  project?: ProjectFormData;
-  experiments?: ExperimentFormData[];
-  datasets?: DatasetFormData[];
+  project?: DraftProject;
+  experiments?: DraftExperiment[];
+  datasets?: DraftDataset[];
 }
 
 /**
  * Import result from file parsing
  */
 export interface ImportResult {
-  projectData: ProjectFormData;
+  projectData: DraftProject;
   experiments: ExperimentState[];
   datasets: DatasetState[];
 }
@@ -196,17 +210,17 @@ export interface ImportResult {
 /**
  * Typed RJSF change event for project form
  */
-export type ProjectChangeEvent = IChangeEvent<ProjectFormData, RJSFSchema>;
+export type ProjectChangeEvent = IChangeEvent<DraftProject, RJSFSchema>;
 
 /**
  * Typed RJSF change event for experiment form
  */
-export type ExperimentChangeEvent = IChangeEvent<ExperimentFormData, RJSFSchema>;
+export type ExperimentChangeEvent = IChangeEvent<DraftExperiment, RJSFSchema>;
 
 /**
  * Typed RJSF change event for dataset form
  */
-export type DatasetChangeEvent = IChangeEvent<DatasetFormData, RJSFSchema>;
+export type DatasetChangeEvent = IChangeEvent<DraftDataset, RJSFSchema>;
 
 /**
  * Generic form change handler
@@ -276,6 +290,17 @@ export interface GeoShape {
  */
 export interface SpatialCoverage {
   geo?: GeoShape | GeoCoordinates;
+}
+
+/**
+ * Vertical coverage value object (meters; depths are non-positive = below the
+ * sea surface, heights non-negative = above it)
+ */
+export interface VerticalCoverage {
+  min_depth_in_m?: number;
+  max_depth_in_m?: number;
+  min_height_in_m?: number;
+  max_height_in_m?: number;
 }
 
 // =============================================================================

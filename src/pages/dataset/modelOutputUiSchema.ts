@@ -5,7 +5,12 @@ import schema from "@/schema/schema.bundled.json";
 import { halfWidthStyle, nestedItemStyle, textAreaWidget } from "@/uiSchemaConstants";
 import { generateEnumNames } from "@/utils/enumDecorator";
 
-const enumNames = generateEnumNames(schema, ["DatasetType", "SimulationType", "ResearcherIDType"]);
+const enumNames = generateEnumNames(schema, [
+  "DatasetType",
+  "SimulationType",
+  "ResearcherIDType",
+  "DataAccessibility",
+]);
 
 const modelOutputUiSchema = {
   "ui:title": "",
@@ -14,6 +19,8 @@ const modelOutputUiSchema = {
   },
   "ui:order": [
     "name",
+    "data_accessibility",
+    "data_access_link",
     "experiment_id",
     "description",
     "dataset_type",
@@ -34,6 +41,16 @@ const modelOutputUiSchema = {
   name: {
     "ui:placeholder": "Brief descriptive sentence summarizing the dataset content",
     "ui:descriptionModal": true,
+  },
+  data_accessibility: {
+    ...halfWidthStyle,
+    "ui:widget": "CustomSelectWidget",
+    "ui:enumNames": enumNames.DataAccessibility,
+    "ui:descriptionModal": true,
+  },
+  data_access_link: {
+    ...halfWidthStyle,
+    "ui:placeholder": "https://doi.org/10.25921/...",
   },
   description: textAreaWidget,
   project_id: {

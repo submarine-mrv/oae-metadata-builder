@@ -9,8 +9,6 @@ interface UseFormValidationOptions {
   otherErrors: number;
   /** True when the form has no user-provided values */
   isEmpty: boolean;
-  /** Called with true when validation passes, null otherwise */
-  onStatusChange?: (passed: boolean | null) => void;
 }
 
 interface UseFormValidationReturn {
@@ -59,7 +57,6 @@ export function useFormValidation({
   missingRequired,
   otherErrors,
   isEmpty,
-  onStatusChange,
 }: UseFormValidationOptions): UseFormValidationReturn {
   const [showErrorList, setShowErrorList] = useState(false);
   const formRef = useRef<any>(null);
@@ -73,13 +70,6 @@ export function useFormValidation({
       setShowErrorList(false);
     }
   }, [badgeState, showErrorList]);
-
-  // Sync passing state to the app-level validation status (drives overview
-  // checkmarks). Anything other than "passed" resets to null.
-  useEffect(() => {
-    if (!onStatusChange) return;
-    onStatusChange(badgeState === "passed" ? true : null);
-  }, [badgeState, onStatusChange]);
 
   const handleClick = useCallback(() => {
     // No-op when there's nothing to show or list is already open

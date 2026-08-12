@@ -1,20 +1,21 @@
 import type { JSONSchema } from "@/components/schemaUtils";
-import {
-  normalizeVariableFields,
-  stripExtraVariableFields,
-} from "@/components/VariableModal/variableModalConfig";
 import type {
-  DatasetFormData,
   DatasetState,
-  ExperimentFormData,
+  DraftProject,
   ExperimentState,
   ExportContainer,
   ImportResult,
-  ProjectFormData,
 } from "@/types/forms";
-import { cleanVariableData } from "@/utils/formDataCleanup";
 import { migrateFormData } from "@/utils/migrations";
+import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
 import { getBaseSchema, getProtocolMetadata } from "./schemaViews";
+
+/** Defensive record coercion for entries of imported arrays. */
+function asImportRecord(raw: unknown): Record<string, unknown> {
+  return raw !== null && typeof raw === "object" && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : {};
+}
 
 /**
  * Options for exporting metadata
@@ -39,7 +40,7 @@ export interface ExportOptions {
  * @param options - Export options including section selection
  */
 export function exportMetadata(
-  projectData: ProjectFormData,
+  projectData: DraftProject,
   experiments: ExperimentState[],
   datasets: DatasetState[],
   options?: ExportOptions,
@@ -105,7 +106,8 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         const projectDataRaw = data.project || {};
 
         // Handle experiments - check top level first (new format), then nested (old format)
-        let experimentsData: ExperimentFormData[] = [];
+        // Raw, untrusted entries — parseExperiment/parseDataset establish types.
+        let experimentsData: unknown[] = [];
         if (Array.isArray(data.experiments) && data.experiments.length > 0) {
           // New format: experiments at top level
           experimentsData = data.experiments;
@@ -115,65 +117,50 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         }
 
         // Handle datasets - only exists in new format
-        const datasetsData: DatasetFormData[] = Array.isArray(data.datasets) ? data.datasets : [];
+        const datasetsData: unknown[] = Array.isArray(data.datasets) ? data.datasets : [];
 
-        // Remove experiments from project data (in case of old format)
-        // Migrate legacy bounding box format (W S E N → S W N E)
-        const { experiments: _, ...projectData } = migrateFormData(projectDataRaw);
-
-        // Migrate legacy bounding box format (W S E N → S W N E)
-        experimentsData = experimentsData.map(
-          (exp: ExperimentFormData) => migrateFormData(exp) as ExperimentFormData,
-        );
-        const migratedDatasets = datasetsData.map(
-          (ds: DatasetFormData) => migrateFormData(ds) as DatasetFormData,
-        );
+        // Remove experiments from project data (in case of old format), then
+        // migrate legacy bounding box format (W S E N → S W N E) and parse at
+        // the import boundary so stored data always carries the entity
+        // invariants (model exclusivity, type-scoped fields, clean variables).
+        const { experiments: _, ...rawProjectData } = migrateFormData(projectDataRaw);
+        const projectData = parseProject(rawProjectData);
 
         // Convert experiment data to ExperimentState format
         const experiments: ExperimentState[] = experimentsData.map(
-          (expData: ExperimentFormData, index: number) => ({
-            id: index + 1, // Will be reassigned based on nextExperimentId
-            name:
-              (expData.name as string) ||
-              (expData.experiment_id as string) ||
-              `Experiment ${index + 1}`,
-            formData: expData,
-            experiment_types: expData.experiment_types,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          }),
-        );
-
-        // Convert dataset data to DatasetState format
-        const datasets: DatasetState[] = migratedDatasets.map(
-          (dsData: DatasetFormData, index: number) => {
-            // Normalize variable fields on import (fix inconsistencies)
-            const rawVars = Array.isArray(dsData.variables) ? dsData.variables : [];
-            dsData = {
-              ...dsData,
-              variables: rawVars
-                .filter((v): v is typeof v => !!v && typeof v === "object" && !Array.isArray(v))
-                .map((v) =>
-                  cleanVariableData(
-                    stripExtraVariableFields(
-                      normalizeVariableFields(v),
-                      getBaseSchema() as JSONSchema,
-                    ) as Record<string, unknown>,
-                  ),
-                ),
-            };
+          (raw: unknown, index: number) => {
+            const expData = parseExperiment(migrateFormData(asImportRecord(raw)));
             return {
-              id: index + 1,
-              name: (dsData.name as string) || `Dataset ${index + 1}`,
-              formData: dsData,
-              linking: {
-                linkedExperimentInternalId: null,
-              },
+              id: index + 1, // Will be reassigned based on nextExperimentId
+              name:
+                (expData.name as string) ||
+                (expData.experiment_id as string) ||
+                `Experiment ${index + 1}`,
+              formData: expData,
+              experiment_types: expData.experiment_types,
               createdAt: Date.now(),
               updatedAt: Date.now(),
             };
           },
         );
+
+        // Convert dataset data to DatasetState format
+        const datasets: DatasetState[] = datasetsData.map((raw: unknown, index: number) => {
+          const dsData = parseDataset(
+            migrateFormData(asImportRecord(raw)),
+            getBaseSchema() as JSONSchema,
+          );
+          return {
+            id: index + 1,
+            name: (dsData.name as string) || `Dataset ${index + 1}`,
+            formData: dsData,
+            linking: {
+              linkedExperimentInternalId: null,
+            },
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+        });
 
         resolve({ projectData, experiments, datasets });
       } catch (error) {
