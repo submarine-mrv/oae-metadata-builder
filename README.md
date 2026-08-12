@@ -152,6 +152,13 @@ SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
 - **UI Layout**: Update the page's `uiSchema.ts` (e.g. `/src/pages/project/uiSchema.ts`) for field ordering and presentation
 - **Components**: Add new widgets/fields in `/src/components/`
 
+### Analytics
+
+Google Analytics is gated on one build-time variable, set in the deploy environment:
+
+```bash
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
 ## Related Repositories
 
 - [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol) - Source schema definition and protocol specification

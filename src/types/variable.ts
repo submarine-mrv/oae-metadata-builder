@@ -1,10 +1,17 @@
 /**
- * The 18 concrete variable classes — the values LinkML's `designates_type` emits
- * for `schema_class`. Hand-maintained in sync with the discriminated `variables`
- * union in the bundled schema; `variablesDiscriminator.test.ts` reads those same
- * branch names, so a drift would surface there.
+ * The 19 concrete variable classes — the values LinkML's `designates_type` emits
+ * for `schema_class`. The 18 field classes are hand-maintained in sync with the
+ * discriminated `variables` union in the bundled schema;
+ * `variablesDiscriminator.test.ts` reads those same branch names, so a drift
+ * would surface there.
+ *
+ * ModelOutputVariable is the 19th and is deliberately absent from that union: it
+ * descends from Variable but not from FieldVariable, which is what
+ * FieldDataset.variables ranges over. It belongs to ModelOutputDataset.variables
+ * and shares DraftVariable, so it is listed here.
  */
 export type VariableSchemaClass =
+  | "ModelOutputVariable"
   | "NonMeasuredVariable"
   | "CalculatedVariable"
   | "SocioeconomicVariable"

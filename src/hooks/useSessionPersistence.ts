@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DatasetData, ExperimentData } from "@/contexts/AppStateContext";
 import type { AppFormState, DraftProject } from "@/types/forms";
+import { trackEvent } from "@/utils/analytics";
 
 const STORAGE_KEY = "oae-metadata-builder-session";
 const DEBOUNCE_MS = 2000;
@@ -141,6 +142,10 @@ export function useSessionPersistence(
       nextExperimentId: savedSession.nextExperimentId,
       nextDatasetId: savedSession.nextDatasetId,
     });
+    trackEvent("session_restore", {
+      experiments: savedSession.experiments.length,
+      datasets: savedSession.datasets.length,
+    });
     setSavedSession(null);
     setIsRestoreModalOpen(false);
     userDecided.current = true;
@@ -152,6 +157,7 @@ export function useSessionPersistence(
     } catch {
       // ignore
     }
+    trackEvent("session_discard");
     setSavedSession(null);
     setIsRestoreModalOpen(false);
     userDecided.current = true;

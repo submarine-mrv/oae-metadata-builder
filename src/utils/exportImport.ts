@@ -6,6 +6,7 @@ import type {
   ExportContainer,
   ImportResult,
 } from "@/types/forms";
+import { trackEvent } from "@/utils/analytics";
 import { migrateFormData } from "@/utils/migrations";
 import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
 import { getBaseSchema, getProtocolMetadata } from "./schemaViews";
@@ -83,6 +84,13 @@ export function exportMetadata(
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+
+  // Counts only, never field values.
+  trackEvent("metadata_export", {
+    sections: selectedSections.join(","),
+    experiments: includeExperiments ? experiments.length : 0,
+    datasets: includeDatasets ? datasets.length : 0,
+  });
 }
 
 /**

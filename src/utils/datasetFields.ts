@@ -20,6 +20,10 @@ const BASE_DATASET_FIELDS = [
   "author_list_for_citation",
   "license",
   "fair_use_data_request",
+  // Both FieldDataset and ModelOutputDataset carry per-variable metadata under
+  // `variables` (FieldDataset → Variable subclasses, ModelOutputDataset →
+  // ModelOutputVariable), so it survives a dataset_type switch.
+  "variables",
 ];
 
 // FieldDataset-specific fields (not in ModelOutputDataset)
@@ -29,14 +33,12 @@ const FIELD_DATASET_FIELDS = [
   "qc_flag_scheme",
   "data_product_type",
   "temporal_coverage",
-  "variables",
 ];
 
 // ModelOutputDataset-specific fields (not in FieldDataset)
 const MODEL_SIMULATION_FIELDS = [
   "simulation_type",
   "mcdr_forcing_description",
-  "model_output_variables",
   "output_frequency",
   "hardware_configuration",
   "start_datetime",

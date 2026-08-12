@@ -1,0 +1,454 @@
+// tsconfig.app.json omits "node" from types so app code stays browser-only.
+// This test reads fixtures off disk, so it pulls the Node types in on its own.
+/// <reference types="node" />
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  type ComplianceReport,
+  checkCsv,
+  checkExcel,
+  checkNetCdf,
+  type ParsedColumn,
+  parseCsvHeaders,
+  parseDelimitedColumns,
+  unitsLabel,
+} from "../complianceChecker";
+import { findRecommendedColumn, getTemplate } from "../dataFileTemplates";
+import { pairQcFlags } from "../qcFlags";
+
+// Fixtures in tests/samples/ are also the files you drag onto /checker by hand,
+// so these assertions and the manual results stay in step. Vitest runs from the
+// repo root.
+const sampleText = (name: string) => readFileSync(path.resolve("tests/samples", name), "utf-8");
+
+const sampleBytes = (name: string): ArrayBuffer => {
+  const b = readFileSync(path.resolve("tests/samples", name));
+  return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+};
+
+const messages = (report: ComplianceReport, severity: string) =>
+  report.checks.filter((c) => c.severity === severity).map((c) => c.message);
+
+const unitsOf = (columns: ParsedColumn[], name: string) =>
+  unitsLabel(columns.find((c) => c.name === name)?.units ?? { kind: "missing" });
+
+describe("parseCsvHeaders", () => {
+  it("parses simple comma-separated headers", () => {
+    const text = "temperature,salinity,depth\n1.0,35.0,10";
+    expect(parseCsvHeaders(text)).toEqual(["temperature", "salinity", "depth"]);
+  });
+
+  it("handles quoted headers with commas", () => {
+    const text = '"station,id",temperature,salinity';
+    expect(parseCsvHeaders(text)).toEqual(["station,id", "temperature", "salinity"]);
+  });
+
+  it("trims whitespace from headers", () => {
+    const text = "  temperature , salinity , depth  ";
+    expect(parseCsvHeaders(text)).toEqual(["temperature", "salinity", "depth"]);
+  });
+
+  it("skips empty leading lines", () => {
+    const text = "\n\ntemperature,salinity\n1.0,35.0";
+    expect(parseCsvHeaders(text)).toEqual(["temperature", "salinity"]);
+  });
+
+  it("returns empty array for empty input", () => {
+    expect(parseCsvHeaders("")).toEqual([]);
+  });
+
+  it("filters out empty headers from trailing commas", () => {
+    const text = "temperature,salinity,";
+    // trailing comma produces an empty string that gets filtered
+    expect(parseCsvHeaders(text)).toEqual(["temperature", "salinity"]);
+  });
+});
+
+describe("recommended columns", () => {
+  it("recognizes names from the templates", () => {
+    expect(findRecommendedColumn("TEMP_ITS90")).toBeDefined();
+    expect(findRecommendedColumn("temp_its90")).toBeDefined();
+  });
+
+  it("recognizes names from the protocol's column header standards tables", () => {
+    // These are in the published tables but in none of the templates.
+    for (const name of ["omega_aragonite", "pco2_insitu", "wind_speed", "spm"]) {
+      expect(findRecommendedColumn(name), name).toBeDefined();
+    }
+  });
+
+  it("recognizes nothing that appears in neither source", () => {
+    // From the deleted hand-written list.
+    for (const name of ["revelle_factor", "cast_id", "chl_a", "alkalinity_excess"]) {
+      expect(findRecommendedColumn(name), name).toBeUndefined();
+    }
+  });
+
+  it("records which source each name came from", () => {
+    expect(findRecommendedColumn("wind_speed")?.inStandards).toBe(true);
+    expect(findRecommendedColumn("wind_speed")?.templates).toEqual([]);
+    // In the templates but absent from the published tables.
+    expect(findRecommendedColumn("Exp_ID")?.inStandards).toBe(false);
+  });
+
+  it("derives expectQcFlag from the template pairing", () => {
+    expect(findRecommendedColumn("DIC")?.expectQcFlag).toBe(true);
+    expect(findRecommendedColumn("Latitude")?.expectQcFlag).toBe(false);
+  });
+
+  it("records which templates each name came from", () => {
+    expect(findRecommendedColumn("Exp_ID")?.templates).toHaveLength(4);
+    expect(findRecommendedColumn("Niskin_ID")?.templates).toEqual(["bottle"]);
+  });
+
+  it("excludes QC flag columns from the recommended set", () => {
+    expect(findRecommendedColumn("TEMP_flag")).toBeUndefined();
+  });
+});
+
+describe("comment rows and the units row", () => {
+  it("skips # and blank rows wherever they appear, not just at the top", () => {
+    const parsed = parseDelimitedColumns(
+      [
+        "# Project ID: X",
+        "",
+        "# Template version: 1.0.1",
+        "depth,temperature",
+        "",
+        "# a stray note between the header and the units",
+        "m,deg_C",
+        "5.0,13.4",
+      ].join("\n"),
+    );
+
+    expect(parsed.unitsRow.kind).toBe("ok");
+    expect(unitsOf(parsed.columns, "depth")).toBe("m");
+    expect(unitsOf(parsed.columns, "temperature")).toBe("deg_C");
+  });
+
+  it("handles the comment shapes the templates actually use", () => {
+    // A quoted comment containing commas, and the bare "#" row that sits
+    // immediately above the header in bottle.xlsx.
+    const parsed = parseDelimitedColumns(
+      [
+        '"# Flag scheme: 0 = interpolated, 2 = acceptable"',
+        "#",
+        "depth,temperature",
+        "m,deg_C",
+        "5.0,13.4",
+      ].join("\n"),
+    );
+
+    expect(parsed.columns.map((c) => c.name)).toEqual(["depth", "temperature"]);
+    expect(unitsOf(parsed.columns, "temperature")).toBe("deg_C");
+  });
+
+  it("only treats # as a comment in the first column", () => {
+    const parsed = parseDelimitedColumns("depth,# not a comment\nm,n.a.\n5.0,x");
+
+    expect(parsed.columns.map((c) => c.name)).toEqual(["depth", "# not a comment"]);
+  });
+
+  it("treats n.a. spellings as not applicable rather than a unit", () => {
+    const parsed = parseDelimitedColumns("a,b,c,d\nn.a.,N/A,none,-\n1,2,3,4");
+
+    expect(parsed.columns.map((c) => c.units.kind)).toEqual(Array(4).fill("not-applicable"));
+  });
+
+  it("keeps units aligned with headers when a units cell is blank", () => {
+    const parsed = parseDelimitedColumns("a,b,c\nm,,umol/kg\n1,2,3");
+
+    expect(parsed.columns.map((c) => unitsLabel(c.units))).toEqual([
+      "m",
+      "not declared",
+      "umol/kg",
+    ]);
+  });
+});
+
+describe("units row validation", () => {
+  it("fails when the row below the header holds numbers", () => {
+    // No unit is a bare number, so this row is the first data record and the
+    // file has no units row at all.
+    const report = checkCsv("x.csv", "depth,temperature\n5.0,13.4\n25.0,12.1");
+
+    expect(report.summary.fail).toBe(1);
+    expect(messages(report, "fail")).toEqual(["Units row contains 2 numeric values"]);
+  });
+
+  it("names the offending columns and values", () => {
+    const report = checkCsv("x.csv", "depth,temperature\n5.0,deg_C\n25.0,12.1");
+
+    const failure = report.checks.find((c) => c.severity === "fail");
+    expect(failure?.details).toContain("depth = 5.0");
+  });
+
+  it("does not label columns with values taken from a data row", () => {
+    const report = checkCsv("x.csv", "sample_id,depth\nOAE-001,5.0\nOAE-002,25.0");
+
+    expect(report.columns.map((c) => c.units.kind)).toEqual(["missing", "missing"]);
+  });
+
+  it("fails when there is nothing below the header at all", () => {
+    const report = checkCsv("x.csv", "depth,temperature");
+
+    expect(messages(report, "fail")).toEqual(["No units row"]);
+  });
+});
+
+describe("checkCsv", () => {
+  it("passes a fully compliant file with no warnings", () => {
+    const report = checkCsv("compliant.csv", sampleText("compliant.csv"));
+
+    expect(report.fileType).toBe("csv");
+    expect(report.summary.warn).toBe(0);
+    expect(report.summary.fail).toBe(0);
+    expect(report.columns).toHaveLength(18);
+  });
+
+  it("reads units past the # preamble of a protocol template", () => {
+    const report = checkCsv("bottle_template.csv", sampleText("bottle_template.csv"));
+
+    // Before the preamble was skipped this parsed as one column, "# Project ID:".
+    expect(report.columns).toHaveLength(29);
+    expect(unitsOf(report.columns, "DIC")).toBe("umol/kg");
+    expect(unitsOf(report.columns, "Exp_ID")).toBe("not applicable");
+    expect(messages(report, "pass")).toContain("11 of 20 columns declare units");
+    expect(report.summary.warn).toBe(0);
+  });
+
+  it("warns about unrecognized headers, missing QC flags, and orphan flags", () => {
+    const report = checkCsv("noncompliant.csv", sampleText("noncompliant.csv"));
+
+    // Unrecognized names are counted, not warned about — nothing upstream marks
+    // a field required or recommended.
+    // Includes the orphan flag column, which is also an unrecognized name.
+    expect(messages(report, "pass")).toContain("7 additional field names");
+    expect(messages(report, "warn")).toEqual(["1 QC flag column without matching variable"]);
+    // It also has no units row, which the protocol requires.
+    expect(report.summary.fail).toBe(1);
+  });
+
+  it("fails a file with no detectable headers", () => {
+    const report = checkCsv("empty.csv", sampleText("empty.csv"));
+
+    expect(report.summary.fail).toBe(1);
+    expect(messages(report, "fail")).toEqual(["No column headers detected"]);
+    expect(report.checks).toHaveLength(1);
+  });
+});
+
+describe("QC flag pairing", () => {
+  // The templates suffix the variable but not the flag, so exact matching alone
+  // reported these correctly-paired columns as orphans.
+  const pairs = [
+    ["TEMP_ITS90", "TEMP_flag"],
+    ["Salinity_PSS78", "Salinity_flag"],
+    ["fCO2_SW_SST", "fCO2_SW_flag"],
+    ["doxy", "doxygen_flag"],
+  ];
+
+  it.each(pairs)("pairs %s with %s", (variable, flag) => {
+    const report = checkCsv("x.csv", `${variable},${flag}\nn.a.,n.a.\n1,2`);
+
+    expect(messages(report, "warn")).not.toContain("1 QC flag column without matching variable");
+  });
+
+  it("gives each flag to its most specific variable", () => {
+    // SAL_ is a prefix of Salinity_, so the shorter base must not win.
+    const report = checkCsv(
+      "x.csv",
+      "SAL_PSS78,SAL_flag,Salinity_PSS78,Salinity_flag\nn.a.,n.a.,n.a.,n.a.\n1,2,3,4",
+    );
+
+    expect(report.checks.some((c) => c.message.includes("without matching variable"))).toBe(false);
+  });
+
+  it("still reports a genuinely orphaned flag", () => {
+    const report = checkCsv("x.csv", "depth,oxygen_flag\nm,n.a.\n1,2");
+
+    expect(messages(report, "warn")).toContain("1 QC flag column without matching variable");
+  });
+});
+
+describe("stray note above the header", () => {
+  it("fails rather than treating the note as the header row", () => {
+    // physiological.xlsx puts "(example response variables)" between the
+    // preamble and the header, with no "#". Users are expected to delete it.
+    const report = checkCsv(
+      "physiological.csv",
+      [
+        "# Notes: For pH, T stands for total scale.",
+        ",,,,,,(example response variables),,,,",
+        "Exp_ID,Measurement_ID,Temperature_ITS90,DIC",
+        "n.a.,n.a.,deg_C,umol/kg",
+        "1,2,25.7,2037.6",
+      ].join("\n"),
+    );
+
+    expect(report.summary.fail).toBe(1);
+    expect(messages(report, "fail")).toEqual(["Unexpected row above the column headers"]);
+    expect(report.checks[0].details).toContain("(example response variables)");
+  });
+});
+
+describe("template selection", () => {
+  const bottle = [
+    "Exp_ID,Cruise_ID,Station_ID,Latitude",
+    "n.a.,n.a.,n.a.,decimal degrees",
+    "1,2,3,4",
+  ].join("\n");
+
+  it("auto-detects the template and checks against it", () => {
+    const report = checkCsv("x.csv", bottle);
+
+    expect(report.template?.id).toBe("bottle");
+    expect(messages(report, "pass")).toContain(
+      "Detected 4 recognized field names (Bottle template) and 0 additional field names",
+    );
+  });
+
+  it("honours an explicit template over detection", () => {
+    const report = checkCsv("x.csv", bottle, "physiological");
+
+    expect(report.template?.id).toBe("physiological");
+  });
+
+  it("falls back to the generic recommended list when told it is not a template", () => {
+    const report = checkCsv("x.csv", bottle, "none");
+
+    expect(report.template).toBeUndefined();
+    expect(messages(report, "pass")).toContain(
+      "Detected 4 recognized field names (suggested in protocol or template) and 0 additional field names",
+    );
+  });
+
+  it("does not apply a template to NetCDF, which has no template layout", async () => {
+    const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
+
+    expect(report.template).toBeUndefined();
+  });
+});
+
+describe("units cell completeness and template agreement", () => {
+  it("fails a blank units cell rather than calling it not declared", () => {
+    // A spreadsheet has a cell for every column, so a blank one is an omission.
+    const report = checkCsv("t.csv", "Exp_ID,Depth,TEMP_ITS90\nn.a.,,deg_C\n1,5.0,13.4");
+
+    expect(messages(report, "fail")).toEqual(["1 column has a blank units cell"]);
+  });
+
+  it("warns when a unit differs from the template's unit for that column", () => {
+    const report = checkCsv(
+      "t.csv",
+      "Exp_ID,Rosette_position,Niskin_ID,Depth,TEMP_ITS90\nn.a.,n.a.,n.a.,feet,kelvin\n1,2,3,5.0,13.4",
+    );
+
+    expect(report.template?.id).toBe("bottle");
+    const mismatch = report.checks.find((c) => c.message.includes("differ from the"));
+    expect(mismatch?.message).toBe("2 units differ from the Bottle template");
+    expect(mismatch?.details).toContain("Depth: feet (template says m)");
+  });
+
+  it("does not warn when the units agree", () => {
+    const report = checkCsv(
+      "t.csv",
+      "Exp_ID,Rosette_position,Niskin_ID,Depth,TEMP_ITS90\nn.a.,n.a.,n.a.,m,deg_C\n1,2,3,5.0,13.4",
+    );
+
+    expect(report.checks.some((c) => c.message.includes("differ from the"))).toBe(false);
+  });
+
+  it("still only warns about a NetCDF variable with no units attribute", async () => {
+    // NetCDF has no cell to leave blank; the attribute is simply absent.
+    const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
+
+    expect(report.summary.fail).toBe(0);
+  });
+});
+
+describe("regressions from the branch review", () => {
+  it("fails a text-only first record instead of reading it as units", () => {
+    // Numbers alone missed this: identifiers, notes and names look nothing like
+    // data to a numeric test, so every column got a bogus unit.
+    const report = checkCsv(
+      "t.csv",
+      "sample_id,station_id,notes,operator\nOAE-001,ST01,clear skies,J. Smith",
+    );
+
+    expect(messages(report, "fail")).toEqual(["No recognizable units below the column headers"]);
+    expect(report.columns.every((c) => c.units.kind === "missing")).toBe(true);
+  });
+
+  it("accepts a units row of real units with no n.a. marker", () => {
+    const report = checkCsv("t.csv", "depth,ctdpres\nm,dbar\n5.0,10.0");
+
+    expect(report.summary.fail).toBe(0);
+    expect(unitsOf(report.columns, "depth")).toBe("m");
+  });
+
+  it("gives each QC flag to exactly one variable", () => {
+    // Bottle has TEMP_flag beside TEMP_ITS90, TEMP_PH, TEMP_Carbonate and
+    // TEMP_fCO2; scoring variables independently handed it to all four.
+    const bottle = getTemplate("bottle");
+    const pairs = pairQcFlags(bottle!.columns);
+
+    const flags = [...pairs.values()];
+    expect(new Set(flags).size).toBe(flags.length);
+    expect(pairs.get("TEMP_ITS90")).toBe("TEMP_flag");
+    expect(pairs.get("TEMP_PH")).toBeUndefined();
+  });
+});
+
+describe("checkExcel", () => {
+  it("reports xlsx as its own file type, not csv", async () => {
+    const report = await checkExcel("compliant.xlsx", sampleBytes("compliant.xlsx"));
+
+    expect(report.fileType).toBe("xlsx");
+    expect(report.columns).toHaveLength(18);
+    expect(report.summary.warn).toBe(0);
+  });
+
+  it("produces the same columns and units as the CSV it was built from", async () => {
+    // Presentation is shared across formats, so the parsed shape must be too.
+    const csv = checkCsv("compliant.csv", sampleText("compliant.csv"));
+    const xlsx = await checkExcel("compliant.xlsx", sampleBytes("compliant.xlsx"));
+
+    expect(xlsx.columns).toEqual(csv.columns);
+    expect(messages(xlsx, "pass")).toEqual(messages(csv, "pass"));
+  });
+});
+
+describe("checkNetCdf", () => {
+  it("reports units from variable attributes in the same shape as a spreadsheet", async () => {
+    const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
+
+    expect(report.fileType).toBe("netcdf");
+    expect(unitsOf(report.columns, "dic")).toBe("umol/kg");
+    expect(messages(report, "pass")).toContain("11 of 11 columns declare units");
+  });
+
+  it("checks CF standard_name instead of judging variable names", async () => {
+    // The protocol defers model output naming to CF, and CF's vocabulary lives
+    // in the standard_name attribute, not the variable name.
+    const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
+
+    expect(messages(report, "pass")).toContain("11 of 11 variables declare a CF standard_name");
+    expect(report.columns.find((c) => c.name === "dic")?.standardName).toBe(
+      "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water",
+    );
+    // No naming or QC-flag judgement, both of which come from the spreadsheets.
+    expect(report.checks.some((c) => c.message.includes("recommended list"))).toBe(false);
+    expect(report.checks.some((c) => c.message.includes("QC flag"))).toBe(false);
+    expect(report.summary.warn).toBe(0);
+  });
+
+  it("cannot read NetCDF-4, which is what most ocean models write", async () => {
+    // netcdfjs is v3-classic only. NetCDF-4 is HDF5 underneath, so the parser
+    // rejects it outright. Delete this test when the reader gains HDF5 support.
+    await expect(
+      checkNetCdf("model_output_v4.nc", sampleBytes("model_output_v4.nc")),
+    ).rejects.toThrow(/should start with CDF/);
+  });
+});

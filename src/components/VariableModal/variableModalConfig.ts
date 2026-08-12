@@ -210,6 +210,100 @@ export const VARIABLE_TYPE_OPTIONS = [
   { value: "socioeconomic", label: "Socioeconomic" },
 ] as const;
 
+/** The single schema class backing every model-output variable. */
+export const MODEL_VARIABLE_SCHEMA_KEY = "ModelOutputVariable";
+
+/**
+ * Variable types offered for model output. These are the ModelVariableType enum
+ * values from the protocol schema — a different vocabulary from VARIABLE_TYPE_OPTIONS
+ * above, because model output covers quantities field measurement does not
+ * (velocities, fluxes) and omits sampling-based ones (HPLC, socioeconomic).
+ *
+ * Order follows `ModelVariableType` in the protocol's variable.yaml, and
+ * `variableModalConfig.test.ts` asserts the values stay in sync with the schema.
+ * Labels are Title Case UI copy matching VARIABLE_TYPE_OPTIONS above rather than
+ * the schema's sentence-case descriptions, so the two dropdowns read alike.
+ */
+export const MODEL_VARIABLE_TYPE_OPTIONS = [
+  { value: "air_sea_co2_flux", label: "Air-sea CO₂ Flux" },
+  { value: "dissolved_inorganic_carbon", label: "Dissolved Inorganic Carbon (DIC)" },
+  { value: "total_alkalinity", label: "Total Alkalinity (TA)" },
+  { value: "temperature", label: "Temperature" },
+  { value: "salinity", label: "Salinity" },
+  { value: "ph", label: "pH" },
+  {
+    value: "biological_tracers",
+    label: "Biological Tracers (e.g., chlorophyll, phytoplankton, zooplankton)",
+  },
+  { value: "nutrients", label: "Nutrients (e.g., dissolved oxygen, NO₃⁻, NH₄⁺)" },
+  { value: "zonal_velocity", label: "Zonal Velocity (u)" },
+  { value: "meridional_velocity", label: "Meridional Velocity (v)" },
+  { value: "vertical_velocity", label: "Vertical Velocity (w)" },
+  { value: "co2", label: "xCO₂/pCO₂/fCO₂" },
+  { value: "other", label: "Generic Variable" },
+] as const;
+
+/** Lookup form of MODEL_VARIABLE_TYPE_OPTIONS, for validating a stored value. */
+export const MODEL_VARIABLE_TYPE_VALUES: ReadonlySet<string> = new Set(
+  MODEL_VARIABLE_TYPE_OPTIONS.map((opt) => opt.value),
+);
+
+/** The OAE Data Protocol section listing what model output should include. */
+export const MODEL_DATA_PROTOCOL_URL =
+  "https://www.carbontosea.org/oae-data-protocol/1-0-0/#model-data";
+
+/**
+ * The model outputs the protocol requires (§Model Data): a 2D air-sea CO₂ flux
+ * time series, and 3D time series for DIC, TA, temperature and salinity.
+ * Shown bold in the model variable dropdown. Presentational only — nothing
+ * blocks saving a dataset that omits them.
+ */
+export const PROTOCOL_REQUIRED_MODEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
+  "air_sea_co2_flux",
+  "dissolved_inorganic_carbon",
+  "total_alkalinity",
+  "temperature",
+  "salinity",
+]);
+
+/**
+ * VariableType → ModelVariableType for the handful of quantities both
+ * vocabularies name. Used when a dataset switches to model output; anything
+ * absent here has no model equivalent and becomes "other".
+ */
+export const FIELD_TO_MODEL_VARIABLE_TYPE: Record<string, string> = {
+  pH: "ph",
+  ta: "total_alkalinity",
+  dic: "dissolved_inorganic_carbon",
+  co2: "co2",
+};
+
+/** The inverse of FIELD_TO_MODEL_VARIABLE_TYPE, for switching back to a field dataset. */
+export const MODEL_TO_FIELD_VARIABLE_TYPE: Record<string, string> = Object.fromEntries(
+  Object.entries(FIELD_TO_MODEL_VARIABLE_TYPE).map(([field, model]) => [model, field]),
+);
+
+/**
+ * Short labels for the model variable types, for the variables table and the
+ * collapsed-accordion pill — the dropdown labels are full sentences and too
+ * long for either. Keys must cover every MODEL_VARIABLE_TYPE_OPTIONS value.
+ */
+export const MODEL_VARIABLE_TYPE_SHORT_LABELS: Record<string, string> = {
+  air_sea_co2_flux: "Air-sea CO₂ Flux",
+  dissolved_inorganic_carbon: "DIC",
+  total_alkalinity: "Total Alkalinity",
+  temperature: "Temperature",
+  salinity: "Salinity",
+  ph: "pH",
+  biological_tracers: "Biological Tracers",
+  nutrients: "Nutrients",
+  zonal_velocity: "Zonal Velocity",
+  meridional_velocity: "Meridional Velocity",
+  vertical_velocity: "Vertical Velocity",
+  co2: "CO₂",
+  other: "Generic Variable",
+};
+
 // =============================================================================
 // Accordion Configuration
 // =============================================================================
@@ -393,6 +487,7 @@ const BASE: HierarchyLayer = {
       "observation_type",
       {
         path: "sampling_method",
+        inputType: "textarea",
         placeholderText: "Describe how samples were collected",
       },
       {
@@ -408,6 +503,7 @@ const BASE: HierarchyLayer = {
     analysis: [
       {
         path: "analyzing_method",
+        inputType: "textarea",
         placeholderText: "Describe the analysis method used",
       },
     ],
@@ -453,6 +549,7 @@ const BASE: HierarchyLayer = {
       {
         path: "analyzing_instrument.calibration.technique_description",
         span: 6,
+        inputType: "textarea",
         placeholderText: "Details of the calibration technique",
       },
       {
@@ -486,6 +583,7 @@ const BASE: HierarchyLayer = {
       {
         path: "uncertainty_definition",
         span: 6,
+        inputType: "textarea",
         placeholderText: "Description of uncertainty calculation",
       },
       { path: "qc_researcher", span: 6 },
@@ -520,7 +618,13 @@ const BASE: HierarchyLayer = {
 const CONTINUOUS: HierarchyLayer = {
   name: "ContinuousMeasuredVariable",
   sections: {
-    analysis: ["raw_data_calculation_method", "calculation_software_version"],
+    analysis: [
+      {
+        path: "raw_data_calculation_method",
+        inputType: "textarea",
+      },
+      "calculation_software_version",
+    ],
   },
 };
 
@@ -531,6 +635,7 @@ const CALCULATED: HierarchyLayer = {
     calculation: [
       {
         path: "calculation_method_and_parameters",
+        inputType: "textarea",
         placeholderText: "e.g., Using CO2SYS with Lueker et al. (2000) constants",
       },
     ],
@@ -550,6 +655,7 @@ const SEDIMENT: HierarchyLayer = {
       {
         path: "sediment_sampling_method",
         span: 6,
+        inputType: "textarea",
         placeholderText: "e.g., sediment core, grab sampling, dredging",
       },
       {
@@ -583,6 +689,7 @@ const TA_DIC: HierarchyLayer = {
       },
       {
         path: "sample_preservation.correction_description",
+        inputType: "textarea",
         placeholderText: "How the preservative effect was corrected for",
       },
     ],
@@ -598,11 +705,12 @@ const TA_DIC: HierarchyLayer = {
       },
       {
         path: "curve_fitting_method",
-        span: 6,
+        inputType: "textarea",
         placeholderText: "Curve fitting method for alkalinity",
       },
       {
         path: "blank_correction",
+        inputType: "textarea",
         placeholderText: "Whether and how results were corrected for blank",
       },
     ],
@@ -643,6 +751,7 @@ const PH: HierarchyLayer = {
       },
       {
         path: "temperature_correction_method",
+        inputType: "textarea",
         placeholderText: "Method used to correct pH for temperature",
       },
     ],
@@ -664,6 +773,7 @@ const PH: HierarchyLayer = {
         },
         {
           path: "analyzing_instrument.calibration.dye_correction_method",
+          inputType: "textarea",
           placeholderText: "Method used to correct for dye effects",
         },
         {
@@ -707,6 +817,7 @@ const CO2: HierarchyLayer = {
       },
       {
         path: "water_vapor_correction_method",
+        inputType: "textarea",
         placeholderText: "How water vapor pressure was determined",
       },
     ],
@@ -774,6 +885,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "drying_method",
+        inputType: "textarea",
         placeholderText: "Method used to dry gas from equilibrator before CO2 sensor",
       },
     ],
@@ -786,6 +898,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       {
         path: "temperature_correction_method",
         span: 6,
+        inputType: "textarea",
         placeholderText: "How the temperature effect was corrected",
       },
     ],
@@ -793,6 +906,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       {
         path: "analyzing_instrument.measurement_frequency",
         span: 6,
+        inputType: "textarea",
         placeholderText: "e.g., every 140 seconds except during calibration",
       },
     ],
@@ -867,6 +981,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "equilibrator_temperature_sensor.calibration",
+        inputType: "textarea",
         placeholderText: "e.g., Factory calibration",
       },
       {
@@ -903,6 +1018,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "equilibrator_pressure_sensor.calibration",
+        inputType: "textarea",
         placeholderText: "e.g., Factory calibration",
       },
       {
@@ -939,6 +1055,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "atmospheric_pressure_sensor.calibration",
+        inputType: "textarea",
         placeholderText: "e.g., Factory calibration",
       },
       {
@@ -964,6 +1081,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "marine_air_measurement.drying_method",
+        inputType: "textarea",
         placeholderText: "Method used to dry the gas stream",
       },
     ],
@@ -1073,6 +1191,13 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   CalculatedVariable: [BASE, CALCULATED],
   SocioeconomicVariable: [BASE, SOCIOECONOMIC],
   NonMeasuredVariable: [BASE],
+  // Model output. ModelOutputVariable sits directly under Variable in the schema and
+  // carries none of the in-situ metadata, so BASE alone is enough: everything
+  // BASE declares beyond long_name / units / dataset_variable_name (the QC-flag
+  // and raw-data column gates, and the whole Quality Control and Additional
+  // Information sections) is dropped by the fieldExistsInSchema() filter, and
+  // the emptied sections are dropped by getAccordionConfig().
+  ModelOutputVariable: [BASE],
 };
 
 // =============================================================================
@@ -1241,10 +1366,43 @@ function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
       }
     }
   }
+  // ModelOutputVariable is not part of VARIABLE_SCHEMA_MAP (it isn't reachable via the
+  // variable_type → genesis → sampling tree; every model variable uses it). It
+  // must still be registered here or normalizeVariableFields would treat it as
+  // an unknown class and re-derive schema_class into CalculatedVariable.
+  // It has no genesis or sampling, so both are cleared; variable_type is checked
+  // against ModelVariableType rather than taken from here.
+  lookup[MODEL_VARIABLE_SCHEMA_KEY] = { variable_type: "other" };
   return lookup;
 }
 
 const SCHEMA_CLASS_LOOKUP = buildSchemaClassLookup();
+
+/** Classes used by more than one variable_type — variable_type is trusted as-is. */
+const SHARED_SCHEMA_CLASSES = new Set(["CalculatedVariable"]);
+
+/**
+ * The field variable_type a variable really has, applying the same precedence
+ * normalizeVariableFields does: schema_class is the source of truth, so a
+ * concrete class pins the type (DiscretePHVariable → "pH") even when a stored
+ * variable_type disagrees. Shared classes (CalculatedVariable) pin nothing, so
+ * their stored value is trusted; SCHEMA_CLASS_LOOKUP holds an arbitrary entry
+ * for them (whichever type reached the class first) which must not be used.
+ *
+ * Returns undefined when nothing determines it — callers pick their own default.
+ *
+ * Needed when coercing between the field and model vocabularies, which runs
+ * before normalizeVariableFields has reconciled the two fields.
+ */
+export function resolveFieldVariableType(variable: Record<string, unknown>): string | undefined {
+  const schemaClass = variable.schema_class;
+  const stored = typeof variable.variable_type === "string" ? variable.variable_type : undefined;
+  if (typeof schemaClass === "string" && !SHARED_SCHEMA_CLASSES.has(schemaClass)) {
+    const pinned = SCHEMA_CLASS_LOOKUP[schemaClass]?.variable_type;
+    if (pinned) return pinned;
+  }
+  return stored;
+}
 
 /**
  * Normalizes variable fields to be consistent with schema_class.
@@ -1291,10 +1449,16 @@ export function normalizeVariableFields(
 
   const changes: Record<string, unknown> = {};
 
-  // For shared classes (CalculatedVariable), trust existing variable_type
-  // if it's a type that supports calculated variables
-  const isSharedClass = schemaClass === "CalculatedVariable";
-  if (isSharedClass) {
+  // ModelOutputVariable draws variable_type from ModelVariableType, a different
+  // vocabulary from VariableType, so it is validated against its own values.
+  if (schemaClass === MODEL_VARIABLE_SCHEMA_KEY) {
+    const currentType = variable.variable_type as string | undefined;
+    if (!currentType || !MODEL_VARIABLE_TYPE_VALUES.has(currentType)) {
+      changes.variable_type = "other";
+    }
+  } else if (SHARED_SCHEMA_CLASSES.has(schemaClass)) {
+    // For shared classes (CalculatedVariable), trust existing variable_type
+    // if it's a type that supports calculated variables
     const validCalculatedTypes = new Set(
       Object.entries(VARIABLE_SCHEMA_MAP)
         .filter(([, v]) => typeof v === "object" && "calculated" in v)
@@ -1346,7 +1510,14 @@ export function getSchemaKeyForUI(
   uiVariableType: string | undefined,
   genesis: string | undefined,
   sampling: string | undefined,
+  isModelOutput = false,
 ): string | null {
+  // Model output datasets have exactly one variable class. The variable_type
+  // dropdown classifies the quantity using ModelVariableType but never changes
+  // which schema is used; ModelOutputVariable has no genesis or sampling to consider.
+  if (isModelOutput) {
+    return uiVariableType ? MODEL_VARIABLE_SCHEMA_KEY : null;
+  }
   if (uiVariableType === "other") {
     if (genesis === "contextual") return getSchemaKey("non_measured", undefined, undefined);
     return getSchemaKey("other", genesis, sampling);

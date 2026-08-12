@@ -28,7 +28,7 @@ const modelOutputUiSchema = {
     "mcdr_forcing_description",
     "start_datetime",
     "end_datetime",
-    "model_output_variables",
+    "variables",
     "output_frequency",
     "hardware_configuration",
     "filenames",
@@ -90,11 +90,12 @@ const modelOutputUiSchema = {
     "ui:title": "Simulation End",
     "ui:description": "End date and time of simulation in UTC",
   },
-  model_output_variables: {
-    ...halfWidthStyle,
-    "ui:widget": "CustomSelectWidget",
+  // Variables field — same table + modal as field datasets, but every variable
+  // is a ModelOutputVariable, which has neither genesis nor sampling.
+  variables: {
+    "ui:field": "VariablesField",
     "ui:options": {
-      placeholder: "Search output variables…",
+      modelOutput: true,
     },
   },
   output_frequency: {
@@ -173,7 +174,6 @@ const modelOutputUiSchema = {
   },
   author_list_for_citation: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 2 },
     "ui:placeholder": "Lastname1, Firstname1; Lastname2, Firstname2; ...",
     "ui:descriptionModal": true,
   },

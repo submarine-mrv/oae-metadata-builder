@@ -38,7 +38,13 @@ export default function CustomTextareaWidget<
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
-  const rows = options?.rows || 4;
+  // Textareas autosize by default: grow from minRows (2) up to maxRows (8),
+  // then scroll. A fixed numeric `rows` option opts out into a fixed height.
+  const fixedRows = typeof options?.rows === "number" ? options.rows : undefined;
+  const minRows = typeof options?.minRows === "number" ? options.minRows : 2;
+  const maxRows = typeof options?.maxRows === "number" ? options.maxRows : 8;
+  const sizeProps =
+    fixedRows !== undefined ? { rows: fixedRows } : { autosize: true, minRows, maxRows };
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -84,7 +90,7 @@ export default function CustomTextareaWidget<
           disabled={disabled}
           readOnly={readonly}
           autoFocus={autofocus}
-          rows={rows}
+          {...sizeProps}
           error={rawErrors && rawErrors.length > 0 ? rawErrors.join(", ") : undefined}
           onChange={handleChange}
           onBlur={handleBlur}

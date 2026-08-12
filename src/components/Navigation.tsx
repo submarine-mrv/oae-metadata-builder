@@ -25,6 +25,7 @@ import ImportPreviewModal from "@/components/ImportPreviewModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportPreview } from "@/hooks/useImportPreview";
+import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
 
 export default function Navigation() {
@@ -95,6 +96,12 @@ export default function Navigation() {
     const experimentFormData = selected.experiments;
     // Pass datasets with their linking configuration
     importSelectedData(selected.project, experimentFormData, selected.datasets);
+    // On confirm, not on file selection: the preview can still be cancelled.
+    trackEvent("metadata_import", {
+      project: selected.project ? 1 : 0,
+      experiments: experimentFormData.length,
+      datasets: selected.datasets.length,
+    });
     importPreview.closePreview();
     navigate({ to: "/overview" });
   };

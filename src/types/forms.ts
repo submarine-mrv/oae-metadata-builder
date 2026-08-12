@@ -92,7 +92,8 @@ export interface DraftExperiment extends FormDataRecord {
  * values are schema vocabulary the app never branches on — see
  * isModelOutputType() in utils/datasetFields. Invariant enforced by
  * parseDataset, not the type system: when dataset_type is "model_output",
- * `variables` is absent (ModelOutputDataset has no variables property).
+ * `variables` holds ModelOutputVariable entries, which carry neither genesis
+ * nor sampling.
  */
 export interface DraftDataset extends FormDataRecord {
   project_id?: string;
