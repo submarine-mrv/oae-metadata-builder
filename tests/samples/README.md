@@ -6,12 +6,12 @@ menu — go to the URL directly). The same files back the unit tests in
 
 | File | Expected result |
 |---|---|
-| `compliant.csv` | 5 passes, no warnings. 20 columns; 8 declare units, 5 marked not applicable. |
-| `bottle_template.csv` | Protocol template shape. 29 columns past the `#` preamble, 4 passes, 3 warnings. |
-| `noncompliant.csv` | 1 pass, 3 warnings, **1 failure** — it has no units row. |
+| `compliant.csv` | 4 passes, no warnings. A minimal Bottle-template file, 18 columns. |
+| `bottle_template.csv` | Full Bottle template shape. 29 columns past the `#` preamble, 4 passes, no warnings. |
+| `noncompliant.csv` | 1 pass, 2 warnings, **1 failure** — it has no units row. |
 | `empty.csv` | 1 failure: "No column headers detected". |
-| `compliant.xlsx` | Byte-for-byte the same columns and units as `compliant.csv`, typed **XLSX**. |
-| `model_output_v3.nc` | 2 passes, 2 warnings. All 11 variables declare units. |
+| `compliant.xlsx` | The same columns and units as `compliant.csv`, typed **XLSX**. |
+| `model_output_v3.nc` | 1 pass, 1 warning. All 11 variables declare units; names not judged (see below). |
 | `model_output_v4.nc` | **Error.** See below — expected, not a broken file. |
 
 ## Tabular file shape
@@ -59,9 +59,10 @@ The OAE Data Protocol's [model data minimum set](https://www.carbontosea.org/oae
 `dic` and `talk` (µmol/kg), `temperature` (degC), `salinity`, the 2D air-sea CO₂ flux `fgco2`
 (mol/m²/s), grid cell `area` and `volume`, plus time/depth/lat/lon coordinates.
 
-Worth noting when you run it: this conformant file still draws a warning that `talk`, `fgco2`, `area`,
-and `volume` are "not in recommended list" — `RECOMMENDED_VARIABLES` doesn't cover the model-data
-variables the protocol requires. Tracked in `oae-form-opb`.
+Recommended column names are derived from the four spreadsheet templates, so they say nothing about
+NetCDF. The protocol's Model Output Variables naming table is not published in a form we can read, so
+NetCDF variable names are listed but not judged, and the QC flag expectations are skipped too. Guessing
+those names is what produced the previous hand-written list. Tracked in `oae-form-opb`.
 
 ## Regenerating
 

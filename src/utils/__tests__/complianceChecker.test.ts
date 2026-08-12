@@ -12,9 +12,9 @@ import {
   type ParsedColumn,
   parseCsvHeaders,
   parseDelimitedColumns,
-  RECOMMENDED_VARIABLES,
   unitsLabel,
 } from "../complianceChecker";
+import { findRecommendedColumn } from "../dataFileTemplates";
 
 // Fixtures in tests/samples/ are also the files you drag onto /checker by hand,
 // so these assertions and the manual results stay in step. Vitest runs from the
@@ -64,32 +64,27 @@ describe("parseCsvHeaders", () => {
   });
 });
 
-describe("RECOMMENDED_VARIABLES", () => {
-  it("contains expected carbonate chemistry variables", () => {
-    const names = RECOMMENDED_VARIABLES.map((v) => v.name);
-    expect(names).toContain("dic");
-    expect(names).toContain("ta");
-    expect(names).toContain("ph_t_insitu");
-    expect(names).toContain("pco2");
+describe("recommended columns", () => {
+  it("uses the protocol templates as the source of recommended names", () => {
+    // The names come from the templates, not a hand-kept list, so protocol
+    // spellings like TEMP_ITS90 are recognized and invented ones are not.
+    expect(findRecommendedColumn("TEMP_ITS90")).toBeDefined();
+    expect(findRecommendedColumn("temp_its90")).toBeDefined();
+    expect(findRecommendedColumn("revelle_factor")).toBeUndefined();
   });
 
-  it("contains coordinate variables", () => {
-    const names = RECOMMENDED_VARIABLES.map((v) => v.name);
-    expect(names).toContain("latitude");
-    expect(names).toContain("longitude");
-    expect(names).toContain("depth");
+  it("derives expectQcFlag from the template pairing", () => {
+    expect(findRecommendedColumn("DIC")?.expectQcFlag).toBe(true);
+    expect(findRecommendedColumn("Latitude")?.expectQcFlag).toBe(false);
   });
 
-  it("marks coordinate variables correctly for QC flags", () => {
-    const lat = RECOMMENDED_VARIABLES.find((v) => v.name === "latitude");
-    expect(lat?.expectQcFlag).toBe(false);
-    const depth = RECOMMENDED_VARIABLES.find((v) => v.name === "depth");
-    expect(depth?.expectQcFlag).toBe(true);
+  it("records which templates each name came from", () => {
+    expect(findRecommendedColumn("Exp_ID")?.templates).toHaveLength(4);
+    expect(findRecommendedColumn("Niskin_ID")?.templates).toEqual(["bottle"]);
   });
 
-  it("has unique names", () => {
-    const names = RECOMMENDED_VARIABLES.map((v) => v.name);
-    expect(new Set(names).size).toBe(names.length);
+  it("excludes QC flag columns from the recommended set", () => {
+    expect(findRecommendedColumn("TEMP_flag")).toBeUndefined();
   });
 });
 
@@ -190,7 +185,7 @@ describe("checkCsv", () => {
     expect(report.fileType).toBe("csv");
     expect(report.summary.warn).toBe(0);
     expect(report.summary.fail).toBe(0);
-    expect(report.columns).toHaveLength(20);
+    expect(report.columns).toHaveLength(18);
   });
 
   it("reads units past the # preamble of a protocol template", () => {
@@ -201,6 +196,7 @@ describe("checkCsv", () => {
     expect(unitsOf(report.columns, "DIC")).toBe("umol/kg");
     expect(unitsOf(report.columns, "Exp_ID")).toBe("not applicable");
     expect(messages(report, "pass")).toContain("11 of 20 columns declare units");
+    expect(report.summary.warn).toBe(0);
   });
 
   it("warns about unrecognized headers, missing QC flags, and orphan flags", () => {
@@ -208,7 +204,6 @@ describe("checkCsv", () => {
 
     expect(messages(report, "warn")).toEqual([
       "6 columns not in recommended list",
-      "1 variable is missing a QC flag column",
       "1 QC flag column without matching variable",
     ]);
     // It also has no units row, which the protocol requires.
@@ -317,7 +312,7 @@ describe("checkExcel", () => {
     const report = await checkExcel("compliant.xlsx", sampleBytes("compliant.xlsx"));
 
     expect(report.fileType).toBe("xlsx");
-    expect(report.columns).toHaveLength(20);
+    expect(report.columns).toHaveLength(18);
     expect(report.summary.warn).toBe(0);
   });
 
@@ -340,14 +335,14 @@ describe("checkNetCdf", () => {
     expect(messages(report, "pass")).toContain("11 of 11 columns declare units");
   });
 
-  it("warns that protocol-required model variables are unrecognized", async () => {
-    // The sample carries the OAE protocol's model data minimum set, yet talk,
-    // fgco2, area and volume are absent from RECOMMENDED_VARIABLES. Conformant
-    // model output is flagged for columns the protocol requires it to have.
+  it("does not judge NetCDF variable names against the spreadsheet templates", async () => {
+    // Recommended names come from the templates, which are spreadsheet layouts.
+    // The protocol's Model Output Variables table is not published machine
+    // readably, so guessing names here would repeat the mistake we removed.
     const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
 
-    const unrecognized = report.checks.find((c) => c.message.includes("not in recommended list"));
-    expect(unrecognized?.details).toBe("talk, fgco2, area, volume");
+    expect(messages(report, "warn")).toEqual(["Variable names not checked"]);
+    expect(report.checks.some((c) => c.message.includes("QC flag"))).toBe(false);
   });
 
   it("cannot read NetCDF-4, which is what most ocean models write", async () => {

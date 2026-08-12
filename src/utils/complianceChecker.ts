@@ -8,93 +8,14 @@
 import {
   type DataFileTemplate,
   detectTemplate,
+  findRecommendedColumn,
   getTemplate,
   matchTemplate,
+  RECOMMENDED_COLUMNS,
   type TemplateId,
   type TemplateMatch,
 } from "@/utils/dataFileTemplates";
-
-// ---------------------------------------------------------------------------
-// Recommended column header names from the OAE Data Protocol
-// See: https://www.carbontosea.org/oae-data-protocol/1-0-0/#column-header-name
-// ---------------------------------------------------------------------------
-
-export interface RecommendedVariable {
-  name: string;
-  description: string;
-  /** Whether a QC flag column is expected alongside this variable */
-  expectQcFlag: boolean;
-}
-
-/**
- * Curated list of recommended column header names from the OAE Data Protocol.
- * These are the standard names that should appear in dataset data files.
- */
-export const RECOMMENDED_VARIABLES: RecommendedVariable[] = [
-  // Identifiers & coordinates
-  { name: "sample_id", description: "Unique sample identifier", expectQcFlag: false },
-  { name: "station_id", description: "Station identifier", expectQcFlag: false },
-  { name: "cast_id", description: "Cast identifier", expectQcFlag: false },
-  { name: "date", description: "Date of observation", expectQcFlag: false },
-  { name: "time", description: "Time of observation", expectQcFlag: false },
-  { name: "datetime", description: "Combined date and time", expectQcFlag: false },
-  { name: "latitude", description: "Latitude in decimal degrees", expectQcFlag: false },
-  { name: "longitude", description: "Longitude in decimal degrees", expectQcFlag: false },
-  { name: "depth", description: "Depth in meters", expectQcFlag: true },
-  { name: "pressure", description: "Pressure in decibars", expectQcFlag: true },
-
-  // Physical oceanography
-  { name: "temperature", description: "Water temperature", expectQcFlag: true },
-  { name: "salinity", description: "Salinity", expectQcFlag: true },
-  { name: "conductivity", description: "Conductivity", expectQcFlag: true },
-  { name: "density", description: "Water density", expectQcFlag: true },
-  { name: "sigma_theta", description: "Potential density anomaly", expectQcFlag: true },
-
-  // Carbonate chemistry
-  { name: "dic", description: "Dissolved inorganic carbon", expectQcFlag: true },
-  { name: "ta", description: "Total alkalinity", expectQcFlag: true },
-  {
-    name: "ph_t_insitu",
-    description: "pH on total scale at in-situ conditions",
-    expectQcFlag: true,
-  },
-  { name: "ph_t_25", description: "pH on total scale at 25C", expectQcFlag: true },
-  { name: "pco2", description: "Partial pressure of CO2", expectQcFlag: true },
-  { name: "fco2", description: "Fugacity of CO2", expectQcFlag: true },
-  { name: "xco2", description: "Mole fraction of CO2", expectQcFlag: true },
-  { name: "omega_ar", description: "Aragonite saturation state", expectQcFlag: true },
-  { name: "omega_ca", description: "Calcite saturation state", expectQcFlag: true },
-  { name: "co3", description: "Carbonate ion concentration", expectQcFlag: true },
-  { name: "hco3", description: "Bicarbonate ion concentration", expectQcFlag: true },
-  { name: "revelle_factor", description: "Revelle factor", expectQcFlag: true },
-
-  // Dissolved gases
-  { name: "do", description: "Dissolved oxygen", expectQcFlag: true },
-  { name: "do_sat", description: "Dissolved oxygen saturation", expectQcFlag: true },
-
-  // Nutrients
-  { name: "no3", description: "Nitrate", expectQcFlag: true },
-  { name: "no2", description: "Nitrite", expectQcFlag: true },
-  { name: "nh4", description: "Ammonium", expectQcFlag: true },
-  { name: "po4", description: "Phosphate", expectQcFlag: true },
-  { name: "si", description: "Silicate", expectQcFlag: true },
-
-  // Biological
-  { name: "chl_a", description: "Chlorophyll-a", expectQcFlag: true },
-  { name: "turbidity", description: "Turbidity", expectQcFlag: true },
-  { name: "fluorescence", description: "Fluorescence", expectQcFlag: true },
-
-  // OAE-specific
-  {
-    name: "alkalinity_excess",
-    description: "Excess alkalinity from OAE intervention",
-    expectQcFlag: true,
-  },
-  { name: "tracer_concentration", description: "Tracer concentration", expectQcFlag: true },
-];
-
-/** Set of all recommended variable names (lowercase) for fast lookup */
-const RECOMMENDED_NAMES_SET = new Set(RECOMMENDED_VARIABLES.map((v) => v.name.toLowerCase()));
+import { findQcFlagFor, isQcFlagColumn } from "@/utils/qcFlags";
 
 // ---------------------------------------------------------------------------
 // Check result types
@@ -316,61 +237,13 @@ export async function parseNetCdfColumns(buffer: ArrayBuffer): Promise<ParsedCol
 // Check implementations
 // ---------------------------------------------------------------------------
 
-/** QC flag column name patterns */
-const QC_FLAG_PATTERNS = [/_flag$/i, /_qc$/i, /_quality$/i, /^qc_/i];
-
-function isQcFlagColumn(name: string): boolean {
-  return QC_FLAG_PATTERNS.some((p) => p.test(name));
-}
-
-/** Strip the flag affix to get the variable name a QC column refers to. */
-function qcFlagBase(name: string): string {
-  return name
-    .replace(/_flag$/i, "")
-    .replace(/_qc$/i, "")
-    .replace(/_quality$/i, "")
-    .replace(/^qc_/i, "")
-    .toLowerCase();
-}
-
-/**
- * Pair a variable with its QC flag column.
- *
- * The exact forms (`depth` + `depth_flag`) are tried first. The templates then
- * need a looser rule, because they suffix the variable but not the flag:
- * `TEMP_flag` belongs to `TEMP_ITS90`, `Salinity_flag` to `Salinity_PSS78`,
- * `fCO2_SW_flag` to `fCO2_SW_SST`. And occasionally the flag is the longer name,
- * as with `doxygen_flag` for `doxy`.
- */
-function findQcFlagFor(variableName: string, allHeaders: string[]): string | undefined {
-  const lower = variableName.toLowerCase();
-  const exact = [`${lower}_flag`, `${lower}_qc`, `${lower}_quality`, `qc_${lower}`];
-
-  const flags = allHeaders.filter((h) => isQcFlagColumn(h));
-  const exactMatch = flags.find((h) => exact.includes(h.toLowerCase()));
-  if (exactMatch) return exactMatch;
-
-  // Longest base first, so Salinity_PSS78 takes Salinity_flag rather than
-  // SAL_flag, leaving SAL_flag for SAL_PSS78.
-  return flags
-    .map((h) => ({ header: h, base: qcFlagBase(h) }))
-    .filter(({ base }) => {
-      if (base === "") return false;
-      // The variable carries a scale or method suffix the flag omits.
-      if (lower.startsWith(base)) return true;
-      // The flag spells the variable out more fully than the column does.
-      return lower.length >= 3 && base.startsWith(lower);
-    })
-    .sort((a, b) => b.base.length - a.base.length)[0]?.header;
-}
-
 /**
  * Check 1: Column headers that match recommended variable names
  */
 function checkRecommendedHeaders(headers: string[]): CheckResult[] {
   const results: CheckResult[] = [];
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
-  const matched = nonQcHeaders.filter((h) => RECOMMENDED_NAMES_SET.has(h.toLowerCase()));
+  const matched = nonQcHeaders.filter((h) => findRecommendedColumn(h) !== undefined);
 
   if (matched.length > 0) {
     results.push({
@@ -389,7 +262,7 @@ function checkRecommendedHeaders(headers: string[]): CheckResult[] {
 function checkUnrecognizedHeaders(headers: string[]): CheckResult[] {
   const results: CheckResult[] = [];
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
-  const unrecognized = nonQcHeaders.filter((h) => !RECOMMENDED_NAMES_SET.has(h.toLowerCase()));
+  const unrecognized = nonQcHeaders.filter((h) => findRecommendedColumn(h) === undefined);
 
   if (unrecognized.length > 0) {
     results.push({
@@ -415,10 +288,7 @@ function checkQcFlags(headers: string[]): CheckResult[] {
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
 
   // Only check recommended variables that expect QC flags and are present in the file
-  const varsNeedingQc = nonQcHeaders.filter((h) => {
-    const rec = RECOMMENDED_VARIABLES.find((v) => v.name.toLowerCase() === h.toLowerCase());
-    return rec?.expectQcFlag;
-  });
+  const varsNeedingQc = nonQcHeaders.filter((h) => findRecommendedColumn(h)?.expectQcFlag);
 
   const missingQc: string[] = [];
   const presentQc: string[] = [];
@@ -531,7 +401,7 @@ function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[]
  * recommended-name check, which uses a different vocabulary from the templates.
  */
 function checkTemplate(match: TemplateMatch): CheckResult[] {
-  const { template, matched, extra, absent } = match;
+  const { template, matched, extra } = match;
   const results: CheckResult[] = [
     {
       severity: "pass",
@@ -548,14 +418,9 @@ function checkTemplate(match: TemplateMatch): CheckResult[] {
     });
   }
 
-  if (absent.length > 0) {
-    results.push({
-      severity: "warn",
-      message: `${absent.length} ${template.label} template column${absent.length === 1 ? "" : "s"} not present`,
-      details: absent.join(", "),
-    });
-  }
-
+  // Absent template columns are not reported. The templates are "common
+  // recommended" names, not a required set — a file that uses a subset is fine,
+  // and the matched count above already says how much of the template it covers.
   return results;
 }
 
@@ -666,6 +531,7 @@ export async function runComplianceChecks(
 /** Every format runs the same checks, so the reports read the same. */
 function runChecks(
   columns: ParsedColumn[],
+  fileType: ComplianceReport["fileType"],
   unitsRow?: UnitsRow,
   match?: TemplateMatch,
 ): CheckResult[] {
@@ -684,11 +550,12 @@ function runChecks(
   }
 
   const headers = columns.map((c) => c.name);
-  const naming = match
-    ? checkTemplate(match)
-    : [...checkRecommendedHeaders(headers), ...checkUnrecognizedHeaders(headers)];
 
-  return [...naming, ...checkQcFlags(headers), ...checkUnits(columns, unitsRow)];
+  // QC flag expectations are derived from the spreadsheet templates, so they
+  // say nothing about a NetCDF file. Units still apply to both.
+  const qc = fileType === "netcdf" ? [] : checkQcFlags(headers);
+
+  return [...checkNaming(headers, fileType, match), ...qc, ...checkUnits(columns, unitsRow)];
 }
 
 // FileReader rather than file.text() / file.arrayBuffer(): jsdom implements
@@ -709,6 +576,37 @@ function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
     reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
     reader.readAsArrayBuffer(file);
   });
+}
+
+/**
+ * Which names to judge a file's columns against.
+ *
+ * Recommended names come from the protocol's data file templates, which are
+ * spreadsheet layouts. NetCDF model output uses its own vocabulary, and the
+ * protocol's Model Output Variables table is not published in a form we can
+ * read, so those files get no naming check rather than a guessed one.
+ */
+function checkNaming(
+  headers: string[],
+  fileType: ComplianceReport["fileType"],
+  match?: TemplateMatch,
+): CheckResult[] {
+  if (match) return checkTemplate(match);
+
+  if (fileType === "netcdf") {
+    return [
+      {
+        severity: "warn",
+        message: "Variable names not checked",
+        details:
+          "Recommended names come from the protocol's spreadsheet templates. " +
+          "The Model Output Variables naming table is not published in a machine-readable " +
+          "form, so NetCDF variable names are reported but not judged.",
+      },
+    ];
+  }
+
+  return [...checkRecommendedHeaders(headers), ...checkUnrecognizedHeaders(headers)];
 }
 
 function resolveTemplate(
@@ -732,7 +630,7 @@ function buildReport(
     columns.map((c) => c.name),
     selection,
   );
-  const checks = runChecks(columns, unitsRow, match);
+  const checks = runChecks(columns, fileType, unitsRow, match);
   const summary = { pass: 0, warn: 0, fail: 0 };
   for (const c of checks) {
     summary[c.severity]++;

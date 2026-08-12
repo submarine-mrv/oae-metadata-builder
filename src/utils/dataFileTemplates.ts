@@ -7,6 +7,8 @@
  * "Number _of_individuals" keeps its stray space.
  */
 
+import { findQcFlagFor, isQcFlagColumn } from "@/utils/qcFlags";
+
 export type TemplateId = "bottle" | "flow_through" | "autonomous" | "physiological";
 
 export interface DataFileTemplate {
@@ -263,3 +265,49 @@ export function detectTemplate(headers: string[]): TemplateMatch | undefined {
 
   return best && best.matched.length * 2 > headers.length ? best : undefined;
 }
+
+// ---------------------------------------------------------------------------
+// Recommended column names, derived from the templates
+//
+// The protocol describes the templates as containing "common recommended column
+// header names", and publishes no machine-readable list elsewhere, so they are
+// the source rather than a hand-kept list. Nothing here is written by hand.
+// ---------------------------------------------------------------------------
+
+export interface RecommendedColumn {
+  name: string;
+  /** True when at least one template pairs this column with a QC flag. */
+  expectQcFlag: boolean;
+  /** Templates the name appears in. */
+  templates: TemplateId[];
+}
+
+function deriveRecommendedColumns(): RecommendedColumn[] {
+  const byName = new Map<string, RecommendedColumn>();
+
+  for (const template of DATA_FILE_TEMPLATES) {
+    for (const column of template.columns) {
+      if (isQcFlagColumn(column)) continue;
+
+      const key = normalize(column);
+      const existing = byName.get(key);
+      const hasFlag = findQcFlagFor(column, template.columns) !== undefined;
+
+      if (existing) {
+        existing.expectQcFlag ||= hasFlag;
+        existing.templates.push(template.id);
+      } else {
+        byName.set(key, { name: column, expectQcFlag: hasFlag, templates: [template.id] });
+      }
+    }
+  }
+
+  return [...byName.values()];
+}
+
+export const RECOMMENDED_COLUMNS: RecommendedColumn[] = deriveRecommendedColumns();
+
+const recommendedByName = new Map(RECOMMENDED_COLUMNS.map((c) => [normalize(c.name), c]));
+
+export const findRecommendedColumn = (name: string): RecommendedColumn | undefined =>
+  recommendedByName.get(normalize(name));
