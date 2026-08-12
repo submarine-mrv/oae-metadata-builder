@@ -221,10 +221,11 @@ describe("checkCsv", () => {
   it("warns about unrecognized headers, missing QC flags, and orphan flags", () => {
     const report = checkCsv("noncompliant.csv", sampleText("noncompliant.csv"));
 
-    expect(messages(report, "warn")).toEqual([
-      "6 columns not in recommended list",
-      "1 QC flag column without matching variable",
-    ]);
+    // Unrecognized names are counted, not warned about — nothing upstream marks
+    // a field required or recommended.
+    // Includes the orphan flag column, which is also an unrecognized name.
+    expect(messages(report, "pass")).toContain("7 additional field names");
+    expect(messages(report, "warn")).toEqual(["1 QC flag column without matching variable"]);
     // It also has no units row, which the protocol requires.
     expect(report.summary.fail).toBe(1);
   });
@@ -303,7 +304,9 @@ describe("template selection", () => {
     const report = checkCsv("x.csv", bottle);
 
     expect(report.template?.id).toBe("bottle");
-    expect(messages(report, "pass")).toContain("4 of 54 Bottle template columns present");
+    expect(messages(report, "pass")).toContain(
+      "Detected 4 recognized field names (Bottle template) and 0 additional field names",
+    );
   });
 
   it("honours an explicit template over detection", () => {
@@ -316,13 +319,52 @@ describe("template selection", () => {
     const report = checkCsv("x.csv", bottle, "none");
 
     expect(report.template).toBeUndefined();
-    expect(report.checks.some((c) => c.message.includes("template"))).toBe(false);
+    expect(messages(report, "pass")).toContain(
+      "Detected 4 recognized field names (suggested in protocol or template) and 0 additional field names",
+    );
   });
 
   it("does not apply a template to NetCDF, which has no template layout", async () => {
     const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
 
     expect(report.template).toBeUndefined();
+  });
+});
+
+describe("units cell completeness and template agreement", () => {
+  it("fails a blank units cell rather than calling it not declared", () => {
+    // A spreadsheet has a cell for every column, so a blank one is an omission.
+    const report = checkCsv("t.csv", "Exp_ID,Depth,TEMP_ITS90\nn.a.,,deg_C\n1,5.0,13.4");
+
+    expect(messages(report, "fail")).toEqual(["1 column has a blank units cell"]);
+  });
+
+  it("warns when a unit differs from the template's unit for that column", () => {
+    const report = checkCsv(
+      "t.csv",
+      "Exp_ID,Rosette_position,Niskin_ID,Depth,TEMP_ITS90\nn.a.,n.a.,n.a.,feet,kelvin\n1,2,3,5.0,13.4",
+    );
+
+    expect(report.template?.id).toBe("bottle");
+    const mismatch = report.checks.find((c) => c.message.includes("differ from the"));
+    expect(mismatch?.message).toBe("2 units differ from the Bottle template");
+    expect(mismatch?.details).toContain("Depth: feet (template says m)");
+  });
+
+  it("does not warn when the units agree", () => {
+    const report = checkCsv(
+      "t.csv",
+      "Exp_ID,Rosette_position,Niskin_ID,Depth,TEMP_ITS90\nn.a.,n.a.,n.a.,m,deg_C\n1,2,3,5.0,13.4",
+    );
+
+    expect(report.checks.some((c) => c.message.includes("differ from the"))).toBe(false);
+  });
+
+  it("still only warns about a NetCDF variable with no units attribute", async () => {
+    // NetCDF has no cell to leave blank; the attribute is simply absent.
+    const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
+
+    expect(report.summary.fail).toBe(0);
   });
 });
 

@@ -25,7 +25,7 @@ extraneous cells a submitter is expected to clear removed. Regenerate with
 |---|---|
 | `compliant.csv` | 4 passes, no warnings. A minimal Bottle-template file, 18 columns. |
 | `bottle_template.csv` | Full Bottle template shape. 29 columns past the `#` preamble, 4 passes, no warnings. |
-| `noncompliant.csv` | 1 pass, 2 warnings, **1 failure** — it has no units row. |
+| `noncompliant.csv` | 2 passes, 1 warning, **1 failure** — it has no units row. |
 | `empty.csv` | 1 failure: "No column headers detected". |
 | `compliant.xlsx` | The same columns and units as `compliant.csv`, typed **XLSX**. |
 | `model_output_v3.nc` | 2 passes, no warnings. All 11 variables declare units and a CF `standard_name`. |
@@ -49,8 +49,12 @@ Comment rows may appear anywhere, including between the header and units rows, b
 the first column. A comment containing commas is quoted, as in
 `"# Flag scheme: 0 = interpolated, 2 = acceptable"`.
 
-`n.a.`, `n/a`, `none`, and `-` all mean "no units apply" and display as *not applicable*, distinct
-from a blank cell (*not declared*).
+`n.a.`, `n/a`, `none`, and `-` all mean "no units apply" and display as *not applicable*. **A blank
+units cell is a failure** — every column needs either a unit or `n.a.`.
+
+When a template is identified, units are compared against that template's units row. A difference is a
+warning, not a failure, since the templates themselves spell the same unit different ways (`deg_C` in
+bottle, `degrees Celsius` in flow through).
 
 **The units row is required.** Since no unit is a bare number, a numeric value directly below the
 header means that row is the first data record and the file has no units row — that's a failure, not

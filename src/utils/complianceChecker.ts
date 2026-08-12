@@ -13,6 +13,7 @@ import {
   matchTemplate,
   type TemplateId,
   type TemplateMatch,
+  templateUnitFor,
 } from "@/utils/dataFileTemplates";
 import { PROTOCOL_COLUMN_STANDARDS } from "@/utils/protocolColumnStandards";
 import { isQcFlagColumn, pairQcFlags } from "@/utils/qcFlags";
@@ -275,42 +276,36 @@ export async function parseNetCdfColumns(buffer: ArrayBuffer): Promise<ParsedCol
 // ---------------------------------------------------------------------------
 
 /**
- * Check 1: Column headers that match recommended variable names
+ * Report how many column names are recognized.
+ *
+ * Neither the protocol's column header tables nor the templates mark any field
+ * as required or recommended, so an unrecognized name is counted rather than
+ * judged. If a designation appears upstream, this is where it would surface.
  */
-function checkRecommendedHeaders(headers: string[]): CheckResult[] {
-  const results: CheckResult[] = [];
-  const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
-  const matched = nonQcHeaders.filter((h) => findRecommendedColumn(h) !== undefined);
+function checkFieldNames(headers: string[], template?: DataFileTemplate): CheckResult[] {
+  const source = template ? template.label + " template" : "suggested in protocol or template";
+  const known = (h: string) =>
+    template
+      ? template.columns.some((c) => c.toLowerCase() === h.toLowerCase())
+      : findRecommendedColumn(h) !== undefined;
 
-  if (matched.length > 0) {
+  const recognized = headers.filter(known);
+  const additional = headers.filter((h) => !known(h));
+  const plural = (n: number) => (n === 1 ? "" : "s");
+
+  const results: CheckResult[] = [
+    {
+      severity: "pass",
+      message: `Detected ${recognized.length} recognized field name${plural(recognized.length)} (${source}) and ${additional.length} additional field name${plural(additional.length)}`,
+      details: recognized.join(", "),
+    },
+  ];
+
+  if (additional.length > 0) {
     results.push({
       severity: "pass",
-      message: `${matched.length} column${matched.length === 1 ? "" : "s"} match recommended variable names`,
-      details: matched.join(", "),
-    });
-  }
-
-  return results;
-}
-
-/**
- * Check 2: Column headers NOT in the recommended list
- */
-function checkUnrecognizedHeaders(headers: string[]): CheckResult[] {
-  const results: CheckResult[] = [];
-  const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
-  const unrecognized = nonQcHeaders.filter((h) => findRecommendedColumn(h) === undefined);
-
-  if (unrecognized.length > 0) {
-    results.push({
-      severity: "warn",
-      message: `${unrecognized.length} column${unrecognized.length === 1 ? "" : "s"} not in recommended list`,
-      details: unrecognized.join(", "),
-    });
-  } else if (nonQcHeaders.length > 0) {
-    results.push({
-      severity: "pass",
-      message: "All columns use recommended variable names",
+      message: `${additional.length} additional field name${plural(additional.length)}`,
+      details: additional.join(", "),
     });
   }
 
@@ -392,7 +387,12 @@ function checkQcFlags(headers: string[], template?: DataFileTemplate): CheckResu
  *
  * QC flag columns are excluded — a flag is a code, not a measurement.
  */
-function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[] {
+function checkUnits(
+  columns: ParsedColumn[],
+  fileType: ComplianceReport["fileType"],
+  unitsRow?: UnitsRow,
+  template?: DataFileTemplate,
+): CheckResult[] {
   const results: CheckResult[] = [];
   const measured = columns.filter((c) => !isQcFlagColumn(c.name));
   if (measured.length === 0) return results;
@@ -402,16 +402,7 @@ function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[]
 
   const declared = measured.filter((c) => c.units.kind === "declared");
   const notApplicable = measured.filter((c) => c.units.kind === "not-applicable");
-  const missing = measured.filter((c) => c.units.kind === "missing");
-
-  if (declared.length === 0 && notApplicable.length === 0) {
-    results.push({
-      severity: "warn",
-      message: "No units declared for any column",
-      details: "NetCDF variables should carry a units attribute.",
-    });
-    return results;
-  }
+  const blank = measured.filter((c) => c.units.kind === "missing");
 
   if (declared.length > 0) {
     results.push({
@@ -429,43 +420,69 @@ function checkUnits(columns: ParsedColumn[], unitsRow?: UnitsRow): CheckResult[]
     });
   }
 
-  if (missing.length > 0) {
-    results.push({
-      severity: "warn",
-      message: `${missing.length} column${missing.length === 1 ? "" : "s"} missing units`,
-      details: missing.map((c) => c.name).join(", "),
-    });
+  if (blank.length > 0) {
+    // A spreadsheet has a cell for every column, so an empty one is an omission.
+    // NetCDF has no such slot, and a variable can simply lack the attribute.
+    results.push(
+      fileType === "netcdf"
+        ? {
+            severity: "warn",
+            message: `${blank.length} variable${blank.length === 1 ? "" : "s"} missing a units attribute`,
+            details: blank.map((c) => c.name).join(", "),
+          }
+        : {
+            severity: "fail",
+            message:
+              blank.length === 1
+                ? "1 column has a blank units cell"
+                : `${blank.length} columns have blank units cells`,
+            details: `${blank.map((c) => c.name).join(", ")}. Every column needs a unit or "n.a." in the units row.`,
+          },
+    );
   }
 
+  results.push(...checkUnitsAgainstTemplate(declared, template));
   return results;
 }
 
+/** Same unit, allowing for case and spacing. No equivalence reasoning. */
+const sameUnit = (a: string, b: string) =>
+  a.trim().toLowerCase().replace(/\s+/g, " ") === b.trim().toLowerCase().replace(/\s+/g, " ");
+
 /**
- * Check the file's columns against a specific template. Replaces the generic
- * recommended-name check, which uses a different vocabulary from the templates.
+ * Compare each declared unit with the one its template gives for that column.
+ * A difference is worth surfacing but is not necessarily wrong — the templates
+ * themselves spell the same unit differently (deg_C against degrees Celsius).
  */
-function checkTemplate(match: TemplateMatch): CheckResult[] {
-  const { template, matched, extra } = match;
-  const results: CheckResult[] = [
+function checkUnitsAgainstTemplate(
+  declared: ParsedColumn[],
+  template?: DataFileTemplate,
+): CheckResult[] {
+  if (!template) return [];
+
+  const mismatched = declared
+    .map((c) => ({ column: c, expected: templateUnitFor(template, c.name) }))
+    .filter(
+      (m): m is { column: ParsedColumn; expected: string } =>
+        m.expected !== undefined &&
+        m.column.units.kind === "declared" &&
+        !sameUnit(m.column.units.value, m.expected),
+    );
+
+  if (mismatched.length === 0) return [];
+
+  return [
     {
-      severity: "pass",
-      message: `${matched.length} of ${template.columns.length} ${template.label} template columns present`,
-      details: matched.join(", "),
+      severity: "warn",
+      message: `${mismatched.length} unit${mismatched.length === 1 ? "" : "s"} differ from the ${template.label} template`,
+      details: mismatched
+        .map(
+          (m) =>
+            `${m.column.name}: ${m.column.units.kind === "declared" ? m.column.units.value : ""} (template says ${m.expected})`,
+        )
+        .join(", "),
     },
   ];
-
-  if (extra.length > 0) {
-    results.push({
-      severity: "warn",
-      message: `${extra.length} column${extra.length === 1 ? "" : "s"} not in the ${template.label} template`,
-      details: extra.join(", "),
-    });
-  }
-
-  // Absent template columns are not reported. The templates are "common
-  // recommended" names, not a required set — a file that uses a subset is fine,
-  // and the matched count above already says how much of the template it covers.
-  return results;
 }
 
 /** A missing or data-filled units row fails the file outright. */
@@ -611,13 +628,13 @@ function runChecks(
   if (fileType === "netcdf") {
     // Variable names are deliberately not judged; CF carries the vocabulary in
     // standard_name, and QC flag conventions come from the spreadsheet templates.
-    return [...checkStandardNames(columns), ...checkUnits(columns, unitsRow)];
+    return [...checkStandardNames(columns), ...checkUnits(columns, fileType, unitsRow)];
   }
 
   return [
-    ...checkNaming(headers, match),
+    ...checkFieldNames(headers, match?.template),
     ...checkQcFlags(headers, match?.template),
-    ...checkUnits(columns, unitsRow),
+    ...checkUnits(columns, fileType, unitsRow, match?.template),
   ];
 }
 
@@ -645,11 +662,6 @@ function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
  * Which names to judge a spreadsheet's columns against: the specific template
  * when we know which one it is, otherwise the recommended set as a whole.
  */
-function checkNaming(headers: string[], match?: TemplateMatch): CheckResult[] {
-  if (match) return checkTemplate(match);
-
-  return [...checkRecommendedHeaders(headers), ...checkUnrecognizedHeaders(headers)];
-}
 
 /**
  * CF is the protocol's rule for model output: "For model output variable names,
