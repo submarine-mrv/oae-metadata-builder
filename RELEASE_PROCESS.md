@@ -3,15 +3,15 @@
 `dev` is the integration branch — every PR targets it. `main` is what has been released, and is
 always an ancestor of `dev`, so a release fast-forwards `main` to `dev`.
 
-The git tag and `CHANGELOG.md` are the version. `package.json` stays at `0.0.0`: the app is private,
-never published, and nothing reads the field, so bumping it would only add something that can drift.
-
 1. Confirm `dev` is green: `npm run check`, `npm test`, `npm run build`.
 2. In `CHANGELOG.md`, replace `Unreleased` on the top section with today's date. Each entry is one
    user-visible PR with its number; internal-only PRs (tests, CI) are left out. Medium / Large
    refactors can be included at the author's discretion.
-3. Commit as `chore(release): vX.Y.Z` and merge the PR into `dev`.
-4. Fast-forward and tag:
+3. Bump the version: `npm version X.Y.Z --no-git-tag-version`. That updates `package.json` and both
+   `version` fields in `package-lock.json`, and nothing else. The flag matters — without it npm
+   commits and tags on the spot, and the tag belongs on `main` in step 5.
+4. Commit as `chore(release): vX.Y.Z` and merge the PR into `dev`.
+5. Fast-forward and tag:
 
    ```bash
    git checkout main && git merge --ff-only origin/dev
