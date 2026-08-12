@@ -9,8 +9,12 @@ Writes the same data twice:
   model_output_v3.nc  NETCDF3_CLASSIC  - netcdfjs can read this
   model_output_v4.nc  NETCDF4          - netcdfjs cannot; documents the gap
 
-Variables follow the OAE Data Protocol's model data minimum set:
+The quantities and units come from the protocol's model data minimum set:
 https://www.carbontosea.org/oae-data-protocol/1-0-0/#model-data
+
+The variable names and standard_name attributes below are CMIP/CF conventions we
+chose, not protocol-specified names — the protocol's Model Output Variables table
+is not published in a readable form. Nothing validates against them.
 """
 
 from pathlib import Path

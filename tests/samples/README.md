@@ -55,9 +55,16 @@ NetCDF carries units as a per-variable attribute rather than a units row, but bo
 
 ## What the NetCDF samples contain
 
-The OAE Data Protocol's [model data minimum set](https://www.carbontosea.org/oae-data-protocol/1-0-0/#model-data):
-`dic` and `talk` (µmol/kg), `temperature` (degC), `salinity`, the 2D air-sea CO₂ flux `fgco2`
-(mol/m²/s), grid cell `area` and `volume`, plus time/depth/lat/lon coordinates.
+The quantities and units are the protocol's
+[model data minimum set](https://www.carbontosea.org/oae-data-protocol/1-0-0/#model-data): dissolved
+inorganic carbon and total alkalinity (µmol/kg), temperature (degC), salinity, the 2D air-sea CO₂
+flux (mol/m²/s), and grid cell area and volume.
+
+**The variable names are ours, not the protocol's.** `dic`, `talk`, `fgco2`, `area`, `volume` and the
+`standard_name` attributes are CMIP/CF conventions we picked, because the protocol's Model Output
+Variables naming table is not published in a form we can read. Nothing validates against them — they
+are a fixture that exercises the NetCDF parser and the units check, and any names would serve. Do not
+treat this file as a statement of what the protocol requires a variable to be called.
 
 Recommended column names are derived from the four spreadsheet templates, so they say nothing about
 NetCDF. The protocol's Model Output Variables naming table is not published in a form we can read, so
