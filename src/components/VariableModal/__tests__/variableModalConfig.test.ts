@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
+import bundled from "@/schema/schema.bundled.json";
+import { fieldExistsInSchema, type JSONSchema, resolveRef } from "../../schemaUtils";
 import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
 import {
   buildSectionFields,
+  FIELD_TO_MODEL_VARIABLE_TYPE,
   getAccordionConfig,
   getSchemaKey,
   getSchemaKeyForUI,
+  MODEL_TO_FIELD_VARIABLE_TYPE,
+  MODEL_VARIABLE_TYPE_OPTIONS,
+  MODEL_VARIABLE_TYPE_SHORT_LABELS,
+  MODEL_VARIABLE_TYPE_VALUES,
   normalizeFieldConfig,
   resolveVariableType,
   VARIABLE_SCHEMA_MAP,
   VARIABLE_TYPE_LAYERS,
+  VARIABLE_TYPE_OPTIONS,
 } from "../variableModalConfig";
 
 describe("buildSectionFields", () => {
@@ -478,5 +486,81 @@ describe("getSchemaKeyForUI", () => {
   it("returns null for 'other' with no genesis", () => {
     // other requires genesis, so this returns null
     expect(getSchemaKeyForUI("other", undefined, undefined)).toBeNull();
+  });
+});
+
+describe("ModelOutputVariable", () => {
+  const rootSchema = bundled as unknown as JSONSchema;
+  const modelSchema = resolveRef(
+    (rootSchema.$defs as Record<string, JSONSchema>).ModelOutputVariable,
+    rootSchema,
+  );
+
+  /**
+   * Mirrors VariableModal's visibleAccordions: the layer config is the superset,
+   * fieldExistsInSchema prunes it to what the resolved class actually has.
+   */
+  const visibleSections = (schemaKey: string, schema: JSONSchema) =>
+    getAccordionConfig(schemaKey)
+      .map((section) => ({
+        key: section.key,
+        fields: section.fields
+          .map(normalizeFieldConfig)
+          .filter((field) => fieldExistsInSchema(field.path, schema, rootSchema))
+          .map((field) => field.path),
+      }))
+      .filter((section) => section.fields.length > 0);
+
+  it("renders only Basic Information, with name, units and column name", () => {
+    expect(visibleSections("ModelOutputVariable", modelSchema)).toEqual([
+      { key: "basic", fields: ["long_name", "units", "dataset_variable_name"] },
+    ]);
+  });
+
+  it("drops the QC-flag and raw-data column gates that field variables keep", () => {
+    const modelBasic = visibleSections("ModelOutputVariable", modelSchema)[0].fields;
+    expect(modelBasic).not.toContain("dataset_variable_name_qc_flag");
+    expect(modelBasic).not.toContain("dataset_variable_name_raw");
+
+    // Regression guard: the same BASE layer still supplies them to field variables.
+    const calcSchema = resolveRef(
+      (rootSchema.$defs as Record<string, JSONSchema>).CalculatedVariable,
+      rootSchema,
+    );
+    const calcSections = visibleSections("CalculatedVariable", calcSchema);
+    const calcBasic = calcSections.find((s) => s.key === "basic")?.fields ?? [];
+    expect(calcBasic).toContain("dataset_variable_name_qc_flag");
+    expect(calcBasic).toContain("dataset_variable_name_raw");
+    expect(calcSections.map((s) => s.key)).toEqual(
+      expect.arrayContaining(["calculation", "qc", "additional"]),
+    );
+  });
+
+  it("keeps MODEL_VARIABLE_TYPE_OPTIONS in sync with the schema enum", () => {
+    const schemaValues = (
+      (rootSchema.$defs as Record<string, { enum?: string[] }>).ModelVariableType.enum ?? []
+    ).slice();
+    expect(MODEL_VARIABLE_TYPE_OPTIONS.map((opt) => opt.value)).toEqual(schemaValues);
+    // Every option needs a short label for the table and the collapsed pill.
+    for (const value of schemaValues) {
+      expect(MODEL_VARIABLE_TYPE_SHORT_LABELS[value]).toBeTruthy();
+    }
+  });
+
+  it("resolves to ModelOutputVariable from variable_type alone", () => {
+    expect(getSchemaKeyForUI("air_sea_co2_flux", undefined, undefined, true)).toBe(
+      "ModelOutputVariable",
+    );
+    // "other" is a real ModelVariableType value, not a placeholder needing genesis.
+    expect(getSchemaKeyForUI("other", undefined, undefined, true)).toBe("ModelOutputVariable");
+    expect(getSchemaKeyForUI(undefined, undefined, undefined, true)).toBeNull();
+  });
+
+  it("cross-vocabulary type maps are inverses and land inside their vocabularies", () => {
+    for (const [fieldType, modelType] of Object.entries(FIELD_TO_MODEL_VARIABLE_TYPE)) {
+      expect(MODEL_TO_FIELD_VARIABLE_TYPE[modelType]).toBe(fieldType);
+      expect(MODEL_VARIABLE_TYPE_VALUES.has(modelType)).toBe(true);
+      expect(VARIABLE_TYPE_OPTIONS.some((opt) => opt.value === fieldType)).toBe(true);
+    }
   });
 });

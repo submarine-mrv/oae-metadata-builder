@@ -14,7 +14,7 @@ LinkML (oae-data-protocol)
             └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json
                  ├─ AJV validation        (runtime authority)
                  ├─ RJSF rendering         (project / experiment / dataset forms)
-                 └─ (planned) generated TS types
+                 └─ DraftVariable types    (src/types/variable.ts, kept in sync by tests)
 ```
 
 `src/schema/schema.bundled.json` is the one artifact that everything downstream reads. Rules:
@@ -41,13 +41,13 @@ exists for two reasons:
 1. **Curated UX** — the accordion/layer system (`VARIABLE_TYPE_LAYERS`) groups fields into
    meaningful sections and does progressive disclosure (variable type → genesis → sampling).
    RJSF's native `oneOf` rendering can't produce this.
-2. **The variable union has no discriminator** (see §4), so RJSF/AJV can't cleanly validate or
-   render the polymorphic `variables` array.
+2. **The variable union had no discriminator**, so RJSF/AJV could not cleanly validate or render
+   the polymorphic `variables` array. This has since been fixed (see §4).
 
-Reason (1) is a legitimate, lasting choice. Reason (2) is the part we're fixing.
+Reason (1) is a legitimate, lasting choice. Reason (2) no longer applies.
 
 **Do not assume RJSF handles variables.** The dataset RJSF form excludes the `variables` array
-from its own validation and routes it through `datasetValidation.ts`.
+from its own validation; `validateDataset` checks it in a single discriminated AJV pass.
 
 ## 3. Variable polymorphism — what's already correct (don't "fix" it)
 
@@ -57,10 +57,15 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
 - Each concrete variable class emits `schema_class` as a **required, single-value enum**
   (`DiscretePHVariable.schema_class = { enum: ["DiscretePHVariable"] }`) — i.e. a real
   discriminator tag.
-- `FieldDataset.variables.items` is an `anyOf` of all 18 concrete variable classes. This union is
-  produced because `Variable` is `abstract: true` — **not** by `include_range_class_descendants`.
-  (An abstract range has no instantiable base, so LinkML expands it to concrete descendants in
-  every generation mode.)
+- `FieldDataset.variables.items` is a union of all 18 concrete **field** variable classes. This
+  union is produced because the slot's range, `FieldVariable`, is `abstract: true` — **not** by
+  `include_range_class_descendants`. (An abstract range has no instantiable base, so LinkML expands
+  it to concrete descendants in every generation mode.) `bundle-schema.mjs` rewrites the emitted
+  `anyOf` into `oneOf` + `discriminator` — see §4.
+- The range is `FieldVariable`, not `Variable`, on purpose. `ModelOutputVariable` descends from `Variable`
+  but *not* from `FieldVariable`, so it is excluded from this union and a model variable is invalid
+  inside a `FieldDataset`. Ranging over `Variable` would silently admit it. See
+  "Model output variables" below.
 - Each concrete class already pins its **nested** `analyzing_instrument` / `calibration` to the
   correct subtype, with `additionalProperties: false` at each level:
   - `DiscretePHVariable` → `PHInstrument` → `PHCalibration` (has `dye_type_and_manufacturer`,
@@ -77,53 +82,81 @@ Corollary: `oae_data_protocol.validation.schema.json` (generated with
 slots it is *looser* than the form schema (it turns `analyzing_instrument` into an `anyOf` of all
 instrument subtypes). It exists for other programmatic-validation use cases, not the builder.
 
-## 4. The one real gap: the union has no discriminator
+### Model output variables
 
-`variables.items` is a bare `anyOf[18]` with no AJV `discriminator` and no `if/then` on
-`schema_class`. AJV therefore tries every branch and, on failure, emits a wall of merged errors.
-That is the entire reason `datasetValidation.ts` exists — it hand-routes each variable to its
-`schema_class` subschema to get clean, targeted errors.
+`ModelOutputDataset.variables` ranges over the single concrete class `ModelOutputVariable` — no union, no
+discriminator needed. A model variable is produced by the simulation, so it carries none of the
+sampling, instrument, calibration or in-situ QC metadata a field variable does; it has only
+`variable_type`, `long_name`, `dataset_variable_name`, `units` and an optional `standard_identifier`.
 
-`datasetValidation.ts` is a **temporary workaround** (bd `oae-form-99i`). It is slated for deletion.
+The two families are disjoint in both directions:
+
+| | field dataset | model dataset |
+|---|---|---|
+| slot range | `FieldVariable` (abstract, 18 concrete) | `ModelOutputVariable` (1 concrete) |
+| `variable_type` vocabulary | `VariableType` (`pH`, `ta`, `dic`, …) | `ModelVariableType` (`air_sea_co2_flux`, `ph`, `zonal_velocity`, …) |
+
+Because the vocabularies share almost no values, switching a dataset's `dataset_type` cannot just
+re-stamp `schema_class` — it has to translate `variable_type` too. `parseDataset` does this in both
+directions (`coerceToModelVariables` / `coerceOutOfModelVariables` in `parseEntity.ts`), mapping the
+four overlapping quantities (pH, TA, DIC, CO₂) and falling back to `other`. `schema_class` remains
+the source of truth: a concrete field class pins `variable_type` even when a stored value disagrees.
+
+In the UI, `VariablesField` / `VariableModal` switch to model mode via
+`ui:options.modelOutput: true` in `modelOutputUiSchema.ts`. Model mode swaps the type dropdown to
+`MODEL_VARIABLE_TYPE_OPTIONS` and hides the genesis and sampling selects — `ModelOutputVariable` has
+neither. The accordion still uses the shared `BASE` layer; the sections that do not apply empty
+themselves out through the normal `fieldExistsInSchema()` filter rather than being special-cased.
+
+## 4. The union is discriminated
+
+LinkML emits `variables.items` as a bare `anyOf[18]` with no discriminator. AJV would then try
+every branch and, on failure, emit a wall of merged errors — which is why a hand-rolled
+`datasetValidation.ts` router used to exist.
+
+`bundle-schema.mjs` now rewrites that union to `oneOf[18]` +
+`discriminator: { propertyName: "schema_class" }`, and AJV runs with `discriminator: true`
+(`validation.ts`). AJV routes each variable to the one branch its `schema_class` names, so errors
+are targeted and `datasetValidation.ts` is gone — `validateDataset` does it in a single pass.
 
 ## 5. The direction: parse, don't validate
 
-The codebase currently *validates* the same loose data repeatedly (`Record<string, unknown>` /
-`any` everywhere; `cleanFormData` at 7+ sites; variables stripped on save **and** import **and**
-validate) and never narrows the type. The target is to **parse once at each boundary** into a
-trusted value, then stop re-checking.
+The codebase used to *validate* the same loose data repeatedly — `Record<string, unknown>` / `any`
+everywhere, and variables stripped on save **and** import **and** validate — never narrowing the
+type. The target is to **parse once at each boundary** into a trusted value, then stop re-checking.
+The variable path now works this way; `cleanFormData` is still called at ~13 sites elsewhere.
 
 Boundaries are few: **import** (file→state), **RJSF/modal onChange** (form→state),
 **restore** (session→state) inbound; **export** (state→file) outbound.
 
-### Phased plan (smallest delta / most foundational first)
+### Phased plan
 
-- **Phase 0 — Safety net.** fast-check property tests for the invariants we keep breaking:
+- **Phase 0 — Safety net.** ✅ Done. fast-check property tests for the invariants we keep breaking:
   export→import round-trip is identity; no field outside a variable's `schema_class` survives a
-  save/import.
-- **Phase 1 — Schema keystone (one bundler function).** Transform `variables.items` from
-  `anyOf[18]` → `oneOf[18] + discriminator: { propertyName: "schema_class" }` in
-  `bundle-schema.mjs`; enable `discriminator: true` in the AJV config. Safe and isolated — current
-  code ignores the discriminator until Phase 2 flips over.
-- **Phase 2 — Parse boundary (deletes `datasetValidation.ts`).** Add `Result<T,E>` and
-  `parseVariable(unknown): Result<Variable, …>` that runs normalize → strip → clean **once** at the
-  write boundary. Switch dataset validation to a single AJV pass against the discriminated schema;
-  delete `datasetValidation.ts`. `stripExtraVariableFields` survives only as **write-time
-  type-switch cleanup**, not a validation crutch.
-- **Phase 2b — Generated types.** Add `json-schema-to-typescript` over the bundled schema to give
-  `parseVariable` a real discriminated-union `Variable` return type. (See §6.)
-- **Phase 3 — Propagate the pattern (additive).** Type `Form<T>` on the pages; replace the
-  `validationStatus` side-table with a `Validated<T>` type; branded ID types; revisit
+  save/import (`variableInvariants.property.test.ts`).
+- **Phase 1 — Schema keystone.** ✅ Done. `bundle-schema.mjs` transforms `variables.items` from
+  `anyOf[18]` → `oneOf[18] + discriminator`; AJV runs with `discriminator: true`.
+- **Phase 2 — Parse boundary.** ✅ Done. `parseVariable` / `parseEntity` run normalize → strip →
+  clean **once** at each write boundary (modal save, import, restore); dataset validation is a
+  single AJV pass against the discriminated schema; `datasetValidation.ts` is deleted.
+  `stripExtraVariableFields` survives only as **write-time type-switch cleanup**, not a validation
+  crutch.
+- **Phase 2b — Types.** Superseded — see §6. The `DraftVariable` union is hand-maintained rather
+  than generated.
+- **Phase 3 — Propagate the pattern (additive).** Partly done: the `validationStatus` side-table is
+  gone (status is derived). Still open: `Form<T>` on the pages, branded ID types, revisit
   `omitExtraData: true`.
 
-The discriminator (Phase 1) makes inline validation correct and clean-errored; `parseVariable`
-(Phase 2) guarantees stored variables are always validatable. **Neither deletes
-`datasetValidation.ts` alone — they compose.**
+## 6. TypeScript types: hand-maintained, synced by tests
 
-## 6. TypeScript types: from JSON Schema, not from LinkML
+`src/types/variable.ts` declares `DraftVariable` as a hand-written union of the 19 concrete
+variable classes (18 field classes + `ModelOutputVariable`). It is **not** generated. Drift is
+caught by tests rather than by a build step: `variablesDiscriminator.test.ts` reads the branch
+names out of the bundled schema's discriminated union, and `schemaTypeSync.test.ts` compares class
+properties — so a schema change that adds or renames a class fails the suite.
 
-When we add generated types, use **`json-schema-to-typescript` on the bundled schema**, not LinkML
-`gen-typescript`:
+If this is ever replaced with generation, use **`json-schema-to-typescript` on the bundled schema**,
+not LinkML `gen-typescript`:
 
 1. The bundled schema is the runtime truth (post-decoration, post-discriminator); generating from
    it keeps types in lockstep with what AJV and RJSF actually see.

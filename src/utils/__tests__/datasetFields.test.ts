@@ -22,28 +22,41 @@ describe("getValidDatasetFieldsForType", () => {
   it("excludes field-specific fields for model_output", () => {
     const fields = getValidDatasetFieldsForType("model_output");
     expect(fields.has("platform_info")).toBe(false);
-    expect(fields.has("variables")).toBe(false);
     expect(fields.has("calibration_files")).toBe(false);
+  });
+
+  // variables is a base field: both dataset types carry it, holding Variable
+  // subclasses for field datasets and ModelOutputVariable for model output.
+  it("includes variables for both dataset types", () => {
+    expect(getValidDatasetFieldsForType("model_output").has("variables")).toBe(true);
+    expect(getValidDatasetFieldsForType("cast").has("variables")).toBe(true);
   });
 
   it("includes model-specific fields for model_output", () => {
     const fields = getValidDatasetFieldsForType("model_output");
     expect(fields.has("simulation_type")).toBe(true);
     expect(fields.has("hardware_configuration")).toBe(true);
-    expect(fields.has("model_output_variables")).toBe(true);
   });
 
   it("excludes model-specific fields for non-model types", () => {
     const fields = getValidDatasetFieldsForType("cast");
     expect(fields.has("simulation_type")).toBe(false);
     expect(fields.has("hardware_configuration")).toBe(false);
-    expect(fields.has("model_output_variables")).toBe(false);
+  });
+
+  // model_output_variables was the pre-ModelOutputVariable checklist enum; it is gone
+  // from the schema entirely and must not reappear on either dataset type.
+  it("no longer knows the removed model_output_variables field", () => {
+    expect(getValidDatasetFieldsForType("model_output").has("model_output_variables")).toBe(false);
+    expect(getValidDatasetFieldsForType("cast").has("model_output_variables")).toBe(false);
   });
 });
 
 describe("cleanDatasetFormDataForType", () => {
   // Simulates: user fills in a FieldDataset, then switches to model_output.
-  // platform_info and other field-specific data should be stripped.
+  // platform_info and other field-specific data should be stripped, but
+  // variables is valid on both types and survives (parseDataset then coerces
+  // the entries to ModelOutputVariable — see parseEntity.test.ts).
   it("strips field-dataset fields when switching to model_output", () => {
     const formData = {
       name: "My Dataset",
@@ -59,8 +72,8 @@ describe("cleanDatasetFormDataForType", () => {
     expect(cleaned.name).toBe("My Dataset");
     expect(cleaned.simulation_type).toBe("perturbation");
     expect(cleaned).not.toHaveProperty("platform_info");
-    expect(cleaned).not.toHaveProperty("variables");
     expect(cleaned).not.toHaveProperty("calibration_files");
+    expect(cleaned.variables).toEqual([{ variable_name: "salinity" }]);
   });
 
   // Simulates: user fills in a ModelOutputDataset, then switches to a field type.

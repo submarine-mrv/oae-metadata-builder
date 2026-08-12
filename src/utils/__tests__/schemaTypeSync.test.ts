@@ -40,9 +40,35 @@ describe("dataset_type structural facts", () => {
     expect(values).toContain("model_output");
   });
 
-  it("ModelOutputDataset has no variables property; FieldDataset does", () => {
-    expect(classProperties("ModelOutputDataset")).not.toContain("variables");
+  it("both dataset types carry variables, over different variable classes", () => {
+    expect(classProperties("ModelOutputDataset")).toContain("variables");
     expect(classProperties("FieldDataset")).toContain("variables");
+
+    // ModelOutputDataset takes exactly one class; FieldDataset takes a union.
+    const modelItems = (
+      defs.ModelOutputDataset as unknown as {
+        properties: Record<string, { items?: { $ref?: string } }>;
+      }
+    ).properties.variables.items;
+    expect(modelItems?.$ref).toBe("#/$defs/ModelOutputVariable");
+
+    const fieldItems = (
+      defs.FieldDataset as unknown as {
+        properties: Record<string, { items?: { oneOf?: unknown[]; anyOf?: unknown[] } }>;
+      }
+    ).properties.variables.items;
+    expect((fieldItems?.oneOf ?? fieldItems?.anyOf)?.length).toBeGreaterThan(1);
+  });
+
+  it("ModelOutputVariable carries only identity, name and units", () => {
+    expect(classProperties("ModelOutputVariable").sort()).toEqual([
+      "dataset_variable_name",
+      "long_name",
+      "schema_class",
+      "standard_identifier",
+      "units",
+      "variable_type",
+    ]);
   });
 });
 
