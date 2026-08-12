@@ -7,10 +7,9 @@ always an ancestor of `dev`, so a release fast-forwards `main` to `dev`.
 2. In `CHANGELOG.md`, replace `Unreleased` on the top section with today's date. Each entry is one
    user-visible PR with its number; internal-only PRs (tests, CI) are left out. Medium / Large
    refactors can be included at the author's discretion.
-3. Set the matching `version` in `package.json`, and the two `version` fields in
-   `package-lock.json` (the root one and the `""` package entry). Edit the lockfile directly —
-   `npm install --package-lock-only` also rewrites unrelated bundled optional-dependency metadata.
-   Confirm with `npm ci`.
+3. Bump the version: `npm version X.Y.Z --no-git-tag-version`. That updates `package.json` and both
+   `version` fields in `package-lock.json`, and nothing else. The flag matters — without it npm
+   commits and tags on the spot, and the tag belongs on `main` in step 5.
 4. Commit as `chore(release): vX.Y.Z` and merge the PR into `dev`.
 5. Fast-forward and tag:
 
