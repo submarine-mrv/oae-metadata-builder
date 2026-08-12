@@ -233,8 +233,9 @@ export const MODEL_VARIABLE_TYPE_OPTIONS = [
   { value: "ph", label: "pH" },
   {
     value: "biological_tracers",
-    label: "Biological Tracers (phytoplankton, chlorophyll, zooplankton)",
+    label: "Biological Tracers (e.g., chlorophyll, phytoplankton, zooplankton)",
   },
+  { value: "nutrients", label: "Nutrients (e.g., dissolved oxygen, NO₃⁻, NH₄⁺)" },
   { value: "zonal_velocity", label: "Zonal Velocity (u)" },
   { value: "meridional_velocity", label: "Meridional Velocity (v)" },
   { value: "vertical_velocity", label: "Vertical Velocity (w)" },
@@ -295,6 +296,7 @@ export const MODEL_VARIABLE_TYPE_SHORT_LABELS: Record<string, string> = {
   salinity: "Salinity",
   ph: "pH",
   biological_tracers: "Biological Tracers",
+  nutrients: "Nutrients",
   zonal_velocity: "Zonal Velocity",
   meridional_velocity: "Meridional Velocity",
   vertical_velocity: "Vertical Velocity",

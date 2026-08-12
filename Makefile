@@ -35,7 +35,7 @@ nvs-vocabs: $(SEA_NAMES_FILE) $(PLATFORM_TYPES_FILE)
 .PHONY: schema
 schema: nvs-vocabs
 	@echo "Checking oae-data-protocol repository status..."
-	@if [ ! -d "$(SCHEMA_REPO_PATH)/.git" ]; then \
+	@if [ ! -e "$(SCHEMA_REPO_PATH)/.git" ]; then \
 		echo "Error: $(SCHEMA_REPO_PATH) is not a git repository"; \
 		exit 1; \
 	fi

@@ -5630,6 +5630,7 @@
         "salinity",
         "ph",
         "biological_tracers",
+        "nutrients",
         "zonal_velocity",
         "meridional_velocity",
         "vertical_velocity",
@@ -7681,5 +7682,5 @@
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
   "version": "0.1.0",
-  "x-protocol-git-hash": "e843486ab55b7599c53a3c069efb181a5c4d47d7"
+  "x-protocol-git-hash": "050627773fcd7b75067d3d3c51a23284db4d1674"
 }
