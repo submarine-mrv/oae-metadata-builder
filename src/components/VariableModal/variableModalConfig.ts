@@ -524,7 +524,13 @@ const BASE: HierarchyLayer = {
 const CONTINUOUS: HierarchyLayer = {
   name: "ContinuousMeasuredVariable",
   sections: {
-    analysis: ["raw_data_calculation_method", "calculation_software_version"],
+    analysis: [
+      {
+        path: "raw_data_calculation_method",
+        inputType: "textarea",
+      },
+      "calculation_software_version",
+    ],
   },
 };
 
@@ -535,6 +541,7 @@ const CALCULATED: HierarchyLayer = {
     calculation: [
       {
         path: "calculation_method_and_parameters",
+        inputType: "textarea",
         placeholderText: "e.g., Using CO2SYS with Lueker et al. (2000) constants",
       },
     ],
@@ -554,6 +561,7 @@ const SEDIMENT: HierarchyLayer = {
       {
         path: "sediment_sampling_method",
         span: 6,
+        inputType: "textarea",
         placeholderText: "e.g., sediment core, grab sampling, dredging",
       },
       {
@@ -587,6 +595,7 @@ const TA_DIC: HierarchyLayer = {
       },
       {
         path: "sample_preservation.correction_description",
+        inputType: "textarea",
         placeholderText: "How the preservative effect was corrected for",
       },
     ],
@@ -602,11 +611,12 @@ const TA_DIC: HierarchyLayer = {
       },
       {
         path: "curve_fitting_method",
-        span: 6,
+        inputType: "textarea",
         placeholderText: "Curve fitting method for alkalinity",
       },
       {
         path: "blank_correction",
+        inputType: "textarea",
         placeholderText: "Whether and how results were corrected for blank",
       },
     ],
@@ -647,6 +657,7 @@ const PH: HierarchyLayer = {
       },
       {
         path: "temperature_correction_method",
+        inputType: "textarea",
         placeholderText: "Method used to correct pH for temperature",
       },
     ],
@@ -668,6 +679,7 @@ const PH: HierarchyLayer = {
         },
         {
           path: "analyzing_instrument.calibration.dye_correction_method",
+          inputType: "textarea",
           placeholderText: "Method used to correct for dye effects",
         },
         {
@@ -711,6 +723,7 @@ const CO2: HierarchyLayer = {
       },
       {
         path: "water_vapor_correction_method",
+        inputType: "textarea",
         placeholderText: "How water vapor pressure was determined",
       },
     ],
@@ -778,6 +791,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "drying_method",
+        inputType: "textarea",
         placeholderText: "Method used to dry gas from equilibrator before CO2 sensor",
       },
     ],
@@ -790,6 +804,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       {
         path: "temperature_correction_method",
         span: 6,
+        inputType: "textarea",
         placeholderText: "How the temperature effect was corrected",
       },
     ],
@@ -797,6 +812,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       {
         path: "analyzing_instrument.measurement_frequency",
         span: 6,
+        inputType: "textarea",
         placeholderText: "e.g., every 140 seconds except during calibration",
       },
     ],
@@ -871,6 +887,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "equilibrator_temperature_sensor.calibration",
+        inputType: "textarea",
         placeholderText: "e.g., Factory calibration",
       },
       {
@@ -907,6 +924,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "equilibrator_pressure_sensor.calibration",
+        inputType: "textarea",
         placeholderText: "e.g., Factory calibration",
       },
       {
@@ -943,6 +961,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "atmospheric_pressure_sensor.calibration",
+        inputType: "textarea",
         placeholderText: "e.g., Factory calibration",
       },
       {
@@ -968,6 +987,7 @@ const CO2_CONTINUOUS: HierarchyLayer = {
       },
       {
         path: "marine_air_measurement.drying_method",
+        inputType: "textarea",
         placeholderText: "Method used to dry the gas stream",
       },
     ],
