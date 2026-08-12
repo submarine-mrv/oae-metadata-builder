@@ -4,6 +4,23 @@ Drag these onto the drop zone at `http://localhost:3000/checker` (the page is no
 menu — go to the URL directly). The same files back the unit tests in
 `src/utils/__tests__/complianceChecker.test.ts`, so what you see by hand is what CI asserts.
 
+### Template-derived workbooks
+
+Copies of the protocol's four templates — same `#` preamble, header row and units row — with the
+extraneous cells a submitter is expected to clear removed. Regenerate with
+`node scripts/make-template-samples.mjs`.
+
+| File | Expected result |
+|---|---|
+| `template_bottle.xlsx` | 4 passes, no warnings. 54 columns, Bottle detected. |
+| `template_flow_through.xlsx` | 4 passes, no warnings. 30 columns, Flow through detected. |
+| `template_autonomous.xlsx` | 4 passes, no warnings. 38 columns, Autonomous detected. |
+| `template_physiological.xlsx` | 3 passes, no warnings. 55 columns, Physiological detected. |
+| `template_physiological_uncleaned.xlsx` | **1 failure.** Keeps the `(example response variables)` note that sits above the header, several columns over, with no `#`. |
+| `template_bottle_uncleaned.xlsx` | Same as `template_bottle.xlsx`. Keeps the WOCE reference block below the data, which is harmless — only the top two rows are read. |
+
+### Smaller hand-written files
+
 | File | Expected result |
 |---|---|
 | `compliant.csv` | 4 passes, no warnings. A minimal Bottle-template file, 18 columns. |

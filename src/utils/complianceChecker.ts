@@ -290,12 +290,20 @@ function checkUnrecognizedHeaders(headers: string[]): CheckResult[] {
 /**
  * Check 3: QC flag columns present for variables that should have them
  */
-function checkQcFlags(headers: string[]): CheckResult[] {
+function checkQcFlags(headers: string[], template?: DataFileTemplate): CheckResult[] {
   const results: CheckResult[] = [];
   const nonQcHeaders = headers.filter((h) => !isQcFlagColumn(h));
 
-  // Only check recommended variables that expect QC flags and are present in the file
-  const varsNeedingQc = nonQcHeaders.filter((h) => findRecommendedColumn(h)?.expectQcFlag);
+  // When we know which template the file follows, that template decides which
+  // columns carry a flag. The union across templates would expect one wherever
+  // any template pairs it, and warn about a pristine file — flow through and
+  // autonomous have no flag for temp_ITS90, physiological has none at all.
+  const expectsFlag = (h: string) =>
+    template
+      ? findQcFlagFor(h, template.columns) !== undefined
+      : Boolean(findRecommendedColumn(h)?.expectQcFlag);
+
+  const varsNeedingQc = nonQcHeaders.filter(expectsFlag);
 
   const missingQc: string[] = [];
   const presentQc: string[] = [];
@@ -568,7 +576,7 @@ function runChecks(
 
   return [
     ...checkNaming(headers, match),
-    ...checkQcFlags(headers),
+    ...checkQcFlags(headers, match?.template),
     ...checkUnits(columns, unitsRow),
   ];
 }
