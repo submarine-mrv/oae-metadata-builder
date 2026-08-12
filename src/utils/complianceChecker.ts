@@ -11,7 +11,6 @@ import {
   findRecommendedColumn,
   getTemplate,
   matchTemplate,
-  RECOMMENDED_COLUMNS,
   type TemplateId,
   type TemplateMatch,
 } from "@/utils/dataFileTemplates";
@@ -67,6 +66,8 @@ export type Units =
 export interface ParsedColumn {
   name: string;
   units: Units;
+  /** CF standard_name attribute. NetCDF only; spreadsheets have nowhere to put it. */
+  standardName?: string;
 }
 
 /** Spellings the protocol templates use for "no units apply". */
@@ -228,8 +229,14 @@ export async function parseNetCdfColumns(buffer: ArrayBuffer): Promise<ParsedCol
 
   return reader.variables.map((v) => {
     const attrs = (v.attributes || []) as Array<{ name: string; value: string | number }>;
-    const unitsAttr = attrs.find((a) => a.name.toLowerCase() === "units");
-    return { name: v.name, units: toUnits(unitsAttr?.value as string | undefined) };
+    const attr = (name: string) =>
+      attrs.find((a) => a.name.toLowerCase() === name)?.value as string | undefined;
+    const standardName = String(attr("standard_name") ?? "").trim();
+    return {
+      name: v.name,
+      units: toUnits(attr("units")),
+      standardName: standardName === "" ? undefined : standardName,
+    };
   });
 }
 
@@ -553,9 +560,17 @@ function runChecks(
 
   // QC flag expectations are derived from the spreadsheet templates, so they
   // say nothing about a NetCDF file. Units still apply to both.
-  const qc = fileType === "netcdf" ? [] : checkQcFlags(headers);
+  if (fileType === "netcdf") {
+    // Variable names are deliberately not judged; CF carries the vocabulary in
+    // standard_name, and QC flag conventions come from the spreadsheet templates.
+    return [...checkStandardNames(columns), ...checkUnits(columns, unitsRow)];
+  }
 
-  return [...checkNaming(headers, fileType, match), ...qc, ...checkUnits(columns, unitsRow)];
+  return [
+    ...checkNaming(headers, match),
+    ...checkQcFlags(headers),
+    ...checkUnits(columns, unitsRow),
+  ];
 }
 
 // FileReader rather than file.text() / file.arrayBuffer(): jsdom implements
@@ -579,34 +594,43 @@ function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
 }
 
 /**
- * Which names to judge a file's columns against.
- *
- * Recommended names come from the protocol's data file templates, which are
- * spreadsheet layouts. NetCDF model output uses its own vocabulary, and the
- * protocol's Model Output Variables table is not published in a form we can
- * read, so those files get no naming check rather than a guessed one.
+ * Which names to judge a spreadsheet's columns against: the specific template
+ * when we know which one it is, otherwise the recommended set as a whole.
  */
-function checkNaming(
-  headers: string[],
-  fileType: ComplianceReport["fileType"],
-  match?: TemplateMatch,
-): CheckResult[] {
+function checkNaming(headers: string[], match?: TemplateMatch): CheckResult[] {
   if (match) return checkTemplate(match);
 
-  if (fileType === "netcdf") {
-    return [
-      {
-        severity: "warn",
-        message: "Variable names not checked",
-        details:
-          "Recommended names come from the protocol's spreadsheet templates. " +
-          "The Model Output Variables naming table is not published in a machine-readable " +
-          "form, so NetCDF variable names are reported but not judged.",
-      },
-    ];
+  return [...checkRecommendedHeaders(headers), ...checkUnrecognizedHeaders(headers)];
+}
+
+/**
+ * CF is the protocol's rule for model output: "For model output variable names,
+ * please refer to the CF naming conventions." CF does not standardise variable
+ * names — it standardises the `standard_name` attribute — so that attribute is
+ * what we check, and the variable name itself is left alone.
+ */
+function checkStandardNames(columns: ParsedColumn[]): CheckResult[] {
+  const named = columns.filter((c) => c.standardName);
+  const unnamed = columns.filter((c) => !c.standardName);
+  const results: CheckResult[] = [];
+
+  if (named.length > 0) {
+    results.push({
+      severity: "pass",
+      message: `${named.length} of ${columns.length} variables declare a CF standard_name`,
+      details: named.map((c) => `${c.name} (${c.standardName})`).join(", "),
+    });
   }
 
-  return [...checkRecommendedHeaders(headers), ...checkUnrecognizedHeaders(headers)];
+  if (unnamed.length > 0) {
+    results.push({
+      severity: "warn",
+      message: `${unnamed.length} variable${unnamed.length === 1 ? "" : "s"} missing a CF standard_name`,
+      details: `${unnamed.map((c) => c.name).join(", ")}. The protocol defers model output naming to CF conventions, which identify a quantity through the standard_name attribute rather than the variable name.`,
+    });
+  }
+
+  return results;
 }
 
 function resolveTemplate(

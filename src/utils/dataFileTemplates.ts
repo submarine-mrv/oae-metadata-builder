@@ -7,6 +7,7 @@
  * "Number _of_individuals" keeps its stray space.
  */
 
+import { PROTOCOL_COLUMN_STANDARDS } from "@/utils/protocolColumnStandards";
 import { findQcFlagFor, isQcFlagColumn } from "@/utils/qcFlags";
 
 export type TemplateId = "bottle" | "flow_through" | "autonomous" | "physiological";
@@ -267,11 +268,13 @@ export function detectTemplate(headers: string[]): TemplateMatch | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Recommended column names, derived from the templates
+// Recommended column names
 //
-// The protocol describes the templates as containing "common recommended column
-// header names", and publishes no machine-readable list elsewhere, so they are
-// the source rather than a hand-kept list. Nothing here is written by hand.
+// Two published sources, unioned: the protocol's column header standards tables
+// and the four downloadable templates. Neither covers everything — the tables
+// have no physiological section, and the templates carry names the tables omit
+// (Exp_ID, Cruise_ID, platform fields) — so a name from either is recognized.
+// Nothing here is written by hand.
 // ---------------------------------------------------------------------------
 
 export interface RecommendedColumn {
@@ -280,6 +283,8 @@ export interface RecommendedColumn {
   expectQcFlag: boolean;
   /** Templates the name appears in. */
   templates: TemplateId[];
+  /** True when the protocol's column header standards tables list the name. */
+  inStandards: boolean;
 }
 
 function deriveRecommendedColumns(): RecommendedColumn[] {
@@ -297,8 +302,29 @@ function deriveRecommendedColumns(): RecommendedColumn[] {
         existing.expectQcFlag ||= hasFlag;
         existing.templates.push(template.id);
       } else {
-        byName.set(key, { name: column, expectQcFlag: hasFlag, templates: [template.id] });
+        byName.set(key, {
+          name: column,
+          expectQcFlag: hasFlag,
+          templates: [template.id],
+          inStandards: false,
+        });
       }
+    }
+  }
+
+  for (const standard of PROTOCOL_COLUMN_STANDARDS) {
+    if (isQcFlagColumn(standard.name)) continue;
+    const key = normalize(standard.name);
+    const existing = byName.get(key);
+    if (existing) {
+      existing.inStandards = true;
+    } else {
+      byName.set(key, {
+        name: standard.name,
+        expectQcFlag: false,
+        templates: [],
+        inStandards: true,
+      });
     }
   }
 

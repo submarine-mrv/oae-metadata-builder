@@ -11,7 +11,7 @@ menu — go to the URL directly). The same files back the unit tests in
 | `noncompliant.csv` | 1 pass, 2 warnings, **1 failure** — it has no units row. |
 | `empty.csv` | 1 failure: "No column headers detected". |
 | `compliant.xlsx` | The same columns and units as `compliant.csv`, typed **XLSX**. |
-| `model_output_v3.nc` | 1 pass, 1 warning. All 11 variables declare units; names not judged (see below). |
+| `model_output_v3.nc` | 2 passes, no warnings. All 11 variables declare units and a CF `standard_name`. |
 | `model_output_v4.nc` | **Error.** See below — expected, not a broken file. |
 
 ## Tabular file shape
@@ -60,16 +60,15 @@ The quantities and units are the protocol's
 inorganic carbon and total alkalinity (µmol/kg), temperature (degC), salinity, the 2D air-sea CO₂
 flux (mol/m²/s), and grid cell area and volume.
 
-**The variable names are ours, not the protocol's.** `dic`, `talk`, `fgco2`, `area`, `volume` and the
-`standard_name` attributes are CMIP/CF conventions we picked, because the protocol's Model Output
-Variables naming table is not published in a form we can read. Nothing validates against them — they
-are a fixture that exercises the NetCDF parser and the units check, and any names would serve. Do not
-treat this file as a statement of what the protocol requires a variable to be called.
+**The variable names are ours, not the protocol's.** `dic`, `talk`, `fgco2`, `area` and `volume` are
+CMIP conventions we picked; the protocol names the quantities, not the spellings. Nothing validates
+against them. The `standard_name` attributes are CF vocabulary and *are* checked — see below.
 
-Recommended column names are derived from the four spreadsheet templates, so they say nothing about
-NetCDF. The protocol's Model Output Variables naming table is not published in a form we can read, so
-NetCDF variable names are listed but not judged, and the QC flag expectations are skipped too. Guessing
-those names is what produced the previous hand-written list. Tracked in `oae-form-opb`.
+The protocol's Model Output Variables section is one sentence: *"For model output variable names,
+please refer to the CF naming conventions."* CF does not standardise variable names — it standardises
+the `standard_name` **attribute** — so that is what the checker looks at. Variable names in NetCDF are
+listed but never judged, and the QC flag conventions, which come from the spreadsheet templates, are
+skipped as well.
 
 ## Regenerating
 

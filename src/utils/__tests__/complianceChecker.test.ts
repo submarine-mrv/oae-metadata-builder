@@ -65,12 +65,30 @@ describe("parseCsvHeaders", () => {
 });
 
 describe("recommended columns", () => {
-  it("uses the protocol templates as the source of recommended names", () => {
-    // The names come from the templates, not a hand-kept list, so protocol
-    // spellings like TEMP_ITS90 are recognized and invented ones are not.
+  it("recognizes names from the templates", () => {
     expect(findRecommendedColumn("TEMP_ITS90")).toBeDefined();
     expect(findRecommendedColumn("temp_its90")).toBeDefined();
-    expect(findRecommendedColumn("revelle_factor")).toBeUndefined();
+  });
+
+  it("recognizes names from the protocol's column header standards tables", () => {
+    // These are in the published tables but in none of the templates.
+    for (const name of ["omega_aragonite", "pco2_insitu", "wind_speed", "spm"]) {
+      expect(findRecommendedColumn(name), name).toBeDefined();
+    }
+  });
+
+  it("recognizes nothing that appears in neither source", () => {
+    // From the deleted hand-written list.
+    for (const name of ["revelle_factor", "cast_id", "chl_a", "alkalinity_excess"]) {
+      expect(findRecommendedColumn(name), name).toBeUndefined();
+    }
+  });
+
+  it("records which source each name came from", () => {
+    expect(findRecommendedColumn("wind_speed")?.inStandards).toBe(true);
+    expect(findRecommendedColumn("wind_speed")?.templates).toEqual([]);
+    // In the templates but absent from the published tables.
+    expect(findRecommendedColumn("Exp_ID")?.inStandards).toBe(false);
   });
 
   it("derives expectQcFlag from the template pairing", () => {
@@ -335,14 +353,19 @@ describe("checkNetCdf", () => {
     expect(messages(report, "pass")).toContain("11 of 11 columns declare units");
   });
 
-  it("does not judge NetCDF variable names against the spreadsheet templates", async () => {
-    // Recommended names come from the templates, which are spreadsheet layouts.
-    // The protocol's Model Output Variables table is not published machine
-    // readably, so guessing names here would repeat the mistake we removed.
+  it("checks CF standard_name instead of judging variable names", async () => {
+    // The protocol defers model output naming to CF, and CF's vocabulary lives
+    // in the standard_name attribute, not the variable name.
     const report = await checkNetCdf("model_output_v3.nc", sampleBytes("model_output_v3.nc"));
 
-    expect(messages(report, "warn")).toEqual(["Variable names not checked"]);
+    expect(messages(report, "pass")).toContain("11 of 11 variables declare a CF standard_name");
+    expect(report.columns.find((c) => c.name === "dic")?.standardName).toBe(
+      "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water",
+    );
+    // No naming or QC-flag judgement, both of which come from the spreadsheets.
+    expect(report.checks.some((c) => c.message.includes("recommended list"))).toBe(false);
     expect(report.checks.some((c) => c.message.includes("QC flag"))).toBe(false);
+    expect(report.summary.warn).toBe(0);
   });
 
   it("cannot read NetCDF-4, which is what most ocean models write", async () => {
