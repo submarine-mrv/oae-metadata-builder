@@ -72,7 +72,7 @@ const importNormalize = (v: Record<string, unknown>): Record<string, unknown> =>
   );
 
 describe("variable normalization invariants", () => {
-  // The 18 field variable classes. ModelVariable is excluded by design: the
+  // The 18 field variable classes. ModelOutputVariable is excluded by design: the
   // FieldDataset union ranges over FieldVariable, which it is not a descendant of.
   it("derived 18 variable classes from the bundled schema", () => {
     expect(VARIABLE_CLASSES.length).toBe(18);

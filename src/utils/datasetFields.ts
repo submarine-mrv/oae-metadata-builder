@@ -22,7 +22,7 @@ const BASE_DATASET_FIELDS = [
   "fair_use_data_request",
   // Both FieldDataset and ModelOutputDataset carry per-variable metadata under
   // `variables` (FieldDataset → Variable subclasses, ModelOutputDataset →
-  // ModelVariable), so it survives a dataset_type switch.
+  // ModelOutputVariable), so it survives a dataset_type switch.
   "variables",
 ];
 

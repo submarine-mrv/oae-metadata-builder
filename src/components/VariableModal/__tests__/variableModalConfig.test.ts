@@ -489,10 +489,10 @@ describe("getSchemaKeyForUI", () => {
   });
 });
 
-describe("ModelVariable", () => {
+describe("ModelOutputVariable", () => {
   const rootSchema = bundled as unknown as JSONSchema;
   const modelSchema = resolveRef(
-    (rootSchema.$defs as Record<string, JSONSchema>).ModelVariable,
+    (rootSchema.$defs as Record<string, JSONSchema>).ModelOutputVariable,
     rootSchema,
   );
 
@@ -512,13 +512,13 @@ describe("ModelVariable", () => {
       .filter((section) => section.fields.length > 0);
 
   it("renders only Basic Information, with name, units and column name", () => {
-    expect(visibleSections("ModelVariable", modelSchema)).toEqual([
+    expect(visibleSections("ModelOutputVariable", modelSchema)).toEqual([
       { key: "basic", fields: ["long_name", "units", "dataset_variable_name"] },
     ]);
   });
 
   it("drops the QC-flag and raw-data column gates that field variables keep", () => {
-    const modelBasic = visibleSections("ModelVariable", modelSchema)[0].fields;
+    const modelBasic = visibleSections("ModelOutputVariable", modelSchema)[0].fields;
     expect(modelBasic).not.toContain("dataset_variable_name_qc_flag");
     expect(modelBasic).not.toContain("dataset_variable_name_raw");
 
@@ -547,10 +547,12 @@ describe("ModelVariable", () => {
     }
   });
 
-  it("resolves to ModelVariable from variable_type alone", () => {
-    expect(getSchemaKeyForUI("air_sea_co2_flux", undefined, undefined, true)).toBe("ModelVariable");
+  it("resolves to ModelOutputVariable from variable_type alone", () => {
+    expect(getSchemaKeyForUI("air_sea_co2_flux", undefined, undefined, true)).toBe(
+      "ModelOutputVariable",
+    );
     // "other" is a real ModelVariableType value, not a placeholder needing genesis.
-    expect(getSchemaKeyForUI("other", undefined, undefined, true)).toBe("ModelVariable");
+    expect(getSchemaKeyForUI("other", undefined, undefined, true)).toBe("ModelOutputVariable");
     expect(getSchemaKeyForUI(undefined, undefined, undefined, true)).toBeNull();
   });
 

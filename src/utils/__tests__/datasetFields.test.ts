@@ -26,7 +26,7 @@ describe("getValidDatasetFieldsForType", () => {
   });
 
   // variables is a base field: both dataset types carry it, holding Variable
-  // subclasses for field datasets and ModelVariable for model output.
+  // subclasses for field datasets and ModelOutputVariable for model output.
   it("includes variables for both dataset types", () => {
     expect(getValidDatasetFieldsForType("model_output").has("variables")).toBe(true);
     expect(getValidDatasetFieldsForType("cast").has("variables")).toBe(true);
@@ -44,7 +44,7 @@ describe("getValidDatasetFieldsForType", () => {
     expect(fields.has("hardware_configuration")).toBe(false);
   });
 
-  // model_output_variables was the pre-ModelVariable checklist enum; it is gone
+  // model_output_variables was the pre-ModelOutputVariable checklist enum; it is gone
   // from the schema entirely and must not reappear on either dataset type.
   it("no longer knows the removed model_output_variables field", () => {
     expect(getValidDatasetFieldsForType("model_output").has("model_output_variables")).toBe(false);
@@ -56,7 +56,7 @@ describe("cleanDatasetFormDataForType", () => {
   // Simulates: user fills in a FieldDataset, then switches to model_output.
   // platform_info and other field-specific data should be stripped, but
   // variables is valid on both types and survives (parseDataset then coerces
-  // the entries to ModelVariable — see parseEntity.test.ts).
+  // the entries to ModelOutputVariable — see parseEntity.test.ts).
   it("strips field-dataset fields when switching to model_output", () => {
     const formData = {
       name: "My Dataset",

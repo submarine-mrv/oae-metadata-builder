@@ -211,7 +211,7 @@ export const VARIABLE_TYPE_OPTIONS = [
 ] as const;
 
 /** The single schema class backing every model-output variable. */
-export const MODEL_VARIABLE_SCHEMA_KEY = "ModelVariable";
+export const MODEL_VARIABLE_SCHEMA_KEY = "ModelOutputVariable";
 
 /**
  * Variable types offered for model output. These are the ModelVariableType enum
@@ -1191,13 +1191,13 @@ export const VARIABLE_TYPE_LAYERS: Record<string, HierarchyLayer[]> = {
   CalculatedVariable: [BASE, CALCULATED],
   SocioeconomicVariable: [BASE, SOCIOECONOMIC],
   NonMeasuredVariable: [BASE],
-  // Model output. ModelVariable sits directly under Variable in the schema and
+  // Model output. ModelOutputVariable sits directly under Variable in the schema and
   // carries none of the in-situ metadata, so BASE alone is enough: everything
   // BASE declares beyond long_name / units / dataset_variable_name (the QC-flag
   // and raw-data column gates, and the whole Quality Control and Additional
   // Information sections) is dropped by the fieldExistsInSchema() filter, and
   // the emptied sections are dropped by getAccordionConfig().
-  ModelVariable: [BASE],
+  ModelOutputVariable: [BASE],
 };
 
 // =============================================================================
@@ -1366,7 +1366,7 @@ function buildSchemaClassLookup(): Record<string, SchemaClassInfo> {
       }
     }
   }
-  // ModelVariable is not part of VARIABLE_SCHEMA_MAP (it isn't reachable via the
+  // ModelOutputVariable is not part of VARIABLE_SCHEMA_MAP (it isn't reachable via the
   // variable_type → genesis → sampling tree; every model variable uses it). It
   // must still be registered here or normalizeVariableFields would treat it as
   // an unknown class and re-derive schema_class into CalculatedVariable.
@@ -1449,7 +1449,7 @@ export function normalizeVariableFields(
 
   const changes: Record<string, unknown> = {};
 
-  // ModelVariable draws variable_type from ModelVariableType, a different
+  // ModelOutputVariable draws variable_type from ModelVariableType, a different
   // vocabulary from VariableType, so it is validated against its own values.
   if (schemaClass === MODEL_VARIABLE_SCHEMA_KEY) {
     const currentType = variable.variable_type as string | undefined;
@@ -1514,7 +1514,7 @@ export function getSchemaKeyForUI(
 ): string | null {
   // Model output datasets have exactly one variable class. The variable_type
   // dropdown classifies the quantity using ModelVariableType but never changes
-  // which schema is used; ModelVariable has no genesis or sampling to consider.
+  // which schema is used; ModelOutputVariable has no genesis or sampling to consider.
   if (isModelOutput) {
     return uiVariableType ? MODEL_VARIABLE_SCHEMA_KEY : null;
   }

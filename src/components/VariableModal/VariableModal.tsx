@@ -143,7 +143,7 @@ interface VariableModalProps {
   /** The root schema containing $defs for all variable types */
   rootSchema: JSONSchema;
   /**
-   * Model-output mode: every variable uses the single ModelVariable class, the
+   * Model-output mode: every variable uses the single ModelOutputVariable class, the
    * type dropdown offers ModelVariableType instead of VariableType, and the
    * measured/calculated and discrete/continuous selectors are hidden — model
    * variables have neither genesis nor sampling.
@@ -264,7 +264,7 @@ export default function VariableModal({
   }, [schemaKey, variableSchema, rootSchema]);
 
   // Check if variable type selection is complete.
-  // Model output resolves straight to ModelVariable from variable_type alone —
+  // Model output resolves straight to ModelOutputVariable from variable_type alone —
   // it has no genesis or sampling — so it behaves like a directSchema type. Its
   // variable_type values come from ModelVariableType, which shares no keys with
   // VARIABLE_TYPE_BEHAVIOR, so that map must not be consulted in model mode.
@@ -296,7 +296,7 @@ export default function VariableModal({
   // Handle selection changes
   const handleVariableTypeChange = (value: string | null) => {
     setVariableType(value);
-    // Model output has neither genesis nor sampling on ModelVariable, and its
+    // Model output has neither genesis nor sampling on ModelOutputVariable, and its
     // type values are not keys of VARIABLE_TYPE_BEHAVIOR — leave both unset.
     const behavior = !isModelOutput && value ? VARIABLE_TYPE_BEHAVIOR[value] : undefined;
 

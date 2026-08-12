@@ -3821,7 +3821,7 @@
           "type": "string"
         },
         "variables": {
-          "description": "The variables in this dataset, each with its own metadata. Ranges over FieldVariable rather than Variable so that ModelVariable — which belongs to a ModelOutputDataset — is not admitted here.",
+          "description": "The variables in this dataset, each with its own metadata.",
           "items": {
             "oneOf": [
               {
@@ -5541,11 +5541,11 @@
           "type": "string"
         },
         "variables": {
-          "description": "The variables included in the model simulation output, each with its own metadata.",
+          "description": "The variables in this dataset, each with its own metadata.",
           "items": {
-            "$ref": "#/$defs/ModelVariable"
+            "$ref": "#/$defs/ModelOutputVariable"
           },
-          "title": "Model Output Variables",
+          "title": "Variables",
           "type": [
             "array",
             "null"
@@ -5580,7 +5580,7 @@
       "title": "ModelOutputDataset",
       "type": "object"
     },
-    "ModelVariable": {
+    "ModelOutputVariable": {
       "additionalProperties": false,
       "description": "A variable output by a model simulation (e.g., air-sea CO2 flux, dissolved inorganic carbon, total alkalinity, pH, temperature, salinity from an OAE model run). Model outputs are produced by the simulation itself, so they carry none of the sampling, instrument, calibration or in-situ QC metadata that field-collected variables do — how the output was produced is described by the simulation configuration on the parent ModelOutputDataset.",
       "properties": {
@@ -5597,7 +5597,7 @@
         "schema_class": {
           "description": "The schema class name for this variable (e.g., \"DiscretePHVariable\"). Auto-populated by the metadata builder.",
           "enum": [
-            "ModelVariable"
+            "ModelOutputVariable"
           ],
           "type": "string"
         },
@@ -5622,11 +5622,11 @@
         "dataset_variable_name",
         "long_name"
       ],
-      "title": "ModelVariable",
+      "title": "ModelOutputVariable",
       "type": "object"
     },
     "ModelVariableType": {
-      "description": "Classification of a variable output by a model simulation. Used in place of VariableType on ModelVariable — model output covers a different set of quantities than field measurement (velocities and fluxes rather than sampling-based observations), and there is exactly one model variable class, so this enum identifies the variable rather than selecting a class.",
+      "description": "Classification of a variable output by a model simulation. Used in place of VariableType on ModelOutputVariable — model output covers a different set of quantities than field measurement (velocities and fluxes rather than sampling-based observations), and there is exactly one model variable class, so this enum identifies the variable rather than selecting a class.",
       "enum": [
         "air_sea_co2_flux",
         "dissolved_inorganic_carbon",
@@ -7689,5 +7689,5 @@
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
   "version": "0.1.1",
-  "x-protocol-git-hash": "c3ddec123d3fe9bb8d5c6115609f56a2604481c1"
+  "x-protocol-git-hash": "29aa5a955fa8d52e2bd2f2103bbcc520987c6c58"
 }

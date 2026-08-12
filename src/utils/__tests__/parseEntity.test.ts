@@ -98,7 +98,7 @@ describe("parseExperiment", () => {
 });
 
 describe("parseDataset", () => {
-  it("coerces field variables on a model_output dataset to ModelVariable", () => {
+  it("coerces field variables on a model_output dataset to ModelOutputVariable", () => {
     const parsed = parseDataset(
       {
         name: "Model run",
@@ -114,10 +114,10 @@ describe("parseDataset", () => {
     const variables = parsed.variables as Record<string, unknown>[];
     expect(variables).toHaveLength(1);
     // The user's work is kept, re-classed and re-typed into the model vocabulary.
-    expect(variables[0].schema_class).toBe("ModelVariable");
+    expect(variables[0].schema_class).toBe("ModelOutputVariable");
     expect(variables[0].variable_type).toBe("ph");
     expect(variables[0].dataset_variable_name).toBe("pH");
-    // ModelVariable has neither, so strip must have removed them.
+    // ModelOutputVariable has neither, so strip must have removed them.
     expect(variables[0].genesis).toBeUndefined();
     expect(variables[0].sampling).toBeUndefined();
   });
@@ -184,18 +184,18 @@ describe("parseDataset", () => {
       "temperature",
       "ph",
     ]);
-    expect(variables.every((v) => v.schema_class === "ModelVariable")).toBe(true);
+    expect(variables.every((v) => v.schema_class === "ModelOutputVariable")).toBe(true);
   });
 
-  // Already classed ModelVariable, but carrying a field-vocabulary type.
-  it("translates a field-vocabulary variable_type on an existing ModelVariable", () => {
+  // Already classed ModelOutputVariable, but carrying a field-vocabulary type.
+  it("translates a field-vocabulary variable_type on an existing ModelOutputVariable", () => {
     const parsed = parseDataset(
       {
         dataset_type: "model_output",
         variables: [
-          { schema_class: "ModelVariable", variable_type: "pH" },
-          { schema_class: "ModelVariable", variable_type: "ta" },
-          { schema_class: "ModelVariable", variable_type: "vertical_velocity" },
+          { schema_class: "ModelOutputVariable", variable_type: "pH" },
+          { schema_class: "ModelOutputVariable", variable_type: "ta" },
+          { schema_class: "ModelOutputVariable", variable_type: "vertical_velocity" },
         ],
       },
       rootSchema,
@@ -226,7 +226,7 @@ describe("parseDataset", () => {
       rootSchema,
     );
     const variables = parsed.variables as Record<string, unknown>[];
-    expect(variables[0].schema_class).toBe("ModelVariable");
+    expect(variables[0].schema_class).toBe("ModelOutputVariable");
     expect(variables[0].variable_type).toBe("other");
   });
 
@@ -236,7 +236,7 @@ describe("parseDataset", () => {
         dataset_type: "cast",
         variables: [
           {
-            schema_class: "ModelVariable",
+            schema_class: "ModelOutputVariable",
             variable_type: "air_sea_co2_flux",
             dataset_variable_name: "fgco2",
             long_name: "Air-sea CO2 flux",
@@ -265,8 +265,8 @@ describe("parseDataset", () => {
       {
         dataset_type: "cast",
         variables: [
-          { schema_class: "ModelVariable", variable_type: "temperature", long_name: "SST" },
-          { schema_class: "ModelVariable", variable_type: "salinity", long_name: "SSS" },
+          { schema_class: "ModelOutputVariable", variable_type: "temperature", long_name: "SST" },
+          { schema_class: "ModelOutputVariable", variable_type: "salinity", long_name: "SSS" },
         ],
       },
       rootSchema,

@@ -50,7 +50,7 @@ describe("dataset_type structural facts", () => {
         properties: Record<string, { items?: { $ref?: string } }>;
       }
     ).properties.variables.items;
-    expect(modelItems?.$ref).toBe("#/$defs/ModelVariable");
+    expect(modelItems?.$ref).toBe("#/$defs/ModelOutputVariable");
 
     const fieldItems = (
       defs.FieldDataset as unknown as {
@@ -60,8 +60,8 @@ describe("dataset_type structural facts", () => {
     expect((fieldItems?.oneOf ?? fieldItems?.anyOf)?.length).toBeGreaterThan(1);
   });
 
-  it("ModelVariable carries only identity, name and units", () => {
-    expect(classProperties("ModelVariable").sort()).toEqual([
+  it("ModelOutputVariable carries only identity, name and units", () => {
+    expect(classProperties("ModelOutputVariable").sort()).toEqual([
       "dataset_variable_name",
       "long_name",
       "schema_class",

@@ -60,7 +60,7 @@ const HiddenSubmitButton = () => null;
  * into the form's error list below.
  *
  * Applies to both dataset types: FieldDataset variables are Variable subclasses,
- * ModelOutputDataset variables are ModelVariable.
+ * ModelOutputDataset variables are ModelOutputVariable.
  */
 function withVariablesAsPlainArray(schema: any) {
   if (schema.properties?.variables) {
@@ -184,7 +184,7 @@ export default function DatasetPage() {
       // Inject per-variable errors into RJSF's error list. The form schema omits
       // the variable item schema (variables are rendered by VariablesField), so
       // validateDataset is the source of variable validation. Applies to both
-      // dataset types — model output datasets carry ModelVariable entries.
+      // dataset types — model output datasets carry ModelOutputVariable entries.
       const datasetResult = validateDataset(formDataRef.current, { hasExperiments });
       const variableErrors = datasetResult.errors.filter((e) => e.name === "variable");
       if (variableErrors.length > 0) {

@@ -41,7 +41,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
   const rootSchema = registry.rootSchema as JSONSchema;
 
   // Model-output datasets render the same variables table, but every variable
-  // uses the single ModelVariable class (see modelOutputUiSchema).
+  // uses the single ModelOutputVariable class (see modelOutputUiSchema).
   const isModelOutput = Boolean(
     (uiSchema?.["ui:options"] as { modelOutput?: boolean } | undefined)?.modelOutput,
   );
