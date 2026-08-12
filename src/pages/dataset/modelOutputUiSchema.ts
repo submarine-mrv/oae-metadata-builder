@@ -173,7 +173,6 @@ const modelOutputUiSchema = {
   },
   author_list_for_citation: {
     "ui:widget": "textarea",
-    "ui:options": { rows: 2 },
     "ui:placeholder": "Lastname1, Firstname1; Lastname2, Firstname2; ...",
     "ui:descriptionModal": true,
   },

@@ -237,7 +237,7 @@ function renderInput(
         onChange={(e) => handleChange(e.target.value === "" ? undefined : e.target.value)}
         autosize={!rows}
         minRows={rows || 2}
-        maxRows={rows || 6}
+        maxRows={rows || 8}
       />
     );
   }

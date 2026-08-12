@@ -2,9 +2,11 @@
 // These constants are used across multiple experiment form UI schemas
 // CSS for field-half-width is in uiSchemaConstants.css, imported via layout.tsx
 
+// Autosizing textarea: grows from 2 rows up to 8, then scrolls (defaults set in
+// CustomTextareaWidget). Pass ui:options { rows: N } on a field to force a fixed
+// height, or { minRows, maxRows } to tune the autosize bounds.
 export const textAreaWidget = {
   "ui:widget": "textarea",
-  "ui:options": { rows: 5 },
   "ui:descriptionModal": true,
 };
 
