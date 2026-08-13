@@ -4,18 +4,6 @@ import type React from "react";
 import { useState } from "react";
 import DescriptionModal from "./DescriptionModal";
 
-/**
- * Fields whose controlled vocabulary is published externally get a "view all"
- * link next to the label. Keyed by rendered label so a field picks the link up
- * wherever it appears, without every uiSchema repeating the URL.
- */
-export const VIEW_ALL_LINKS: Record<string, string> = {
-  "Sea Names": "http://vocab.nerc.ac.uk/collection/C16/current/",
-  "MCDR Pathway": "https://www.carbontosea.org/oae-data-protocol/1-0-0/#mcdr-pathways",
-  "Dosing Delivery Type":
-    "https://www.carbontosea.org/oae-data-protocol/1-0-0/#dosing-delivery-type",
-};
-
 interface FieldLabelProps {
   label: string;
   description?: string;
@@ -25,8 +13,8 @@ interface FieldLabelProps {
   fw?: number; // Font weight
   /** Bottom margin. Set to 0 when the caller supplies its own label-row spacing. */
   mb?: MantineSpacing;
-  /** Overrides the `VIEW_ALL_LINKS` lookup; pass null to suppress the link. */
-  viewAllLink?: string | null;
+  /** URL for a "view all" link beside the label, from `ui:viewAllLink`. */
+  viewAllLink?: string;
 }
 
 /**
@@ -44,7 +32,6 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   viewAllLink,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
-  const link = viewAllLink === undefined ? VIEW_ALL_LINKS[label] : viewAllLink;
 
   const titleNode = (
     <Text size="sm" fw={fw}>
@@ -53,7 +40,7 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   );
 
   // Nothing to hang off the label — render it on its own
-  if (!description && !link) {
+  if (!description && !viewAllLink) {
     return (
       <Text size="sm" fw={fw} mb={mb}>
         {label} {required && <span style={{ color: "red" }}>*</span>}
@@ -90,9 +77,9 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
               </ActionIcon>
             </Tooltip>
           ))}
-        {link && (
+        {viewAllLink && (
           <Anchor
-            href={link}
+            href={viewAllLink}
             target="_blank"
             rel="noopener noreferrer"
             size="sm"

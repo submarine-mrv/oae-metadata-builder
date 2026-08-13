@@ -40,9 +40,11 @@ export default function CustomSelectWidget<
 
   const { enumOptions, enumDisabled, emptyValue } = options;
   const themeProps = cleanupOptions(options);
-  // Remove descriptionModal from themeProps as it's a custom UI option, not a Mantine prop
-  const { descriptionModal, ...mantineProps } = themeProps as typeof themeProps & {
+  // RJSF folds every ui: key into options, so our custom ones have to come out
+  // of themeProps or they end up spread onto the DOM input as attributes.
+  const { descriptionModal, viewAllLink, ...mantineProps } = themeProps as typeof themeProps & {
     descriptionModal?: boolean;
+    viewAllLink?: string;
   };
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true || descriptionModal === true;
@@ -98,6 +100,7 @@ export default function CustomSelectWidget<
           description={description}
           required={required}
           useModal={useModal}
+          viewAllLink={viewAllLink}
         />
       )}
 

@@ -92,6 +92,7 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
           description={schema?.description}
           required={required}
           useModal={uiSchema?.["ui:descriptionModal"] === true}
+          viewAllLink={uiSchema?.["ui:viewAllLink"] as string | undefined}
         />
       )}
 

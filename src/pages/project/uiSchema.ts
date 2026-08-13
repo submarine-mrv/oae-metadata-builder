@@ -112,10 +112,12 @@ const projectUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.MCDRPathway,
+    "ui:viewAllLink": "https://www.carbontosea.org/oae-data-protocol/1-0-0/#mcdr-pathways",
   },
   sea_names: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
+    "ui:viewAllLink": "http://vocab.nerc.ac.uk/collection/C16/current/",
   },
   description: textAreaWidget,
   physical_site_description: textAreaWidget,

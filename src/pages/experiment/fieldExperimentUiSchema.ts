@@ -304,6 +304,7 @@ const fieldExperimentUiSchema = {
   dosing_delivery_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
+    "ui:viewAllLink": "https://www.carbontosea.org/oae-data-protocol/1-0-0/#dosing-delivery-type",
     "ui:options": {
       enumNames: enumNames.DosingDeliveryType,
     },
