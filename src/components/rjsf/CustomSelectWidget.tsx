@@ -1,4 +1,4 @@
-import { Anchor, Group, MultiSelect, Select, Text } from "@mantine/core";
+import { MultiSelect, Select } from "@mantine/core";
 import { cleanupOptions } from "@rjsf/mantine/lib/utils.js";
 import {
   ariaDescribedByIds,
@@ -10,16 +10,8 @@ import {
   type StrictRJSFSchema,
   type WidgetProps,
 } from "@rjsf/utils";
-import { IconExternalLink } from "@tabler/icons-react";
 import { type FocusEvent, useCallback, useMemo } from "react";
-
-// Configuration for view all links by field title
-const VIEW_ALL_LINKS: Record<string, string> = {
-  "Sea Names": "http://vocab.nerc.ac.uk/collection/C16/current/",
-  "MCDR Pathway": "https://www.carbontosea.org/oae-data-protocol/1-0-0/#mcdr-pathways",
-  "Dosing Delivery Type":
-    "https://www.carbontosea.org/oae-data-protocol/1-0-0/#dosing-delivery-type",
-};
+import FieldLabel from "./FieldLabel";
 
 export default function CustomSelectWidget<
   T = any,
@@ -42,6 +34,8 @@ export default function CustomSelectWidget<
     onChange,
     onBlur,
     onFocus,
+    schema,
+    uiSchema,
   } = props;
 
   const { enumOptions, enumDisabled, emptyValue } = options;
@@ -50,7 +44,8 @@ export default function CustomSelectWidget<
   const { descriptionModal, ...mantineProps } = themeProps as typeof themeProps & {
     descriptionModal?: boolean;
   };
-  const viewAllLink = VIEW_ALL_LINKS[label || ""];
+  const description = schema?.description;
+  const useModal = uiSchema?.["ui:descriptionModal"] === true || descriptionModal === true;
 
   const handleChange = useCallback(
     (nextValue: any) => {
@@ -98,22 +93,12 @@ export default function CustomSelectWidget<
   return (
     <div>
       {labelText && (
-        <Group gap="sm" align="center" mb="xs">
-          <Text size="sm" fw={500}>
-            {labelText} {required && <span style={{ color: "red" }}>*</span>}
-          </Text>
-          {viewAllLink && (
-            <Anchor
-              href={viewAllLink}
-              target="_blank"
-              size="sm"
-              style={{ display: "flex", alignItems: "center", gap: "4px" }}
-            >
-              view all
-              <IconExternalLink size={12} />
-            </Anchor>
-          )}
-        </Group>
+        <FieldLabel
+          label={String(labelText)}
+          description={description}
+          required={required}
+          useModal={useModal}
+        />
       )}
 
       <Component

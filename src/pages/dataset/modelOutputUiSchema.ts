@@ -66,6 +66,8 @@ const modelOutputUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DatasetType,
+    // Description carries a markdown link, which a tooltip would show literally
+    "ui:descriptionModal": true,
   },
   dataset_type_custom: {
     "ui:widget": "hidden",

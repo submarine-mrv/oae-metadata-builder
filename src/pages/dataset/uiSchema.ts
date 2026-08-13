@@ -74,6 +74,8 @@ const datasetUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DatasetType,
+    // Description carries a markdown link, which a tooltip would show literally
+    "ui:descriptionModal": true,
   },
   // Hide dataset_type_custom - should render conditionally later
   dataset_type_custom: {
