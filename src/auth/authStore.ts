@@ -29,5 +29,5 @@ export function updateAuthStore(
   authStore.profile = profile;
   authStore.isAuthenticated = Boolean(session);
   authStore.isRecoverySession =
-    event === "PASSWORD_RECOVERY" || (event === undefined && Boolean(session));
+    Boolean(session) && (event === "PASSWORD_RECOVERY" || authStore.isRecoverySession);
 }
