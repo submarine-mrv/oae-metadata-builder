@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { router } from "../router";
 import { authStore, updateAuthStore } from "./authStore";
 import { createAuthClient } from "./index";
@@ -12,13 +12,23 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isRecoverySession: boolean;
   client: AuthClient;
+  setProfile: (profile: AuthProfile | null) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const authClient = createAuthClient();
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthContextValue>({ ...authStore, client: authClient });
+  const setProfile = useCallback((profile: AuthProfile | null) => {
+    authStore.profile = profile;
+    setState((prev) => ({ ...authStore, client: authClient, setProfile: prev.setProfile }));
+  }, []);
+
+  const [state, setState] = useState<AuthContextValue>({
+    ...authStore,
+    client: authClient,
+    setProfile,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -29,7 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       event?: AuthEvent,
     ) => {
       updateAuthStore(session, profile, event);
-      if (mounted) setState({ ...authStore, client: authClient });
+      if (mounted) {
+        setState((prev) => ({ ...authStore, client: authClient, setProfile: prev.setProfile }));
+      }
       void router.invalidate();
     };
 
@@ -48,7 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => publish(null));
 
     const unsubscribe = authClient.onAuthStateChange((session, event) => {
-      publish(session, undefined, event);
+      if (!session) {
+        publish(null, null, event);
+        return;
+      }
+      void authClient
+        .getProfile()
+        .catch(() => null)
+        .then((profile) => publish(session, profile, event));
     });
 
     return () => {
