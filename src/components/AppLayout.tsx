@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect } from "react";
+import EmailUnverifiedBanner from "@/components/auth/EmailUnverifiedBanner";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 
@@ -40,6 +41,7 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
       }}
     >
       <Navigation />
+      <EmailUnverifiedBanner />
       {noScroll ? (
         // Children manage their own scrolling (e.g., form + sidebar layout)
         <main style={{ display: "flex", flex: 1, minHeight: 0 }}>{children}</main>

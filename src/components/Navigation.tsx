@@ -16,10 +16,13 @@ import {
   IconFileImport,
   IconHelp,
   IconInfoCircle,
+  IconLogout,
+  IconUser,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { useRef } from "react";
+import { useAuth } from "@/auth/useAuth";
 import DownloadModal from "@/components/DownloadModal";
 import ImportPreviewModal from "@/components/ImportPreviewModal";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -29,6 +32,7 @@ import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
 
 export default function Navigation() {
+  const { client, user } = useAuth();
   const { state, setActiveTab, importSelectedData, toggleJsonPreview } = useAppState();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +122,12 @@ export default function Navigation() {
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
+  const handleSignOut = async () => {
+    await client.signOut();
+    trackEvent("auth_logout");
+    await navigate({ to: "/overview" });
+  };
+
   return (
     <>
       <Box px="lg" py="sm">
@@ -201,6 +211,36 @@ export default function Navigation() {
               </Menu.Target>
 
               <Menu.Dropdown>
+                {user ? (
+                  <>
+                    <Menu.Label>{user.email}</Menu.Label>
+                    <Menu.Item
+                      leftSection={<IconUser size={16} />}
+                      onClick={() => navigate({ to: "/profile" })}
+                    >
+                      Profile
+                    </Menu.Item>
+                    <Menu.Item leftSection={<IconLogout size={16} />} onClick={handleSignOut}>
+                      Sign out
+                    </Menu.Item>
+                    <Menu.Divider />
+                  </>
+                ) : (
+                  <>
+                    <Menu.Item
+                      onClick={() =>
+                        navigate({
+                          to: "/auth/login",
+                          search: { error: undefined, returnTo: undefined },
+                        })
+                      }
+                    >
+                      Log in
+                    </Menu.Item>
+                    <Menu.Item onClick={() => navigate({ to: "/auth/sign-up" })}>Sign up</Menu.Item>
+                    <Menu.Divider />
+                  </>
+                )}
                 {/* Import/Export in menu on mobile */}
                 {isMobile && (
                   <>
