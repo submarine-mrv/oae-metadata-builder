@@ -57,6 +57,7 @@ export interface AuthClient {
     email: string;
     password: string;
     displayName?: string;
+    redirectTo: string;
   }): Promise<AuthResult>;
   signInWithPassword(input: { email: string; password: string }): Promise<AuthResult>;
   signInWithOtp(input: { email: string; redirectTo: string }): Promise<AuthResult>;
