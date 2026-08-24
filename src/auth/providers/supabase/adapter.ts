@@ -60,6 +60,13 @@ export const supabaseAuthClient: AuthClient = {
     if (error) throw mapAuthError(error);
   },
 
+  async deleteAccount() {
+    // Requires a "delete-user" edge function (service role) to remove the auth.users row.
+    const { error } = await supabase.functions.invoke("delete-user");
+    if (error) return failedResult({ message: error.message });
+    return { session: null, user: null, error: null };
+  },
+
   async sendPasswordReset(email, redirectTo) {
     const response = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     return failedResult(response.error);

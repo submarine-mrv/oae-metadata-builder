@@ -3,12 +3,15 @@ import {
   Button,
   Container,
   Divider,
+  Modal,
   PasswordInput,
   Stack,
+  Text,
   TextInput,
   Title,
 } from "@mantine/core";
-import { createFileRoute } from "@tanstack/react-router";
+import { notifications } from "@mantine/notifications";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/useAuth";
 import HomeBrandLink from "@/components/HomeBrandLink";
@@ -17,6 +20,7 @@ export const Route = createFileRoute("/_authed/profile")({ component: ProfilePag
 
 function ProfilePage() {
   const { client, profile, user, setProfile } = useAuth();
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [organization, setOrganization] = useState(profile?.organization ?? "");
   const [orcid, setOrcid] = useState(profile?.orcid ?? "");
@@ -25,6 +29,10 @@ function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
 
   useEffect(() => {
     setDisplayName(profile?.displayName ?? "");
@@ -95,6 +103,44 @@ function ProfilePage() {
       setNewEmail("");
       setCurrentPassword("");
     }
+  }
+
+  async function logout() {
+    await client.signOut();
+    await navigate({ to: "/auth/login", search: { error: undefined, returnTo: undefined } });
+  }
+
+  function openDeleteModal() {
+    setDeleteConfirmEmail("");
+    setDeleteError(null);
+    setDeleteModalOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (deleteConfirmEmail.trim().toLowerCase() !== user?.email?.toLowerCase()) {
+      setDeleteError("Email does not match your account.");
+      return;
+    }
+    setDeleteError(null);
+    setDeletePending(true);
+    const result = await client.deleteAccount();
+    if (result.error) {
+      setDeletePending(false);
+      setDeleteError("We could not delete your account. Please try again.");
+      return;
+    }
+    // The account is already gone server-side; sign out locally only, revoking
+    // it server-side would fail since the underlying user no longer exists.
+    await client.signOut("local");
+    setDeletePending(false);
+    setDeleteModalOpen(false);
+    // TODO: Not the best UI but works for now
+    notifications.show({
+      message: "Your account has been deleted.",
+      color: "teal",
+      autoClose: 5000,
+    });
+    await navigate({ to: "/auth/login", search: { error: undefined, returnTo: undefined } });
   }
 
   return (
@@ -180,7 +226,49 @@ function ProfilePage() {
             </Button>
           </Stack>
         </form>
+        <Divider />
+        <Stack>
+          <Title order={2}>Account</Title>
+          <Button variant="default" onClick={logout} style={{ alignSelf: "flex-start" }}>
+            Log out
+          </Button>
+          <Button
+            color="red"
+            variant="outline"
+            onClick={openDeleteModal}
+            style={{ alignSelf: "flex-start" }}
+          >
+            Delete account
+          </Button>
+        </Stack>
       </Stack>
+      <Modal
+        opened={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete account"
+      >
+        <Stack>
+          <Alert color="red">This permanently deletes your account and cannot be undone.</Alert>
+          <Text size="sm">
+            Type <strong>{user?.email}</strong> to confirm.
+          </Text>
+          {deleteError && <Alert color="red">{deleteError}</Alert>}
+          <TextInput
+            label="Confirm email"
+            autoComplete="off"
+            value={deleteConfirmEmail}
+            onChange={(event) => setDeleteConfirmEmail(event.currentTarget.value)}
+          />
+          <Button
+            color="red"
+            loading={deletePending}
+            disabled={deleteConfirmEmail.trim().toLowerCase() !== user?.email?.toLowerCase()}
+            onClick={confirmDelete}
+          >
+            Delete account
+          </Button>
+        </Stack>
+      </Modal>
     </Container>
   );
 }

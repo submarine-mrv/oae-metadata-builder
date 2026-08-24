@@ -68,4 +68,5 @@ export interface AuthClient {
   exchangeCodeForSession(url: string): Promise<AuthResult>;
   getProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: Partial<AuthProfile>): Promise<AuthProfile>;
+  deleteAccount(): Promise<AuthResult>;
 }
