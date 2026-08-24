@@ -23,17 +23,11 @@ export function updateAuthStore(
   profile: AuthProfile | null = null,
   event?: AuthEvent,
 ): void {
-  const wasRecoverySession = authStore.isRecoverySession;
   authStore.status = session ? "authenticated" : "unauthenticated";
   authStore.session = session;
   authStore.user = session?.user ?? null;
   authStore.profile = profile;
   authStore.isAuthenticated = Boolean(session);
   authStore.isRecoverySession =
-    event === "PASSWORD_RECOVERY" ||
-    (wasRecoverySession && event !== "SIGNED_OUT" && Boolean(session));
-}
-
-export function markRecoverySession(): void {
-  authStore.isRecoverySession = true;
+    event === "PASSWORD_RECOVERY" || (event === undefined && Boolean(session));
 }
