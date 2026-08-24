@@ -23,7 +23,10 @@ describe("mapAuthError", () => {
     [{ code: "invalid_credentials", message: "Invalid login credentials" }, "invalid_credentials"],
     [{ code: "email_not_confirmed", message: "Email not confirmed" }, "email_not_confirmed"],
     [{ code: "user_already_exists", message: "User already registered" }, "email_taken"],
-    [{ code: "weak_password", message: "Password should be at least 8 characters" }, "weak_password"],
+    [
+      { code: "weak_password", message: "Password should be at least 8 characters" },
+      "weak_password",
+    ],
     [{ code: "same_password", message: "New password should be different" }, "same_password"],
     [{ code: "over_request_rate_limit", message: "Too many requests" }, "rate_limited"],
     [{ status: 429, message: "Too many requests" }, "rate_limited"],
