@@ -34,6 +34,7 @@ export type AuthErrorCode =
   | "email_not_confirmed"
   | "email_taken"
   | "weak_password"
+  | "same_password"
   | "rate_limited"
   | "expired_link"
   | "network"
