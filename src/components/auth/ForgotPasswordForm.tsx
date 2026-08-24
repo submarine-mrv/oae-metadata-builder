@@ -38,7 +38,8 @@ export default function ForgotPasswordForm({ error }: { error?: string }) {
         <Stack>
           {showRecoveryError && (
             <Alert color="red" withCloseButton onClose={() => setShowRecoveryError(false)}>
-              We could not verify that reset link. Please contact the administrator for help.
+              We could not verify that reset link. It might have expired, please try again. Contact
+              the administrator (data@carbontosea.org) if the issue persists.
             </Alert>
           )}
           {sent && (
