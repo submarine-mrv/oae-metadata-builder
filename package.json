@@ -31,6 +31,7 @@
     "@rjsf/mantine": "^6.4.2",
     "@rjsf/utils": "^6.4.2",
     "@rjsf/validator-ajv8": "^6.4.2",
+    "@supabase/supabase-js": "2.112.3",
     "@tabler/icons-react": "3.34.1",
     "@tailwindcss/vite": "^4",
     "@tanstack/react-router": "^1.160.2",
