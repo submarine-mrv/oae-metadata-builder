@@ -1,9 +1,23 @@
 import { Alert, Anchor, Button, Stack, Text, TextInput } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import type { AuthErrorCode } from "@/auth/types";
 import { useAuth } from "@/auth/useAuth";
 import { trackEvent } from "@/utils/analytics";
 import AuthShell from "./AuthShell";
+
+const ERROR_MESSAGES: Record<AuthErrorCode, string> = {
+  weak_password:
+    "Choose a stronger password. Must contain at least 8 characters, including a small letter, a capital letter, and a number",
+  same_password: "New password must be different from your old password.",
+  rate_limited: "Too many attempts. Please wait a moment and try again.",
+  expired_link: "This reset link has expired. Request a new one.",
+  network: "Network error. Check your connection and try again.",
+  invalid_credentials: "This reset link is no longer valid.",
+  email_not_confirmed: "This reset link is no longer valid.",
+  email_taken: "This reset link is no longer valid.",
+  unknown: "Something went wrong. Please try again.",
+};
 
 export default function ForgotPasswordForm({ error }: { error?: string }) {
   const { client } = useAuth();
@@ -11,15 +25,21 @@ export default function ForgotPasswordForm({ error }: { error?: string }) {
   const [sent, setSent] = useState(false);
   const [pending, setPending] = useState(false);
   const [showRecoveryError, setShowRecoveryError] = useState(error === "recovery_failed");
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSubmitError(null);
     setPending(true);
-    await client.sendPasswordReset(
+    const result = await client.sendPasswordReset(
       email,
       `${window.location.origin}/auth/callback?type=recovery&returnTo=/auth/reset-password?type=recovery`,
     );
     setPending(false);
+    if (result.error) {
+      setSubmitError(ERROR_MESSAGES[result.error.code]);
+      return;
+    }
     setSent(true);
     trackEvent("auth_password_reset_requested");
   }
@@ -42,6 +62,7 @@ export default function ForgotPasswordForm({ error }: { error?: string }) {
               the administrator (data@carbontosea.org) if the issue persists.
             </Alert>
           )}
+          {submitError && <Alert color="red">{submitError}</Alert>}
           {sent && (
             <Alert color="teal">
               If an account exists for that address, we have sent a reset link.

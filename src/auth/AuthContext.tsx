@@ -64,10 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         publish(null, null, event);
         return;
       }
+      publish(session, null, event);
       void authClient
         .getProfile()
         .catch(() => null)
-        .then((profile) => publish(session, profile, event));
+        .then((profile) => publish(session, profile));
     });
 
     return () => {
