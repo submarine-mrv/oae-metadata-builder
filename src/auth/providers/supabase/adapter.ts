@@ -33,11 +33,14 @@ export const supabaseAuthClient: AuthClient = {
     return () => data.subscription.unsubscribe();
   },
 
-  async signUpWithPassword({ email, password, displayName }) {
+  async signUpWithPassword({ email, password, displayName, redirectTo }) {
     const response = await supabase.auth.signUp({
       email,
       password,
-      options: { data: displayName ? { display_name: displayName } : undefined },
+      options: {
+        data: displayName ? { display_name: displayName } : undefined,
+        emailRedirectTo: redirectTo,
+      },
     });
     return result(response.data.session, response.error);
   },

@@ -44,6 +44,7 @@ export default function SignUpForm() {
       email: form.email,
       password: form.password,
       displayName: form.displayName || undefined,
+      redirectTo: `${window.location.origin}/auth/callback?type=signup&returnTo=/overview`,
     });
     setPending(false);
     if (result.error) {

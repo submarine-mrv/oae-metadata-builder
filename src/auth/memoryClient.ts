@@ -21,7 +21,14 @@ export class MemoryAuthClient implements AuthClient {
     return () => this.listeners.delete(callback);
   }
 
-  async signUpWithPassword({ email }: { email: string; password: string; displayName?: string }) {
+  async signUpWithPassword({
+    email,
+  }: {
+    email: string;
+    password: string;
+    displayName?: string;
+    redirectTo: string;
+  }) {
     return this.authenticate(email, false);
   }
 
