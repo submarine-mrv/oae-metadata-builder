@@ -7,6 +7,9 @@ export const Route = createFileRoute("/auth/reset-password")({
   }),
   beforeLoad: ({ context, search }) => {
     if (context.auth.status === "loading") return;
+    if (context.auth.isAuthenticated && !context.auth.isRecoverySession) {
+      throw redirect({ to: "/overview" });
+    }
     if (!context.auth.isAuthenticated || search.type !== "recovery") {
       throw redirect({
         to: "/auth/forgot-password",
