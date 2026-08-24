@@ -40,4 +40,3 @@ export function mapAuthError(error: ProviderError): AuthError | null {
 export function failedResult(error: ProviderError): AuthResult {
   return { session: null, user: null, error: mapAuthError(error) };
 }
-
