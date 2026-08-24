@@ -15,8 +15,8 @@ export const supabase = createClient(url, publishableKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
     flowType: "pkce",
     storageKey: "oae-auth",
+    debug: import.meta.env.DEV,
   },
 });
