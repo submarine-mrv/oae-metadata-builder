@@ -118,13 +118,22 @@ export const supabaseAuthClient: AuthClient = {
   },
 
   async updateProfile(patch) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw mapAuthError({ message: "Not authenticated" });
     const row = {
       display_name: patch.displayName,
-      organization: patch.organization,
-      orcid: patch.orcid,
+      organization: patch.organization || null,
+      orcid: patch.orcid || null,
       avatar_url: patch.avatarUrl,
     };
-    const { data, error } = await supabase.from("profiles").update(row).select().single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(row)
+      .eq("id", user.id)
+      .select()
+      .single();
     if (error) throw mapAuthError(error);
     return {
       displayName: data.display_name,

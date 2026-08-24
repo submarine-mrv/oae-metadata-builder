@@ -16,7 +16,7 @@ import HomeBrandLink from "@/components/HomeBrandLink";
 export const Route = createFileRoute("/_authed/profile")({ component: ProfilePage });
 
 function ProfilePage() {
-  const { client, profile, user } = useAuth();
+  const { client, profile, user, setProfile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [organization, setOrganization] = useState(profile?.organization ?? "");
   const [orcid, setOrcid] = useState(profile?.orcid ?? "");
@@ -35,9 +35,15 @@ function ProfilePage() {
   async function saveProfile(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
-    const result = await client.updateProfile({ displayName, organization, orcid });
-    setPending(false);
-    setMessage(result ? "Profile saved." : "We could not save your profile.");
+    try {
+      const result = await client.updateProfile({ displayName, organization, orcid });
+      setProfile(result);
+      setMessage("Profile saved.");
+    } catch {
+      setMessage("We could not save your profile.");
+    } finally {
+      setPending(false);
+    }
   }
 
   async function changePassword(event: React.SubmitEvent<HTMLFormElement>) {
@@ -99,7 +105,11 @@ function ProfilePage() {
           <Title order={1}>Profile</Title>
           <div>{user?.email}</div>
         </Stack>
-        {message && <Alert color="teal">{message}</Alert>}
+        {message && (
+          <Alert color="teal" withCloseButton onClose={() => setMessage(null)}>
+            {message}
+          </Alert>
+        )}
         <form onSubmit={saveProfile}>
           <Stack>
             <TextInput
