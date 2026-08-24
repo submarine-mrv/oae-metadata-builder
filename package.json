@@ -27,6 +27,7 @@
     "@mantine/core": "^8.3.2",
     "@mantine/dates": "^8.3.2",
     "@mantine/hooks": "^8.3.2",
+    "@mantine/notifications": "^8.3.18",
     "@rjsf/core": "^6.4.2",
     "@rjsf/mantine": "^6.4.2",
     "@rjsf/utils": "^6.4.2",

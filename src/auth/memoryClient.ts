@@ -38,6 +38,13 @@ export class MemoryAuthClient implements AuthClient {
     this.emit("SIGNED_OUT");
   }
 
+  async deleteAccount() {
+    this.session = null;
+    this.profile = null;
+    this.emit("SIGNED_OUT");
+    return this.emptyResult();
+  }
+
   async sendPasswordReset() {
     return this.emptyResult();
   }
