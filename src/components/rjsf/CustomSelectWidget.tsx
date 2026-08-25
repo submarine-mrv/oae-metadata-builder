@@ -1,5 +1,4 @@
 import { MultiSelect, Select } from "@mantine/core";
-import { cleanupOptions } from "@rjsf/mantine/lib/utils.js";
 import {
   ariaDescribedByIds,
   enumOptionsIndexForValue,
@@ -39,15 +38,9 @@ export default function CustomSelectWidget<
   } = props;
 
   const { enumOptions, enumDisabled, emptyValue } = options;
-  const themeProps = cleanupOptions(options);
-  // RJSF folds every ui: key into options, so our custom ones have to come out
-  // of themeProps or they end up spread onto the DOM input as attributes.
-  const { descriptionModal, viewAllLink, ...mantineProps } = themeProps as typeof themeProps & {
-    descriptionModal?: boolean;
-    viewAllLink?: string;
-  };
   const description = schema?.description;
-  const useModal = uiSchema?.["ui:descriptionModal"] === true || descriptionModal === true;
+  const useModal = uiSchema?.["ui:descriptionModal"] === true;
+  const viewAllLink = uiSchema?.["ui:viewAllLink"] as string | undefined;
 
   const handleChange = useCallback(
     (nextValue: any) => {
@@ -122,7 +115,6 @@ export default function CustomSelectWidget<
         error={rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : undefined}
         searchable
         clearable={!multiple}
-        {...mantineProps}
         aria-describedby={ariaDescribedByIds(id)}
         comboboxProps={{ withinPortal: false }}
       />
