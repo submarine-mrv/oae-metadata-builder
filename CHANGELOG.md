@@ -4,7 +4,7 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 
 ## [Unreleased]
 
-Built against oae-data-protocol v0.3.0 (`8d6c6856`).
+Built against oae-data-protocol v0.3.0.
 
 - Dropdown fields now show the description tooltip that text fields already had. No dropdown on the
   project, experiment or dataset forms had one before. (#69)
