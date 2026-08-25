@@ -7679,6 +7679,6 @@
   },
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
-  "version": "0.2.0",
-  "x-protocol-git-hash": "d5c9c3e4da1578a3035d3c119de35994fc95abaf"
+  "version": "0.3.0",
+  "x-protocol-git-hash": "8d6c6856b9a423e1d217440560ebf9f47c5d507e"
 }
