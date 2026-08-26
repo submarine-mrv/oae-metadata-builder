@@ -2,6 +2,18 @@
 
 Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the minor version.
 
+## [Unreleased]
+
+Built against oae-data-protocol v0.3.0.
+
+- Dropdown fields now show the description tooltip that text fields already had. No dropdown on the
+  project, experiment or dataset forms had one before. (#69)
+- Sediment variables no longer carry `sediment_sampling_method`, and QC researcher is a plain name
+  instead of a person record with contact details. Metadata saved with either needs that field
+  re-entered. (#69)
+- Platform type now points at the NERC L06 vocabulary, and dataset type links to the SeaBASS
+  definitions list. (#69)
+
 ## [0.2.0] — 2026-08-12
 
 Built against oae-data-protocol v0.2.0 (`33424d83`).
