@@ -98,9 +98,13 @@ const datasetUiSchema = {
     },
     platform_type: {
       "ui:widget": "CustomSelectWidget",
+      // Description carries vocabulary URLs a hover tooltip won't let users copy
+      "ui:descriptionModal": true,
     },
     platform_id: {
       "ui:placeholder": "Unique identifier for the platform",
+      // Description carries vocabulary URLs a hover tooltip won't let users copy
+      "ui:descriptionModal": true,
     },
     owner: {
       "ui:placeholder": "Institution that owns the platform",
