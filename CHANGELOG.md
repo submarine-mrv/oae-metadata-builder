@@ -13,6 +13,16 @@ Built against oae-data-protocol v0.3.0.
   re-entered. (#69)
 - Platform type now points at the NERC L06 vocabulary, and dataset type links to the SeaBASS
   definitions list. (#69)
+- Variables can now carry a CF standard name. pH, TA, DIC, CO₂ and the model-output quantities
+  (air-sea CO₂ flux, salinity, temperature) open on a short suggested list, with a button to search
+  all 5,071 current CF names and one to go back. Selecting a name records it and its NERC NVS P07
+  URI in `standard_identifier`, and fills in the full name and — for TA and DIC — the
+  per-volume/per-mass basis, leaving anything you have already typed alone. "Other (no standard name
+  listed)" is always available and records nothing.
+- The unit field suggests units for the selected standard name — pH scales, the mol/mmol/umol/ueq
+  set on each denominator for TA and DIC — and still accepts anything you type. It no longer fills
+  the unit in for you, since the CF canonical unit is usually not the one people report.
+
 
 ## [0.2.0] — 2026-08-12
 

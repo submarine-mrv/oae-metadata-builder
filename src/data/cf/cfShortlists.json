@@ -1,0 +1,100 @@
+{
+  "$comment": "Hand-maintained. Curated CF standard names offered for specific variable types. Read at build time by scripts/build-cf-standard-names.mjs, which fails if any name is missing from the current CF standard name table.",
+  "shortlists": {
+    "pH": [
+      "sea_water_ph_reported_on_total_scale"
+    ],
+    "ta": [
+      "sea_water_alkalinity_expressed_as_mole_equivalent",
+      "sea_water_alkalinity_per_unit_mass_expressed_as_mole_equivalent"
+    ],
+    "dic": [
+      "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water",
+      "moles_of_dissolved_inorganic_carbon_per_unit_mass_in_sea_water"
+    ],
+    "co2": [
+      "partial_pressure_of_carbon_dioxide_in_sea_water",
+      "surface_partial_pressure_of_carbon_dioxide_in_sea_water",
+      "fugacity_of_carbon_dioxide_in_sea_water",
+      "mole_fraction_of_carbon_dioxide_in_air",
+      "mole_fraction_of_carbon_dioxide_in_dry_air"
+    ]
+  },
+  "$modelShortlistsNote": "Model-only quantities. ModelVariableType covers velocities, fluxes and physical state that the field VariableType vocabulary has no equivalent for, so these cannot go through modelTypeAliases.",
+  "modelShortlists": {
+    "air_sea_co2_flux": [
+      "surface_downward_mole_flux_of_carbon_dioxide"
+    ],
+    "salinity": [
+      "sea_water_absolute_salinity",
+      "sea_water_practical_salinity",
+      "sea_water_salinity"
+    ],
+    "temperature": [
+      "sea_water_potential_temperature",
+      "sea_water_temperature"
+    ]
+  },
+  "modelTypeAliases": {
+    "ph": "pH",
+    "total_alkalinity": "ta",
+    "dissolved_inorganic_carbon": "dic",
+    "co2": "co2"
+  },
+  "longNameFor": {
+    "sea_water_ph_reported_on_total_scale": "pH",
+    "sea_water_alkalinity_expressed_as_mole_equivalent": "total alkalinity",
+    "sea_water_alkalinity_per_unit_mass_expressed_as_mole_equivalent": "total alkalinity",
+    "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water": "dissolved inorganic carbon",
+    "moles_of_dissolved_inorganic_carbon_per_unit_mass_in_sea_water": "dissolved inorganic carbon",
+    "partial_pressure_of_carbon_dioxide_in_sea_water": "pCO2",
+    "surface_partial_pressure_of_carbon_dioxide_in_sea_water": "pCO2",
+    "fugacity_of_carbon_dioxide_in_sea_water": "fCO2",
+    "mole_fraction_of_carbon_dioxide_in_air": "xCO2",
+    "mole_fraction_of_carbon_dioxide_in_dry_air": "xCO2",
+    "surface_downward_mole_flux_of_carbon_dioxide": "CO2 flux",
+    "sea_water_absolute_salinity": "absolute salinity",
+    "sea_water_practical_salinity": "practical salinity",
+    "sea_water_salinity": "salinity",
+    "sea_water_potential_temperature": "potential temperature",
+    "sea_water_temperature": "temperature"
+  },
+  "concentrationBasis": {
+    "sea_water_alkalinity_expressed_as_mole_equivalent": "per_volume",
+    "sea_water_alkalinity_per_unit_mass_expressed_as_mole_equivalent": "per_mass",
+    "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water": "per_volume",
+    "moles_of_dissolved_inorganic_carbon_per_unit_mass_in_sea_water": "per_mass"
+  },
+  "$unitSuggestionsNote": "Authoritative when present: these replace the CF canonical unit rather than adding to it, because the reported unit is often not the canonical one (pH scales, PSU). A name with no entry here falls back to its CF canonical unit.",
+  "unitSuggestions": {
+    "sea_water_ph_reported_on_total_scale": ["Total Scale", "Seawater Scale", "Free Scale", "NBS Scale"],
+
+    "sea_water_alkalinity_expressed_as_mole_equivalent": [
+      "mol m-3", "mmol m-3", "umol m-3", "ueq m-3",
+      "mol L-1", "mmol L-1", "umol L-1", "ueq L-1"
+    ],
+    "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water": [
+      "mol m-3", "mmol m-3", "umol m-3", "ueq m-3",
+      "mol L-1", "mmol L-1", "umol L-1", "ueq L-1"
+    ],
+    "sea_water_alkalinity_per_unit_mass_expressed_as_mole_equivalent": [
+      "mol kg-1", "mmol kg-1", "umol kg-1", "ueq kg-1"
+    ],
+    "moles_of_dissolved_inorganic_carbon_per_unit_mass_in_sea_water": [
+      "mol kg-1", "mmol kg-1", "umol kg-1", "ueq kg-1"
+    ],
+
+    "partial_pressure_of_carbon_dioxide_in_sea_water": ["uatm", "Pa", "ppm"],
+    "surface_partial_pressure_of_carbon_dioxide_in_sea_water": ["uatm", "Pa", "ppm"],
+    "fugacity_of_carbon_dioxide_in_sea_water": ["uatm", "Pa"],
+    "mole_fraction_of_carbon_dioxide_in_air": ["ppm", "umol mol-1", "1"],
+    "mole_fraction_of_carbon_dioxide_in_dry_air": ["ppm", "umol mol-1", "1"],
+
+    "surface_downward_mole_flux_of_carbon_dioxide": ["mol m-2 s-1"],
+    "sea_water_absolute_salinity": ["g kg-1"],
+    "sea_water_practical_salinity": ["PSU", "1"],
+    "sea_water_salinity": ["PSU", "1"],
+    "sea_water_potential_temperature": ["K", "degC"],
+    "sea_water_temperature": ["K", "degC"]
+  }
+}
