@@ -109,6 +109,25 @@ export class MapModal {
     await this.page.waitForTimeout(100);
   }
 
+  /**
+   * Composited pixels of the map canvas.
+   *
+   * Uses Playwright's screenshot rather than `canvas.toDataURL()`: MapLibre
+   * creates its WebGL context with `preserveDrawingBuffer: false`, so reading
+   * the canvas directly returns a blank buffer. The preview rectangle is drawn
+   * into that canvas, so comparing two captures is the only way to assert it
+   * changed without exposing the map instance on `window`.
+   */
+  async canvasPixels(): Promise<string> {
+    const shot = await this.mapCanvas.screenshot();
+    return shot.toString("base64");
+  }
+
+  /** Wait until the map stops loading tiles, so captures compare like for like. */
+  async waitForIdle() {
+    await this.page.waitForTimeout(1200);
+  }
+
   /** Locator for one of the four bounding box inputs. */
   edge(name: keyof typeof BOX_LABELS): Locator {
     return this.page.getByLabel(BOX_LABELS[name]);

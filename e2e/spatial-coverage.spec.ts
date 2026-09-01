@@ -73,9 +73,36 @@ test.describe("Spatial Coverage Field", () => {
     // The prompt flips only once a start point is held, so the shape is being sized.
     await expect(page.locator("text=Release, or click again to complete the box.")).toBeVisible();
 
+    // The preview rectangle is drawn into the canvas, so moving the pointer
+    // must change the pixels. Without this the test would pass even if
+    // onPreview were never wired to the map.
+    await mapModal.waitForIdle();
+    const before = await mapModal.canvasPixels();
+    await mapModal.moveOnMap(140, 90);
+    await mapModal.waitForIdle();
+    expect(await mapModal.canvasPixels()).not.toBe(before);
+
     // Closing click commits it.
     await mapModal.clickOnMap(100, 50);
     await expect(mapModal.edge("north")).not.toHaveValue("");
+  });
+
+  test("keeps the selected bounds when the window is resized", async ({ page }) => {
+    await projectPage.openSpatialCoverageModal();
+    await mapModal.waitForMapLoad();
+    await mapModal.fillBounds({ west: "-125", south: "32", east: "-117", north: "42" });
+    await mapModal.confirm();
+
+    const before = await projectPage.getSpatialCoverageValue();
+    expect(before).toBeTruthy();
+
+    // The empty preview refits to the whole world on resize. A preview holding
+    // bounds must be left alone.
+    await page.setViewportSize({ width: 900, height: 1000 });
+    await page.waitForTimeout(1500);
+
+    expect(await projectPage.getSpatialCoverageValue()).toBe(before);
+    await expect(page.locator("text=Click to set spatial coverage")).toHaveCount(0);
   });
 
   test("can draw a bounding box by touch drag", async ({ browser }) => {

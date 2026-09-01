@@ -227,6 +227,64 @@ describe("useTwoPointDraw", () => {
       expect(hook.result.current.hasStartPoint).toBe(true);
     });
 
+    it("abandons the shape when a pinch starts mid-drag", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchmove", touch(15, 25, 140, 140)));
+      // Second finger lands.
+      act(() => map.emit("touchstart", touch(15, 25, 200, 200, 2)));
+      expect(hook.result.current.hasStartPoint).toBe(false);
+      expect(map.dragPan.enable).toHaveBeenCalled();
+
+      // Lifting a finger must not commit anything.
+      act(() => map.emit("touchend", touch(40, 50, 260, 260)));
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it("abandons the shape when a second finger appears during a move", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchmove", touch(15, 25, 200, 200, 2)));
+      act(() => map.emit("touchend", touch(15, 25, 200, 200)));
+
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(hook.result.current.hasStartPoint).toBe(false);
+    });
+
+    it("abandons the shape on touchcancel", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchcancel", {}));
+
+      expect(hook.result.current.hasStartPoint).toBe(false);
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it("can start a fresh drag after an abandoned pinch", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+      act(() => map.emit("touchend", touch(10, 20, 200, 200)));
+
+      // New single-finger drag clears the latch and works normally.
+      act(() => map.emit("touchstart", touch(30, 40, 100, 100)));
+      act(() => map.emit("touchmove", touch(50, 60, 180, 170)));
+      act(() => map.emit("touchend", touch(50, 60, 180, 170)));
+
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 30, lat: 40 },
+        { lng: 50, lat: 60 },
+      );
+    });
+
     it("ignores multi-touch so pinch zoom still works", () => {
       const { hook, onPreview } = setup(map);
       act(() => hook.result.current.start());
@@ -288,6 +346,7 @@ describe("useTwoPointDraw", () => {
       "touchstart",
       "touchmove",
       "touchend",
+      "touchcancel",
       "click",
     ]) {
       expect(map.handlers.get(type)?.size ?? 0).toBe(0);

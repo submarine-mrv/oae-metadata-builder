@@ -64,6 +64,9 @@ export function useTwoPointDraw({
   // MapLibre emits `click` after `mousedown`/`mouseup` at the same spot, so the
   // opening press generates a click that must not also close the shape.
   const openingClickPendingRef = useRef(false);
+  // Latched once a gesture turns into a pinch, so the touchend that ends it
+  // cannot be mistaken for the release of a drag.
+  const multiTouchRef = useRef(false);
   const teardownRef = useRef<(() => void) | null>(null);
 
   // Latest callbacks, so a re-render with new closures doesn't require
@@ -87,6 +90,7 @@ export function useTwoPointDraw({
     startPointRef.current = null;
     pressOriginRef.current = null;
     openingClickPendingRef.current = false;
+    multiTouchRef.current = false;
     map.getCanvas().style.cursor = "crosshair";
 
     const teardown = () => {
@@ -99,6 +103,7 @@ export function useTwoPointDraw({
         map.off("touchstart", onTouchStart);
         map.off("touchmove", onTouchMove);
         map.off("touchend", onTouchEnd);
+        map.off("touchcancel", onTouchCancel);
         map.off("click", onClick);
         map.dragPan.enable();
         map.getCanvas().style.cursor = "";
@@ -108,6 +113,7 @@ export function useTwoPointDraw({
       startPointRef.current = null;
       pressOriginRef.current = null;
       openingClickPendingRef.current = false;
+      multiTouchRef.current = false;
       teardownRef.current = null;
       setIsDrawing(false);
       setHasStartPoint(false);
@@ -159,11 +165,31 @@ export function useTwoPointDraw({
 
     // MapLibre emits touch events separately from mouse ones. Without these a
     // touch drag pans the map instead of drawing, and only tap-tap works.
-    const isSingleTouch = (e: any) => (e.points?.length ?? 1) === 1;
+    const touchCount = (e: any) => e.points?.length ?? 1;
+
+    /**
+     * Abandon the shape in progress without completing it. A second finger means
+     * the user is pinching, and lifting either finger would otherwise commit a
+     * shape at whichever coordinate that finger happened to be over.
+     */
+    const abandonTouchGesture = () => {
+      multiTouchRef.current = true;
+      pressOriginRef.current = null;
+      startPointRef.current = null;
+      openingClickPendingRef.current = false;
+      map.dragPan.enable();
+      setHasStartPoint(false);
+    };
 
     const onTouchStart = (e: any) => {
-      // Leave multi-touch to pinch zoom and rotate.
-      if (!isSingleTouch(e) || startPointRef.current) return;
+      if (touchCount(e) > 1) {
+        // Pinch beginning, possibly part-way through a drag.
+        if (startPointRef.current) abandonTouchGesture();
+        return;
+      }
+      // A fresh single-finger touch clears the multi-touch latch.
+      multiTouchRef.current = false;
+      if (startPointRef.current) return;
 
       pressOriginRef.current = { x: e.point.x, y: e.point.y };
       openingClickPendingRef.current = true;
@@ -176,8 +202,12 @@ export function useTwoPointDraw({
     };
 
     const onTouchMove = (e: any) => {
+      if (touchCount(e) > 1) {
+        if (startPointRef.current) abandonTouchGesture();
+        return;
+      }
       const from = startPointRef.current;
-      if (!from || !isSingleTouch(e)) return;
+      if (!from || multiTouchRef.current) return;
       handlersRef.current.onPreview(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
     };
 
@@ -185,7 +215,8 @@ export function useTwoPointDraw({
       const from = startPointRef.current;
       const origin = pressOriginRef.current;
       map.dragPan.enable();
-      if (!from || !origin) return;
+      // Lifting a finger out of a pinch must not commit anything.
+      if (!from || !origin || multiTouchRef.current) return;
 
       pressOriginRef.current = null;
       // A touchend carries no coordinates of its own; the last touchmove holds
@@ -198,6 +229,10 @@ export function useTwoPointDraw({
         return;
       }
       finish(from, point);
+    };
+
+    const onTouchCancel = () => {
+      if (startPointRef.current) abandonTouchGesture();
     };
 
     const onClick = (e: any) => {
@@ -224,6 +259,7 @@ export function useTwoPointDraw({
     map.on("touchstart", onTouchStart);
     map.on("touchmove", onTouchMove);
     map.on("touchend", onTouchEnd);
+    map.on("touchcancel", onTouchCancel);
     map.on("click", onClick);
     teardownRef.current = teardown;
   }, [map]);
