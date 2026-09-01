@@ -1,6 +1,7 @@
 import {
   Accordion,
   Alert,
+  Anchor,
   Badge,
   Button,
   Code,
@@ -19,6 +20,7 @@ import {
   IconCircleCheck,
   IconCircleX,
   IconFileCheck,
+  IconInfoCircle,
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
@@ -34,6 +36,14 @@ import type {
 } from "@/utils/complianceChecker";
 import { runComplianceChecks, unitsLabel } from "@/utils/complianceChecker";
 import { DATA_FILE_TEMPLATES } from "@/utils/dataFileTemplates";
+
+/** Spreadsheet templates the checker matches files against. */
+const TEMPLATES_URL =
+  "https://drive.google.com/drive/folders/1lrHXLBPoYUe3oiEAZtDY8ojw5x0n8Yjd?usp=sharing";
+
+/** Protocol section defining column header names; its subsections cover each file type. */
+const COLUMN_HEADERS_URL =
+  "https://www.carbontosea.org/oae-data-protocol/1-0-0/#column-header-names";
 
 const ACCEPTED_EXTENSIONS = ".csv,.tsv,.xlsx,.xls,.nc,.netcdf";
 
@@ -298,6 +308,40 @@ export default function CheckerPage() {
               Upload a CSV, Excel, or NetCDF data file to check column headers against the OAE Data
               Protocol&apos;s recommended variable names.
             </Text>
+
+            <Alert
+              variant="light"
+              color="yellow"
+              icon={<IconInfoCircle size={18} />}
+              title="Beta — check the protocol for the final word"
+              mt="md"
+            >
+              <Stack gap="xs">
+                <Text size="sm">
+                  This checker is a digital assistant, not the protocol. It compares your file
+                  against the{" "}
+                  <Anchor href={TEMPLATES_URL} target="_blank" rel="noopener noreferrer">
+                    spreadsheet templates
+                  </Anchor>{" "}
+                  and the{" "}
+                  <Anchor href={COLUMN_HEADERS_URL} target="_blank" rel="noopener noreferrer">
+                    column header names
+                  </Anchor>{" "}
+                  section of the protocol, whose subsections give the required names for each file
+                  type. Where the two disagree, the protocol wins.
+                </Text>
+                <Text size="sm">
+                  It checks four things: column headers against the template&apos;s expected
+                  variable names, QC flag columns, units strings, and CF standard names. It does not
+                  check your data values, and passing every check does not by itself make a
+                  submission complete.
+                </Text>
+                <Text size="sm">
+                  Accepts .csv, .tsv, .xlsx, .xls, .nc and .netcdf up to {formatMb(MAX_FILE_BYTES)}.
+                  Files are parsed in your browser and never uploaded anywhere.
+                </Text>
+              </Stack>
+            </Alert>
           </div>
 
           <Select
