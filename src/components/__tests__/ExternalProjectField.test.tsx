@@ -128,12 +128,11 @@ describe("ExternalProjectField", () => {
     // Errors can sit below the sub-field — spatial_coverage.geo.box, or a
     // related_links item — and still belong on the input that renders it.
     it("surfaces an error nested under a custom object field", () => {
-      // SpatialCoverageField renders its own copy rather than the message text,
-      // so the assertion is that the error reached it at all.
       renderField({
         spatial_coverage: { geo: { box: { __errors: ["Must be four numbers"] } } },
       });
-      expect(screen.getByText(/Spatial Coverage is required/)).toBeInTheDocument();
+      expect(screen.getByText(/Must be four numbers/)).toBeInTheDocument();
+      expect(screen.queryByText(/Spatial Coverage is required/)).not.toBeInTheDocument();
     });
 
     it("surfaces an error nested under an array item", () => {
