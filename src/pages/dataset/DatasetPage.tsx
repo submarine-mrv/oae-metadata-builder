@@ -29,7 +29,7 @@ import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { isModelOutputType } from "@/utils/datasetFields";
-import { transformFormErrors } from "@/utils/errorTransformer";
+import { isDataAccessEitherOrError, transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
 import { parseDataset } from "@/utils/parseEntity";
 import {
@@ -165,12 +165,20 @@ export default function DatasetPage() {
   //    schema renders variables via VariablesField and omits their item schema)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
+      // Transform first. The data-access either/or rule is recognised by its
+      // per-branch "required" errors, so filtering those out beforehand would
+      // leave only the meaningless anyOf/if envelope on the dataset object.
+      let transformed = transformFormErrors(errors);
+
       // Hide required-field errors from inline display unless the user has
-      // explicitly clicked the badge to reveal the full error list.
-      const preFiltered = validation.showErrorList
-        ? errors
-        : errors.filter((e) => e.name !== "required");
-      let transformed = transformFormErrors(preFiltered);
+      // explicitly clicked the badge to reveal the full error list. The
+      // either/or errors stay either way — they name a rule to resolve, not a
+      // blank field, and Jacki asked for them to show as soon as they apply.
+      if (!validation.showErrorList) {
+        transformed = transformed.filter(
+          (e) => e.name !== "required" || isDataAccessEitherOrError(e),
+        );
+      }
       if (!hasExperiments) {
         transformed = transformed.filter(
           (e) =>

@@ -21,6 +21,7 @@ const modelOutputUiSchema = {
     "name",
     "data_accessibility",
     "data_access_link",
+    "data_access_date",
     "experiment_id",
     "description",
     "dataset_type",
@@ -51,6 +52,11 @@ const modelOutputUiSchema = {
   data_access_link: {
     ...halfWidthStyle,
     "ui:placeholder": "https://doi.org/10.25921/...",
+  },
+  data_access_date: {
+    ...halfWidthStyle,
+    "ui:placeholder": "YYYY-MM-DD",
+    "ui:descriptionModal": true,
   },
   description: textAreaWidget,
   project_id: {

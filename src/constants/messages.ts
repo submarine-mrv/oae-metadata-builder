@@ -4,6 +4,7 @@ export const MESSAGES = {
   validation: {
     temporalCoveragePattern: "Start date and end date must be properly formatted",
     spatialCoverage: "Spatial Coverage is required",
+    dataAccessEitherOr: "Either a data access link (DOI) or a data access date must be provided.",
     experimentIdRequired: "Please select an experiment for your dataset.",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
     depthOrder: "Minimum depth must be greater than or equal to maximum depth.",

@@ -104,4 +104,22 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
     const missing = classProperties("FieldDataset").filter((p) => !valid.has(p));
     expect(missing).toEqual([]);
   });
+
+  /**
+   * A dynamic enum whose vocabulary expansion fails upstream arrives here as an
+   * empty list, and every selector backed by it renders with no options — no
+   * error, just an unusable dropdown. `MassConcentrationUnit` shipped that way
+   * once when the QUDT expansion silently returned nothing.
+   */
+  it("has no empty enums in the bundled schema", () => {
+    const defs = (bundled as { $defs?: Record<string, Record<string, unknown>> }).$defs ?? {};
+    const empty = Object.entries(defs)
+      .filter(([, def]) => {
+        const values = (def.enum ?? def.oneOf) as unknown[] | undefined;
+        return Array.isArray(values) && values.length === 0;
+      })
+      .map(([name]) => name);
+
+    expect(empty).toEqual([]);
+  });
 });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MESSAGES } from "@/constants/messages";
 import type { DraftExperiment } from "@/types/forms";
 import { validateDataset, validateExperiment, validateProject } from "../validation";
 
@@ -396,6 +397,80 @@ describe("Validation", () => {
       expect(() => {
         validateProject(validData);
       }).not.toThrow();
+    });
+  });
+
+  // Protocol 0.4.0 rules: scheduled access needs a date; open access needs a
+  // link or a date, but not both.
+  describe("data access rules", () => {
+    const dataset = (overrides: Record<string, unknown>) => ({
+      project_id: "p1",
+      experiment_id: "e1",
+      name: "Test Dataset",
+      description: "A test dataset",
+      temporal_coverage: "2024-01-01/2024-12-31",
+      dataset_type: "cast",
+      data_product_type: "raw_sensor_data",
+      platform_info: { platform_type: "http://vocab.nerc.ac.uk/collection/L06/current/62/" },
+      data_submitter: {
+        name: "Test User",
+        email: "test@example.com",
+        affiliation: { name: "Test Org" },
+      },
+      filenames: ["data.csv"],
+      ...overrides,
+    });
+
+    const dataAccessErrors = (data: Record<string, unknown>) =>
+      validateDataset(data as never).errors.filter((e) =>
+        (e.property ?? "").includes("data_access"),
+      );
+
+    it("accepts open access with only a link", () => {
+      const errors = dataAccessErrors(
+        dataset({
+          data_accessibility: "open_access",
+          data_access_link: "https://doi.org/10.25921/example",
+        }),
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it("accepts open access with only a date", () => {
+      const errors = dataAccessErrors(
+        dataset({ data_accessibility: "open_access", data_access_date: "2027-06-01" }),
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it("rejects open access with neither, naming both fields once", () => {
+      const errors = dataAccessErrors(dataset({ data_accessibility: "open_access" }));
+
+      expect(errors.map((e) => e.property).sort()).toEqual([
+        ".data_access_date",
+        ".data_access_link",
+      ]);
+      for (const e of errors) {
+        expect(e.message).toBe(MESSAGES.validation.dataAccessEitherOr);
+      }
+    });
+
+    it("requires a date for scheduled access", () => {
+      const errors = dataAccessErrors(dataset({ data_accessibility: "scheduled_access" }));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].params?.missingProperty).toBe("data_access_date");
+    });
+
+    it("accepts scheduled access once the date is set", () => {
+      const errors = dataAccessErrors(
+        dataset({ data_accessibility: "scheduled_access", data_access_date: "2027-06-01" }),
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it("asks nothing extra of conditional access", () => {
+      const errors = dataAccessErrors(dataset({ data_accessibility: "conditional_access" }));
+      expect(errors).toEqual([]);
     });
   });
 });
