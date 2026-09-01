@@ -1,4 +1,4 @@
-import { Box, Group, NumberInput, Text } from "@mantine/core";
+import { Box, NumberInput, Text } from "@mantine/core";
 import type React from "react";
 import { MAX_LATITUDE, MAX_LONGITUDE, MIN_LATITUDE, MIN_LONGITUDE } from "@/utils/spatialUtils";
 
@@ -63,26 +63,32 @@ const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
   const input = (edge: BoxEdge) => {
     const isLatitude = edge === "north" || edge === "south";
     return (
-      <Group gap={6} wrap="nowrap" align="center">
-        <Text size="sm" fw={500} w={22} ta="right">
-          {EDGE_LETTERS[edge]}
-        </Text>
-        <NumberInput
-          aria-label={EDGE_ARIA_LABELS[edge]}
-          placeholder={EDGE_PLACEHOLDERS[edge]}
-          value={values[edge]}
-          onChange={(value) => onChange(edge, value)}
-          min={isLatitude ? MIN_LATITUDE : MIN_LONGITUDE}
-          max={isLatitude ? MAX_LATITUDE : MAX_LONGITUDE}
-          decimalScale={6}
-          size="sm"
-          // Shrinks on phones so the three-column compass fits a full-screen
-          // modal, and settles at 120px on anything wider.
-          w="clamp(78px, 22vw, 120px)"
-          error={isLatitude ? latitudeError : undefined}
-          disabled={disabled}
-        />
-      </Group>
+      <NumberInput
+        aria-label={EDGE_ARIA_LABELS[edge]}
+        // The compass letter sits inside the box rather than beside it, which
+        // is what lets three columns fit a phone-width modal.
+        leftSection={
+          <Text size="sm" fw={500}>
+            {EDGE_LETTERS[edge]}
+          </Text>
+        }
+        leftSectionWidth={30}
+        // Spinner arrows step by one degree, which is no use for coordinates,
+        // and cost the width the letter needs.
+        hideControls
+        placeholder={EDGE_PLACEHOLDERS[edge]}
+        value={values[edge]}
+        onChange={(value) => onChange(edge, value)}
+        min={isLatitude ? MIN_LATITUDE : MIN_LONGITUDE}
+        max={isLatitude ? MAX_LATITUDE : MAX_LONGITUDE}
+        decimalScale={6}
+        size="sm"
+        // Shrinks on phones so the three-column compass fits a full-screen
+        // modal, and settles at 130px on anything wider.
+        w="clamp(76px, 24vw, 130px)"
+        error={isLatitude ? latitudeError : undefined}
+        disabled={disabled}
+      />
     );
   };
 
@@ -94,7 +100,7 @@ const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
           display: "grid",
           gridTemplateColumns: "auto auto auto",
           gridTemplateRows: "auto auto auto",
-          columnGap: "var(--mantine-spacing-md)",
+          columnGap: "var(--mantine-spacing-sm)",
           rowGap: "var(--mantine-spacing-xs)",
           justifyContent: "center",
           alignItems: "center",

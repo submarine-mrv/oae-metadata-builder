@@ -348,24 +348,30 @@ describe("useTwoPointDraw", () => {
     });
 
     it("does not eat a later mouse draw when no compatibility click arrives", () => {
-      const { hook, onComplete } = setup(map);
-      act(() => hook.result.current.start());
+      vi.useFakeTimers({ now: 1_000_000 });
+      try {
+        const { hook, onComplete } = setup(map);
+        act(() => hook.result.current.start());
 
-      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
-      act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
-      // Fingers lift with no compatibility click. The latch must not survive
-      // into an unrelated mouse gesture.
-      act(() => {
-        map.click(30, 40);
-      });
-      act(() => {
-        map.click(50, 60);
-      });
+        act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+        act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+        // Fingers lift with no compatibility click. Once the replay window has
+        // passed, the latch must not survive into an unrelated mouse gesture.
+        vi.advanceTimersByTime(1_000);
+        act(() => {
+          map.click(30, 40);
+        });
+        act(() => {
+          map.click(50, 60);
+        });
 
-      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
-        { lng: 30, lat: 40 },
-        { lng: 50, lat: 60 },
-      );
+        expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+          { lng: 30, lat: 40 },
+          { lng: 50, lat: 60 },
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("ignores the mouse events a browser replays from a touch", () => {
@@ -390,6 +396,62 @@ describe("useTwoPointDraw", () => {
       expect(onPreview).not.toHaveBeenCalled();
       expect(onComplete).not.toHaveBeenCalled();
       expect(hook.result.current.hasStartPoint).toBe(false);
+    });
+
+    it("ignores a replayed mouse sequence even without sourceCapabilities", () => {
+      // Safari and Firefox do not set sourceCapabilities; the replay lands within
+      // a fraction of a second of the touch, so timing has to be enough.
+      vi.useFakeTimers({ now: 1_000_000 });
+      try {
+        const { hook, onComplete, onPreview } = setup(map);
+        act(() => hook.result.current.start());
+        act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+        act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+        onPreview.mockClear();
+
+        vi.advanceTimersByTime(300);
+        const replayed = {
+          lngLat: { lng: 10, lat: 20 },
+          point: { x: 100, y: 100 },
+          originalEvent: { button: 0 },
+        };
+        act(() => {
+          map.emit("mousedown", replayed);
+          map.emit("mouseup", replayed);
+          map.emit("click", replayed);
+        });
+
+        expect(onPreview).not.toHaveBeenCalled();
+        expect(onComplete).not.toHaveBeenCalled();
+        expect(hook.result.current.hasStartPoint).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("still honours a real mouse press well after the last touch", () => {
+      vi.useFakeTimers({ now: 1_000_000 });
+      try {
+        const { hook, onComplete } = setup(map);
+        act(() => hook.result.current.start());
+        act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+        act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+
+        vi.advanceTimersByTime(2_000);
+        act(() => {
+          map.click(30, 40);
+        });
+        act(() => {
+          map.click(50, 60);
+        });
+
+        expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+          { lng: 30, lat: 40 },
+          { lng: 50, lat: 60 },
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("ignores multi-touch so pinch zoom still works", () => {

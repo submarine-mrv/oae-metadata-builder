@@ -87,6 +87,32 @@ test.describe("Spatial Coverage Field", () => {
     await expect(mapModal.edge("north")).not.toHaveValue("");
   });
 
+  for (const width of [320, 360, 390]) {
+    test(`compass inputs fit a ${width}px wide viewport`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width, height: 844 } });
+      const page = await context.newPage();
+      const narrowProject = new ProjectPage(page);
+      const narrowModal = new MapModal(page);
+
+      await page.goto("/overview");
+      await page.waitForLoadState("networkidle");
+      await page.getByRole("button", { name: /Create.*Project/i }).click();
+      await page.waitForURL("**/project");
+      await page.waitForLoadState("networkidle");
+      await narrowProject.openSpatialCoverageModal();
+      await narrowModal.waitForMapLoad();
+
+      // Every input must sit inside the viewport; the east one is the last to overflow.
+      for (const edge of ["north", "south", "east", "west"] as const) {
+        const box = await narrowModal.edge(edge).boundingBox();
+        expect(box, `${edge} edge is rendered`).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+      }
+      await context.close();
+    });
+  }
+
   test("can draw a bounding box by touch drag", async ({ browser }) => {
     // Own context: touch emulation cannot be toggled on an existing page.
     const context = await browser.newContext({ hasTouch: true, isMobile: false });

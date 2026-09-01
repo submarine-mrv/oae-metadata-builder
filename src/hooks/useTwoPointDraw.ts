@@ -54,6 +54,9 @@ interface UseTwoPointDrawResult {
  */
 const DRAG_THRESHOLD_PX = 4;
 
+/** How long after a touch a mouse event is still assumed to be its replay. */
+const TOUCH_REPLAY_WINDOW_MS = 700;
+
 export function useTwoPointDraw({
   map,
   onPreview,
@@ -77,6 +80,7 @@ export function useTwoPointDraw({
   // Browsers can emit a compatibility click after a touch sequence ends. One
   // that follows an abandoned gesture must not open a fresh shape.
   const swallowNextClickRef = useRef(false);
+  const lastTouchAtRef = useRef(0);
   const teardownRef = useRef<(() => void) | null>(null);
 
   // Latest callbacks, so a re-render with new closures doesn't require
@@ -139,8 +143,14 @@ export function useTwoPointDraw({
     // Browsers replay a touch as mousedown/mouseup/click for legacy pages. The
     // touch handlers already own that gesture, so the replayed mouse events are
     // noise here, and one after an abandoned gesture would re-arm a shape.
+    // Chromium marks them via sourceCapabilities; elsewhere, anything arriving
+    // within the replay window after the last touch is treated the same.
     const isTouchSynthesised = (e: any) =>
-      e.originalEvent?.sourceCapabilities?.firesTouchEvents === true;
+      e.originalEvent?.sourceCapabilities?.firesTouchEvents === true ||
+      Date.now() - lastTouchAtRef.current < TOUCH_REPLAY_WINDOW_MS;
+    const noteTouch = () => {
+      lastTouchAtRef.current = Date.now();
+    };
 
     const onMouseDown = (e: any) => {
       if (isTouchSynthesised(e)) return;
@@ -208,6 +218,7 @@ export function useTwoPointDraw({
     };
 
     const onTouchStart = (e: any) => {
+      noteTouch();
       if (touchCount(e) > 1) {
         // Pinch beginning, possibly part-way through a drag.
         if (startPointRef.current) abandonTouchGesture();
@@ -229,6 +240,7 @@ export function useTwoPointDraw({
     };
 
     const onTouchMove = (e: any) => {
+      noteTouch();
       if (touchCount(e) > 1) {
         if (startPointRef.current) abandonTouchGesture();
         return;
@@ -239,6 +251,7 @@ export function useTwoPointDraw({
     };
 
     const onTouchEnd = (e: any) => {
+      noteTouch();
       const from = startPointRef.current;
       const origin = pressOriginRef.current;
       map.dragPan.enable();
@@ -259,6 +272,7 @@ export function useTwoPointDraw({
     };
 
     const onTouchCancel = () => {
+      noteTouch();
       if (startPointRef.current) abandonTouchGesture();
     };
 
