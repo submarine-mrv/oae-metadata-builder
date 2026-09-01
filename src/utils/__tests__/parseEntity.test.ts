@@ -136,6 +136,8 @@ describe("parseDataset", () => {
         experiment_id: "exp-1",
         dataset_type: "model_output",
         data_accessibility: "open_access",
+        // Open access needs a link or an access date as of protocol 0.4.0.
+        data_access_link: "https://doi.org/10.25921/example",
         data_submitter: { name: "A Researcher", email: "researcher@example.org" },
         filenames: ["output.nc"],
         simulation_type: ["counterfactual"],

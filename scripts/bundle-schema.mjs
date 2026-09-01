@@ -398,19 +398,45 @@ decorated = inlineEnumArrayItems(decorated, [
 
 decorated = fixConditionalFields(decorated);
 
-// Patch ModelOutputDataset.if to actually constrain simulation_type to contain
-// "perturbation". The LinkML-generated if/then block has an empty constraint
-// because LinkML's has_member rule doesn't translate to JSON Schema's contains.
+// Patch the ModelOutputDataset simulation_type conditional to actually constrain
+// simulation_type to contain "perturbation". The LinkML-generated if block has an
+// empty constraint because LinkML's has_member rule doesn't translate to JSON
+// Schema's contains, so without this the `if` matches every model dataset and
+// mcdr_forcing_description becomes required even for counterfactual runs.
 // See: submarine-mrv/oae-data-protocol#25
-if (decorated.$defs?.ModelOutputDataset?.if?.properties?.simulation_type) {
-  decorated.$defs.ModelOutputDataset.if.properties.simulation_type = {
-    type: "array",
-    contains: { const: "perturbation" }
-  };
-  console.log(
-    `✓ Patched ModelOutputDataset.if to require simulation_type contains "perturbation"`
+//
+// LinkML emits a bare root-level if/then for a single rule but wraps in allOf at
+// two or more, and rules inherited from Dataset change that count — so look in
+// both places rather than assuming either.
+function patchSimulationTypeCondition(schema) {
+  const def = schema.$defs?.ModelOutputDataset;
+  if (!def) return false;
+
+  const candidates = [def, ...(Array.isArray(def.allOf) ? def.allOf : [])];
+  let patched = 0;
+  for (const candidate of candidates) {
+    if (!candidate.if?.properties?.simulation_type) continue;
+    candidate.if.properties.simulation_type = {
+      type: "array",
+      contains: { const: "perturbation" }
+    };
+    patched += 1;
+  }
+  return patched;
+}
+
+const simulationTypePatches = patchSimulationTypeCondition(decorated);
+if (simulationTypePatches !== 1) {
+  // Zero means the conditional moved and this patch silently stopped applying,
+  // which would make mcdr_forcing_description required for every model dataset.
+  throw new Error(
+    `Expected exactly 1 ModelOutputDataset simulation_type conditional to patch, found ${simulationTypePatches}. ` +
+      `The LinkML rule shape changed — check ModelOutputDataset's if/allOf in the generated schema.`
   );
 }
+console.log(
+  `✓ Patched ModelOutputDataset simulation_type conditional to require contains "perturbation"`
+);
 
 // Discriminate the polymorphic variables union on schema_class.
 decorated = discriminateVariableUnions(decorated, [

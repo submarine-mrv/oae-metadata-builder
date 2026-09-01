@@ -8,7 +8,11 @@ import { generateEnumNames } from "@/utils/enumDecorator";
 import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
 
 // Generate formatted enum names for model-specific enums
-const enumNames = generateEnumNames(schema, ["GridType", "ModelComponentType"]);
+const enumNames = generateEnumNames(schema, [
+  "GridType",
+  "ModelComponentType",
+  "PublicCommentType",
+]);
 
 // Reusable uiSchema for NamedLink array fields (name + url pairs)
 // Same pattern as meteorological_and_tidal_data in experimentUiSchema
@@ -58,6 +62,29 @@ const modelUiSchema = {
     "public_comments",
     "*",
   ],
+
+  public_comments: {
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Public Comment",
+    },
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2,
+      },
+      "ui:title": "",
+      "ui:order": ["filename", "comment_type"],
+      filename: {
+        "ui:placeholder": "e.g., permit-consultation-comments.pdf",
+      },
+      comment_type: {
+        "ui:widget": "CustomSelectWidget",
+        "ui:enumNames": enumNames.PublicCommentType,
+      },
+    },
+  },
 
   // Model-specific field customizations
   model_components: {

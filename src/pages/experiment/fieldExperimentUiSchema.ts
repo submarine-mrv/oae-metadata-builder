@@ -20,6 +20,7 @@ const enumNames = generateEnumNames(schema, [
   "TracerForm",
   "HydrologicLocation",
   "DosingDeliveryType",
+  "PublicCommentType",
 ]);
 
 const fieldExperimentUiSchema = {
@@ -168,7 +169,26 @@ const fieldExperimentUiSchema = {
     },
   },
   public_comments: {
-    "ui:placeholder": "Filename(s) of public comments provided, separated by a comma",
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Public Comment",
+    },
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2,
+      },
+      "ui:title": "",
+      "ui:order": ["filename", "comment_type"],
+      filename: {
+        "ui:placeholder": "e.g., permit-consultation-comments.pdf",
+      },
+      comment_type: {
+        "ui:widget": "CustomSelectWidget",
+        "ui:enumNames": enumNames.PublicCommentType,
+      },
+    },
   },
   permits: {
     "ui:title": "Permits (if applicable)",
