@@ -47,6 +47,9 @@ const datasetUiSchema = {
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true,
+    "ui:valueNotice": {
+      open_access: "Open access datasets need either a data access link or a data access date.",
+    },
   },
   data_access_link: {
     ...halfWidthStyle,
@@ -104,6 +107,7 @@ const datasetUiSchema = {
     },
     platform_type: {
       "ui:widget": "CustomSelectWidget",
+      "ui:viewAllLink": "http://vocab.nerc.ac.uk/collection/L06/current/",
       // Description carries vocabulary URLs a hover tooltip won't let users copy
       "ui:descriptionModal": true,
     },

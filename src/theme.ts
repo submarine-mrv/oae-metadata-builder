@@ -231,6 +231,15 @@ export const theme = createTheme({
       },
     },
 
+    // Applies to every date picker, including ones added later: an X to clear
+    // the value, and weekends drawn like any other day rather than in red.
+    DateInput: {
+      defaultProps: {
+        clearable: true,
+        weekendDays: [],
+      },
+    },
+
     TextInput: {
       defaultProps: {
         radius: "md",

@@ -2,35 +2,30 @@ import { describe, expect, it } from "vitest";
 import { migrateFormData, migratePublicComments } from "../migrations";
 
 describe("migratePublicComments", () => {
-  it("splits a comma-separated string into typed entries", () => {
+  it("keeps the old text whole as one entry's description", () => {
     const result = migratePublicComments({
       public_comments: "permit-comments.pdf, media-coverage.pdf",
     });
 
+    // Filenames are not links, and a comma is not proof of separate documents,
+    // so nothing is split or guessed into a URL.
     expect(result.public_comments).toEqual([
-      { filename: "permit-comments.pdf", comment_type: "other" },
-      { filename: "media-coverage.pdf", comment_type: "other" },
+      { description: "permit-comments.pdf, media-coverage.pdf", comment_type: "other" },
     ]);
   });
 
-  it("handles a single filename with no comma", () => {
-    const result = migratePublicComments({ public_comments: "all-comments.pdf" });
-    expect(result.public_comments).toEqual([
-      { filename: "all-comments.pdf", comment_type: "other" },
-    ]);
+  it("leaves url unset so the required field flags the entry", () => {
+    const [entry] = migratePublicComments({ public_comments: "all-comments.pdf" }).public_comments;
+    expect(entry.url).toBeUndefined();
+    expect(entry.comment_type).toBe("other");
   });
 
-  it("trims whitespace and drops empty segments", () => {
-    const result = migratePublicComments({
-      public_comments: "  a.pdf ,, b.pdf ,  ",
-    });
-    expect(result.public_comments).toEqual([
-      { filename: "a.pdf", comment_type: "other" },
-      { filename: "b.pdf", comment_type: "other" },
-    ]);
+  it("trims surrounding whitespace", () => {
+    const [entry] = migratePublicComments({ public_comments: "  a.pdf  " }).public_comments;
+    expect(entry.description).toBe("a.pdf");
   });
 
-  it("drops the field when the string held no filenames", () => {
+  it("drops the field when the string was blank", () => {
     const result = migratePublicComments({ name: "Exp", public_comments: "   " });
     expect("public_comments" in result).toBe(false);
     expect(result.name).toBe("Exp");
@@ -38,7 +33,7 @@ describe("migratePublicComments", () => {
 
   it("leaves already-migrated data untouched", () => {
     const data = {
-      public_comments: [{ filename: "a.pdf", comment_type: "permitting" }],
+      public_comments: [{ url: "https://example.org/a.pdf", comment_type: "permitting" }],
     };
     expect(migratePublicComments(data)).toBe(data);
   });
@@ -58,7 +53,7 @@ describe("migratePublicComments", () => {
 describe("migrateFormData", () => {
   it("runs the public comments migration at load boundaries", () => {
     const result = migrateFormData({ public_comments: "a.pdf, b.pdf" });
-    expect(result.public_comments).toHaveLength(2);
+    expect(result.public_comments).toHaveLength(1);
   });
 
   it("runs box-string and public-comment migrations together", () => {
@@ -67,7 +62,7 @@ describe("migrateFormData", () => {
       spatial_coverage: { geo: { box: "-124.5 47.2 -122.3 48.2" } },
     });
 
-    expect(result.public_comments).toEqual([{ filename: "a.pdf", comment_type: "other" }]);
+    expect(result.public_comments).toEqual([{ description: "a.pdf", comment_type: "other" }]);
     expect(result.spatial_coverage.geo.box).toBe("47.2 -124.5 48.2 -122.3");
   });
 

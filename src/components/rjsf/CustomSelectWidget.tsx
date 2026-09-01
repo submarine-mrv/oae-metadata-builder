@@ -1,4 +1,4 @@
-import { MultiSelect, Select } from "@mantine/core";
+import { Alert, MultiSelect, Select } from "@mantine/core";
 import {
   ariaDescribedByIds,
   enumOptionsIndexForValue,
@@ -9,6 +9,7 @@ import {
   type StrictRJSFSchema,
   type WidgetProps,
 } from "@rjsf/utils";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { type FocusEvent, useCallback, useMemo } from "react";
 import FieldLabel from "./FieldLabel";
 
@@ -41,6 +42,12 @@ export default function CustomSelectWidget<
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const viewAllLink = uiSchema?.["ui:viewAllLink"] as string | undefined;
+  // `ui:valueNotice` maps an enum value to a note shown beneath the select
+  // while that value is chosen. For rules a single field cannot express, such
+  // as "open access needs a link or a date", stated up front instead of as an
+  // error after the fact.
+  const valueNotice = uiSchema?.["ui:valueNotice"] as Record<string, string> | undefined;
+  const notice = !multiple && typeof value === "string" ? valueNotice?.[value] : undefined;
 
   const handleChange = useCallback(
     (nextValue: any) => {
@@ -118,6 +125,11 @@ export default function CustomSelectWidget<
         aria-describedby={ariaDescribedByIds(id)}
         comboboxProps={{ withinPortal: false }}
       />
+      {notice && (
+        <Alert variant="light" color="blue" icon={<IconInfoCircle size={16} />} mt="xs" p="xs">
+          {notice}
+        </Alert>
+      )}
     </div>
   );
 }

@@ -29,7 +29,7 @@ import VariablesField from "@/components/VariablesField";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { isModelOutputType } from "@/utils/datasetFields";
-import { isDataAccessEitherOrError, transformFormErrors } from "@/utils/errorTransformer";
+import { transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
 import { parseDataset } from "@/utils/parseEntity";
 import {
@@ -172,12 +172,11 @@ export default function DatasetPage() {
 
       // Hide required-field errors from inline display unless the user has
       // explicitly clicked the badge to reveal the full error list. The
-      // either/or errors stay either way — they name a rule to resolve, not a
-      // blank field, and Jacki asked for them to show as soon as they apply.
+      // data-access either/or errors are among them: a notice under the
+      // accessibility select states the rule up front, and both fields go
+      // red only once the user asks for validation.
       if (!validation.showErrorList) {
-        transformed = transformed.filter(
-          (e) => e.name !== "required" || isDataAccessEitherOrError(e),
-        );
+        transformed = transformed.filter((e) => e.name !== "required");
       }
       if (!hasExperiments) {
         transformed = transformed.filter(

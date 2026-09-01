@@ -75,10 +75,11 @@ const modelUiSchema = {
         gridCols: 2,
       },
       "ui:title": "",
-      "ui:order": ["filename", "comment_type"],
-      filename: {
-        "ui:placeholder": "e.g., permit-consultation-comments.pdf",
+      "ui:order": ["url", "comment_type", "description"],
+      url: {
+        "ui:placeholder": "URL or DOI (e.g. https://...)",
       },
+      description: textAreaWidget,
       comment_type: {
         "ui:widget": "CustomSelectWidget",
         "ui:enumNames": enumNames.PublicCommentType,

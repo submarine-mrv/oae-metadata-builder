@@ -14,26 +14,22 @@
 import { migrateFormDataBoxStrings } from "./spatialUtils";
 
 /**
- * Protocol 0.4.0 turned `public_comments` from one comma-separated string into a
- * list of `{ filename, comment_type }`. The old field told users to separate
- * filenames with commas, so split on that and leave the type for them to pick.
+ * Protocol 0.4.0 turned `public_comments` from one free-text string into a list
+ * of `{ url, comment_type, description }`. The old text was filenames, not
+ * links, so it is kept whole as the description of a single entry rather than
+ * guessed into URLs. `url` is left empty and required, which flags the entry
+ * for the user to complete.
  */
 export function migratePublicComments(data: Record<string, any>): Record<string, any> {
   const value = data?.public_comments;
   if (typeof value !== "string") return data;
 
-  const comments = value
-    .split(",")
-    .map((filename) => filename.trim())
-    .filter(Boolean)
-    .map((filename) => ({ filename, comment_type: "other" }));
-
-  // An empty or whitespace-only string carried no filenames worth keeping.
-  if (comments.length === 0) {
+  const text = value.trim();
+  if (!text) {
     const { public_comments: _dropped, ...rest } = data;
     return rest;
   }
-  return { ...data, public_comments: comments };
+  return { ...data, public_comments: [{ description: text, comment_type: "other" }] };
 }
 
 // Ordered list of migrations to apply. Each takes a form data object and
@@ -41,7 +37,7 @@ export function migratePublicComments(data: Record<string, any>): Record<string,
 // changes are needed to avoid unnecessary re-renders.
 const MIGRATIONS: Array<(data: Record<string, any>) => Record<string, any>> = [
   migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
-  migratePublicComments, // 0.4.0: "a.pdf, b.pdf" → [{ filename, comment_type }]
+  migratePublicComments, // 0.4.0: old text → one [{ description, comment_type }]
 ];
 
 /**

@@ -23,15 +23,6 @@ function isDataAccessBranchError(e: RJSFValidationError): boolean {
   );
 }
 
-/**
- * True for an error already rewritten by the either/or transform. Callers that
- * hide generic "required" noise use this to keep these, since they carry a
- * specific instruction rather than a missing-value complaint.
- */
-export function isDataAccessEitherOrError(e: RJSFValidationError): boolean {
-  return e.message === MESSAGES.validation.dataAccessEitherOr;
-}
-
 function isDataAccessEnvelopeError(e: RJSFValidationError): boolean {
   if (e.name === "anyOf") return /\/then\/anyOf$/.test(e.schemaPath ?? "");
   // The `if` wrapper around the same rule carries no field and no message worth
