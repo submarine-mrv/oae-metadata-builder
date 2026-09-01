@@ -157,7 +157,7 @@ describe("transformFormErrors", () => {
       expect(twice).toEqual(once);
     });
 
-    it("leaves the scheduled-access required error alone", () => {
+    it("keeps the scheduled-access required error and drops its if/then wrapper", () => {
       const result = transformFormErrors([
         {
           name: "required",
@@ -166,11 +166,39 @@ describe("transformFormErrors", () => {
           params: { missingProperty: "data_access_date" },
           schemaPath: "#/allOf/0/then/required",
         },
+        {
+          name: "if",
+          property: "",
+          message: 'must match "then" schema',
+          params: { failingKeyword: "then" },
+          schemaPath: "#/allOf/0/if",
+        },
       ] as RJSFValidationError[]);
 
       expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("required");
       expect(result[0].message).toBe("Field is required");
-      expect(result[0].property).toBe("");
+    });
+
+    it("drops the if/then wrapper for any conditional rule", () => {
+      const result = transformFormErrors([
+        {
+          name: "required",
+          property: "",
+          message: "must have required property 'alkalinity_feedstock_custom'",
+          params: { missingProperty: "alkalinity_feedstock_custom" },
+          schemaPath: "#/allOf/0/then/required",
+        },
+        {
+          name: "if",
+          property: "",
+          message: 'must match "then" schema',
+          params: { failingKeyword: "then" },
+          schemaPath: "#/allOf/0/if",
+        },
+      ] as RJSFValidationError[]);
+
+      expect(result.map((e) => e.name)).toEqual(["required"]);
     });
 
     it("keeps an unrelated anyOf envelope when no data-access branch failed", () => {

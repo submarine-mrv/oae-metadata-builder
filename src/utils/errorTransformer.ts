@@ -24,14 +24,18 @@ function isDataAccessBranchError(e: RJSFValidationError): boolean {
 }
 
 function isDataAccessEnvelopeError(e: RJSFValidationError): boolean {
-  if (e.name === "anyOf") return /\/then\/anyOf$/.test(e.schemaPath ?? "");
-  // The `if` wrapper around the same rule carries no field and no message worth
-  // showing; the branch errors already say what to do.
-  return (
-    e.name === "if" &&
-    e.params?.failingKeyword === "then" &&
-    (e.schemaPath ?? "").includes("/allOf/")
-  );
+  return e.name === "anyOf" && /\/then\/anyOf$/.test(e.schemaPath ?? "");
+}
+
+/**
+ * AJV reports an if/then rule twice: the concrete failure inside `then` (a
+ * required property, say) and a wrapper saying the data 'must match "then"
+ * schema'. The wrapper names no field and repeats nothing useful, so it is
+ * dropped for every rule, not only the data-access one. The scheduled-access
+ * rule was the visible case: "Field is required" on the date, plus that line.
+ */
+function isIfThenEnvelopeError(e: RJSFValidationError): boolean {
+  return e.name === "if" && e.params?.failingKeyword === "then";
 }
 
 /**
@@ -61,6 +65,7 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
   const hasDataAccessBranchError = errors.some(isDataAccessBranchError);
 
   return errors
+    .filter((e) => !isIfThenEnvelopeError(e))
     .filter((e) => !(hasDataAccessBranchError && isDataAccessEnvelopeError(e)))
     .map((e) => {
       // Point each branch of the either/or rule at the field it names, so both
