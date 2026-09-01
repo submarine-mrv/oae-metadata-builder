@@ -143,6 +143,36 @@ export class MapModal {
   }
 
   /**
+   * Draw a bounding box with a single-finger touch drag. Requires a context
+   * created with `hasTouch: true`.
+   */
+  async touchDragBoundingBox(x1 = -90, y1 = -50, x2 = 90, y2 = 50) {
+    const box = await this.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found or not visible");
+
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    const mid = { x: cx + (x1 + x2) / 2, y: cy + (y1 + y2) / 2 };
+
+    const cdp = await this.page.context().newCDPSession(this.page);
+    const send = (type: string, pt: { x: number; y: number } | null) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: pt ? [{ x: pt.x, y: pt.y, radiusX: 1, radiusY: 1, force: 1 }] : [],
+      });
+
+    await send("touchStart", { x: cx + x1, y: cy + y1 });
+    await this.page.waitForTimeout(80);
+    await send("touchMove", mid);
+    await this.page.waitForTimeout(80);
+    await send("touchMove", { x: cx + x2, y: cy + y2 });
+    await this.page.waitForTimeout(80);
+    await send("touchEnd", null);
+    await this.page.waitForTimeout(300);
+    await cdp.detach();
+  }
+
+  /**
    * Confirm the selection and close the modal
    */
   async confirm() {
@@ -208,7 +238,7 @@ export class DosingLocationModal extends MapModal {
   /**
    * Select the dosing location mode
    */
-  async selectMode(mode: "Fixed Point" | "Line" | "Bounding Box") {
+  async selectMode(mode: "Fixed Point" | "Line" | "Provided as a file") {
     // Use textbox role which is more reliable for Mantine Select
     await this.page.getByRole("textbox", { name: "Dosing Location Type" }).click();
     await this.page.waitForTimeout(200);

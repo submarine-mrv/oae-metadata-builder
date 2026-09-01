@@ -150,6 +150,26 @@ test.describe("Dosing Location Field", () => {
     await expect(page.locator("button:has-text('Save')")).toBeEnabled();
   });
 
+  // Switching modes rebuilds the map. The replacement has to be drawable, or
+  // the draw hook keeps a handle on the disposed instance.
+  test("can still draw after switching dosing modes", async ({ page }) => {
+    await page.locator("text=Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+
+    // Land on one mode first so the map is built, then switch.
+    await dosingModal.selectMode("Line");
+    await page.waitForTimeout(600);
+    await dosingModal.selectMode("Provided as a file");
+    await dosingModal.waitForMapLoad();
+
+    await page.click("button:has-text('Draw Selection')");
+    await dosingModal.dragBoundingBox(-80, -40, 80, 40);
+
+    for (const edge of ["north", "south", "east", "west"] as const) {
+      await expect(dosingModal.edge(edge)).not.toHaveValue("");
+    }
+  });
+
   test("cancel button closes modal without saving", async ({ page }) => {
     await page.locator("text=Click to set dosing location").click();
     await dosingModal.waitForMapLoad();

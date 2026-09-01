@@ -5,12 +5,13 @@
  * SpatialCoverageMapModal (bounding box), DosingLocationMapModal box mode, and
  * DosingLocationMapModal line mode.
  *
- * Two gestures reach the same result:
+ * Three gestures reach the same result:
  *   - click, move, click
  *   - press, drag, release
+ *   - tap, drag, lift (touch)
  *
- * Either way `onPreview` fires continuously while the pointer moves, so the user
- * sees the shape they are forming before committing it.
+ * `onPreview` fires continuously while the pointer moves, so the user sees the
+ * shape they are forming before committing it.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -95,6 +96,9 @@ export function useTwoPointDraw({
         map.off("mousedown", onMouseDown);
         map.off("mousemove", onMouseMove);
         map.off("mouseup", onMouseUp);
+        map.off("touchstart", onTouchStart);
+        map.off("touchmove", onTouchMove);
+        map.off("touchend", onTouchEnd);
         map.off("click", onClick);
         map.dragPan.enable();
         map.getCanvas().style.cursor = "";
@@ -153,6 +157,49 @@ export function useTwoPointDraw({
       finish(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
     };
 
+    // MapLibre emits touch events separately from mouse ones. Without these a
+    // touch drag pans the map instead of drawing, and only tap-tap works.
+    const isSingleTouch = (e: any) => (e.points?.length ?? 1) === 1;
+
+    const onTouchStart = (e: any) => {
+      // Leave multi-touch to pinch zoom and rotate.
+      if (!isSingleTouch(e) || startPointRef.current) return;
+
+      pressOriginRef.current = { x: e.point.x, y: e.point.y };
+      openingClickPendingRef.current = true;
+      map.dragPan.disable();
+
+      const point = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+      startPointRef.current = point;
+      setHasStartPoint(true);
+      handlersRef.current.onPreview(point, point);
+    };
+
+    const onTouchMove = (e: any) => {
+      const from = startPointRef.current;
+      if (!from || !isSingleTouch(e)) return;
+      handlersRef.current.onPreview(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
+    };
+
+    const onTouchEnd = (e: any) => {
+      const from = startPointRef.current;
+      const origin = pressOriginRef.current;
+      map.dragPan.enable();
+      if (!from || !origin) return;
+
+      pressOriginRef.current = null;
+      // A touchend carries no coordinates of its own; the last touchmove holds
+      // where the finger ended up.
+      const point = e.lngLat ? { lng: e.lngLat.lng, lat: e.lngLat.lat } : null;
+      const endPoint = e.point ?? origin;
+      const movedPx = Math.hypot(endPoint.x - origin.x, endPoint.y - origin.y);
+      if (movedPx < DRAG_THRESHOLD_PX || !point) {
+        // A tap, not a drag. Stay armed for the closing tap.
+        return;
+      }
+      finish(from, point);
+    };
+
     const onClick = (e: any) => {
       // The press that opened the shape emits its own click; swallow it.
       if (openingClickPendingRef.current) {
@@ -174,6 +221,9 @@ export function useTwoPointDraw({
     map.on("mousedown", onMouseDown);
     map.on("mousemove", onMouseMove);
     map.on("mouseup", onMouseUp);
+    map.on("touchstart", onTouchStart);
+    map.on("touchmove", onTouchMove);
+    map.on("touchend", onTouchEnd);
     map.on("click", onClick);
     teardownRef.current = teardown;
   }, [map]);

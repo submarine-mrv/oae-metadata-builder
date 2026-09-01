@@ -530,15 +530,15 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           return "Enter coordinates, or use 'Draw Selection' to drag a line on the map.";
         }
         return hasStartPoint
-          ? "Release, click or tap again to complete the line."
-          : "Drag a line on the map, or click each end (tap on touch).";
+          ? "Release, or click again to complete the line."
+          : "Drag a line on the map, or click each end.";
       case "box":
         if (!isDrawing) {
           return "Enter coordinates, or use 'Draw Selection' to drag a box on the map.";
         }
         return hasStartPoint
-          ? "Release, click or tap again to complete the box."
-          : "Drag a box on the map, or click each corner (tap on touch).";
+          ? "Release, or click again to complete the box."
+          : "Drag a box on the map, or click each corner.";
       default:
         return "";
     }

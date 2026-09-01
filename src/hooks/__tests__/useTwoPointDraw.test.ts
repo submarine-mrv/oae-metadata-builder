@@ -182,11 +182,60 @@ describe("useTwoPointDraw", () => {
     });
   });
 
-  describe("tap, tap (touch)", () => {
+  describe("touch", () => {
     // A tap emits `click` without a reliable mousedown, so the click handler has
     // to be able to open the shape on its own.
     const tap = (map: any, lng: number, lat: number) =>
       map.emit("click", { lngLat: { lng, lat }, point: { x: 0, y: 0 } });
+
+    const touch = (lng: number, lat: number, x: number, y: number, points = 1) => ({
+      lngLat: { lng, lat },
+      point: { x, y },
+      points: Array.from({ length: points }, () => ({ x, y })),
+    });
+
+    it("completes a touch drag and suppresses panning during it", () => {
+      const { hook, onComplete, onPreview } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      expect(map.dragPan.disable).toHaveBeenCalled();
+      expect(hook.result.current.hasStartPoint).toBe(true);
+
+      act(() => map.emit("touchmove", touch(15, 25, 130, 130)));
+      expect(onPreview).toHaveBeenLastCalledWith({ lng: 10, lat: 20 }, { lng: 15, lat: 25 });
+
+      act(() => map.emit("touchend", touch(20, 30, 160, 150)));
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 10, lat: 20 },
+        { lng: 20, lat: 30 },
+      );
+      expect(map.dragPan.enable).toHaveBeenCalled();
+    });
+
+    it("treats a stationary touch as the opening tap, not a shape", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => {
+        map.emit("touchstart", touch(10, 20, 100, 100));
+        map.emit("touchend", touch(10, 20, 101, 101));
+        map.emit("click", { lngLat: { lng: 10, lat: 20 }, point: { x: 101, y: 101 } });
+      });
+
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(hook.result.current.hasStartPoint).toBe(true);
+    });
+
+    it("ignores multi-touch so pinch zoom still works", () => {
+      const { hook, onPreview } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100, 2)));
+
+      expect(onPreview).not.toHaveBeenCalled();
+      expect(hook.result.current.hasStartPoint).toBe(false);
+    });
 
     it("opens the shape on the first tap", () => {
       const { hook, onComplete, onPreview } = setup(map);
@@ -232,7 +281,15 @@ describe("useTwoPointDraw", () => {
       map.click(30, 40);
     });
 
-    for (const type of ["mousedown", "mousemove", "mouseup", "click"]) {
+    for (const type of [
+      "mousedown",
+      "mousemove",
+      "mouseup",
+      "touchstart",
+      "touchmove",
+      "touchend",
+      "click",
+    ]) {
       expect(map.handlers.get(type)?.size ?? 0).toBe(0);
     }
   });
