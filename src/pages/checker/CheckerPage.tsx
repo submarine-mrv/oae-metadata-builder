@@ -7,6 +7,7 @@ import {
   Code,
   Container,
   Group,
+  List,
   Paper,
   Select,
   Stack,
@@ -21,6 +22,7 @@ import {
   IconCircleX,
   IconFileCheck,
   IconInfoCircle,
+  IconPointFilled,
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
@@ -329,15 +331,34 @@ export default function CheckerPage() {
                   </Anchor>{" "}
                   sections of the OAE Data Protocol.
                 </Text>
+                <Text size="sm">It checks four things:</Text>
+                {/* Tailwind's preflight resets `ul { list-style: none }`, so CSS markers
+                    never show. An explicit icon draws the bullet instead, matching
+                    WorkflowCard. */}
+                <List
+                  size="sm"
+                  spacing={4}
+                  icon={<IconPointFilled size={10} style={{ marginTop: 6 }} />}
+                >
+                  <List.Item>
+                    column headers against the template&apos;s expected variable names
+                  </List.Item>
+                  <List.Item>QC flag columns are present where necessary</List.Item>
+                  <List.Item>
+                    units strings are present for necessary columns, as a row below the column
+                    header
+                  </List.Item>
+                  <List.Item>CF standard names are set (NetCDF files only)</List.Item>
+                </List>
                 <Text size="sm">
-                  It checks four things: column headers against the template&apos;s expected
-                  variable names, QC flag columns, units strings, and CF standard names. It does not
-                  check your data values, and passing every check does not by itself make a
-                  submission complete.
+                  Importantly, the compliance checker does not check data values. Passing every
+                  check does not by itself make a submission complete.
                 </Text>
                 <Text size="sm">
                   Accepts .csv, .tsv, .xlsx, .xls, .nc and .netcdf up to {formatMb(MAX_FILE_BYTES)}.
-                  Files are parsed in your browser and never uploaded to a server.
+                  NetCDF files must be classic or 64-bit offset format (NetCDF 3) — NetCDF 4, which
+                  is built on HDF5, is not supported yet. Files are parsed in your browser and never
+                  uploaded to a server.
                 </Text>
               </Stack>
             </Alert>
