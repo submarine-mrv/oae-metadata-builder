@@ -2,9 +2,14 @@ import { DateInput } from "@mantine/dates";
 import type { WidgetProps } from "@rjsf/utils";
 import { ariaDescribedByIds, labelValue } from "@rjsf/utils";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import type React from "react";
 import { useCallback } from "react";
 import FieldLabel from "./FieldLabel";
+
+// Strict format parsing is a plugin. Without it dayjs ignores the format and
+// rolls 2027-02-30 over to March, which is exactly what this widget must refuse.
+dayjs.extend(customParseFormat);
 
 const DATE_FORMAT = "YYYY-MM-DD";
 

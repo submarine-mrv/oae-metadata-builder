@@ -450,13 +450,22 @@ console.log(
 // alone so a genuinely different shape fails loudly in review.
 function rewriteEitherOrRules(schema) {
   let rewritten = 0;
-  const requiredOf = (branch) =>
-    branch &&
-    Array.isArray(branch.required) &&
-    branch.required.length === 1 &&
-    Object.keys(branch).every((k) => k === "required" || k === "properties")
-      ? branch.required[0]
-      : null;
+  // A branch qualifies only if it is purely "this one field is required":
+  // LinkML emits `properties: { field: {} }` alongside `required`, and an
+  // empty schema there adds no constraint. Anything else is left as is, so a
+  // rule that actually constrains the field is never silently loosened.
+  const requiredOf = (branch) => {
+    if (!branch || !Array.isArray(branch.required) || branch.required.length !== 1) return null;
+    const field = branch.required[0];
+    for (const [key, value] of Object.entries(branch)) {
+      if (key === "required") continue;
+      if (key !== "properties") return null;
+      const propKeys = Object.keys(value ?? {});
+      if (propKeys.length > 1 || (propKeys.length === 1 && propKeys[0] !== field)) return null;
+      if (propKeys.length === 1 && Object.keys(value[field] ?? {}).length > 0) return null;
+    }
+    return field;
+  };
 
   const rewrite = (rule) => {
     const anyOf = rule?.then?.anyOf;
