@@ -3,11 +3,12 @@ import type { FieldProps } from "@rjsf/utils";
 import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
+import { DEFAULT_MAP_CENTER, MAP_TILE_STYLE } from "@/config/maps";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
   addBoundingBox,
   fitBoundsWithAntimeridian,
+  fitWorldWidth,
   parseBoundsString,
   removeBoundingBox,
 } from "@/utils/mapLayerUtils";
@@ -68,7 +69,6 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       container: mapRef.current,
       style: MAP_TILE_STYLE,
       center: DEFAULT_MAP_CENTER,
-      zoom: DEFAULT_MINI_MAP_ZOOM,
       interactive: false, // Make it non-interactive for preview
       attributionControl: false,
     });
@@ -87,6 +87,8 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
           padding: 20,
           duration: 0,
         });
+      } else {
+        fitWorldWidth(map, DEFAULT_MAP_CENTER);
       }
     });
   }, [value]);
@@ -119,12 +121,8 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     } else {
       // Remove bounding box if no value
       removeBoundingBox(map);
-      // Reset to default view
-      map.flyTo({
-        center: DEFAULT_MAP_CENTER,
-        zoom: DEFAULT_MINI_MAP_ZOOM,
-        duration: 500,
-      });
+      // Back to the whole globe.
+      fitWorldWidth(map, DEFAULT_MAP_CENTER, { duration: 500 });
     }
   }, [value, miniMapLoaded]);
 

@@ -9,6 +9,7 @@
  * mousemove flickers.
  */
 
+import { WORLD_WIDTH_AT_ZOOM_0 } from "@/config/maps";
 import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
 
 // Layer style configurations
@@ -264,6 +265,29 @@ export function setLineData(
     return;
   }
   source.setData(lineFeature(lat1, lon1, lat2, lon2));
+}
+
+/**
+ * Show the whole world exactly once, filling the container's width.
+ *
+ * `fitBounds` on world extents is fitted by whichever axis binds first. In a
+ * wide, short container that is the height, which leaves the world narrower
+ * than the viewport and repeats the Americas down both edges. Deriving the zoom
+ * from the width instead gives one world at any container size, without having
+ * to clip latitudes to match an aspect ratio.
+ */
+export function fitWorldWidth(
+  map: any,
+  center: [number, number],
+  options: { duration?: number } = {},
+): void {
+  const width = map.getContainer?.()?.clientWidth ?? 0;
+  // Before layout the container has no width; zoom 0 is the sane fallback.
+  const zoom = width > 0 ? Math.max(0, Math.log2(width / WORLD_WIDTH_AT_ZOOM_0)) : 0;
+  const view = { center, zoom };
+
+  if (options.duration) map.easeTo({ ...view, duration: options.duration });
+  else map.jumpTo(view);
 }
 
 /**
