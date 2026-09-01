@@ -2089,24 +2089,18 @@
             ]
           },
           "then": {
-            "anyOf": [
-              {
-                "properties": {
-                  "data_access_link": {}
-                },
+            "if": {
+              "not": {
                 "required": [
                   "data_access_link"
                 ]
-              },
-              {
-                "properties": {
-                  "data_access_date": {}
-                },
-                "required": [
-                  "data_access_date"
-                ]
               }
-            ]
+            },
+            "then": {
+              "required": [
+                "data_access_date"
+              ]
+            }
           }
         }
       ],
@@ -3807,24 +3801,18 @@
             ]
           },
           "then": {
-            "anyOf": [
-              {
-                "properties": {
-                  "data_access_link": {}
-                },
+            "if": {
+              "not": {
                 "required": [
                   "data_access_link"
                 ]
-              },
-              {
-                "properties": {
-                  "data_access_date": {}
-                },
-                "required": [
-                  "data_access_date"
-                ]
               }
-            ]
+            },
+            "then": {
+              "required": [
+                "data_access_date"
+              ]
+            }
           }
         }
       ],
@@ -5612,24 +5600,18 @@
             ]
           },
           "then": {
-            "anyOf": [
-              {
-                "properties": {
-                  "data_access_link": {}
-                },
+            "if": {
+              "not": {
                 "required": [
                   "data_access_link"
                 ]
-              },
-              {
-                "properties": {
-                  "data_access_date": {}
-                },
-                "required": [
-                  "data_access_date"
-                ]
               }
-            ]
+            },
+            "then": {
+              "required": [
+                "data_access_date"
+              ]
+            }
           }
         }
       ],

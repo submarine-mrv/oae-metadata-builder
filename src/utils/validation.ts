@@ -83,11 +83,14 @@ export function validateProject(projectData: DraftProject): ValidationResult {
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage, temporal ordering).
     const result = validator.validateFormData(projectData, schema, projectCustomValidate);
+    // Same transform the form shows, so the badge does not count an if/then
+    // wrapper the list never displays.
+    const errors = transformFormErrors(result.errors);
 
     return {
-      isValid: result.errors.length === 0,
-      errors: result.errors,
-      errorCount: result.errors.length,
+      isValid: errors.length === 0,
+      errors,
+      errorCount: errors.length,
     };
   } catch (error) {
     console.error("Error validating project:", error);
@@ -110,11 +113,12 @@ export function validateExperiment(experimentData: DraftExperiment): ValidationR
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage).
     const result = validator.validateFormData(experimentData, schema, experimentCustomValidate);
+    const errors = transformFormErrors(result.errors);
 
     return {
-      isValid: result.errors.length === 0,
-      errors: result.errors,
-      errorCount: result.errors.length,
+      isValid: errors.length === 0,
+      errors,
+      errorCount: errors.length,
     };
   } catch (error) {
     console.error("Error validating experiment:", error);

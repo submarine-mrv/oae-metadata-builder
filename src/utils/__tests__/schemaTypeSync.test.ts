@@ -131,4 +131,19 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
     expect(def?.enum).toBeDefined();
     expect(def?.enum?.length ?? 0).toBeGreaterThan(0);
   });
+
+  // RJSF turns a `then.anyOf` into an "Option 1 / Option 2" selector. The
+  // bundler rewrites those as nested if/then; this guards the rewrite.
+  it("carries no then.anyOf rules RJSF would render as a selector", () => {
+    const defs = (bundled as { $defs?: Record<string, any> }).$defs ?? {};
+    const offenders: string[] = [];
+    for (const [name, def] of Object.entries(defs)) {
+      const rules = [...(def.if ? [def] : []), ...(def.allOf ?? [])];
+      for (const rule of rules) if (rule?.then?.anyOf) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
+    expect(defs.FieldDataset.allOf.some((r: any) => r.then?.if && r.then?.then?.required)).toBe(
+      true,
+    );
+  });
 });

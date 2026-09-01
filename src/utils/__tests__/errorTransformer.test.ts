@@ -102,28 +102,23 @@ describe("transformFormErrors", () => {
   // The open-access rule is a LinkML any_of postcondition. AJV reports one
   // failure per branch plus a bare anyOf and if, all on the dataset object.
   describe("data access either/or rule", () => {
+    // Raw AJV output for the bundler's nested if/then form of the rule: one
+    // required error two `then`s deep, plus the wrappers.
     const anyOfErrors = (): RJSFValidationError[] =>
       [
         {
           name: "required",
           property: "",
-          message: "must have required property 'data_access_link'",
-          params: { missingProperty: "data_access_link" },
-          schemaPath: "#/allOf/1/then/anyOf/0/required",
-        },
-        {
-          name: "required",
-          property: "",
           message: "must have required property 'data_access_date'",
           params: { missingProperty: "data_access_date" },
-          schemaPath: "#/allOf/1/then/anyOf/1/required",
+          schemaPath: "#/allOf/1/then/then/required",
         },
         {
-          name: "anyOf",
+          name: "if",
           property: "",
-          message: "must match a schema in anyOf",
-          params: {},
-          schemaPath: "#/allOf/1/then/anyOf",
+          message: 'must match "then" schema',
+          params: { failingKeyword: "then" },
+          schemaPath: "#/allOf/1/then/if",
         },
         {
           name: "if",
@@ -134,7 +129,7 @@ describe("transformFormErrors", () => {
         },
       ] as RJSFValidationError[];
 
-    it("collapses four raw errors into two field-attached ones", () => {
+    it("fans the single raw error out to both fields", () => {
       const result = transformFormErrors(anyOfErrors());
       expect(result).toHaveLength(2);
       expect(result.map((e) => e.property).sort()).toEqual([

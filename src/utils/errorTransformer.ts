@@ -5,20 +5,21 @@ import { MESSAGES } from "@/constants/messages";
 
 /**
  * The open-access rule ("a data access link or a data access date") is a LinkML
- * `any_of` postcondition, so AJV reports one failure per branch plus a bare
- * `anyOf` and `if` error — four errors on the dataset object, none attached to a
- * field. Left alone that reads as "both are required", which is the opposite of
- * the rule.
- *
- * These two predicates split those errors into the ones worth re-pointing at a
- * field and the ones with no field and no usable message.
+ * `any_of` postcondition. The bundler rewrites it as nested if/then (see
+ * rewriteEitherOrRules in bundle-schema.mjs), so AJV reports it as a single
+ * required error for the second field, sitting under `then/then`, plus the
+ * if-wrappers dropped elsewhere. That one error is fanned out to both fields
+ * with the either/or wording, so neither reads as simply "required".
  */
 const DATA_ACCESS_EITHER_OR_FIELDS = ["data_access_link", "data_access_date"];
 
 function isDataAccessBranchError(e: RJSFValidationError): boolean {
   return (
     e.name === "required" &&
-    /\/then\/anyOf\/\d+\/required$/.test(e.schemaPath ?? "") &&
+    // Already fanned out by an earlier pass; validateDataset and the form both
+    // run this transform, and a second pass must be a no-op.
+    e.message !== MESSAGES.validation.dataAccessEitherOr &&
+    /\/then\/then\/required$/.test(e.schemaPath ?? "") &&
     DATA_ACCESS_EITHER_OR_FIELDS.includes(e.params?.missingProperty ?? "")
   );
 }
@@ -67,17 +68,20 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
   return errors
     .filter((e) => !isIfThenEnvelopeError(e))
     .filter((e) => !(hasDataAccessBranchError && isDataAccessEnvelopeError(e)))
-    .map((e) => {
-      // Point each branch of the either/or rule at the field it names, so both
-      // inputs turn red carrying one sentence rather than two "is required" ones.
+    .flatMap((e) => {
+      // One rule, two fields: both inputs turn red carrying one sentence
+      // rather than either reading as plainly required.
       if (isDataAccessBranchError(e)) {
-        return {
+        return DATA_ACCESS_EITHER_OR_FIELDS.map((field) => ({
           ...e,
-          property: `.${e.params?.missingProperty}`,
+          property: `.${field}`,
+          params: { ...e.params, missingProperty: field },
           message: MESSAGES.validation.dataAccessEitherOr,
-        };
+        }));
       }
-
+      return [e];
+    })
+    .map((e) => {
       // Normalize ALL "required" error messages.
       //
       // RJSF interpolates a field title into the message via a fragile
@@ -97,7 +101,10 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
         const isSpatialCov = isSpatialCoverageError(e);
         const isExperimentId =
           e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id";
-        if (!isSpatialCov && !isExperimentId) {
+        // The either/or errors are fanned out above with their own wording and
+        // must not be flattened back into a plain "required".
+        const isEitherOr = e.message === MESSAGES.validation.dataAccessEitherOr;
+        if (!isSpatialCov && !isExperimentId && !isEitherOr) {
           e = { ...e, message: "Field is required" };
         }
       }

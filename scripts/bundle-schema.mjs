@@ -438,6 +438,45 @@ console.log(
   `✓ Patched ModelOutputDataset simulation_type conditional to require contains "perturbation"`
 );
 
+// Rewrite "at least one of A, B" rules for RJSF.
+//
+// LinkML emits `postconditions: any_of` as `then: { anyOf: [{required: [A]},
+// {required: [B]}] }`. AJV validates that fine, but when the `if` matches RJSF
+// merges the `then` into the object schema and renders its `anyOf` as an
+// "Option 1 / Option 2" selector. The same rule expressed as
+// `then: { if: { not: { required: [A] } }, then: { required: [B] } }` is
+// equivalent under AJV and RJSF resolves nested if/then without a selector.
+// Only two-branch, required-only anyOfs are rewritten; anything else is left
+// alone so a genuinely different shape fails loudly in review.
+function rewriteEitherOrRules(schema) {
+  let rewritten = 0;
+  const requiredOf = (branch) =>
+    branch &&
+    Array.isArray(branch.required) &&
+    branch.required.length === 1 &&
+    Object.keys(branch).every((k) => k === "required" || k === "properties")
+      ? branch.required[0]
+      : null;
+
+  const rewrite = (rule) => {
+    const anyOf = rule?.then?.anyOf;
+    if (!Array.isArray(anyOf) || anyOf.length !== 2) return;
+    const [a, b] = anyOf.map(requiredOf);
+    if (!a || !b) return;
+    rule.then = { if: { not: { required: [a] } }, then: { required: [b] } };
+    rewritten += 1;
+  };
+
+  for (const def of Object.values(schema.$defs ?? {})) {
+    if (def.if && def.then) rewrite(def);
+    for (const rule of def.allOf ?? []) rewrite(rule);
+  }
+  return rewritten;
+}
+
+const eitherOrRewrites = rewriteEitherOrRules(decorated);
+console.log(`✓ Rewrote ${eitherOrRewrites} either/or rule(s) as nested if/then for RJSF`);
+
 // Discriminate the polymorphic variables union on schema_class.
 decorated = discriminateVariableUnions(decorated, [
   {
