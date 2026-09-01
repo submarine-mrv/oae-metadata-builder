@@ -13,6 +13,13 @@ interface FieldLabelProps {
   fw?: number; // Font weight
   /** Bottom margin. Set to 0 when the caller supplies its own label-row spacing. */
   mb?: MantineSpacing;
+  /**
+   * Line height. A native Mantine input label uses the "md" line height
+   * (1.55) even at the "sm" font size; widgets that render a bare input pass
+   * "md" so this label is the same height and the control stays level with a
+   * text input beside it.
+   */
+  lh?: "sm" | "md";
   /** URL for a "view all" link beside the label, from `ui:viewAllLink`. */
   viewAllLink?: string;
 }
@@ -29,12 +36,13 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   order = 5,
   fw = 500,
   mb = "xs",
+  lh,
   viewAllLink,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const titleNode = (
-    <Text size="sm" fw={fw}>
+    <Text size="sm" fw={fw} lh={lh}>
       {label} {required && <span style={{ color: "red" }}>*</span>}
     </Text>
   );
@@ -42,7 +50,7 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   // Nothing to hang off the label — render it on its own
   if (!description && !viewAllLink) {
     return (
-      <Text size="sm" fw={fw} mb={mb}>
+      <Text size="sm" fw={fw} lh={lh} mb={mb}>
         {label} {required && <span style={{ color: "red" }}>*</span>}
       </Text>
     );

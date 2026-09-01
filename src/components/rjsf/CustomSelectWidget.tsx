@@ -100,6 +100,10 @@ export default function CustomSelectWidget<
           description={description}
           required={required}
           useModal={useModal}
+          // Match a native Mantine input label: md line height plus its 3px
+          // bottom margin, so this control lines up with text inputs beside it.
+          mb={3}
+          lh="md"
           viewAllLink={viewAllLink}
         />
       )}
