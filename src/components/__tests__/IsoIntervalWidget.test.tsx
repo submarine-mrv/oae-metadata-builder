@@ -135,13 +135,19 @@ describe("IsoIntervalWidget", () => {
       expect(errorTextFor(END)).toBeNull();
     });
 
-    // A malformed half cannot be typed any more, only imported. The input shows
-    // it as empty, so the interval-level error goes to the start input.
-    it("shows an imported malformed end as empty and puts the error on the start", () => {
+    // A malformed half cannot be typed any more, only imported. It renders
+    // blank, so that input carries the message rather than the valid start.
+    it("shows an imported malformed end as empty and marks that input", () => {
       renderWidget({ value: "2024-01-01/20xx", rawErrors: ["Invalid date format"] });
       expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
-      expect(errorTextFor(START)).toBe("Invalid date format");
-      expect(errorTextFor(END)).toBeNull();
+      expect(errorTextFor(END)).toBe("Invalid date format");
+      expect(errorTextFor(START)).toBeNull();
+    });
+
+    it("marks an impossible stored date even while read-only", () => {
+      renderWidget({ value: "2024-01-01/2024-02-31", readonly: true });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
+      expect(errorTextFor(END)).toBe("Invalid date format");
     });
 
     it("puts the error on the start date when only the start is malformed", () => {

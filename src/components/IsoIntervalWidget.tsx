@@ -17,7 +17,9 @@ import type { WidgetProps } from "@rjsf/utils";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import type * as React from "react";
+import { MESSAGES } from "@/constants/messages";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
+import { parseInterval, validateDate } from "@/utils/dateUtils";
 
 // Strict format parsing is a plugin. Without it dayjs ignores the format and
 // rolls 2024-02-31 over to March; this widget must not rely on another module
@@ -73,13 +75,25 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     editable: !(disabled || readonly),
   });
 
+  // A stored half that is not a real calendar date renders blank. While
+  // editable the hook drops it at once; read-only it stays, so the input has
+  // to say why it is empty rather than look valid.
+  const stored = parseInterval(value as string | undefined);
+  const startStoredInvalid = Boolean(stored.start) && !validateDate(stored.start);
+  const endStoredInvalid = Boolean(stored.end) && !validateDate(stored.end);
+
   // Both dates live in one interval string, so a schema error on it arrives
-  // without saying which half is wrong. With malformed text no longer storable,
-  // the only attributable case is a required half that is empty; anything else
-  // (an ordering rule, say) belongs to the interval and goes on the start input.
-  const endMissing = endDateRequired && !interval.endDate;
-  const startExternalError = !interval.startDate || !endMissing ? externalError : undefined;
-  const endExternalError = endMissing ? externalError : undefined;
+  // without saying which half is wrong. Attribute it to a half that is missing
+  // or malformed; anything else (an ordering rule, say) belongs to the interval
+  // and goes on the start input.
+  const endAtFault = endStoredInvalid || (endDateRequired && !interval.endDate);
+  const startAtFault = startStoredInvalid || !interval.startDate;
+  const startExternalError = startAtFault || !endAtFault ? externalError : undefined;
+  const endExternalError = endAtFault ? externalError : undefined;
+  const startError = startStoredInvalid
+    ? MESSAGES.validation.invalidDateFormat
+    : startExternalError;
+  const endError = endStoredInvalid ? MESSAGES.validation.invalidDateFormat : endExternalError;
 
   const common = {
     valueFormat: DATE_FORMAT,
@@ -108,7 +122,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
           onBlur={interval.handleStartBlur}
           onFocus={interval.handleStartFocus}
           required={required}
-          error={startExternalError}
+          error={startError}
         />
         <DateInput
           {...common}
@@ -120,7 +134,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
           onBlur={interval.handleEndBlur}
           onFocus={interval.handleEndFocus}
           required={endDateRequired}
-          error={endExternalError}
+          error={endError}
         />
       </Layout>
     </div>
