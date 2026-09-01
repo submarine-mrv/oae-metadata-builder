@@ -15,8 +15,14 @@ import { Group, Stack, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import type { WidgetProps } from "@rjsf/utils";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import type * as React from "react";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
+
+// Strict format parsing is a plugin. Without it dayjs ignores the format and
+// rolls 2024-02-31 over to March; this widget must not rely on another module
+// having registered it first.
+dayjs.extend(customParseFormat);
 
 const DATE_FORMAT = "YYYY-MM-DD";
 
