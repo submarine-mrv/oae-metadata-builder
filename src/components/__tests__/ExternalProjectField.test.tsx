@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import type { ErrorSchema, FieldProps } from "@rjsf/utils";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import ExternalProjectField from "../ExternalProjectField";
 
@@ -62,6 +63,41 @@ function errorTextFor(placeholder: string, nth = 0): string | null {
 }
 
 describe("ExternalProjectField", () => {
+  describe("widget onChange adapter", () => {
+    // Clearing a date emits `undefined`. Reading `.formData` off it threw, the
+    // update never landed, and the field kept its stale value and error.
+    it("does not throw when a widget clears its value", async () => {
+      const onChange = vi.fn();
+      const props = {
+        schema,
+        uiSchema: {},
+        formData: { temporal_coverage: "2024-01-01/.." },
+        errorSchema: {},
+        idSchema: { $id: "root_prev" },
+        fieldPathId: { $id: "root_prev", path: ["prev"] },
+        name: "prev",
+        onChange,
+        onBlur: vi.fn(),
+        onFocus: vi.fn(),
+        registry: { formContext: {}, fields: {}, widgets: {}, templates: {} },
+      } as unknown as FieldProps;
+
+      render(
+        <MantineProvider>
+          <ExternalProjectField {...props} />
+        </MantineProvider>,
+      );
+
+      const start = screen.getAllByPlaceholderText("YYYY-MM-DD")[0];
+      await userEvent.clear(start);
+      await userEvent.tab();
+
+      expect(onChange).toHaveBeenCalled();
+      const [updated] = onChange.mock.calls.at(-1) ?? [];
+      expect(updated?.temporal_coverage).toBeUndefined();
+    });
+  });
+
   describe("required markers", () => {
     it("marks name as required", () => {
       renderField();
@@ -113,11 +149,20 @@ describe("ExternalProjectField", () => {
       expect(errorTextFor("Project description")).toBeNull();
     });
 
-    // IsoIntervalWidgetVertical previously took rawErrors but only used them to
-    // change timing, so a missing start date stayed unmarked.
+    // The stacked variant previously took rawErrors but only used them to change
+    // timing, so a missing start date stayed unmarked.
     it("shows an error on the temporal coverage start date", () => {
       renderField({ temporal_coverage: { __errors: ["Field is required"] } });
       expect(errorTextFor("YYYY-MM-DD")).toBe("Field is required");
+    });
+
+    // The raw AJV message reached the user before the transform matched nested
+    // properties. Only "Field is required" and "Invalid date format" belong here.
+    it("never shows a raw pattern regex on the start date", () => {
+      renderField({ temporal_coverage: { __errors: ["Invalid date format"] } });
+      const message = errorTextFor("YYYY-MM-DD");
+      expect(message).toBe("Invalid date format");
+      expect(message).not.toContain("must match pattern");
     });
 
     it("leaves the start date unmarked when temporal coverage is valid", () => {

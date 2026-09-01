@@ -1,7 +1,7 @@
 import { Box, Grid, Pill, PillsInput, Stack, Textarea, TextInput } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
 import React from "react";
-import IsoIntervalWidgetVertical from "./IsoIntervalWidgetVertical";
+import IsoIntervalWidget from "./IsoIntervalWidget";
 import { FieldLabelSmall } from "./rjsf/FieldLabel";
 import SpatialCoverageField from "./SpatialCoverageField";
 
@@ -64,7 +64,10 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     name: fieldName,
     value: data[fieldName],
     formData: data[fieldName],
-    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData.formData || widgetData),
+    // Widgets pass either a bare value or an object wrapping one, and clearing a
+    // date emits `undefined` — which the old `widgetData.formData` threw on, so
+    // the field kept its stale value and its stale error.
+    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData?.formData ?? widgetData),
     onBlur: () => {},
     onFocus: () => {},
     disabled,
@@ -139,8 +142,9 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
 
               {/* Temporal coverage */}
               {schema.properties?.temporal_coverage && (
-                <IsoIntervalWidgetVertical
+                <IsoIntervalWidget
                   {...createWidgetProps("temporal_coverage", schema.properties.temporal_coverage)}
+                  options={{ layout: "vertical" }}
                 />
               )}
             </Grid.Col>

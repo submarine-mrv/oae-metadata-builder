@@ -1,10 +1,12 @@
 /**
- * IsoIntervalWidget - Horizontal date interval input for ISO 8601 interval strings
+ * IsoIntervalWidget - Two date inputs backed by one ISO 8601 interval string.
  *
- * For vertical layout, use IsoIntervalWidgetVertical instead.
+ * `ui:options.layout: "vertical"` stacks the inputs for narrow columns; the
+ * default puts them side by side. Both share the same value contract, so the
+ * layout is the only difference.
  */
 
-import { Group, Text, TextInput } from "@mantine/core";
+import { Group, Stack, Text, TextInput } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
 import type * as React from "react";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
@@ -31,6 +33,13 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   const externalError = rawErrors && rawErrors.length > 0 ? rawErrors[0] : undefined;
   // Check if end date is required via ui:options
   const endDateRequired = options?.endDateRequired === true;
+  const isVertical = options?.layout === "vertical";
+  // Stacked inputs are already full width; side-by-side ones need `grow` to
+  // split the row evenly.
+  const Layout = isVertical ? Stack : Group;
+  const layoutProps = isVertical
+    ? { gap: "sm" as const }
+    : { grow: true, align: "flex-start" as const };
 
   const interval = useIsoInterval({
     id,
@@ -48,7 +57,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
           {label}
         </Text>
       )}
-      <Group grow align="flex-start">
+      <Layout {...layoutProps}>
         <div style={{ position: "relative" }}>
           <TextInput
             label="Start date"
@@ -97,7 +106,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             }
           />
         </div>
-      </Group>
+      </Layout>
     </div>
   );
 };
