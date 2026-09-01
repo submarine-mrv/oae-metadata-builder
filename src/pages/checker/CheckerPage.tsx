@@ -356,9 +356,8 @@ export default function CheckerPage() {
                 </Text>
                 <Text size="sm">
                   Accepts .csv, .tsv, .xlsx, .xls, .nc and .netcdf up to {formatMb(MAX_FILE_BYTES)}.
-                  NetCDF files must be classic or 64-bit offset format (NetCDF 3) — NetCDF 4, which
-                  is built on HDF5, is not supported yet. Files are parsed in your browser and never
-                  uploaded to a server.
+                  NetCDF files must be version 3 or earlier. NetCDF 4 is not supported yet. Files
+                  are parsed in your browser and never uploaded to a server.
                 </Text>
               </Stack>
             </Alert>
