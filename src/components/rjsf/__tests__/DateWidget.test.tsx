@@ -74,9 +74,14 @@ describe("DateWidget", () => {
     }
   });
 
-  it("renders its label and description like the other custom widgets", () => {
+  it("renders its label and opens the description in a modal", async () => {
     renderWidget({ uiSchema: { "ui:descriptionModal": true } });
     expect(screen.getByText("Data Access Date")).toBeInTheDocument();
+
+    // The description only exists behind the info control; opening it is the
+    // proof that this widget wires FieldLabel up like the other custom ones.
+    await userEvent.click(screen.getByRole("button"));
+    expect(await screen.findByText("When the data opens.")).toBeInTheDocument();
   });
 
   it("surfaces validation errors on the input", () => {
