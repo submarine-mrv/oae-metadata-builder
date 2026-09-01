@@ -135,10 +135,10 @@ test.describe("Dosing Location Field", () => {
     await page.waitForTimeout(300);
 
     // Fill in coordinates only (no file)
-    await page.getByLabel("°N (max latitude)").fill("48");
-    await page.getByLabel("°S (min latitude)").fill("47");
-    await page.getByLabel("°E (max longitude)").fill("-122");
-    await page.getByLabel("°W (min longitude)").fill("-123");
+    await dosingModal.edge("north").fill("48");
+    await dosingModal.edge("south").fill("47");
+    await dosingModal.edge("east").fill("-122");
+    await dosingModal.edge("west").fill("-123");
 
     // Verify save button is disabled without file
     await expect(page.locator("button:has-text('Save')")).toBeDisabled();

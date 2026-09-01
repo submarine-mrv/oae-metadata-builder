@@ -1,6 +1,17 @@
 import { Page, Locator, expect } from "@playwright/test";
 
 /**
+ * Bounding box input labels, as rendered by BoundingBoxInputs.
+ * Kept here so a wording change updates every spec at once.
+ */
+export const BOX_LABELS = {
+  north: "Maximum latitude (-90° to 90°)",
+  south: "Minimum latitude (-90° to 90°)",
+  east: "East edge (-180° to 180°)",
+  west: "West edge (-180° to 180°)",
+} as const;
+
+/**
  * Page object for map modal interactions.
  * Shared between SpatialCoverageMapModal and DosingLocationMapModal.
  */
@@ -84,6 +95,51 @@ export class MapModal {
 
     // Click second corner
     await this.clickOnMap(x2, y2);
+  }
+
+  /** Move the pointer over the map without clicking, to drive the draw preview. */
+  async moveOnMap(xOffset = 0, yOffset = 0) {
+    const box = await this.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found or not visible");
+    await this.page.mouse.move(
+      box.x + box.width / 2 + xOffset,
+      box.y + box.height / 2 + yOffset,
+      { steps: 5 },
+    );
+    await this.page.waitForTimeout(100);
+  }
+
+  /** Locator for one of the four bounding box inputs. */
+  edge(name: keyof typeof BOX_LABELS): Locator {
+    return this.page.getByLabel(BOX_LABELS[name]);
+  }
+
+  /** Fill all four edges at once. */
+  async fillBounds(bounds: { north: string; south: string; east: string; west: string }) {
+    await this.edge("west").fill(bounds.west);
+    await this.edge("south").fill(bounds.south);
+    await this.edge("east").fill(bounds.east);
+    await this.edge("north").fill(bounds.north);
+  }
+
+  /**
+   * Draw a bounding box by pressing, dragging and releasing, rather than by two
+   * separate clicks. Exercises the rubber-band path.
+   */
+  async dragBoundingBox(x1 = -100, y1 = -50, x2 = 100, y2 = 50) {
+    const box = await this.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found or not visible");
+
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+
+    await this.page.mouse.move(cx + x1, cy + y1);
+    await this.page.mouse.down();
+    // Intermediate moves so the preview handler actually fires.
+    await this.page.mouse.move(cx + (x1 + x2) / 2, cy + (y1 + y2) / 2, { steps: 5 });
+    await this.page.mouse.move(cx + x2, cy + y2, { steps: 5 });
+    await this.page.mouse.up();
+    await this.page.waitForTimeout(200);
   }
 
   /**
