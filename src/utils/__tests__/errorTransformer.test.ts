@@ -3,7 +3,7 @@
 import type { RJSFValidationError } from "@rjsf/utils";
 import { describe, expect, it } from "vitest";
 import { MESSAGES } from "@/constants/messages";
-import { transformFormErrors } from "../errorTransformer";
+import { isDataAccessEitherOrError, transformFormErrors } from "../errorTransformer";
 
 describe("transformFormErrors", () => {
   it("should transform temporal coverage pattern error", () => {
@@ -171,6 +171,24 @@ describe("transformFormErrors", () => {
       expect(result).toHaveLength(1);
       expect(result[0].message).toBe("Field is required");
       expect(result[0].property).toBe("");
+    });
+
+    it("marks its output so callers hiding required noise can keep it", () => {
+      const result = transformFormErrors(anyOfErrors());
+      expect(result.every(isDataAccessEitherOrError)).toBe(true);
+    });
+
+    it("does not mark an ordinary required error", () => {
+      const [e] = transformFormErrors([
+        {
+          name: "required",
+          property: ".name",
+          message: "must have required property 'name'",
+          params: { missingProperty: "name" },
+          schemaPath: "#/required",
+        },
+      ] as RJSFValidationError[]);
+      expect(isDataAccessEitherOrError(e)).toBe(false);
     });
 
     it("keeps an unrelated anyOf envelope when no data-access branch failed", () => {
