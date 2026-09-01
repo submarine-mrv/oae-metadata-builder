@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  addBoundingBox,
-  addLine,
-  fitWorldWidth,
-  setBoundingBoxData,
-  setLineData,
-} from "../mapLayerUtils";
+import { addBoundingBox, addLine, setBoundingBoxData, setLineData } from "../mapLayerUtils";
 
 /**
  * Minimal MapLibre stand-in: enough surface for the source/layer bookkeeping the
@@ -146,50 +140,5 @@ describe("setLineData", () => {
       [-122.3, 47.6],
       [-123.4, 48.1],
     ]);
-  });
-});
-
-describe("fitWorldWidth", () => {
-  const mapOfWidth = (clientWidth: number) => ({
-    getContainer: () => ({ clientWidth }),
-    jumpTo: vi.fn(),
-    easeTo: vi.fn(),
-  });
-
-  it("picks the zoom where one world fills the container", () => {
-    // 1024px is two doublings of the 512px world, so zoom 1.
-    const map = mapOfWidth(1024);
-    fitWorldWidth(map, [0, 20]);
-    expect(map.jumpTo).toHaveBeenCalledWith({ center: [0, 20], zoom: 1 });
-  });
-
-  it("handles a container that is not a power-of-two multiple", () => {
-    const map = mapOfWidth(926);
-    fitWorldWidth(map, [0, 20]);
-    const { zoom } = map.jumpTo.mock.calls[0][0];
-    expect(zoom).toBeCloseTo(Math.log2(926 / 512), 5);
-    // The world must not end up narrower than the container, or it repeats.
-    expect(512 * 2 ** zoom).toBeGreaterThanOrEqual(926);
-  });
-
-  it("goes below zoom 0 for a container narrower than one world", () => {
-    // A 256px preview is half a world at zoom 0, so it needs zoom -1. The map's
-    // own minZoom decides whether it honours that.
-    const map = mapOfWidth(256);
-    fitWorldWidth(map, [0, 20]);
-    expect(map.jumpTo).toHaveBeenCalledWith({ center: [0, 20], zoom: -1 });
-  });
-
-  it("falls back to zoom 0 before the container has been laid out", () => {
-    const map = mapOfWidth(0);
-    fitWorldWidth(map, [0, 20]);
-    expect(map.jumpTo).toHaveBeenCalledWith({ center: [0, 20], zoom: 0 });
-  });
-
-  it("animates instead of jumping when given a duration", () => {
-    const map = mapOfWidth(1024);
-    fitWorldWidth(map, [0, 20], { duration: 500 });
-    expect(map.jumpTo).not.toHaveBeenCalled();
-    expect(map.easeTo).toHaveBeenCalledWith({ center: [0, 20], zoom: 1, duration: 500 });
   });
 });

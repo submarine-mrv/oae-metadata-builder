@@ -347,6 +347,27 @@ describe("useTwoPointDraw", () => {
       );
     });
 
+    it("does not eat a later mouse draw when no compatibility click arrives", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+      // Fingers lift with no compatibility click. The latch must not survive
+      // into an unrelated mouse gesture.
+      act(() => {
+        map.click(30, 40);
+      });
+      act(() => {
+        map.click(50, 60);
+      });
+
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 30, lat: 40 },
+        { lng: 50, lat: 60 },
+      );
+    });
+
     it("ignores multi-touch so pinch zoom still works", () => {
       const { hook, onPreview } = setup(map);
       act(() => hook.result.current.start());

@@ -87,24 +87,6 @@ test.describe("Spatial Coverage Field", () => {
     await expect(mapModal.edge("north")).not.toHaveValue("");
   });
 
-  test("keeps the selected bounds when the window is resized", async ({ page }) => {
-    await projectPage.openSpatialCoverageModal();
-    await mapModal.waitForMapLoad();
-    await mapModal.fillBounds({ west: "-125", south: "32", east: "-117", north: "42" });
-    await mapModal.confirm();
-
-    const before = await projectPage.getSpatialCoverageValue();
-    expect(before).toBeTruthy();
-
-    // The empty preview refits to the whole world on resize. A preview holding
-    // bounds must be left alone.
-    await page.setViewportSize({ width: 900, height: 1000 });
-    await page.waitForTimeout(1500);
-
-    expect(await projectPage.getSpatialCoverageValue()).toBe(before);
-    await expect(page.locator("text=Click to set spatial coverage")).toHaveCount(0);
-  });
-
   test("can draw a bounding box by touch drag", async ({ browser }) => {
     // Own context: touch emulation cannot be toggled on an existing page.
     const context = await browser.newContext({ hasTouch: true, isMobile: false });

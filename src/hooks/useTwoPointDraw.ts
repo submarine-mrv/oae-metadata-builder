@@ -139,6 +139,10 @@ export function useTwoPointDraw({
     const onMouseDown = (e: any) => {
       // Only the primary button draws; right-click keeps its context menu.
       if (e.originalEvent?.button !== 0) return;
+      // A real pointer press means any click that follows is deliberate, so the
+      // abandoned-gesture latch must not outlive it. Cleared before the
+      // in-progress check, or the closing click of this shape gets eaten.
+      swallowNextClickRef.current = false;
       if (startPointRef.current) return;
 
       pressOriginRef.current = { x: e.point.x, y: e.point.y };

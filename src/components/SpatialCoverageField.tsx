@@ -3,12 +3,11 @@ import type { FieldProps } from "@rjsf/utils";
 import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_MAP_CENTER, MAP_TILE_STYLE, WORLD_MIN_ZOOM } from "@/config/maps";
+import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
   addBoundingBox,
   fitBoundsWithAntimeridian,
-  fitWorldWidth,
   parseBoundsString,
   removeBoundingBox,
 } from "@/utils/mapLayerUtils";
@@ -34,10 +33,6 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [value, setValue] = useState<string>(readBox(formData));
-  // The resize listener is registered once, so it reads the value through a ref
-  // rather than closing over the render it was created in.
-  const valueRef = useRef(value);
-  valueRef.current = value;
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Check if there are RJSF validation errors
@@ -73,10 +68,9 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
       container: mapRef.current,
       style: MAP_TILE_STYLE,
       center: DEFAULT_MAP_CENTER,
+      zoom: DEFAULT_MINI_MAP_ZOOM,
       interactive: false, // Make it non-interactive for preview
       attributionControl: false,
-      // Narrow previews need to zoom out past 0 to fit the whole world.
-      minZoom: WORLD_MIN_ZOOM,
     });
 
     mapInstanceRef.current = map;
@@ -93,15 +87,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
           padding: 20,
           duration: 0,
         });
-      } else {
-        fitWorldWidth(map, DEFAULT_MAP_CENTER);
       }
-    });
-
-    // A responsive container changes width without the value changing, and the
-    // zoom that framed one world at the old width no longer does.
-    map.on("resize", () => {
-      if (!parseBoundsString(valueRef.current)) fitWorldWidth(map, DEFAULT_MAP_CENTER);
     });
   }, [value]);
 
@@ -133,8 +119,12 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     } else {
       // Remove bounding box if no value
       removeBoundingBox(map);
-      // Back to the whole globe.
-      fitWorldWidth(map, DEFAULT_MAP_CENTER, { duration: 500 });
+      // Reset to default view
+      map.flyTo({
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MINI_MAP_ZOOM,
+        duration: 500,
+      });
     }
   }, [value, miniMapLoaded]);
 

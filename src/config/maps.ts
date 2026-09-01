@@ -11,8 +11,6 @@ export const MAPLIBRE_GL_JS_URL = `https://unpkg.com/maplibre-gl@${MAPLIBRE_GL_V
 export const DEFAULT_MAP_CENTER: [number, number] = [0, 20];
 export const DEFAULT_ZOOM = 1;
 
-/** Width in CSS pixels of the whole world at zoom 0, for 512px vector tiles. */
-export const WORLD_WIDTH_AT_ZOOM_0 = 512;
-
-/** Lets a preview narrower than 512px still frame the whole world. */
-export const WORLD_MIN_ZOOM = -2;
+// Zoomed out far enough to read as a globe rather than a close-up of one
+// continent. The world may repeat at the edges of a wide preview; that is fine.
+export const DEFAULT_MINI_MAP_ZOOM = 0;
