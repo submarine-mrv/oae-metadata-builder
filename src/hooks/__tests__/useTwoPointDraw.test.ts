@@ -131,6 +131,9 @@ describe("useTwoPointDraw", () => {
         map.click(10, 20);
       });
       expect(hook.result.current.hasStartPoint).toBe(true);
+      // The opening click already disabled panning once; only the closing
+      // press is under test here.
+      map.dragPan.disable.mockClear();
 
       // MapLibre emits no click after a drag, so release has to finish it.
       act(() => {
@@ -140,7 +143,7 @@ describe("useTwoPointDraw", () => {
           originalEvent: { button: 0 },
         });
       });
-      expect(map.dragPan.disable).toHaveBeenCalled();
+      expect(map.dragPan.disable).toHaveBeenCalledTimes(1);
       act(() => {
         map.move(35, 45, 230, 230);
         map.emit("mouseup", { lngLat: { lng: 40, lat: 50 }, point: { x: 260, y: 260 } });
