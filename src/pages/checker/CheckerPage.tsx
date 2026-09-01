@@ -313,13 +313,13 @@ export default function CheckerPage() {
               variant="light"
               color="yellow"
               icon={<IconInfoCircle size={18} />}
-              title="Beta — check the protocol for the final word"
+              title="Beta Version"
               mt="md"
             >
               <Stack gap="xs">
                 <Text size="sm">
-                  This checker is a digital assistant, not the protocol. It compares your file
-                  against the{" "}
+                  This Compliance Checker (beta) is a tool to assist with validation of individual
+                  dataset files against the{" "}
                   <Anchor href={TEMPLATES_URL} target="_blank" rel="noopener noreferrer">
                     spreadsheet templates
                   </Anchor>{" "}
@@ -327,8 +327,7 @@ export default function CheckerPage() {
                   <Anchor href={COLUMN_HEADERS_URL} target="_blank" rel="noopener noreferrer">
                     column header names
                   </Anchor>{" "}
-                  section of the protocol, whose subsections give the required names for each file
-                  type. Where the two disagree, the protocol wins.
+                  sections of the OAE Data Protocol.
                 </Text>
                 <Text size="sm">
                   It checks four things: column headers against the template&apos;s expected
@@ -338,7 +337,7 @@ export default function CheckerPage() {
                 </Text>
                 <Text size="sm">
                   Accepts .csv, .tsv, .xlsx, .xls, .nc and .netcdf up to {formatMb(MAX_FILE_BYTES)}.
-                  Files are parsed in your browser and never uploaded anywhere.
+                  Files are parsed in your browser and never uploaded to a server.
                 </Text>
               </Stack>
             </Alert>
