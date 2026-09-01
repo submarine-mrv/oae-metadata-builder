@@ -23,13 +23,18 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
   label,
   rawErrors,
 }) => {
+  // Surface RJSF-supplied errors on the start input, matching IsoIntervalWidget.
+  // Internal format errors take precedence so the most specific message wins.
+  // End date is optional here, so only the start input carries the external error.
+  const externalError = rawErrors && rawErrors.length > 0 ? rawErrors[0] : undefined;
+
   const interval = useIsoInterval({
     id,
     value: value as string | undefined,
     onChange,
     onBlur,
     onFocus,
-    hasError: !!(rawErrors && rawErrors.length > 0),
+    hasError: !!externalError,
   });
 
   return (
@@ -49,7 +54,7 @@ const IsoIntervalWidgetVertical: React.FC<WidgetProps> = ({
           disabled={disabled || readonly}
           placeholder="YYYY-MM-DD"
           required={required}
-          error={interval.startError}
+          error={interval.startError || externalError}
           rightSection={
             <DatePickerPopover
               opened={interval.startPickerOpen}

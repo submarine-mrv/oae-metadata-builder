@@ -45,9 +45,13 @@ function renderField(errors: FieldErrors = {}, formData: Record<string, unknown>
   );
 }
 
-/** Mantine points an invalid input at its message through aria-describedby. */
-function errorTextFor(placeholder: string): string | null {
-  const input = screen.getByPlaceholderText(placeholder);
+/**
+ * Mantine points an invalid input at its message through aria-describedby.
+ * `nth` picks between inputs sharing a placeholder — the two date fields both
+ * use "YYYY-MM-DD", start first.
+ */
+function errorTextFor(placeholder: string, nth = 0): string | null {
+  const input = screen.getAllByPlaceholderText(placeholder)[nth];
   if (input.getAttribute("aria-invalid") !== "true") return null;
   const describedBy = input.getAttribute("aria-describedby");
   if (!describedBy) return null;
@@ -107,6 +111,18 @@ describe("ExternalProjectField", () => {
       renderField({ name: { __errors: ["Field is required"] } });
       expect(errorTextFor("Project name")).toBe("Field is required");
       expect(errorTextFor("Project description")).toBeNull();
+    });
+
+    // IsoIntervalWidgetVertical previously took rawErrors but only used them to
+    // change timing, so a missing start date stayed unmarked.
+    it("shows an error on the temporal coverage start date", () => {
+      renderField({ temporal_coverage: { __errors: ["Field is required"] } });
+      expect(errorTextFor("YYYY-MM-DD")).toBe("Field is required");
+    });
+
+    it("leaves the start date unmarked when temporal coverage is valid", () => {
+      renderField();
+      expect(errorTextFor("YYYY-MM-DD")).toBeNull();
     });
 
     it("survives an absent errorSchema", () => {
