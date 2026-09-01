@@ -71,4 +71,22 @@ describe("BoundingBoxInputs", () => {
     expect(screen.getByLabelText("East edge")).not.toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText(/North latitude must be greater/)).toBeInTheDocument();
   });
+
+  it("swaps the range hint for the error text and back", () => {
+    const { rerender } = render(
+      <MantineProvider>
+        <BoundingBoxInputs north="" south="" east="" west="" onChange={vi.fn()} latitudeError />
+      </MantineProvider>,
+    );
+    expect(screen.queryByText(/Decimal degrees/)).not.toBeInTheDocument();
+    expect(screen.getByText(/North latitude must be greater/)).toBeInTheDocument();
+
+    rerender(
+      <MantineProvider>
+        <BoundingBoxInputs north="" south="" east="" west="" onChange={vi.fn()} />
+      </MantineProvider>,
+    );
+    expect(screen.getByText(/Decimal degrees/)).toBeInTheDocument();
+    expect(screen.queryByText(/North latitude must be greater/)).not.toBeInTheDocument();
+  });
 });

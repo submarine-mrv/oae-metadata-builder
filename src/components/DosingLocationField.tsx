@@ -3,7 +3,8 @@ import type { FieldProps } from "@rjsf/utils";
 import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseBoundsString } from "@/utils/mapLayerUtils";
+import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
+import { hideLabelLayers, parseBoundsString } from "@/utils/mapLayerUtils";
 import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
 import DosingLocationMapModal from "./DosingLocationMapModal";
 
@@ -136,9 +137,9 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
     try {
       const map = new window.maplibregl.Map({
         container: mapRef.current,
-        style: "https://tiles.openfreemap.org/styles/positron",
-        center: [-123.0, 47.5],
-        zoom: 2,
+        style: MAP_TILE_STYLE,
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MINI_MAP_ZOOM,
         interactive: false,
         attributionControl: false,
       });
@@ -146,6 +147,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
       mapInstanceRef.current = map;
 
       map.on("load", () => {
+        hideLabelLayers(map);
         setMiniMapLoaded(true);
       });
     } catch (error) {

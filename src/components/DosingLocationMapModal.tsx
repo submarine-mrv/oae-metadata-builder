@@ -13,6 +13,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DEFAULT_MAP_CENTER, DEFAULT_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
 import { type DrawPoint, useTwoPointDraw } from "@/hooks/useTwoPointDraw";
 import {
   addBoundingBox,
@@ -115,6 +116,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
   const [north, setNorth] = useState<number | string>(initialBox?.north ?? "");
   const [south, setSouth] = useState<number | string>(initialBox?.south ?? "");
   const [west, setWest] = useState<number | string>(initialBox?.west ?? "");
+  // Set when north is not above south; mirrors SpatialCoverageMapModal.
+  const [hasLatitudeError, setHasLatitudeError] = useState(false);
   const [east, setEast] = useState<number | string>(initialBox?.east ?? "");
 
   const [localFileLocation, setLocalFileLocation] = useState(fileLocation);
@@ -208,12 +211,17 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       newEast: number | string,
       newNorth: number | string,
     ) => {
-      // Only update bounds if all values are valid numbers
+      const orderWrong =
+        typeof newNorth === "number" && typeof newSouth === "number" && newNorth <= newSouth;
+      setHasLatitudeError(orderWrong);
+
+      // Only draw when every value is a number and the box has height
       if (
         typeof newWest === "number" &&
         typeof newSouth === "number" &&
         typeof newEast === "number" &&
         typeof newNorth === "number" &&
+        !orderWrong &&
         mapInstanceRef.current &&
         mapLoaded
       ) {
@@ -284,6 +292,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     setSouth(s);
     setEast(e);
     setNorth(n);
+    setHasLatitudeError(n <= s);
   }, []);
 
   const handleDrawStart = useCallback(() => {
@@ -326,9 +335,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
     const map = new window.maplibregl.Map({
       container: mapRef.current,
-      style: "https://tiles.openfreemap.org/styles/positron",
-      center: [-123.0, 47.5],
-      zoom: 2,
+      style: MAP_TILE_STYLE,
+      center: DEFAULT_MAP_CENTER,
+      zoom: DEFAULT_ZOOM,
     });
 
     mapInstanceRef.current = map;
@@ -470,6 +479,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     setSouth("");
     setEast("");
     setWest("");
+    setHasLatitudeError(false);
     setLocalFileLocation("");
     clearMarkers();
     clearLineLayer();
@@ -562,6 +572,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       );
     if (localMode === "box")
       return (
+        !hasLatitudeError &&
         typeof west === "number" &&
         typeof south === "number" &&
         typeof east === "number" &&
@@ -762,6 +773,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
             south={south}
             east={east}
             west={west}
+            latitudeError={hasLatitudeError}
             onChange={handleEdgeChange}
           />
         )}

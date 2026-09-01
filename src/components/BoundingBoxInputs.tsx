@@ -111,14 +111,10 @@ const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
         <Box style={{ gridColumn: 3, gridRow: 2 }}>{input("east")}</Box>
         <Box style={{ gridColumn: 2, gridRow: 3 }}>{input("south")}</Box>
       </Box>
-      <Text size="xs" c="dimmed" ta="center" mt={6}>
-        {RANGE_HINT}
+      {/* The hint line doubles as the error line, so nothing shifts when it flips. */}
+      <Text size="xs" c={latitudeError ? "red" : "dimmed"} ta="center" mt={6}>
+        {latitudeError ? LATITUDE_ERROR : RANGE_HINT}
       </Text>
-      {latitudeError && (
-        <Text size="xs" c="red" ta="center" mt={4}>
-          {LATITUDE_ERROR}
-        </Text>
-      )}
     </Box>
   );
 };

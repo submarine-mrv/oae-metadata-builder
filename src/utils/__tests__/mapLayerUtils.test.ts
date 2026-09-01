@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addBoundingBox,
   addLine,
+  hideLabelLayers,
   lineBounds,
   setBoundingBoxData,
   setLineData,
@@ -196,5 +197,30 @@ describe("lineBounds", () => {
       [-190, -10],
       [-170, 10],
     ]);
+  });
+});
+
+describe("hideLabelLayers", () => {
+  it("hides symbol layers and leaves everything else visible", () => {
+    const map = {
+      getStyle: () => ({
+        layers: [
+          { id: "water", type: "fill" },
+          { id: "place_country", type: "symbol" },
+          { id: "roads", type: "line" },
+          { id: "water_name", type: "symbol" },
+        ],
+      }),
+      setLayoutProperty: vi.fn(),
+    };
+    hideLabelLayers(map);
+    expect(map.setLayoutProperty.mock.calls).toEqual([
+      ["place_country", "visibility", "none"],
+      ["water_name", "visibility", "none"],
+    ]);
+  });
+
+  it("tolerates a map with no style yet", () => {
+    expect(() => hideLabelLayers({ setLayoutProperty: vi.fn() })).not.toThrow();
   });
 });

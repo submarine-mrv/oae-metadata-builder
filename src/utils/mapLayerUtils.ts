@@ -313,6 +313,20 @@ export function setLineData(
 }
 
 /**
+ * Hide every text layer in the basemap style.
+ *
+ * The preview maps carry a "click to set…" prompt over the tiles, and country
+ * and sea names underneath it make that prompt hard to read. The full modal
+ * maps keep their labels; only the previews call this.
+ */
+export function hideLabelLayers(map: any): void {
+  const layers: Array<{ id: string; type: string }> = map.getStyle?.()?.layers ?? [];
+  for (const layer of layers) {
+    if (layer.type === "symbol") map.setLayoutProperty(layer.id, "visibility", "none");
+  }
+}
+
+/**
  * Fit map bounds with antimeridian handling
  *
  * @param map - MapLibre map instance

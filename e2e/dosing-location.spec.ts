@@ -124,6 +124,23 @@ test.describe("Dosing Location Field", () => {
     await expect(page.getByLabel("Dosing Location File")).toBeVisible();
   });
 
+  test("Box mode: flags north below south and blocks save", async ({ page }) => {
+    await page.locator("text=Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+    await dosingModal.selectMode("Provided as a file");
+    await page.waitForTimeout(300);
+    await page.getByLabel("Dosing Location File").fill("data/dosing.geojson");
+
+    await dosingModal.fillBounds({ north: "40", south: "50", east: "-122", west: "-123" });
+    await expect(page.locator("text=North latitude must be greater than South latitude")).toBeVisible();
+    await expect(page.locator("button:has-text('Save')")).toBeDisabled();
+
+    await dosingModal.edge("north").fill("60");
+    await expect(page.locator("text=North latitude must be greater than South latitude")).toHaveCount(0);
+    await expect(page.locator("text=Decimal degrees")).toBeVisible();
+    await expect(page.locator("button:has-text('Save')")).toBeEnabled();
+  });
+
   test("Box mode: requires file location to save", async ({ page }) => {
     await page.locator("text=Click to set dosing location").click();
     await dosingModal.waitForMapLoad();
