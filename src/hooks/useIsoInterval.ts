@@ -1,11 +1,11 @@
 /**
- * useIsoInterval - Shared state logic for ISO 8601 interval widgets
+ * useIsoInterval - Shared state for a widget backed by one ISO 8601 interval.
  *
- * Extracts the common state management from IsoIntervalWidget so the widget
- * itself only deals with layout.
+ * Holds the two halves of `YYYY-MM-DD/YYYY-MM-DD` (or `/..` when open-ended)
+ * and rebuilds the string on change. Typing-validation state lives in the
+ * date inputs themselves now, so this is only parse, hold, emit.
  */
 import * as React from "react";
-import { MESSAGES } from "@/constants/messages";
 import { buildInterval, parseInterval, validateDate } from "@/utils/dateUtils";
 
 interface UseIsoIntervalProps {
@@ -14,34 +14,24 @@ interface UseIsoIntervalProps {
   onChange: (value: string | undefined) => void;
   onBlur?: (id: string, value: string) => void;
   onFocus?: (id: string, value: string) => void;
-  /** True when the parent form is currently showing a validation error
-   *  for this field. While true, keystrokes emit live so corrections
-   *  clear the error immediately. While false, keystrokes are buffered
-   *  locally and only emit on blur, preventing mid-typing error flashes. */
-  hasError?: boolean;
+  /**
+   * False while the widget is disabled or read-only. The boundary clean-up of
+   * an impossible stored date must not fire then: viewing data is not editing
+   * it, and the invalid value stays put for the error display to report.
+   */
+  editable?: boolean;
 }
 
 interface UseIsoIntervalReturn {
   startDate: string;
   endDate: string;
-  startPickerOpen: boolean;
-  endPickerOpen: boolean;
-  startTouched: boolean;
-  endTouched: boolean;
-  startError: string | undefined;
-  endError: string | undefined;
-  setStartPickerOpen: (open: boolean) => void;
-  setEndPickerOpen: (open: boolean) => void;
-  handleStartChange: (value: string) => void;
-  handleEndChange: (value: string) => void;
+  /** Set one half; an empty string clears it. Emits the rebuilt interval. */
+  setStart: (date: string) => void;
+  setEnd: (date: string) => void;
   handleStartBlur: () => void;
   handleEndBlur: () => void;
   handleStartFocus: () => void;
   handleEndFocus: () => void;
-  handleStartDatePick: (formatted: string) => void;
-  handleEndDatePick: (dateStr: string) => void;
-  setStartTouched: (touched: boolean) => void;
-  setEndTouched: (touched: boolean) => void;
 }
 
 export function useIsoInterval({
@@ -50,16 +40,22 @@ export function useIsoInterval({
   onChange,
   onBlur,
   onFocus,
-  hasError = false,
+  editable = true,
 }: UseIsoIntervalProps): UseIsoIntervalReturn {
-  const { start, end } = React.useMemo(() => parseInterval(value), [value]);
+  // A half that matches the YYYY-MM-DD shape but is not a real date (an
+  // imported 2024-02-31, say) would pass the schema's pattern check while the
+  // input shows it as blank. It is dropped here so form data never keeps a
+  // value the user cannot see.
+  const { start, end } = React.useMemo(() => {
+    const parsed = parseInterval(value);
+    return {
+      start: validateDate(parsed.start) ? parsed.start : "",
+      end: validateDate(parsed.end) ? parsed.end : "",
+    };
+  }, [value]);
 
   const [startDate, setStartDate] = React.useState(start);
   const [endDate, setEndDate] = React.useState(end);
-  const [startPickerOpen, setStartPickerOpen] = React.useState(false);
-  const [endPickerOpen, setEndPickerOpen] = React.useState(false);
-  const [startTouched, setStartTouched] = React.useState(false);
-  const [endTouched, setEndTouched] = React.useState(false);
   React.useEffect(() => {
     setStartDate(start);
     setEndDate(end);
@@ -70,94 +66,44 @@ export function useIsoInterval({
     [onChange],
   );
 
-  // "Late to blame, eager to forgive":
-  //   - No error showing → keystrokes update local state only; emit on blur.
-  //     Prevents red borders from flashing mid-typing.
-  //   - Error showing → keystrokes emit live so the parent re-validates
-  //     and the error clears the moment the input becomes valid.
-  //   - Once valid again, we're back to the quiet mode (hasError=false).
-  const handleStartChange = React.useCallback(
-    (v: string) => {
-      setStartDate(v);
-      if (hasError) emit(v, endDate);
-    },
-    [hasError, emit, endDate],
-  );
+  React.useEffect(() => {
+    if (!editable) return;
+    const raw = parseInterval(value);
+    if (raw.start !== start || raw.end !== end) emit(start, end);
+  }, [value, start, end, emit, editable]);
 
-  const handleEndChange = React.useCallback(
-    (v: string) => {
-      setEndDate(v);
-      if (hasError) emit(startDate, v);
-    },
-    [hasError, emit, startDate],
-  );
-
-  const handleStartBlur = React.useCallback(() => {
-    setStartTouched(true);
-    emit(startDate, endDate);
-    onBlur?.(id, startDate);
-  }, [id, startDate, endDate, emit, onBlur]);
-
-  const handleEndBlur = React.useCallback(() => {
-    setEndTouched(true);
-    emit(startDate, endDate);
-    onBlur?.(id, endDate);
-  }, [id, startDate, endDate, emit, onBlur]);
-
-  const handleStartFocus = React.useCallback(() => {
-    onFocus?.(id, startDate);
-  }, [id, startDate, onFocus]);
-
-  const handleEndFocus = React.useCallback(() => {
-    onFocus?.(id, endDate);
-  }, [id, endDate, onFocus]);
-
-  const handleStartDatePick = React.useCallback(
-    (formatted: string) => {
-      setStartDate(formatted);
-      emit(formatted, endDate);
+  const setStart = React.useCallback(
+    (date: string) => {
+      setStartDate(date);
+      emit(date, endDate);
     },
     [emit, endDate],
   );
 
-  const handleEndDatePick = React.useCallback(
-    (dateStr: string) => {
-      setEndDate(dateStr);
-      emit(startDate, dateStr);
+  const setEnd = React.useCallback(
+    (date: string) => {
+      setEndDate(date);
+      emit(startDate, date);
     },
     [emit, startDate],
   );
 
-  const startError =
-    startTouched && startDate && !validateDate(startDate)
-      ? MESSAGES.validation.invalidDateFormat
-      : undefined;
-
-  const endError =
-    endTouched && endDate && !validateDate(endDate)
-      ? MESSAGES.validation.invalidDateFormat
-      : undefined;
+  const handleStartBlur = React.useCallback(() => onBlur?.(id, startDate), [id, startDate, onBlur]);
+  const handleEndBlur = React.useCallback(() => onBlur?.(id, endDate), [id, endDate, onBlur]);
+  const handleStartFocus = React.useCallback(
+    () => onFocus?.(id, startDate),
+    [id, startDate, onFocus],
+  );
+  const handleEndFocus = React.useCallback(() => onFocus?.(id, endDate), [id, endDate, onFocus]);
 
   return {
     startDate,
     endDate,
-    startPickerOpen,
-    endPickerOpen,
-    startTouched,
-    endTouched,
-    startError,
-    endError,
-    setStartPickerOpen,
-    setEndPickerOpen,
-    handleStartChange,
-    handleEndChange,
+    setStart,
+    setEnd,
     handleStartBlur,
     handleEndBlur,
     handleStartFocus,
     handleEndFocus,
-    handleStartDatePick,
-    handleEndDatePick,
-    setStartTouched,
-    setEndTouched,
   };
 }
