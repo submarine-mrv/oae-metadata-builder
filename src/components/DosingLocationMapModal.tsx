@@ -395,8 +395,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       if (localMode === "point") {
         map.on("click", (e: any) => {
           const { lng, lat } = e.lngLat;
-          setPointLat(lat);
-          setPointLon(lng);
+          setPointLat(clampLatitude(lat));
+          setPointLon(normalizeLongitude(lng));
         });
       }
     });

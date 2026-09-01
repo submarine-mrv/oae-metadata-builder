@@ -124,6 +124,29 @@ test.describe("Dosing Location Field", () => {
     await expect(page.getByLabel("Dosing Location File")).toBeVisible();
   });
 
+  // The globe default repeats the world at the edges. A click on a repeated copy
+  // must still store a longitude the schema accepts.
+  test("Fixed Point mode: a click on a repeated world stays within range", async ({ page }) => {
+    await page.locator("text=Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+    await dosingModal.selectMode("Fixed Point");
+    await page.waitForTimeout(300);
+
+    const box = await dosingModal.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found");
+    // Far right edge of the canvas, which at globe zoom is a repeated copy.
+    await page.mouse.click(box.x + box.width - 8, box.y + box.height / 2);
+    await page.waitForTimeout(500);
+
+    const lon = Number(await page.getByLabel("Longitude").inputValue());
+    const lat = Number(await page.getByLabel("Latitude").inputValue());
+    expect(Number.isFinite(lon)).toBe(true);
+    expect(lon).toBeGreaterThanOrEqual(-180);
+    expect(lon).toBeLessThanOrEqual(180);
+    expect(lat).toBeGreaterThanOrEqual(-90);
+    expect(lat).toBeLessThanOrEqual(90);
+  });
+
   test("Box mode: flags north below south and blocks save", async ({ page }) => {
     await page.locator("text=Click to set dosing location").click();
     await dosingModal.waitForMapLoad();
