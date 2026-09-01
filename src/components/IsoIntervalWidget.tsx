@@ -70,6 +70,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     onChange,
     onBlur,
     onFocus,
+    editable: !(disabled || readonly),
   });
 
   // Both dates live in one interval string, so a schema error on it arrives

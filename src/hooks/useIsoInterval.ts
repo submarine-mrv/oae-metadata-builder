@@ -14,6 +14,12 @@ interface UseIsoIntervalProps {
   onChange: (value: string | undefined) => void;
   onBlur?: (id: string, value: string) => void;
   onFocus?: (id: string, value: string) => void;
+  /**
+   * False while the widget is disabled or read-only. The boundary clean-up of
+   * an impossible stored date must not fire then: viewing data is not editing
+   * it, and the invalid value stays put for the error display to report.
+   */
+  editable?: boolean;
 }
 
 interface UseIsoIntervalReturn {
@@ -34,6 +40,7 @@ export function useIsoInterval({
   onChange,
   onBlur,
   onFocus,
+  editable = true,
 }: UseIsoIntervalProps): UseIsoIntervalReturn {
   // A half that matches the YYYY-MM-DD shape but is not a real date (an
   // imported 2024-02-31, say) would pass the schema's pattern check while the
@@ -60,9 +67,10 @@ export function useIsoInterval({
   );
 
   React.useEffect(() => {
+    if (!editable) return;
     const raw = parseInterval(value);
     if (raw.start !== start || raw.end !== end) emit(start, end);
-  }, [value, start, end, emit]);
+  }, [value, start, end, emit, editable]);
 
   const setStart = React.useCallback(
     (date: string) => {

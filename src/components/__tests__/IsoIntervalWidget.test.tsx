@@ -102,6 +102,21 @@ describe("IsoIntervalWidget", () => {
       expect(onChange).toHaveBeenLastCalledWith(undefined);
     });
 
+    // Viewing is not editing: a read-only widget must not rewrite the data.
+    it("does not rewrite an impossible stored date while read-only", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-02-31/2024-12-31", onChange, readonly: true });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("does not rewrite an impossible stored date while disabled", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-01-01/2024-02-31", onChange, disabled: true });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
     it("leaves a valid stored interval alone", async () => {
       const onChange = vi.fn();
       renderWidget({ value: "2024-01-01/2024-12-31", onChange });
