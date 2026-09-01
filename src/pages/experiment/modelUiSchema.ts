@@ -80,7 +80,8 @@ const modelUiSchema = {
         "ui:placeholder": "URL or DOI (e.g. https://...)",
       },
       // Narrative text wants the whole row, not the left half of the grid.
-      description: { ...textAreaWidget, "ui:span": 12 },
+      // Tooltip rather than modal: the description is one short sentence.
+      description: { ...textAreaWidget, "ui:descriptionModal": false, "ui:span": 12 },
       comment_type: {
         "ui:widget": "CustomSelectWidget",
         "ui:enumNames": enumNames.PublicCommentType,

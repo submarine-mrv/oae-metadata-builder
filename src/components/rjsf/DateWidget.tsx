@@ -8,6 +8,11 @@ import FieldLabel from "./FieldLabel";
 
 const DATE_FORMAT = "YYYY-MM-DD";
 
+const strictDateParser = (input: string): string | null => {
+  const d = dayjs(input.trim(), DATE_FORMAT, true);
+  return d.isValid() ? d.format(DATE_FORMAT) : null;
+};
+
 /**
  * DateWidget - Mantine DateInput for `format: date` fields.
  *
@@ -48,7 +53,8 @@ const DateWidget: React.FC<WidgetProps> = ({
         onChange(undefined);
         return;
       }
-      const d = dayjs(next);
+      // Strict: a typed 2027-02-30 must be refused, not rolled into March.
+      const d = typeof next === "string" ? dayjs(next, DATE_FORMAT, true) : dayjs(next);
       onChange(d.isValid() ? d.format(DATE_FORMAT) : undefined);
     },
     [onChange],
@@ -76,6 +82,8 @@ const DateWidget: React.FC<WidgetProps> = ({
         name={id}
         value={dateValue}
         valueFormat={DATE_FORMAT}
+        // Mantine's default parser is lenient; only real calendar dates pass.
+        dateParser={strictDateParser}
         clearable
         placeholder={placeholder || DATE_FORMAT}
         disabled={disabled || readonly}

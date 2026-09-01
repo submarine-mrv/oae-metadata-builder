@@ -65,6 +65,14 @@ describe("DateWidget", () => {
     expect(emitted).not.toContain("");
   });
 
+  it("refuses an impossible calendar date instead of normalising it", async () => {
+    const { onChange } = renderWidget();
+    await userEvent.type(screen.getByRole("textbox"), "2027-02-30");
+    await userEvent.tab();
+    for (const [v] of onChange.mock.calls) expect(v).not.toMatch(/2027-03|2027-02-3/);
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+
   it("never emits a malformed value", async () => {
     const { onChange } = renderWidget();
     await userEvent.type(screen.getByRole("textbox"), "not a date");
