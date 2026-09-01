@@ -75,6 +75,26 @@ export function unwrapLongitudeTowards(from: number, to: number): number {
 }
 
 /**
+ * Southwest/northeast corners framing a two-point line, for `fitBounds`.
+ *
+ * `LngLatBounds` wants the corners in that order, so the endpoints are sorted
+ * rather than passed through; and the far longitude is unwrapped first, so a
+ * line across the antimeridian is framed the short way it is drawn.
+ */
+export function lineBounds(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): [[number, number], [number, number]] {
+  const farLon = unwrapLongitudeTowards(lon1, lon2);
+  return [
+    [Math.min(lon1, farLon), Math.min(lat1, lat2)],
+    [Math.max(lon1, farLon), Math.max(lat1, lat2)],
+  ];
+}
+
+/**
  * GeoJSON Feature for a two-point line.
  *
  * Endpoints are stored normalized to [-180, 180], which makes a line that

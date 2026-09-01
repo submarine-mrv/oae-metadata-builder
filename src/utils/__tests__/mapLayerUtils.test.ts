@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addBoundingBox,
   addLine,
+  lineBounds,
   setBoundingBoxData,
   setLineData,
   unwrapLongitudeTowards,
@@ -165,5 +166,35 @@ describe("unwrapLongitudeTowards", () => {
   it("treats exactly half the globe as the direct route", () => {
     expect(unwrapLongitudeTowards(0, 180)).toBe(180);
     expect(unwrapLongitudeTowards(0, -180)).toBe(-180);
+  });
+});
+
+describe("lineBounds", () => {
+  it("orders corners southwest then northeast for an ordinary line", () => {
+    expect(lineBounds(32, -125, 42, -114)).toEqual([
+      [-125, 32],
+      [-114, 42],
+    ]);
+  });
+
+  it("still orders correctly when the line is entered northeast to southwest", () => {
+    expect(lineBounds(42, -114, 32, -125)).toEqual([
+      [-125, 32],
+      [-114, 42],
+    ]);
+  });
+
+  it("frames an eastward antimeridian line the short way", () => {
+    expect(lineBounds(-10, 170, 10, -170)).toEqual([
+      [170, -10],
+      [190, 10],
+    ]);
+  });
+
+  it("frames a westward antimeridian line the short way", () => {
+    expect(lineBounds(10, -170, -10, 170)).toEqual([
+      [-190, -10],
+      [-170, 10],
+    ]);
   });
 });
