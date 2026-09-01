@@ -160,7 +160,16 @@ export function useTwoPointDraw({
       // abandoned-gesture latch must not outlive it. Cleared before the
       // in-progress check, or the closing click of this shape gets eaten.
       swallowNextClickRef.current = false;
-      if (startPointRef.current) return;
+
+      // A press after the opening click: a closing click (its click event
+      // completes the shape) or a drag that completes on release. MapLibre drops
+      // the click after a drag, so mouseup has to be able to finish it. Record
+      // the press and stop the map panning under the pointer meanwhile.
+      if (startPointRef.current) {
+        pressOriginRef.current = { x: e.point.x, y: e.point.y };
+        map.dragPan.disable();
+        return;
+      }
 
       pressOriginRef.current = { x: e.point.x, y: e.point.y };
       openingClickPendingRef.current = true;

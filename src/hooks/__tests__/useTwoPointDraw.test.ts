@@ -123,6 +123,37 @@ describe("useTwoPointDraw", () => {
     });
   });
 
+  describe("click, then drag", () => {
+    it("completes a shape opened by a click and closed by a drag", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+      act(() => {
+        map.click(10, 20);
+      });
+      expect(hook.result.current.hasStartPoint).toBe(true);
+
+      // MapLibre emits no click after a drag, so release has to finish it.
+      act(() => {
+        map.emit("mousedown", {
+          lngLat: { lng: 30, lat: 40 },
+          point: { x: 200, y: 200 },
+          originalEvent: { button: 0 },
+        });
+      });
+      expect(map.dragPan.disable).toHaveBeenCalled();
+      act(() => {
+        map.move(35, 45, 230, 230);
+        map.emit("mouseup", { lngLat: { lng: 40, lat: 50 }, point: { x: 260, y: 260 } });
+      });
+
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 10, lat: 20 },
+        { lng: 40, lat: 50 },
+      );
+      expect(hook.result.current.isDrawing).toBe(false);
+    });
+  });
+
   describe("press, drag, release", () => {
     it("completes on release and suppresses panning during the drag", () => {
       const { hook, onComplete } = setup(map);
