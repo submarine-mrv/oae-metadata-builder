@@ -27,6 +27,15 @@ const DATE_FORMAT = "YYYY-MM-DD";
 const asDateString = (value: string): string | null =>
   value && dayjs(value, DATE_FORMAT, true).isValid() ? value : null;
 
+/**
+ * Mantine's default parser is lenient and would turn 2024-02-31 into a real
+ * date. Strict parsing keeps the calendar-date check the old text inputs had.
+ */
+const strictDateParser = (input: string): string | null => {
+  const d = dayjs(input.trim(), DATE_FORMAT, true);
+  return d.isValid() ? d.format(DATE_FORMAT) : null;
+};
+
 const IsoIntervalWidget: React.FC<WidgetProps> = ({
   id,
   value,
@@ -67,6 +76,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
 
   const common = {
     valueFormat: DATE_FORMAT,
+    dateParser: strictDateParser,
     placeholder: DATE_FORMAT,
     disabled: disabled || readonly,
     clearable: true,

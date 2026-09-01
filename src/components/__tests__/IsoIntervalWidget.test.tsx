@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import IsoIntervalWidget from "../IsoIntervalWidget";
 
@@ -66,6 +67,46 @@ describe("IsoIntervalWidget", () => {
     it("accepts the vertical layout used by nested fields", () => {
       renderWidget({ options: { layout: "vertical" } });
       expect(screen.getAllByPlaceholderText("YYYY-MM-DD")).toHaveLength(2);
+    });
+  });
+
+  describe("calendar-date strictness", () => {
+    it("refuses an impossible date instead of normalising it", async () => {
+      const onChange = vi.fn();
+      renderWidget({ onChange });
+      const start = screen.getAllByPlaceholderText("YYYY-MM-DD")[START];
+      await userEvent.type(start, "2024-02-31");
+      await userEvent.tab();
+      expect(start).toHaveValue("");
+      for (const [v] of onChange.mock.calls) expect(v).not.toMatch(/2024-02-3|2024-03-0/);
+    });
+
+    // A pattern-shaped but impossible stored date passes the schema's pattern
+    // check while the input shows it as blank. The hook drops it so form data
+    // never keeps a value the user cannot see.
+    it("drops a stored impossible end date from the form data", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-01-01/2024-02-31", onChange });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
+      await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
+      expect(onChange).toHaveBeenLastCalledWith("2024-01-01/..");
+    });
+
+    // An interval has no meaning without a start, so an impossible start
+    // clears the whole value rather than leaving a dangling end date.
+    it("clears the interval when the stored start date is impossible", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-02-31/2024-12-31", onChange });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[START]).toHaveValue("");
+      await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
+      expect(onChange).toHaveBeenLastCalledWith(undefined);
+    });
+
+    it("leaves a valid stored interval alone", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-01-01/2024-12-31", onChange });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onChange).not.toHaveBeenCalled();
     });
   });
 

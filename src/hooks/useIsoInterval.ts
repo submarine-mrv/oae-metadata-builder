@@ -6,7 +6,7 @@
  * date inputs themselves now, so this is only parse, hold, emit.
  */
 import * as React from "react";
-import { buildInterval, parseInterval } from "@/utils/dateUtils";
+import { buildInterval, parseInterval, validateDate } from "@/utils/dateUtils";
 
 interface UseIsoIntervalProps {
   id: string;
@@ -35,7 +35,17 @@ export function useIsoInterval({
   onBlur,
   onFocus,
 }: UseIsoIntervalProps): UseIsoIntervalReturn {
-  const { start, end } = React.useMemo(() => parseInterval(value), [value]);
+  // A half that matches the YYYY-MM-DD shape but is not a real date (an
+  // imported 2024-02-31, say) would pass the schema's pattern check while the
+  // input shows it as blank. It is dropped here so form data never keeps a
+  // value the user cannot see.
+  const { start, end } = React.useMemo(() => {
+    const parsed = parseInterval(value);
+    return {
+      start: validateDate(parsed.start) ? parsed.start : "",
+      end: validateDate(parsed.end) ? parsed.end : "",
+    };
+  }, [value]);
 
   const [startDate, setStartDate] = React.useState(start);
   const [endDate, setEndDate] = React.useState(end);
@@ -48,6 +58,11 @@ export function useIsoInterval({
     (s: string, e: string) => onChange(buildInterval(s, e) ?? undefined),
     [onChange],
   );
+
+  React.useEffect(() => {
+    const raw = parseInterval(value);
+    if (raw.start !== start || raw.end !== end) emit(start, end);
+  }, [value, start, end, emit]);
 
   const setStart = React.useCallback(
     (date: string) => {
