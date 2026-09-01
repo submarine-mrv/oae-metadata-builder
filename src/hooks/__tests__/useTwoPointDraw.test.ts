@@ -454,6 +454,32 @@ describe("useTwoPointDraw", () => {
       }
     });
 
+    it("completes a shape opened by a tap and closed by a drag", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      // Opening tap, including the click a tap emits.
+      act(() => {
+        map.emit("touchstart", touch(10, 20, 100, 100));
+        map.emit("touchend", touch(10, 20, 100, 100));
+        map.emit("click", { lngLat: { lng: 10, lat: 20 }, point: { x: 100, y: 100 } });
+      });
+      expect(hook.result.current.hasStartPoint).toBe(true);
+      expect(onComplete).not.toHaveBeenCalled();
+
+      // Second finger down elsewhere, dragged, lifted: no click follows a drag.
+      act(() => {
+        map.emit("touchstart", touch(30, 40, 200, 200));
+        map.emit("touchmove", touch(35, 45, 230, 230));
+        map.emit("touchend", touch(40, 50, 260, 260));
+      });
+
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 10, lat: 20 },
+        { lng: 40, lat: 50 },
+      );
+    });
+
     it("ignores multi-touch so pinch zoom still works", () => {
       const { hook, onPreview } = setup(map);
       act(() => hook.result.current.start());

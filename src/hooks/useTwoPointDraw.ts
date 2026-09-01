@@ -227,7 +227,16 @@ export function useTwoPointDraw({
       // A fresh single-finger touch is deliberate: clear both latches.
       multiTouchRef.current = false;
       swallowNextClickRef.current = false;
-      if (startPointRef.current) return;
+
+      // A second touch after an opening tap: either a closing tap (its click
+      // completes the shape) or a drag that should complete on lift. Record
+      // the press so touchend can tell them apart, and stop the map panning
+      // under the finger meanwhile.
+      if (startPointRef.current) {
+        pressOriginRef.current = { x: e.point.x, y: e.point.y };
+        map.dragPan.disable();
+        return;
+      }
 
       pressOriginRef.current = { x: e.point.x, y: e.point.y };
       openingClickPendingRef.current = true;
