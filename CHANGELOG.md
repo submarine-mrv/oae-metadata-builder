@@ -12,7 +12,7 @@ Built against oae-data-protocol v0.4.0.
 - Public comments are a list of entries, each with a link or DOI, a consultation type and an
   optional description, instead of one comma-separated string. An existing value is kept as the
   description of a single entry of type "Other", with its link left blank to fill in. (#75)
-- Platform type offers seven more NERC L06 vocabulary options. (#75)
+- Platform type offers five more NERC L06 vocabulary options. (#75)
 - Fixed: `mcdr_forcing_description` was required for every model output dataset, not just
   perturbation runs. (#75)
 - Dropdown fields now show the description tooltip that text fields already had. No dropdown on the

@@ -19,6 +19,7 @@ import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
+import DateWidget from "@/components/rjsf/DateWidget";
 import DosingConcentrationField from "@/components/rjsf/DosingConcentrationField";
 import DosingDepthWidget from "@/components/rjsf/DosingDepthWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
@@ -200,6 +201,8 @@ export default function ExperimentPage() {
               constAsDefaults: "never",
             }}
             widgets={{
+              // RJSF picks `DateWidget` by name for `format: date`.
+              DateWidget,
               CustomSelectWidget: CustomSelectWidget,
               TextWidget: BaseInputWidget,
               textarea: CustomTextareaWidget,

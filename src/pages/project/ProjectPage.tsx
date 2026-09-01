@@ -19,6 +19,7 @@ import CustomErrorList from "@/components/rjsf/CustomErrorList";
 import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
+import DateWidget from "@/components/rjsf/DateWidget";
 import LockableIdWidget from "@/components/rjsf/LockableIdWidget";
 import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
@@ -135,6 +136,8 @@ export default function ProjectPage() {
               constAsDefaults: "never",
             }}
             widgets={{
+              // RJSF picks `DateWidget` by name for `format: date`.
+              DateWidget,
               IsoIntervalWidget,
               SeaNamesAutocomplete: SeaNamesAutocompleteWidget,
               CustomSelectWidget: CustomSelectWidget,
