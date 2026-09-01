@@ -10,8 +10,8 @@ export type BoxEdge = "north" | "south" | "east" | "west";
  * equator, which is wrong for a box spanning 45°N to 55°N.
  */
 const EDGE_LABELS: Record<BoxEdge, string> = {
-  north: `Maximum latitude (${MIN_LATITUDE}° to ${MAX_LATITUDE}°)`,
-  south: `Minimum latitude (${MIN_LATITUDE}° to ${MAX_LATITUDE}°)`,
+  north: `Max latitude (${MIN_LATITUDE}° to ${MAX_LATITUDE}°)`,
+  south: `Min latitude (${MIN_LATITUDE}° to ${MAX_LATITUDE}°)`,
   east: `East edge (${MIN_LONGITUDE}° to ${MAX_LONGITUDE}°)`,
   west: `West edge (${MIN_LONGITUDE}° to ${MAX_LONGITUDE}°)`,
 };
