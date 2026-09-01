@@ -21,7 +21,7 @@ const schema = {
 };
 
 /** Per-field error lists, in the shape RJSF builds for a nested object field. */
-type FieldErrors = Record<string, { __errors: string[] }>;
+type FieldErrors = Record<string, unknown>;
 
 function renderField(errors: FieldErrors = {}, formData: Record<string, unknown> = {}) {
   const props = {
@@ -123,6 +123,31 @@ describe("ExternalProjectField", () => {
     it("leaves the start date unmarked when temporal coverage is valid", () => {
       renderField();
       expect(errorTextFor("YYYY-MM-DD")).toBeNull();
+    });
+
+    // Errors can sit below the sub-field — spatial_coverage.geo.box, or a
+    // related_links item — and still belong on the input that renders it.
+    it("surfaces an error nested under a custom object field", () => {
+      // SpatialCoverageField renders its own copy rather than the message text,
+      // so the assertion is that the error reached it at all.
+      renderField({
+        spatial_coverage: { geo: { box: { __errors: ["Must be four numbers"] } } },
+      });
+      expect(screen.getByText(/Spatial Coverage is required/)).toBeInTheDocument();
+    });
+
+    it("surfaces an error nested under an array item", () => {
+      renderField({
+        related_links: { 0: { __errors: ["Must be a valid URL"] } },
+      });
+      expect(screen.getByText("Must be a valid URL")).toBeInTheDocument();
+    });
+
+    it("de-duplicates the same message repeated down the subtree", () => {
+      renderField({
+        name: { __errors: ["Field is required"], nested: { __errors: ["Field is required"] } },
+      });
+      expect(errorTextFor("Project name")).toBe("Field is required");
     });
 
     it("survives an absent errorSchema", () => {

@@ -18,10 +18,30 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
    * This component renders its children itself rather than delegating to RJSF's
    * ObjectField, so nothing else propagates the errors down — without this the
    * inputs stay unmarked while the summary box lists their errors.
+   *
+   * Errors are collected from the whole subtree, not just the sub-field's own
+   * `__errors`: a bad `spatial_coverage.geo.box` or `related_links[0]` sits
+   * below the input that has to show it.
    */
-  const errorsFor = (fieldName: string): string[] =>
-    (errorSchema as Record<string, { __errors?: string[] } | undefined> | undefined)?.[fieldName]
-      ?.__errors ?? [];
+  const collectErrors = (node: unknown): string[] => {
+    if (!node || typeof node !== "object") return [];
+    const found: string[] = [];
+    for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
+      if (key === "__errors") {
+        if (Array.isArray(child)) found.push(...child.filter((m) => typeof m === "string"));
+      } else {
+        found.push(...collectErrors(child));
+      }
+    }
+    return found;
+  };
+
+  const nestedErrorSchema = (fieldName: string): unknown =>
+    (errorSchema as Record<string, unknown> | undefined)?.[fieldName];
+
+  const errorsFor = (fieldName: string): string[] => [
+    ...new Set(collectErrors(nestedErrorSchema(fieldName))),
+  ];
 
   const errorTextFor = (fieldName: string): string | undefined => {
     const errors = errorsFor(fieldName);
@@ -81,6 +101,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     label: fieldSchema?.title ?? fieldName,
     placeholder: "",
     rawErrors: errorsFor(fieldName),
+    errorSchema: nestedErrorSchema(fieldName) ?? {},
     registry: props.registry,
   });
 
