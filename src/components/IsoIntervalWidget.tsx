@@ -10,6 +10,7 @@ import { Group, Stack, Text, TextInput } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
 import type * as React from "react";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
+import { validateDate } from "@/utils/dateUtils";
 import DatePickerPopover from "./DatePickerPopover";
 
 const IsoIntervalWidget: React.FC<WidgetProps> = ({
@@ -50,6 +51,16 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     hasError: !!externalError,
   });
 
+  // Both dates live in one interval string, so a schema error on it arrives
+  // without saying which half is wrong. Attribute it to whichever input is
+  // actually malformed, or a valid start date gets marked for the end date's
+  // mistake. When neither is malformed (an ordering rule, say) it falls to the
+  // start input.
+  const startMalformed = !interval.startDate || !validateDate(interval.startDate);
+  const endMalformed = Boolean(interval.endDate) && !validateDate(interval.endDate);
+  const startExternalError = startMalformed || !endMalformed ? externalError : undefined;
+  const endExternalError = endMalformed || endDateRequired ? externalError : undefined;
+
   return (
     <div id={id}>
       {label && (
@@ -68,7 +79,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={required}
-            error={interval.startError || externalError}
+            error={interval.startError || startExternalError}
             rightSection={
               <DatePickerPopover
                 opened={interval.startPickerOpen}
@@ -92,7 +103,7 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
             disabled={disabled || readonly}
             placeholder="YYYY-MM-DD"
             required={endDateRequired}
-            error={interval.endError || (endDateRequired ? externalError : undefined)}
+            error={interval.endError || endExternalError}
             rightSection={
               <DatePickerPopover
                 opened={interval.endPickerOpen}
