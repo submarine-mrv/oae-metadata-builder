@@ -44,8 +44,11 @@ function setup(map: any) {
   const onPreview = vi.fn();
   const onComplete = vi.fn();
   const onStart = vi.fn();
-  const hook = renderHook(() => useTwoPointDraw({ map, onPreview, onComplete, onStart }));
-  return { hook, onPreview, onComplete, onStart };
+  const onAbandon = vi.fn();
+  const hook = renderHook(() =>
+    useTwoPointDraw({ map, onPreview, onComplete, onStart, onAbandon }),
+  );
+  return { hook, onPreview, onComplete, onStart, onAbandon };
 }
 
 describe("useTwoPointDraw", () => {
@@ -256,7 +259,7 @@ describe("useTwoPointDraw", () => {
     });
 
     it("abandons the shape on touchcancel", () => {
-      const { hook, onComplete } = setup(map);
+      const { hook, onComplete, onAbandon } = setup(map);
       act(() => hook.result.current.start());
 
       act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
@@ -264,6 +267,30 @@ describe("useTwoPointDraw", () => {
 
       expect(hook.result.current.hasStartPoint).toBe(false);
       expect(onComplete).not.toHaveBeenCalled();
+      // The half-drawn preview has to be cleared, or it lingers on the map.
+      expect(onAbandon).toHaveBeenCalledTimes(1);
+    });
+
+    it("clears the preview when a pinch abandons the shape", () => {
+      const { hook, onAbandon } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchmove", touch(15, 25, 140, 140)));
+      act(() => map.emit("touchstart", touch(15, 25, 200, 200, 2)));
+
+      expect(onAbandon).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not call onAbandon when a gesture completes normally", () => {
+      const { hook, onAbandon } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchmove", touch(20, 30, 160, 150)));
+      act(() => map.emit("touchend", touch(20, 30, 160, 150)));
+
+      expect(onAbandon).not.toHaveBeenCalled();
     });
 
     it("can start a fresh drag after an abandoned pinch", () => {

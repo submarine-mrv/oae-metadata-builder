@@ -299,6 +299,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     onPreview: localMode === "box" ? handleBoxPreview : handleLinePreview,
     onComplete: localMode === "box" ? handleBoxComplete : handleLineComplete,
     onStart: handleDrawStart,
+    // Same cleanup: a gesture given up mid-draw must not leave its preview.
+    onAbandon: handleDrawStart,
   });
 
   /** Route a single edge's change through the existing four-value handler. */

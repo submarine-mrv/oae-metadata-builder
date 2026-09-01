@@ -10,7 +10,12 @@
  */
 
 import { WORLD_WIDTH_AT_ZOOM_0 } from "@/config/maps";
-import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
+import {
+  adjustEastForAntimeridian,
+  DEGREES_IN_CIRCLE,
+  MAX_LONGITUDE,
+  MIN_LONGITUDE,
+} from "@/utils/spatialUtils";
 
 // Layer style configurations
 export const BBOX_STYLES = {
@@ -57,15 +62,29 @@ function boundingBoxFeature(
   };
 }
 
-/** GeoJSON Feature for a two-point line. */
+/**
+ * GeoJSON Feature for a two-point line.
+ *
+ * Endpoints are stored normalized to [-180, 180], which makes a line that
+ * crosses the antimeridian look like the long way round (170° to -170° reads as
+ * 340° of travel, not 20°). Unwrap the far end so the short route is drawn.
+ */
 function lineFeature(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const delta = lon2 - lon1;
+  const renderLon2 =
+    delta > MAX_LONGITUDE
+      ? lon2 - DEGREES_IN_CIRCLE
+      : delta < MIN_LONGITUDE
+        ? lon2 + DEGREES_IN_CIRCLE
+        : lon2;
+
   return {
     type: "Feature" as const,
     geometry: {
       type: "LineString" as const,
       coordinates: [
         [lon1, lat1],
-        [lon2, lat2],
+        [renderLon2, lat2],
       ],
     },
   };

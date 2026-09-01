@@ -118,6 +118,27 @@ describe("setLineData", () => {
     ]);
   });
 
+  it("draws an antimeridian line the short way, not around the globe", () => {
+    // 170°E to 170°W is 20° apart, but the stored values differ by 340°.
+    setLineData(map, 10, 170, -10, -170);
+    const coords = coordsOf(map, "line");
+    expect(coords[0]).toEqual([170, 10]);
+    expect(coords[1]).toEqual([190, -10]);
+  });
+
+  it("unwraps westward antimeridian lines too", () => {
+    setLineData(map, -10, -170, 10, 170);
+    expect(coordsOf(map, "line")[1]).toEqual([-190, 10]);
+  });
+
+  it("leaves an ordinary line unwrapped", () => {
+    setLineData(map, 32, -125, 42, -114);
+    expect(coordsOf(map, "line")).toEqual([
+      [-125, 32],
+      [-114, 42],
+    ]);
+  });
+
   it("writes coordinates as [lon, lat]", () => {
     setLineData(map, 47.6, -122.3, 48.1, -123.4, { sourceId: "dosing-line" });
 

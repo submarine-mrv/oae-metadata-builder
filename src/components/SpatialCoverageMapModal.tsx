@@ -199,6 +199,8 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
     onPreview: handleDrawPreview,
     onComplete: handleDrawComplete,
     onStart: handleDrawStart,
+    // Same cleanup: a gesture given up mid-draw must not leave its preview.
+    onAbandon: handleDrawStart,
   });
 
   const handleConfirm = () => {

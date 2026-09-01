@@ -30,6 +30,12 @@ interface UseTwoPointDrawOptions {
   onComplete: (start: DrawPoint, end: DrawPoint) => void;
   /** Called when drawing begins, e.g. to clear a previous shape. */
   onStart?: () => void;
+  /**
+   * Called when a gesture is given up without completing (a pinch, a cancelled
+   * touch). The half-drawn preview is still on the map at this point and the
+   * caller has to clear it, or the modal shows a shape it never stored.
+   */
+  onAbandon?: () => void;
 }
 
 interface UseTwoPointDrawResult {
@@ -53,6 +59,7 @@ export function useTwoPointDraw({
   onPreview,
   onComplete,
   onStart,
+  onAbandon,
 }: UseTwoPointDrawOptions): UseTwoPointDrawResult {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasStartPoint, setHasStartPoint] = useState(false);
@@ -71,8 +78,8 @@ export function useTwoPointDraw({
 
   // Latest callbacks, so a re-render with new closures doesn't require
   // re-registering listeners mid-gesture.
-  const handlersRef = useRef({ onPreview, onComplete, onStart });
-  handlersRef.current = { onPreview, onComplete, onStart };
+  const handlersRef = useRef({ onPreview, onComplete, onStart, onAbandon });
+  handlersRef.current = { onPreview, onComplete, onStart, onAbandon };
 
   const cancel = useCallback(() => {
     teardownRef.current?.();
@@ -179,6 +186,7 @@ export function useTwoPointDraw({
       openingClickPendingRef.current = false;
       map.dragPan.enable();
       setHasStartPoint(false);
+      handlersRef.current.onAbandon?.();
     };
 
     const onTouchStart = (e: any) => {
