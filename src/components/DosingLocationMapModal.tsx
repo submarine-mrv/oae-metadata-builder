@@ -599,7 +599,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           <TextInput
             label="Dosing Location File"
             placeholder="DOI; filename"
-            description="Exact path and filename for the location file (relative to project root)."
+            description="Exact filename, URL and/or DOI to access the location file. Format should be one of GeoJSON or Shapefile."
             value={localFileLocation}
             onChange={(e) => setLocalFileLocation(e.target.value)}
             required
