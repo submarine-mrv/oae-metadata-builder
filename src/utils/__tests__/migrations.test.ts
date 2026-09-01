@@ -31,6 +31,31 @@ describe("migratePublicComments", () => {
     expect(result.name).toBe("Exp");
   });
 
+  // The interim list shape from earlier in the 0.4.0 cycle carried `filename`.
+  it("moves an interim filename entry into the description", () => {
+    const result = migratePublicComments({
+      public_comments: [{ filename: "a.pdf", comment_type: "permitting" }],
+    });
+    expect(result.public_comments).toEqual([{ description: "a.pdf", comment_type: "permitting" }]);
+    expect("filename" in result.public_comments[0]).toBe(false);
+  });
+
+  it("keeps an existing description over the filename", () => {
+    const [entry] = migratePublicComments({
+      public_comments: [{ filename: "a.pdf", description: "Kept", comment_type: "other" }],
+    }).public_comments;
+    expect(entry.description).toBe("Kept");
+    expect("filename" in entry).toBe(false);
+  });
+
+  it("only rewrites the entries that need it", () => {
+    const good = { url: "https://example.org/b.pdf", comment_type: "other" };
+    const result = migratePublicComments({
+      public_comments: [{ filename: "a.pdf", comment_type: "other" }, good],
+    });
+    expect(result.public_comments[1]).toBe(good);
+  });
+
   it("leaves already-migrated data untouched", () => {
     const data = {
       public_comments: [{ url: "https://example.org/a.pdf", comment_type: "permitting" }],

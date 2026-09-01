@@ -22,6 +22,21 @@ import { migrateFormDataBoxStrings } from "./spatialUtils";
  */
 export function migratePublicComments(data: Record<string, any>): Record<string, any> {
   const value = data?.public_comments;
+
+  // An interim shape from the same release cycle used `filename` where the
+  // schema now has `url`. The filename was never a link, so it becomes the
+  // description and the entry is left for the user to complete.
+  if (Array.isArray(value)) {
+    let changed = false;
+    const entries = value.map((entry) => {
+      if (!entry || typeof entry !== "object" || !("filename" in entry)) return entry;
+      changed = true;
+      const { filename, ...rest } = entry as Record<string, unknown>;
+      return { ...rest, description: rest.description ?? filename };
+    });
+    return changed ? { ...data, public_comments: entries } : data;
+  }
+
   if (typeof value !== "string") return data;
 
   const text = value.trim();
