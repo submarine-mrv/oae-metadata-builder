@@ -594,7 +594,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         {localMode === "box" && (
           <TextInput
             label="Dosing Location File"
-            placeholder="path/to/dosing_locations.geojson"
+            placeholder="DOI; filename"
             description="Exact path and filename for the location file (relative to project root)."
             value={localFileLocation}
             onChange={(e) => setLocalFileLocation(e.target.value)}
@@ -758,7 +758,6 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
             south={south}
             east={east}
             west={west}
-            layout="columns"
             onChange={handleEdgeChange}
           />
         )}

@@ -5,10 +5,10 @@ import { Page, Locator, expect } from "@playwright/test";
  * Kept here so a wording change updates every spec at once.
  */
 export const BOX_LABELS = {
-  north: "Max latitude (-90° to 90°)",
-  south: "Min latitude (-90° to 90°)",
-  east: "East edge (-180° to 180°)",
-  west: "West edge (-180° to 180°)",
+  north: "North edge",
+  south: "South edge",
+  east: "East edge",
+  west: "West edge",
 } as const;
 
 /**

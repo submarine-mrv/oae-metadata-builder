@@ -1,26 +1,36 @@
-import { Box, Group, NumberInput, Stack, Text } from "@mantine/core";
+import { Box, Group, NumberInput, Text } from "@mantine/core";
 import type React from "react";
 import { MAX_LATITUDE, MAX_LONGITUDE, MIN_LATITUDE, MIN_LONGITUDE } from "@/utils/spatialUtils";
 
 export type BoxEdge = "north" | "south" | "east" | "west";
 
 /**
- * Labels name the edge and give its range, rather than a compass letter.
- * "°S (min latitude)" reads as though the southern edge must be below the
- * equator, which is wrong for a box spanning 45°N to 55°N.
+ * Compass letters beside each input, arranged as a compass rose (N on top,
+ * W and E either side, S below), after NASA's ocean data order form. Position
+ * says which edge each box is; the letter no longer has to imply a hemisphere,
+ * which is what made "°S (min latitude)" misleading for a box at 45°N to 55°N.
  */
-const EDGE_LABELS: Record<BoxEdge, string> = {
-  north: `Max latitude (${MIN_LATITUDE}° to ${MAX_LATITUDE}°)`,
-  south: `Min latitude (${MIN_LATITUDE}° to ${MAX_LATITUDE}°)`,
-  east: `East edge (${MIN_LONGITUDE}° to ${MAX_LONGITUDE}°)`,
-  west: `West edge (${MIN_LONGITUDE}° to ${MAX_LONGITUDE}°)`,
+const EDGE_LETTERS: Record<BoxEdge, string> = {
+  north: "N:",
+  south: "S:",
+  east: "E:",
+  west: "W:",
 };
 
+/** Accessible names: the visible letter alone is not a useful screen-reader label. */
+const EDGE_ARIA_LABELS: Record<BoxEdge, string> = {
+  north: "North edge",
+  south: "South edge",
+  east: "East edge",
+  west: "West edge",
+};
+
+/** The extreme of each edge, so the hint doubles as the allowed range. */
 const EDGE_PLACEHOLDERS: Record<BoxEdge, string> = {
-  north: "e.g., 47.8",
-  south: "e.g., 47.2",
-  east: "e.g., -122.0",
-  west: "e.g., -123.5",
+  north: String(MAX_LATITUDE),
+  south: String(MIN_LATITUDE),
+  east: String(MAX_LONGITUDE),
+  west: String(MIN_LONGITUDE),
 };
 
 type CoordValue = number | string;
@@ -33,15 +43,11 @@ interface BoundingBoxInputsProps {
   onChange: (edge: BoxEdge, value: CoordValue) => void;
   /** Marks both latitude inputs red and shows the message below them. */
   latitudeError?: boolean;
-  /**
-   * "rows" pairs each latitude with a longitude on its own line; "columns" puts
-   * both latitudes in one column and both longitudes in another.
-   */
-  layout?: "rows" | "columns";
   disabled?: boolean;
 }
 
 const LATITUDE_ERROR = "North latitude must be greater than South latitude";
+const RANGE_HINT = `Decimal degrees. Latitude ${MIN_LATITUDE} to ${MAX_LATITUDE}, longitude ${MIN_LONGITUDE} to ${MAX_LONGITUDE}.`;
 
 const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
   north,
@@ -50,7 +56,6 @@ const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
   west,
   onChange,
   latitudeError = false,
-  layout = "rows",
   disabled,
 }) => {
   const values: Record<BoxEdge, CoordValue> = { north, south, east, west };
@@ -58,60 +63,55 @@ const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
   const input = (edge: BoxEdge) => {
     const isLatitude = edge === "north" || edge === "south";
     return (
-      <NumberInput
-        label={EDGE_LABELS[edge]}
-        placeholder={EDGE_PLACEHOLDERS[edge]}
-        value={values[edge]}
-        onChange={(value) => onChange(edge, value)}
-        min={isLatitude ? MIN_LATITUDE : MIN_LONGITUDE}
-        max={isLatitude ? MAX_LATITUDE : MAX_LONGITUDE}
-        decimalScale={6}
-        size="sm"
-        style={{ width: "200px" }}
-        error={isLatitude ? latitudeError : undefined}
-        disabled={disabled}
-      />
+      <Group gap={6} wrap="nowrap" align="center">
+        <Text size="sm" fw={500} w={22} ta="right">
+          {EDGE_LETTERS[edge]}
+        </Text>
+        <NumberInput
+          aria-label={EDGE_ARIA_LABELS[edge]}
+          placeholder={EDGE_PLACEHOLDERS[edge]}
+          value={values[edge]}
+          onChange={(value) => onChange(edge, value)}
+          min={isLatitude ? MIN_LATITUDE : MIN_LONGITUDE}
+          max={isLatitude ? MAX_LATITUDE : MAX_LONGITUDE}
+          decimalScale={6}
+          size="sm"
+          w={120}
+          error={isLatitude ? latitudeError : undefined}
+          disabled={disabled}
+        />
+      </Group>
     );
   };
 
-  const errorText = latitudeError ? (
-    <Text size="xs" c="red" mt={4}>
-      {LATITUDE_ERROR}
-    </Text>
-  ) : null;
-
-  if (layout === "columns") {
-    return (
-      <Box>
-        <Group gap="md" align="flex-start" justify="center">
-          <Stack gap="xs">
-            {input("north")}
-            {input("south")}
-          </Stack>
-          <Stack gap="xs">
-            {input("east")}
-            {input("west")}
-          </Stack>
-        </Group>
-        {errorText}
-      </Box>
-    );
-  }
-
   return (
-    <Stack gap="xs" align="center">
-      <Group gap="md" align="flex-start" justify="center">
-        {input("north")}
-        {input("east")}
-      </Group>
-      <Box>
-        <Group gap="md" align="flex-start" justify="center">
-          {input("south")}
-          {input("west")}
-        </Group>
-        {errorText}
+    <Box>
+      {/* 3x3 grid: N centred on top, W and E on the middle row, S centred below. */}
+      <Box
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto auto auto",
+          gridTemplateRows: "auto auto auto",
+          columnGap: "var(--mantine-spacing-md)",
+          rowGap: "var(--mantine-spacing-xs)",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Box style={{ gridColumn: 2, gridRow: 1 }}>{input("north")}</Box>
+        <Box style={{ gridColumn: 1, gridRow: 2 }}>{input("west")}</Box>
+        <Box style={{ gridColumn: 3, gridRow: 2 }}>{input("east")}</Box>
+        <Box style={{ gridColumn: 2, gridRow: 3 }}>{input("south")}</Box>
       </Box>
-    </Stack>
+      <Text size="xs" c="dimmed" ta="center" mt={6}>
+        {RANGE_HINT}
+      </Text>
+      {latitudeError && (
+        <Text size="xs" c="red" ta="center" mt={4}>
+          {LATITUDE_ERROR}
+        </Text>
+      )}
+    </Box>
   );
 };
 
