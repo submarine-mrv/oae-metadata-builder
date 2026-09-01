@@ -100,13 +100,34 @@ describe("IsoIntervalWidget", () => {
       expect(errorTextFor(START)).toBe("End date must be ≥ start date.");
     });
 
-    it("marks the end date when it is required and empty", () => {
+    it("marks only the end date when it is required and empty", () => {
       renderWidget({
         value: "2024-01-01/..",
         options: { endDateRequired: true },
         rawErrors: ["Field is required"],
       });
       expect(errorTextFor(END)).toBe("Field is required");
+      expect(errorTextFor(START)).toBeNull();
+    });
+
+    it("marks only the start date when the end is required and present", () => {
+      renderWidget({
+        value: "20xx/2024-12-31",
+        options: { endDateRequired: true },
+        rawErrors: ["Invalid date format"],
+      });
+      expect(errorTextFor(START)).toBe("Invalid date format");
+      expect(errorTextFor(END)).toBeNull();
+    });
+
+    it("marks both when the start is malformed and a required end is missing", () => {
+      renderWidget({
+        value: "20xx/..",
+        options: { endDateRequired: true },
+        rawErrors: ["Invalid date format"],
+      });
+      expect(errorTextFor(START)).toBe("Invalid date format");
+      expect(errorTextFor(END)).toBe("Invalid date format");
     });
 
     it("leaves both inputs clean when there are no errors", () => {

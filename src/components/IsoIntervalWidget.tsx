@@ -56,10 +56,14 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   // actually malformed, or a valid start date gets marked for the end date's
   // mistake. When neither is malformed (an ordering rule, say) it falls to the
   // start input.
-  const startMalformed = !interval.startDate || !validateDate(interval.startDate);
-  const endMalformed = Boolean(interval.endDate) && !validateDate(interval.endDate);
-  const startExternalError = startMalformed || !endMalformed ? externalError : undefined;
-  const endExternalError = endMalformed || endDateRequired ? externalError : undefined;
+  const startAtFault = !interval.startDate || !validateDate(interval.startDate);
+  const endAtFault =
+    (Boolean(interval.endDate) && !validateDate(interval.endDate)) ||
+    (endDateRequired && !interval.endDate);
+  // Neither identifiably at fault (an ordering rule, say) means the error
+  // belongs to the interval as a whole, so it goes on the start input.
+  const startExternalError = startAtFault || !endAtFault ? externalError : undefined;
+  const endExternalError = endAtFault ? externalError : undefined;
 
   return (
     <div id={id}>
