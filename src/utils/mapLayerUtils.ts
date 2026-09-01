@@ -1,12 +1,12 @@
 /**
  * Map Layer Utilities - Reusable functions for MapLibre GL map visualizations
  *
- * Currently used by:
- * - SpatialCoverageField
- * - SpatialCoverageMapModal
+ * Used by SpatialCoverageField, SpatialCoverageMapModal, DosingLocationField and
+ * DosingLocationMapModal.
  *
- * TODO: Integrate with DosingLocationField and DosingLocationMapModal
- * (these currently have their own inline implementations for addLine/addBoundingBox)
+ * `add*` creates the source and layers. `set*` updates an existing source's data
+ * in place and is what the drag-to-draw preview uses — re-adding layers on every
+ * mousemove flickers.
  */
 
 import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
@@ -29,6 +29,46 @@ export const LINE_STYLES = {
 } as const;
 
 export const MARKER_COLOR = "#228be6";
+
+/** GeoJSON Feature for a bounding box, with the antimeridian-adjusted east edge. */
+function boundingBoxFeature(
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  handleAntimeridian = true,
+) {
+  const renderEast = handleAntimeridian ? adjustEastForAntimeridian(west, east) : east;
+  return {
+    type: "Feature" as const,
+    geometry: {
+      type: "Polygon" as const,
+      coordinates: [
+        [
+          [west, north],
+          [renderEast, north],
+          [renderEast, south],
+          [west, south],
+          [west, north],
+        ],
+      ],
+    },
+  };
+}
+
+/** GeoJSON Feature for a two-point line. */
+function lineFeature(lat1: number, lon1: number, lat2: number, lon2: number) {
+  return {
+    type: "Feature" as const,
+    geometry: {
+      type: "LineString" as const,
+      coordinates: [
+        [lon1, lat1],
+        [lon2, lat2],
+      ],
+    },
+  };
+}
 
 interface BoundingBoxOptions {
   sourceId?: string;
@@ -74,28 +114,9 @@ export function addBoundingBox(
   // Remove existing layers and source
   removeBoundingBox(map, { sourceId, fillLayerId, outlineLayerId });
 
-  // Handle antimeridian crossing for rendering
-  const renderWest = west;
-  const renderEast = handleAntimeridian ? adjustEastForAntimeridian(west, east) : east;
-
-  // Add bounding box as GeoJSON source
   map.addSource(sourceId, {
     type: "geojson",
-    data: {
-      type: "Feature",
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [renderWest, north],
-            [renderEast, north],
-            [renderEast, south],
-            [renderWest, south],
-            [renderWest, north],
-          ],
-        ],
-      },
-    },
+    data: boundingBoxFeature(west, south, east, north, handleAntimeridian),
   });
 
   // Add fill layer
@@ -147,6 +168,29 @@ interface LineOptions {
 }
 
 /**
+ * Update an existing bounding box's geometry in place, adding it if absent.
+ *
+ * Used for the drag-to-draw preview: `addBoundingBox` tears down and rebuilds a
+ * source plus two layers, which flickers when called on every mousemove.
+ */
+export function setBoundingBoxData(
+  map: any,
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  options: BoundingBoxOptions = {},
+): void {
+  const { sourceId = "bbox", handleAntimeridian = true } = options;
+  const source = map.getSource(sourceId);
+  if (!source) {
+    addBoundingBox(map, west, south, east, north, options);
+    return;
+  }
+  source.setData(boundingBoxFeature(west, south, east, north, handleAntimeridian));
+}
+
+/**
  * Add a line visualization to a MapLibre map
  *
  * @param map - MapLibre map instance
@@ -169,19 +213,9 @@ export function addLine(
   // Remove existing line
   removeLine(map, options);
 
-  // Add line as GeoJSON source
   map.addSource(sourceId, {
     type: "geojson",
-    data: {
-      type: "Feature",
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [lon1, lat1],
-          [lon2, lat2],
-        ],
-      },
-    },
+    data: lineFeature(lat1, lon1, lat2, lon2),
   });
 
   // Add line layer
@@ -209,6 +243,27 @@ export function removeLine(map: any, options: LineOptions = {}): void {
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     map.removeSource(sourceId);
   }
+}
+
+/**
+ * Update an existing line's geometry in place, adding it if absent.
+ * Counterpart to `setBoundingBoxData` for line-mode drawing.
+ */
+export function setLineData(
+  map: any,
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+  options: LineOptions = {},
+): void {
+  const { sourceId = "line" } = options;
+  const source = map.getSource(sourceId);
+  if (!source) {
+    addLine(map, lat1, lon1, lat2, lon2, options);
+    return;
+  }
+  source.setData(lineFeature(lat1, lon1, lat2, lon2));
 }
 
 /**

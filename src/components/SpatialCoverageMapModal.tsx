@@ -1,17 +1,20 @@
-import { Box, Button, Group, Modal, NumberInput, Stack, Text } from "@mantine/core";
+import { Box, Button, Modal, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_MAP_CENTER, DEFAULT_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
+import { type DrawPoint, useTwoPointDraw } from "@/hooks/useTwoPointDraw";
 import {
   addBoundingBox,
   fitBoundsWithAntimeridian,
   formatBoundsString,
   parseBoundsString,
   removeBoundingBox,
+  setBoundingBoxData,
 } from "@/utils/mapLayerUtils";
-import { isValidLatitude, resolveBoxFromClicks } from "@/utils/spatialUtils";
+import { resolveBoxFromClicks } from "@/utils/spatialUtils";
+import BoundingBoxInputs, { type BoxEdge } from "./BoundingBoxInputs";
 
 interface SpatialCoverageMapModalProps {
   opened: boolean;
@@ -29,13 +32,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   const isMobile = useMediaQuery("(max-width: 768px)");
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const startPointRef = useRef<{ lng: number; lat: number } | null>(null);
-  const [isSelecting, setIsSelecting] = useState(false);
   const [currentBounds, setCurrentBounds] = useState<string>(initialBounds);
-  const [startPoint, setStartPoint] = useState<{
-    lng: number;
-    lat: number;
-  } | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Individual coordinate states
@@ -106,6 +103,19 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
     [mapLoaded],
   );
 
+  /** Route a single edge's change through the existing four-value handler. */
+  const handleEdgeChange = useCallback(
+    (edge: BoxEdge, value: number | string) => {
+      const next = { north, south, east, west, [edge]: value };
+      if (edge === "north") setNorth(value);
+      else if (edge === "south") setSouth(value);
+      else if (edge === "east") setEast(value);
+      else setWest(value);
+      handleCoordinateChange(next.west, next.south, next.east, next.north);
+    },
+    [north, south, east, west, handleCoordinateChange],
+  );
+
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.maplibregl || mapInstanceRef.current) return;
 
@@ -154,64 +164,42 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
     });
   }, [opened, mapLibreLoaded, initializeMap]);
 
-  const startSelection = () => {
-    if (!mapInstanceRef.current) return;
+  const handleDrawPreview = useCallback((from: DrawPoint, to: DrawPoint) => {
     const map = mapInstanceRef.current;
+    if (!map) return;
+    const { west, south, east, north } = resolveBoxFromClicks(from, to);
+    setBoundingBoxData(map, west, south, east, north);
+  }, []);
 
-    setIsSelecting(true);
-    setStartPoint(null);
-    startPointRef.current = null;
+  const handleDrawComplete = useCallback((from: DrawPoint, to: DrawPoint) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const { west, south, east, north } = resolveBoxFromClicks(from, to);
 
-    // Remove existing bounding box
-    removeBoundingBox(map);
+    addBoundingBox(map, west, south, east, north);
+    setCurrentBounds(formatBoundsString(west, south, east, north));
+    setWest(west);
+    setSouth(south);
+    setEast(east);
+    setNorth(north);
+    setHasLatitudeError(north <= south);
+  }, []);
 
-    map.getCanvas().style.cursor = "crosshair";
+  const handleDrawStart = useCallback(() => {
+    if (mapInstanceRef.current) removeBoundingBox(mapInstanceRef.current);
+  }, []);
 
-    const onMapClick = (e: any) => {
-      const { lng, lat } = e.lngLat;
-
-      if (!startPointRef.current) {
-        // First click - start selection
-        startPointRef.current = { lng, lat };
-        setStartPoint({ lng, lat });
-      } else {
-        // Second click - complete selection
-        const startPt = startPointRef.current;
-        const { west, south, east, north } = resolveBoxFromClicks(startPt, { lng, lat });
-
-        // Validate coordinates are within valid ranges
-        if (!isValidLatitude(south) || !isValidLatitude(north)) {
-          console.error("Invalid latitude coordinates:", { south, north });
-          return;
-        }
-
-        // Add final bounding box
-        addBoundingBox(map, west, south, east, north);
-
-        // Format as SOSO bounds string (minLat minLon maxLat maxLon)
-        const boundsString = formatBoundsString(west, south, east, north);
-        setCurrentBounds(boundsString);
-
-        // Update individual coordinate states
-        setWest(west);
-        setSouth(south);
-        setEast(east);
-        setNorth(north);
-
-        // Update validation error state
-        setHasLatitudeError(north <= south);
-
-        // Clean up
-        map.off("click", onMapClick);
-        map.getCanvas().style.cursor = "";
-        setIsSelecting(false);
-        setStartPoint(null);
-        startPointRef.current = null;
-      }
-    };
-
-    map.on("click", onMapClick);
-  };
+  const {
+    isDrawing,
+    hasStartPoint,
+    start: startSelection,
+    cancel: cancelSelection,
+  } = useTwoPointDraw({
+    map: mapLoaded ? mapInstanceRef.current : null,
+    onPreview: handleDrawPreview,
+    onComplete: handleDrawComplete,
+    onStart: handleDrawStart,
+  });
 
   const handleConfirm = () => {
     if (currentBounds) {
@@ -243,14 +231,12 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       }
 
       // Reset all state
+      cancelSelection();
       setCurrentBounds(initialBounds);
-      setIsSelecting(false);
-      setStartPoint(null);
-      startPointRef.current = null;
       setMapLoaded(false);
       parseBounds(initialBounds);
     }
-  }, [opened, initialBounds, parseBounds]);
+  }, [opened, initialBounds, parseBounds, cancelSelection]);
 
   return (
     <Modal
@@ -266,11 +252,11 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         <Text size="sm" c="dimmed">
           {!mapLoaded
             ? "Loading map..."
-            : !isSelecting
-              ? "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your bounding box."
-              : startPoint
-                ? "Click second point to complete selection"
-                : "Click first point to start selection"}
+            : !isDrawing
+              ? "Enter coordinates, or use 'Draw Selection' to drag a box on the map."
+              : hasStartPoint
+                ? "Release or click again to complete the box."
+                : "Drag a box on the map, or click once for each corner."}
         </Text>
 
         <Box
@@ -284,78 +270,14 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
           }}
         />
 
-        {/* Coordinate input fields without title */}
-        <Stack gap="xs" align="center">
-          <Group gap="md" align="flex-start" justify="center">
-            <NumberInput
-              label="Maximum latitude (-90° to 90°)"
-              placeholder="e.g., 47.8"
-              value={north}
-              onChange={(value) => {
-                setNorth(value);
-                handleCoordinateChange(west, south, east, value);
-              }}
-              min={-90}
-              max={90}
-              decimalScale={6}
-              size="sm"
-              style={{ width: "150px" }}
-              error={hasLatitudeError}
-            />
-            <NumberInput
-              label="East edge (-180° to 180°)"
-              placeholder="e.g., -122.0"
-              value={east}
-              onChange={(value) => {
-                setEast(value);
-                handleCoordinateChange(west, south, value, north);
-              }}
-              min={-180}
-              max={180}
-              decimalScale={6}
-              size="sm"
-              style={{ width: "150px" }}
-            />
-          </Group>
-          <Box>
-            <Group gap="md" align="flex-start" justify="center">
-              <NumberInput
-                label="Minimum latitude (-90° to 90°)"
-                placeholder="e.g., 47.2"
-                value={south}
-                onChange={(value) => {
-                  setSouth(value);
-                  handleCoordinateChange(west, value, east, north);
-                }}
-                min={-90}
-                max={90}
-                decimalScale={6}
-                size="sm"
-                style={{ width: "150px" }}
-                error={hasLatitudeError}
-              />
-              <NumberInput
-                label="West edge (-180° to 180°)"
-                placeholder="e.g., -123.5"
-                value={west}
-                onChange={(value) => {
-                  setWest(value);
-                  handleCoordinateChange(value, south, east, north);
-                }}
-                min={-180}
-                max={180}
-                decimalScale={6}
-                size="sm"
-                style={{ width: "150px" }}
-              />
-            </Group>
-            {hasLatitudeError && (
-              <Text size="xs" c="red" mt={4}>
-                North latitude must be greater than South latitude
-              </Text>
-            )}
-          </Box>
-        </Stack>
+        <BoundingBoxInputs
+          north={north}
+          south={south}
+          east={east}
+          west={west}
+          latitudeError={hasLatitudeError}
+          onChange={handleEdgeChange}
+        />
 
         <Box
           style={{
@@ -365,8 +287,8 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
           }}
         >
           {mapLoaded && (
-            <Button variant="outline" onClick={startSelection} disabled={isSelecting}>
-              {isSelecting ? "Drawing..." : "Draw Selection"}
+            <Button variant="outline" onClick={startSelection} disabled={isDrawing}>
+              {isDrawing ? "Drawing..." : "Draw Selection"}
             </Button>
           )}
 

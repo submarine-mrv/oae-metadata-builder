@@ -13,8 +13,23 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatBoundsString, parseBoundsString } from "@/utils/mapLayerUtils";
+import { type DrawPoint, useTwoPointDraw } from "@/hooks/useTwoPointDraw";
+import {
+  addBoundingBox,
+  addLine,
+  formatBoundsString,
+  parseBoundsString,
+  removeBoundingBox,
+  removeLine,
+  setBoundingBoxData,
+  setLineData,
+} from "@/utils/mapLayerUtils";
 import { adjustEastForAntimeridian, resolveBoxFromClicks } from "@/utils/spatialUtils";
+import BoundingBoxInputs, { type BoxEdge } from "./BoundingBoxInputs";
+
+// Layer namespaces, so the dosing shapes never collide with a spatial-coverage box.
+const BBOX_OPTS = { sourceId: "dosing-bbox" } as const;
+const LINE_OPTS = { sourceId: "dosing-line" } as const;
 
 type DosingMode = "point" | "line" | "box";
 
@@ -40,10 +55,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const lineLayerIdRef = useRef<string | null>(null);
-  const startPointRef = useRef<{ lng: number; lat: number } | null>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [isSelecting, setIsSelecting] = useState(false);
   const [localMode, setLocalMode] = useState<DosingMode | null>(mode);
 
   // Point mode state - individual coordinate states
@@ -108,53 +121,15 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     markersRef.current = [];
   };
 
-  // Clear line layer helper
-  const clearLineLayer = () => {
-    if (lineLayerIdRef.current && mapInstanceRef.current) {
-      const map = mapInstanceRef.current;
-      if (map.getLayer(lineLayerIdRef.current)) {
-        map.removeLayer(lineLayerIdRef.current);
-      }
-      if (map.getSource(lineLayerIdRef.current)) {
-        map.removeSource(lineLayerIdRef.current);
-      }
-      lineLayerIdRef.current = null;
-    }
-  };
+  const clearLineLayer = useCallback(() => {
+    if (mapInstanceRef.current) removeLine(mapInstanceRef.current, LINE_OPTS);
+    lineLayerIdRef.current = null;
+  }, []);
 
-  // Add line helper (for line mode)
-  const addLine = useCallback(
+  const drawLine = useCallback(
     (map: any, lat1: number, lon1: number, lat2: number, lon2: number) => {
-      // Clear existing line
-      clearLineLayer();
-
-      const lineId = "dosing-line";
-      lineLayerIdRef.current = lineId;
-
-      // Add line as GeoJSON
-      map.addSource(lineId, {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [lon1, lat1],
-              [lon2, lat2],
-            ],
-          },
-        },
-      });
-
-      map.addLayer({
-        id: lineId,
-        type: "line",
-        source: lineId,
-        paint: {
-          "line-color": "#228be6",
-          "line-width": 3,
-        },
-      });
+      addLine(map, lat1, lon1, lat2, lon2, LINE_OPTS);
+      lineLayerIdRef.current = LINE_OPTS.sourceId;
     },
     [],
   );
@@ -176,7 +151,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         mapInstanceRef.current &&
         mapLoaded
       ) {
-        addLine(mapInstanceRef.current, newLat1, newLon1, newLat2, newLon2);
+        drawLine(mapInstanceRef.current, newLat1, newLon1, newLat2, newLon2);
 
         // Fit bounds to line
         const bounds = new window.maplibregl.LngLatBounds([newLon1, newLat1], [newLon2, newLat2]);
@@ -189,103 +164,26 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     [addLine, mapLoaded],
   );
 
-  // Start draw line selection mode (for line mode)
-  const startLineSelection = useCallback(() => {
-    if (!mapInstanceRef.current) return;
+  // Line mode drawing — preview tracks the cursor between the two points.
+  const handleLinePreview = useCallback((from: DrawPoint, to: DrawPoint) => {
     const map = mapInstanceRef.current;
-
-    setIsSelecting(true);
-    startPointRef.current = null;
-
-    // Clear existing line
-    clearLineLayer();
-
-    map.getCanvas().style.cursor = "crosshair";
-
-    const onMapClick = (e: any) => {
-      const { lng, lat } = e.lngLat;
-
-      if (!startPointRef.current) {
-        // First click - start selection
-        startPointRef.current = { lng, lat };
-      } else {
-        // Second click - complete selection
-        const startPt = startPointRef.current;
-
-        // Add final line
-        addLine(map, startPt.lat, startPt.lng, lat, lng);
-
-        // Update coordinate states
-        setLine1Lat(startPt.lat);
-        setLine1Lon(startPt.lng);
-        setLine2Lat(lat);
-        setLine2Lon(lng);
-
-        // Clean up
-        map.off("click", onMapClick);
-        map.getCanvas().style.cursor = "";
-        setIsSelecting(false);
-        startPointRef.current = null;
-      }
-    };
-
-    map.on("click", onMapClick);
-  }, [addLine]);
-
-  // Add bounding box helper (for box mode)
-  const addBoundingBox = useCallback((map: any, w: number, s: number, e: number, n: number) => {
-    // Remove existing bounding box
-    if (map.getSource("dosing-bbox")) {
-      if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
-      if (map.getLayer("dosing-bbox-outline")) map.removeLayer("dosing-bbox-outline");
-      map.removeSource("dosing-bbox");
-    }
-
-    // Adjust east for antimeridian crossing (west > east)
-    const renderEast = adjustEastForAntimeridian(w, e);
-
-    // Add bounding box as GeoJSON
-    map.addSource("dosing-bbox", {
-      type: "geojson",
-      data: {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [w, n],
-              [renderEast, n],
-              [renderEast, s],
-              [w, s],
-              [w, n],
-            ],
-          ],
-        },
-      },
-    });
-
-    // Add fill layer
-    map.addLayer({
-      id: "dosing-bbox-fill",
-      type: "fill",
-      source: "dosing-bbox",
-      paint: {
-        "fill-color": "#ff7800",
-        "fill-opacity": 0.1,
-      },
-    });
-
-    // Add outline layer
-    map.addLayer({
-      id: "dosing-bbox-outline",
-      type: "line",
-      source: "dosing-bbox",
-      paint: {
-        "line-color": "#ff7800",
-        "line-width": 2,
-      },
-    });
+    if (!map) return;
+    setLineData(map, from.lat, from.lng, to.lat, to.lng, LINE_OPTS);
+    lineLayerIdRef.current = LINE_OPTS.sourceId;
   }, []);
+
+  const handleLineComplete = useCallback(
+    (from: DrawPoint, to: DrawPoint) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+      drawLine(map, from.lat, from.lng, to.lat, to.lng);
+      setLine1Lat(from.lat);
+      setLine1Lon(from.lng);
+      setLine2Lat(to.lat);
+      setLine2Lon(to.lng);
+    },
+    [drawLine],
+  );
 
   // Handle manual coordinate input changes (for box mode)
   const handleCoordinateChange = useCallback(
@@ -304,7 +202,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         mapInstanceRef.current &&
         mapLoaded
       ) {
-        addBoundingBox(mapInstanceRef.current, newWest, newSouth, newEast, newNorth);
+        addBoundingBox(mapInstanceRef.current, newWest, newSouth, newEast, newNorth, BBOX_OPTS);
         const fitEast = adjustEastForAntimeridian(newWest as number, newEast as number);
         mapInstanceRef.current.fitBounds(
           [
@@ -318,7 +216,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         );
       }
     },
-    [addBoundingBox, mapLoaded],
+    [mapLoaded],
   );
 
   // Handle manual coordinate input changes (for point mode)
@@ -354,58 +252,56 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     [mapLoaded],
   );
 
-  // Start draw selection mode (for box mode)
-  const startSelection = useCallback(() => {
-    if (!mapInstanceRef.current) return;
+  // Box mode drawing — preview tracks the cursor between the two corners.
+  const handleBoxPreview = useCallback((from: DrawPoint, to: DrawPoint) => {
     const map = mapInstanceRef.current;
+    if (!map) return;
+    const { west: w, south: s, east: e, north: n } = resolveBoxFromClicks(from, to);
+    setBoundingBoxData(map, w, s, e, n, BBOX_OPTS);
+  }, []);
 
-    setIsSelecting(true);
-    startPointRef.current = null;
+  const handleBoxComplete = useCallback((from: DrawPoint, to: DrawPoint) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const { west: w, south: s, east: e, north: n } = resolveBoxFromClicks(from, to);
+    addBoundingBox(map, w, s, e, n, BBOX_OPTS);
+    setWest(w);
+    setSouth(s);
+    setEast(e);
+    setNorth(n);
+  }, []);
 
-    // Remove existing bounding box
-    if (map.getSource("dosing-bbox")) {
-      if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
-      if (map.getLayer("dosing-bbox-outline")) map.removeLayer("dosing-bbox-outline");
-      map.removeSource("dosing-bbox");
-    }
+  const handleDrawStart = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (localMode === "box") removeBoundingBox(map, BBOX_OPTS);
+    else clearLineLayer();
+  }, [localMode, clearLineLayer]);
 
-    map.getCanvas().style.cursor = "crosshair";
+  const {
+    isDrawing,
+    hasStartPoint,
+    start: startSelection,
+    cancel: cancelSelection,
+  } = useTwoPointDraw({
+    map: mapLoaded ? mapInstanceRef.current : null,
+    onPreview: localMode === "box" ? handleBoxPreview : handleLinePreview,
+    onComplete: localMode === "box" ? handleBoxComplete : handleLineComplete,
+    onStart: handleDrawStart,
+  });
 
-    const onMapClick = (e: any) => {
-      const { lng, lat } = e.lngLat;
-
-      if (!startPointRef.current) {
-        // First click - start selection
-        startPointRef.current = { lng, lat };
-      } else {
-        // Second click - complete selection
-        const startPt = startPointRef.current;
-        const {
-          west: w,
-          south: s,
-          east: e,
-          north: n,
-        } = resolveBoxFromClicks(startPt, { lng, lat });
-
-        // Add final bounding box
-        addBoundingBox(map, w, s, e, n);
-
-        // Update coordinate states
-        setWest(w);
-        setSouth(s);
-        setEast(e);
-        setNorth(n);
-
-        // Clean up
-        map.off("click", onMapClick);
-        map.getCanvas().style.cursor = "";
-        setIsSelecting(false);
-        startPointRef.current = null;
-      }
-    };
-
-    map.on("click", onMapClick);
-  }, [addBoundingBox]);
+  /** Route a single edge's change through the existing four-value handler. */
+  const handleEdgeChange = useCallback(
+    (edge: BoxEdge, value: number | string) => {
+      const next = { north, south, east, west, [edge]: value };
+      if (edge === "north") setNorth(value);
+      else if (edge === "south") setSouth(value);
+      else if (edge === "east") setEast(value);
+      else setWest(value);
+      handleCoordinateChange(next.west, next.south, next.east, next.north);
+    },
+    [north, south, east, west, handleCoordinateChange],
+  );
 
   // Initialize map function
   const initializeMap = useCallback(() => {
@@ -428,7 +324,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         const bounds = parseBoundsString(geoData.box);
         if (bounds) {
           const { west, south, east, north } = bounds;
-          addBoundingBox(map, west, south, east, north);
+          addBoundingBox(map, west, south, east, north, BBOX_OPTS);
           const fitEast = adjustEastForAntimeridian(west, east);
           map.fitBounds(
             [
@@ -445,7 +341,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         const parts = geoData.line.trim().split(/\s+/).map(Number);
         if (parts.length === 4) {
           const [lat1, lon1, lat2, lon2] = parts;
-          addLine(map, lat1, lon1, lat2, lon2);
+          drawLine(map, lat1, lon1, lat2, lon2);
           const bounds = new window.maplibregl.LngLatBounds([lon1, lat1], [lon2, lat2]);
           map.fitBounds(bounds, { padding: 50 });
         }
@@ -475,7 +371,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         });
       }
     });
-  }, [localMode, geoData, addBoundingBox, addLine]);
+  }, [localMode, geoData, drawLine]);
 
   // Load MapLibre and initialize map when modal opens
   useEffect(() => {
@@ -555,14 +451,8 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     setLocalFileLocation("");
     clearMarkers();
     clearLineLayer();
-
-    // Clear bounding box visualization
-    if (mapInstanceRef.current?.getSource("dosing-bbox")) {
-      const map = mapInstanceRef.current;
-      if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
-      if (map.getLayer("dosing-bbox-outline")) map.removeLayer("dosing-bbox-outline");
-      map.removeSource("dosing-bbox");
-    }
+    cancelSelection();
+    if (mapInstanceRef.current) removeBoundingBox(mapInstanceRef.current, BBOX_OPTS);
   };
 
   const handleSave = () => {
@@ -620,21 +510,19 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           ? "Point selected. Click elsewhere to change, or enter coordinates, or click Save to confirm."
           : "Click on the map to select a fixed point dosing location, or enter coordinates below.";
       case "line":
-        if (!isSelecting) {
-          return "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your line.";
-        } else {
-          return startPointRef.current
-            ? "Click second point to complete line"
-            : "Click first point to start line";
+        if (!isDrawing) {
+          return "Enter coordinates, or use 'Draw Selection' to drag a line on the map.";
         }
+        return hasStartPoint
+          ? "Release or click again to complete the line."
+          : "Drag a line on the map, or click once for each end.";
       case "box":
-        if (!isSelecting) {
-          return "Enter coordinates or 'Draw Selection' by clicking two points on the map to define your bounding box.";
-        } else {
-          return startPointRef.current
-            ? "Click second point to complete selection"
-            : "Click first point to start selection";
+        if (!isDrawing) {
+          return "Enter coordinates, or use 'Draw Selection' to drag a box on the map.";
         }
+        return hasStartPoint
+          ? "Release or click again to complete the box."
+          : "Drag a box on the map, or click once for each corner.";
       default:
         return "";
     }
@@ -847,68 +735,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
         {/* Coordinate inputs for box mode */}
         {localMode === "box" && (
-          <Group gap="md" align="flex-start" justify="center">
-            <Stack gap="xs">
-              <NumberInput
-                label="°N (max latitude)"
-                placeholder="e.g., 47.8"
-                value={north}
-                onChange={(value) => {
-                  setNorth(value);
-                  handleCoordinateChange(west, south, east, value);
-                }}
-                min={-90}
-                max={90}
-                decimalScale={6}
-                size="sm"
-                style={{ width: "150px" }}
-              />
-              <NumberInput
-                label="°S (min latitude)"
-                placeholder="e.g., 47.2"
-                value={south}
-                onChange={(value) => {
-                  setSouth(value);
-                  handleCoordinateChange(west, value, east, north);
-                }}
-                min={-90}
-                max={90}
-                decimalScale={6}
-                size="sm"
-                style={{ width: "150px" }}
-              />
-            </Stack>
-            <Stack gap="xs">
-              <NumberInput
-                label="°E (max longitude)"
-                placeholder="e.g., -122.0"
-                value={east}
-                onChange={(value) => {
-                  setEast(value);
-                  handleCoordinateChange(west, south, value, north);
-                }}
-                min={-180}
-                max={180}
-                decimalScale={6}
-                size="sm"
-                style={{ width: "150px" }}
-              />
-              <NumberInput
-                label="°W (min longitude)"
-                placeholder="e.g., -123.5"
-                value={west}
-                onChange={(value) => {
-                  setWest(value);
-                  handleCoordinateChange(value, south, east, north);
-                }}
-                min={-180}
-                max={180}
-                decimalScale={6}
-                size="sm"
-                style={{ width: "150px" }}
-              />
-            </Stack>
-          </Group>
+          <BoundingBoxInputs
+            north={north}
+            south={south}
+            east={east}
+            west={west}
+            layout="columns"
+            onChange={handleEdgeChange}
+          />
         )}
 
         <Box
@@ -918,15 +752,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
             alignItems: "center",
           }}
         >
-          {localMode === "line" && mapLoaded && (
-            <Button variant="outline" onClick={startLineSelection} disabled={isSelecting}>
-              {isSelecting ? "Drawing..." : "Draw Selection"}
-            </Button>
-          )}
-
-          {localMode === "box" && mapLoaded && (
-            <Button variant="outline" onClick={startSelection} disabled={isSelecting}>
-              {isSelecting ? "Drawing..." : "Draw Selection"}
+          {(localMode === "line" || localMode === "box") && mapLoaded && (
+            <Button variant="outline" onClick={startSelection} disabled={isDrawing}>
+              {isDrawing ? "Drawing..." : "Draw Selection"}
             </Button>
           )}
 

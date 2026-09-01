@@ -1,0 +1,175 @@
+/**
+ * useTwoPointDraw - Draw a shape on a MapLibre map from two points.
+ *
+ * Shared by the three draw flows that were previously copy-pasted:
+ * SpatialCoverageMapModal (bounding box), DosingLocationMapModal box mode, and
+ * DosingLocationMapModal line mode.
+ *
+ * Two gestures reach the same result:
+ *   - click, move, click
+ *   - press, drag, release
+ *
+ * Either way `onPreview` fires continuously while the pointer moves, so the user
+ * sees the shape they are forming before committing it.
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export interface DrawPoint {
+  lng: number;
+  lat: number;
+}
+
+interface UseTwoPointDrawOptions {
+  /** MapLibre map instance, or null before it loads. */
+  map: any;
+  /** Called on every pointer move once a start point exists. */
+  onPreview: (start: DrawPoint, current: DrawPoint) => void;
+  /** Called once the second point is committed. */
+  onComplete: (start: DrawPoint, end: DrawPoint) => void;
+  /** Called when drawing begins, e.g. to clear a previous shape. */
+  onStart?: () => void;
+}
+
+interface UseTwoPointDrawResult {
+  /** True between `start()` and completion or cancellation. */
+  isDrawing: boolean;
+  /** True once the first point is placed and a shape is being sized. */
+  hasStartPoint: boolean;
+  start: () => void;
+  cancel: () => void;
+}
+
+/**
+ * A press that moves less than this many pixels before release counts as a
+ * click, not a drag — otherwise the jitter in a normal click would commit a
+ * degenerate zero-area shape.
+ */
+const DRAG_THRESHOLD_PX = 4;
+
+export function useTwoPointDraw({
+  map,
+  onPreview,
+  onComplete,
+  onStart,
+}: UseTwoPointDrawOptions): UseTwoPointDrawResult {
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasStartPoint, setHasStartPoint] = useState(false);
+
+  // Refs, not state: listeners are registered once per draw session and would
+  // otherwise close over stale values.
+  const startPointRef = useRef<DrawPoint | null>(null);
+  const pressOriginRef = useRef<{ x: number; y: number } | null>(null);
+  // MapLibre emits `click` after `mousedown`/`mouseup` at the same spot, so the
+  // opening press generates a click that must not also close the shape.
+  const openingClickPendingRef = useRef(false);
+  const teardownRef = useRef<(() => void) | null>(null);
+
+  // Latest callbacks, so a re-render with new closures doesn't require
+  // re-registering listeners mid-gesture.
+  const handlersRef = useRef({ onPreview, onComplete, onStart });
+  handlersRef.current = { onPreview, onComplete, onStart };
+
+  const cancel = useCallback(() => {
+    teardownRef.current?.();
+  }, []);
+
+  const start = useCallback(() => {
+    if (!map) return;
+
+    // Restart cleanly if a previous session is still attached.
+    teardownRef.current?.();
+
+    handlersRef.current.onStart?.();
+    setIsDrawing(true);
+    setHasStartPoint(false);
+    startPointRef.current = null;
+    pressOriginRef.current = null;
+    openingClickPendingRef.current = false;
+    map.getCanvas().style.cursor = "crosshair";
+
+    const teardown = () => {
+      map.off("mousedown", onMouseDown);
+      map.off("mousemove", onMouseMove);
+      map.off("mouseup", onMouseUp);
+      map.off("click", onClick);
+      map.dragPan.enable();
+      map.getCanvas().style.cursor = "";
+      startPointRef.current = null;
+      pressOriginRef.current = null;
+      openingClickPendingRef.current = false;
+      teardownRef.current = null;
+      setIsDrawing(false);
+      setHasStartPoint(false);
+    };
+
+    const finish = (from: DrawPoint, to: DrawPoint) => {
+      handlersRef.current.onComplete(from, to);
+      teardown();
+    };
+
+    const onMouseDown = (e: any) => {
+      // Only the primary button draws; right-click keeps its context menu.
+      if (e.originalEvent?.button !== 0) return;
+      if (startPointRef.current) return;
+
+      pressOriginRef.current = { x: e.point.x, y: e.point.y };
+      openingClickPendingRef.current = true;
+      // Suppress panning for the duration of a potential drag.
+      map.dragPan.disable();
+
+      const point = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+      startPointRef.current = point;
+      setHasStartPoint(true);
+      handlersRef.current.onPreview(point, point);
+    };
+
+    const onMouseMove = (e: any) => {
+      const from = startPointRef.current;
+      if (!from) return;
+      handlersRef.current.onPreview(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
+    };
+
+    const onMouseUp = (e: any) => {
+      const from = startPointRef.current;
+      const origin = pressOriginRef.current;
+      map.dragPan.enable();
+      if (!from || !origin) return;
+
+      pressOriginRef.current = null;
+      const movedPx = Math.hypot(e.point.x - origin.x, e.point.y - origin.y);
+      if (movedPx < DRAG_THRESHOLD_PX) {
+        // A click, not a drag. Stay armed for the closing click.
+        return;
+      }
+      // A real drag. `finish` tears down the listeners, so the click this
+      // release emits never reaches us.
+      finish(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
+    };
+
+    const onClick = (e: any) => {
+      if (openingClickPendingRef.current) {
+        openingClickPendingRef.current = false;
+        return;
+      }
+      const from = startPointRef.current;
+      if (!from) return;
+      finish(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
+    };
+
+    map.on("mousedown", onMouseDown);
+    map.on("mousemove", onMouseMove);
+    map.on("mouseup", onMouseUp);
+    map.on("click", onClick);
+    teardownRef.current = teardown;
+  }, [map]);
+
+  // Detach when the map instance is replaced (modal close) and on unmount.
+  useEffect(() => {
+    return () => {
+      teardownRef.current?.();
+    };
+  }, [map]);
+
+  return { isDrawing, hasStartPoint, start, cancel };
+}
