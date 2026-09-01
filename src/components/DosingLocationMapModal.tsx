@@ -23,6 +23,7 @@ import {
   removeLine,
   setBoundingBoxData,
   setLineData,
+  unwrapLongitudeTowards,
 } from "@/utils/mapLayerUtils";
 import {
   adjustEastForAntimeridian,
@@ -158,8 +159,12 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       ) {
         drawLine(mapInstanceRef.current, newLat1, newLon1, newLat2, newLon2);
 
-        // Fit bounds to line
-        const bounds = new window.maplibregl.LngLatBounds([newLon1, newLat1], [newLon2, newLat2]);
+        // Fit bounds to line. Same unwrapped endpoint the line is drawn with, or
+        // the camera frames the long way round across the antimeridian.
+        const bounds = new window.maplibregl.LngLatBounds(
+          [newLon1, newLat1],
+          [unwrapLongitudeTowards(newLon1, newLon2), newLat2],
+        );
         mapInstanceRef.current.fitBounds(bounds, {
           padding: 50,
           duration: 500,
@@ -355,7 +360,10 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         if (parts.length === 4) {
           const [lat1, lon1, lat2, lon2] = parts;
           drawLine(map, lat1, lon1, lat2, lon2);
-          const bounds = new window.maplibregl.LngLatBounds([lon1, lat1], [lon2, lat2]);
+          const bounds = new window.maplibregl.LngLatBounds(
+            [lon1, lat1],
+            [unwrapLongitudeTowards(lon1, lon2), lat2],
+          );
           map.fitBounds(bounds, { padding: 50 });
         }
       }

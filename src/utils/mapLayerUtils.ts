@@ -62,6 +62,19 @@ function boundingBoxFeature(
 }
 
 /**
+ * Shift `to` by a full turn when the direct path from `from` is longer than
+ * half the globe, so a segment across the antimeridian is expressed the short
+ * way. Rendering and camera fitting must both use this, or the line is drawn
+ * one way and framed the other.
+ */
+export function unwrapLongitudeTowards(from: number, to: number): number {
+  const delta = to - from;
+  if (delta > MAX_LONGITUDE) return to - DEGREES_IN_CIRCLE;
+  if (delta < MIN_LONGITUDE) return to + DEGREES_IN_CIRCLE;
+  return to;
+}
+
+/**
  * GeoJSON Feature for a two-point line.
  *
  * Endpoints are stored normalized to [-180, 180], which makes a line that
@@ -69,13 +82,7 @@ function boundingBoxFeature(
  * 340° of travel, not 20°). Unwrap the far end so the short route is drawn.
  */
 function lineFeature(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const delta = lon2 - lon1;
-  const renderLon2 =
-    delta > MAX_LONGITUDE
-      ? lon2 - DEGREES_IN_CIRCLE
-      : delta < MIN_LONGITUDE
-        ? lon2 + DEGREES_IN_CIRCLE
-        : lon2;
+  const renderLon2 = unwrapLongitudeTowards(lon1, lon2);
 
   return {
     type: "Feature" as const,

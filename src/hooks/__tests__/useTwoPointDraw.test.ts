@@ -368,6 +368,30 @@ describe("useTwoPointDraw", () => {
       );
     });
 
+    it("ignores the mouse events a browser replays from a touch", () => {
+      const { hook, onComplete, onPreview } = setup(map);
+      act(() => hook.result.current.start());
+
+      // An abandoned gesture, then the browser's legacy mouse replay of it.
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+      onPreview.mockClear();
+      const replayed = {
+        lngLat: { lng: 10, lat: 20 },
+        point: { x: 100, y: 100 },
+        originalEvent: { button: 0, sourceCapabilities: { firesTouchEvents: true } },
+      };
+      act(() => {
+        map.emit("mousedown", replayed);
+        map.emit("mouseup", replayed);
+        map.emit("click", replayed);
+      });
+
+      expect(onPreview).not.toHaveBeenCalled();
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(hook.result.current.hasStartPoint).toBe(false);
+    });
+
     it("ignores multi-touch so pinch zoom still works", () => {
       const { hook, onPreview } = setup(map);
       act(() => hook.result.current.start());

@@ -76,7 +76,9 @@ const BoundingBoxInputs: React.FC<BoundingBoxInputsProps> = ({
           max={isLatitude ? MAX_LATITUDE : MAX_LONGITUDE}
           decimalScale={6}
           size="sm"
-          w={120}
+          // Shrinks on phones so the three-column compass fits a full-screen
+          // modal, and settles at 120px on anything wider.
+          w="clamp(78px, 22vw, 120px)"
           error={isLatitude ? latitudeError : undefined}
           disabled={disabled}
         />

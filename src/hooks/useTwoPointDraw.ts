@@ -136,7 +136,14 @@ export function useTwoPointDraw({
       teardown();
     };
 
+    // Browsers replay a touch as mousedown/mouseup/click for legacy pages. The
+    // touch handlers already own that gesture, so the replayed mouse events are
+    // noise here, and one after an abandoned gesture would re-arm a shape.
+    const isTouchSynthesised = (e: any) =>
+      e.originalEvent?.sourceCapabilities?.firesTouchEvents === true;
+
     const onMouseDown = (e: any) => {
+      if (isTouchSynthesised(e)) return;
       // Only the primary button draws; right-click keeps its context menu.
       if (e.originalEvent?.button !== 0) return;
       // A real pointer press means any click that follows is deliberate, so the
@@ -163,6 +170,7 @@ export function useTwoPointDraw({
     };
 
     const onMouseUp = (e: any) => {
+      if (isTouchSynthesised(e)) return;
       const from = startPointRef.current;
       const origin = pressOriginRef.current;
       map.dragPan.enable();

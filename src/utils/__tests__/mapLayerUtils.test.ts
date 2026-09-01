@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addBoundingBox, addLine, setBoundingBoxData, setLineData } from "../mapLayerUtils";
+import {
+  addBoundingBox,
+  addLine,
+  setBoundingBoxData,
+  setLineData,
+  unwrapLongitudeTowards,
+} from "../mapLayerUtils";
 
 /**
  * Minimal MapLibre stand-in: enough surface for the source/layer bookkeeping the
@@ -140,5 +146,24 @@ describe("setLineData", () => {
       [-122.3, 47.6],
       [-123.4, 48.1],
     ]);
+  });
+});
+
+describe("unwrapLongitudeTowards", () => {
+  it("leaves a short eastward hop alone", () => {
+    expect(unwrapLongitudeTowards(-125, -114)).toBe(-114);
+  });
+
+  it("unwraps an eastward crossing past 180", () => {
+    expect(unwrapLongitudeTowards(170, -170)).toBe(190);
+  });
+
+  it("unwraps a westward crossing past -180", () => {
+    expect(unwrapLongitudeTowards(-170, 170)).toBe(-190);
+  });
+
+  it("treats exactly half the globe as the direct route", () => {
+    expect(unwrapLongitudeTowards(0, 180)).toBe(180);
+    expect(unwrapLongitudeTowards(0, -180)).toBe(-180);
   });
 });
