@@ -282,8 +282,10 @@ export function fitWorldWidth(
   options: { duration?: number } = {},
 ): void {
   const width = map.getContainer?.()?.clientWidth ?? 0;
+  // Below 512px the world only fits at a negative zoom, so this is not clamped
+  // to 0 — the map's own `minZoom` decides how far out it will actually go.
   // Before layout the container has no width; zoom 0 is the sane fallback.
-  const zoom = width > 0 ? Math.max(0, Math.log2(width / WORLD_WIDTH_AT_ZOOM_0)) : 0;
+  const zoom = width > 0 ? Math.log2(width / WORLD_WIDTH_AT_ZOOM_0) : 0;
   const view = { center, zoom };
 
   if (options.duration) map.easeTo({ ...view, duration: options.duration });

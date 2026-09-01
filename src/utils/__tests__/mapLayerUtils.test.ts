@@ -151,10 +151,12 @@ describe("fitWorldWidth", () => {
     expect(512 * 2 ** zoom).toBeGreaterThanOrEqual(926);
   });
 
-  it("never returns a negative zoom for a narrow container", () => {
-    const map = mapOfWidth(320);
+  it("goes below zoom 0 for a container narrower than one world", () => {
+    // A 256px preview is half a world at zoom 0, so it needs zoom -1. The map's
+    // own minZoom decides whether it honours that.
+    const map = mapOfWidth(256);
     fitWorldWidth(map, [0, 20]);
-    expect(map.jumpTo).toHaveBeenCalledWith({ center: [0, 20], zoom: 0 });
+    expect(map.jumpTo).toHaveBeenCalledWith({ center: [0, 20], zoom: -1 });
   });
 
   it("falls back to zoom 0 before the container has been laid out", () => {

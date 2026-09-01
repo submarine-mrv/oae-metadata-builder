@@ -13,3 +13,6 @@ export const DEFAULT_ZOOM = 1;
 
 /** Width in CSS pixels of the whole world at zoom 0, for 512px vector tiles. */
 export const WORLD_WIDTH_AT_ZOOM_0 = 512;
+
+/** Lets a preview narrower than 512px still frame the whole world. */
+export const WORLD_MIN_ZOOM = -2;
