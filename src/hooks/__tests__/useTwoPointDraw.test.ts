@@ -182,6 +182,46 @@ describe("useTwoPointDraw", () => {
     });
   });
 
+  describe("tap, tap (touch)", () => {
+    // A tap emits `click` without a reliable mousedown, so the click handler has
+    // to be able to open the shape on its own.
+    const tap = (map: any, lng: number, lat: number) =>
+      map.emit("click", { lngLat: { lng, lat }, point: { x: 0, y: 0 } });
+
+    it("opens the shape on the first tap", () => {
+      const { hook, onComplete, onPreview } = setup(map);
+      act(() => hook.result.current.start());
+      act(() => tap(map, 10, 20));
+
+      expect(hook.result.current.hasStartPoint).toBe(true);
+      expect(onPreview).toHaveBeenCalledWith({ lng: 10, lat: 20 }, { lng: 10, lat: 20 });
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it("completes on the second tap", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+      act(() => tap(map, 10, 20));
+      act(() => tap(map, 30, 40));
+
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 10, lat: 20 },
+        { lng: 30, lat: 40 },
+      );
+    });
+  });
+
+  it("teardown survives a map removed out from under it", () => {
+    const { hook } = setup(map);
+    act(() => hook.result.current.start());
+    map.off.mockImplementation(() => {
+      throw new Error("Map has been removed");
+    });
+
+    expect(() => act(() => hook.result.current.cancel())).not.toThrow();
+    expect(hook.result.current.isDrawing).toBe(false);
+  });
+
   it("detaches every listener after completing", () => {
     const { hook } = setup(map);
     act(() => hook.result.current.start());

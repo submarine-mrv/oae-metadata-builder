@@ -89,12 +89,18 @@ export function useTwoPointDraw({
     map.getCanvas().style.cursor = "crosshair";
 
     const teardown = () => {
-      map.off("mousedown", onMouseDown);
-      map.off("mousemove", onMouseMove);
-      map.off("mouseup", onMouseUp);
-      map.off("click", onClick);
-      map.dragPan.enable();
-      map.getCanvas().style.cursor = "";
+      // The modal can dispose the map before this runs; detaching from a removed
+      // MapLibre instance throws.
+      try {
+        map.off("mousedown", onMouseDown);
+        map.off("mousemove", onMouseMove);
+        map.off("mouseup", onMouseUp);
+        map.off("click", onClick);
+        map.dragPan.enable();
+        map.getCanvas().style.cursor = "";
+      } catch {
+        // Map already removed — nothing left to detach.
+      }
       startPointRef.current = null;
       pressOriginRef.current = null;
       openingClickPendingRef.current = false;
@@ -148,13 +154,21 @@ export function useTwoPointDraw({
     };
 
     const onClick = (e: any) => {
+      // The press that opened the shape emits its own click; swallow it.
       if (openingClickPendingRef.current) {
         openingClickPendingRef.current = false;
         return;
       }
+      const point = { lng: e.lngLat.lng, lat: e.lngLat.lat };
       const from = startPointRef.current;
-      if (!from) return;
-      finish(from, { lng: e.lngLat.lng, lat: e.lngLat.lat });
+      if (!from) {
+        // No mousedown ran — a tap. Open the shape here instead.
+        startPointRef.current = point;
+        setHasStartPoint(true);
+        handlersRef.current.onPreview(point, point);
+        return;
+      }
+      finish(from, point);
     };
 
     map.on("mousedown", onMouseDown);

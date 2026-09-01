@@ -24,7 +24,12 @@ import {
   setBoundingBoxData,
   setLineData,
 } from "@/utils/mapLayerUtils";
-import { adjustEastForAntimeridian, resolveBoxFromClicks } from "@/utils/spatialUtils";
+import {
+  adjustEastForAntimeridian,
+  clampLatitude,
+  normalizeLongitude,
+  resolveBoxFromClicks,
+} from "@/utils/spatialUtils";
 import BoundingBoxInputs, { type BoxEdge } from "./BoundingBoxInputs";
 
 // Layer namespaces, so the dosing shapes never collide with a spatial-coverage box.
@@ -176,11 +181,17 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     (from: DrawPoint, to: DrawPoint) => {
       const map = mapInstanceRef.current;
       if (!map) return;
-      drawLine(map, from.lat, from.lng, to.lat, to.lng);
-      setLine1Lat(from.lat);
-      setLine1Lon(from.lng);
-      setLine2Lat(to.lat);
-      setLine2Lon(to.lng);
+      // Dragging past a pole or across the antimeridian yields values outside
+      // the input ranges, so bring both endpoints back in range first.
+      const lat1 = clampLatitude(from.lat);
+      const lon1 = normalizeLongitude(from.lng);
+      const lat2 = clampLatitude(to.lat);
+      const lon2 = normalizeLongitude(to.lng);
+      drawLine(map, lat1, lon1, lat2, lon2);
+      setLine1Lat(lat1);
+      setLine1Lon(lon1);
+      setLine2Lat(lat2);
+      setLine2Lon(lon2);
     },
     [drawLine],
   );
@@ -409,12 +420,14 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     loadAndInitialize();
 
     return () => {
+      // Detach draw listeners before disposing the map they are attached to.
+      cancelSelection();
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [isOpen, initializeMap]);
+  }, [isOpen, initializeMap, cancelSelection]);
 
   // Update markers for point mode
   useEffect(() => {

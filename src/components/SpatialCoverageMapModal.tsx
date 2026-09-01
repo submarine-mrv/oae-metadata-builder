@@ -224,14 +224,14 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
   // Reset state when modal closes
   useEffect(() => {
     if (!opened) {
-      // Clean up map instance
+      // Detach draw listeners before disposing the map they are attached to.
+      cancelSelection();
+
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
 
-      // Reset all state
-      cancelSelection();
       setCurrentBounds(initialBounds);
       setMapLoaded(false);
       parseBounds(initialBounds);
