@@ -426,6 +426,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      // Switching modes rebuilds the map. Without this the flag stays true, no
+      // re-render follows, and the draw hook keeps a handle on the removed map.
+      setMapLoaded(false);
     };
   }, [isOpen, initializeMap, cancelSelection]);
 
@@ -527,15 +530,15 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           return "Enter coordinates, or use 'Draw Selection' to drag a line on the map.";
         }
         return hasStartPoint
-          ? "Release or click again to complete the line."
-          : "Drag a line on the map, or click once for each end.";
+          ? "Release, click or tap again to complete the line."
+          : "Drag a line on the map, or click each end (tap on touch).";
       case "box":
         if (!isDrawing) {
           return "Enter coordinates, or use 'Draw Selection' to drag a box on the map.";
         }
         return hasStartPoint
-          ? "Release or click again to complete the box."
-          : "Drag a box on the map, or click once for each corner.";
+          ? "Release, click or tap again to complete the box."
+          : "Drag a box on the map, or click each corner (tap on touch).";
       default:
         return "";
     }

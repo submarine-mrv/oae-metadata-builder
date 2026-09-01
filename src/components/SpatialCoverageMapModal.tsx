@@ -255,8 +255,8 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
             : !isDrawing
               ? "Enter coordinates, or use 'Draw Selection' to drag a box on the map."
               : hasStartPoint
-                ? "Release or click again to complete the box."
-                : "Drag a box on the map, or click once for each corner."}
+                ? "Release, click or tap again to complete the box."
+                : "Drag a box on the map, or click each corner (tap on touch)."}
         </Text>
 
         <Box

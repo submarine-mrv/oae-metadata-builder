@@ -49,7 +49,7 @@ test.describe("Spatial Coverage Field", () => {
 
     // Verify the instruction text
     await expect(
-      page.locator("text=Drag a box on the map, or click once for each corner."),
+      page.locator("text=Drag a box on the map, or click each corner (tap on touch)."),
     ).toBeVisible();
 
     // Draw a bounding box
@@ -71,7 +71,7 @@ test.describe("Spatial Coverage Field", () => {
     await mapModal.clickOnMap(-100, -50);
     await mapModal.moveOnMap(60, 40);
     // The prompt flips only once a start point is held, so the shape is being sized.
-    await expect(page.locator("text=Release or click again to complete the box.")).toBeVisible();
+    await expect(page.locator("text=Release, click or tap again to complete the box.")).toBeVisible();
 
     // Closing click commits it.
     await mapModal.clickOnMap(100, 50);
