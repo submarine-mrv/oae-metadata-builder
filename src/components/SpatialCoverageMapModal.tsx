@@ -288,7 +288,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
         <Stack gap="xs" align="center">
           <Group gap="md" align="flex-start" justify="center">
             <NumberInput
-              label="°N (max latitude)"
+              label="Maximum latitude (-90° to 90°)"
               placeholder="e.g., 47.8"
               value={north}
               onChange={(value) => {
@@ -303,7 +303,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
               error={hasLatitudeError}
             />
             <NumberInput
-              label="°E (east edge)"
+              label="East edge (-180° to 180°)"
               placeholder="e.g., -122.0"
               value={east}
               onChange={(value) => {
@@ -320,7 +320,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
           <Box>
             <Group gap="md" align="flex-start" justify="center">
               <NumberInput
-                label="°S (min latitude)"
+                label="Minimum latitude (-90° to 90°)"
                 placeholder="e.g., 47.2"
                 value={south}
                 onChange={(value) => {
@@ -335,7 +335,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
                 error={hasLatitudeError}
               />
               <NumberInput
-                label="°W (west edge)"
+                label="West edge (-180° to 180°)"
                 placeholder="e.g., -123.5"
                 value={west}
                 onChange={(value) => {
