@@ -50,11 +50,19 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
       }
     }
 
-    // Improve temporal coverage pattern error message
-    if (e.property === ".temporal_coverage" && e.name === "pattern") {
+    // Improve temporal coverage pattern error message.
+    //
+    // `endsWith`, not equality: a nested one reads
+    // `.previous_or_ongoing_colocated_research.0.temporal_coverage`, and an
+    // exact match let the raw AJV regex through to the user.
+    //
+    // The wording matches what useIsoInterval shows for the same problem.
+    // The two alternate as the field gains and loses focus, so a second
+    // phrasing here just makes the message flicker between them.
+    if (e.property?.endsWith(".temporal_coverage") && e.name === "pattern") {
       return {
         ...e,
-        message: MESSAGES.validation.temporalCoveragePattern,
+        message: MESSAGES.validation.invalidDateFormat,
       };
     }
 

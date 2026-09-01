@@ -1,10 +1,11 @@
 /**
  * useIsoInterval - Shared state logic for ISO 8601 interval widgets
  *
- * Extracts the common state management from IsoIntervalWidget and
- * IsoIntervalWidgetVertical, allowing each to focus on layout.
+ * Extracts the common state management from IsoIntervalWidget so the widget
+ * itself only deals with layout.
  */
 import * as React from "react";
+import { MESSAGES } from "@/constants/messages";
 import { buildInterval, parseInterval, validateDate } from "@/utils/dateUtils";
 
 interface UseIsoIntervalProps {
@@ -128,10 +129,14 @@ export function useIsoInterval({
   );
 
   const startError =
-    startTouched && startDate && !validateDate(startDate) ? "Invalid date format" : undefined;
+    startTouched && startDate && !validateDate(startDate)
+      ? MESSAGES.validation.invalidDateFormat
+      : undefined;
 
   const endError =
-    endTouched && endDate && !validateDate(endDate) ? "Invalid date format" : undefined;
+    endTouched && endDate && !validateDate(endDate)
+      ? MESSAGES.validation.invalidDateFormat
+      : undefined;
 
   return {
     startDate,

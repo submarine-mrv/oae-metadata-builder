@@ -2,7 +2,8 @@
 
 export const MESSAGES = {
   validation: {
-    temporalCoveragePattern: "Start date and end date must be properly formatted",
+    /** Also produced by useIsoInterval; the two must agree or the message flickers. */
+    invalidDateFormat: "Invalid date format",
     spatialCoverage: "Spatial Coverage is required",
     experimentIdRequired: "Please select an experiment for your dataset.",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
