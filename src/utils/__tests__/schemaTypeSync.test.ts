@@ -122,4 +122,13 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
 
     expect(empty).toEqual([]);
   });
+
+  // The guard above only sees enums that exist. Losing the `enum` key outright
+  // is the other way the same expansion failure could surface.
+  it("still carries the mass concentration units", () => {
+    const def = (bundled as { $defs?: Record<string, { enum?: unknown[] }> }).$defs
+      ?.MassConcentrationUnit;
+    expect(def?.enum).toBeDefined();
+    expect(def?.enum?.length ?? 0).toBeGreaterThan(0);
+  });
 });
