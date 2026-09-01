@@ -312,6 +312,41 @@ describe("useTwoPointDraw", () => {
       );
     });
 
+    it("ignores a compatibility click emitted after an abandoned pinch", () => {
+      const { hook, onComplete, onPreview } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+      onPreview.mockClear();
+
+      // Browsers can synthesise a click once the fingers lift.
+      act(() => map.emit("click", { lngLat: { lng: 99, lat: 88 }, point: { x: 0, y: 0 } }));
+
+      expect(onPreview).not.toHaveBeenCalled();
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(hook.result.current.hasStartPoint).toBe(false);
+    });
+
+    it("still accepts a deliberate tap after an abandoned pinch", () => {
+      const { hook, onComplete } = setup(map);
+      act(() => hook.result.current.start());
+
+      act(() => map.emit("touchstart", touch(10, 20, 100, 100)));
+      act(() => map.emit("touchstart", touch(10, 20, 200, 200, 2)));
+
+      // A new single-finger touch is deliberate and clears the latch.
+      act(() => map.emit("touchstart", touch(30, 40, 100, 100)));
+      act(() => map.emit("touchend", touch(30, 40, 100, 100)));
+      act(() => tap(map, 30, 40));
+      act(() => tap(map, 50, 60));
+
+      expect(onComplete).toHaveBeenCalledExactlyOnceWith(
+        { lng: 30, lat: 40 },
+        { lng: 50, lat: 60 },
+      );
+    });
+
     it("ignores multi-touch so pinch zoom still works", () => {
       const { hook, onPreview } = setup(map);
       act(() => hook.result.current.start());

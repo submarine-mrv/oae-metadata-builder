@@ -74,6 +74,9 @@ export function useTwoPointDraw({
   // Latched once a gesture turns into a pinch, so the touchend that ends it
   // cannot be mistaken for the release of a drag.
   const multiTouchRef = useRef(false);
+  // Browsers can emit a compatibility click after a touch sequence ends. One
+  // that follows an abandoned gesture must not open a fresh shape.
+  const swallowNextClickRef = useRef(false);
   const teardownRef = useRef<(() => void) | null>(null);
 
   // Latest callbacks, so a re-render with new closures doesn't require
@@ -98,6 +101,7 @@ export function useTwoPointDraw({
     pressOriginRef.current = null;
     openingClickPendingRef.current = false;
     multiTouchRef.current = false;
+    swallowNextClickRef.current = false;
     map.getCanvas().style.cursor = "crosshair";
 
     const teardown = () => {
@@ -121,6 +125,7 @@ export function useTwoPointDraw({
       pressOriginRef.current = null;
       openingClickPendingRef.current = false;
       multiTouchRef.current = false;
+      swallowNextClickRef.current = false;
       teardownRef.current = null;
       setIsDrawing(false);
       setHasStartPoint(false);
@@ -185,6 +190,7 @@ export function useTwoPointDraw({
       startPointRef.current = null;
       openingClickPendingRef.current = false;
       map.dragPan.enable();
+      swallowNextClickRef.current = true;
       setHasStartPoint(false);
       handlersRef.current.onAbandon?.();
     };
@@ -195,8 +201,9 @@ export function useTwoPointDraw({
         if (startPointRef.current) abandonTouchGesture();
         return;
       }
-      // A fresh single-finger touch clears the multi-touch latch.
+      // A fresh single-finger touch is deliberate: clear both latches.
       multiTouchRef.current = false;
+      swallowNextClickRef.current = false;
       if (startPointRef.current) return;
 
       pressOriginRef.current = { x: e.point.x, y: e.point.y };
@@ -247,6 +254,11 @@ export function useTwoPointDraw({
       // The press that opened the shape emits its own click; swallow it.
       if (openingClickPendingRef.current) {
         openingClickPendingRef.current = false;
+        return;
+      }
+      // Likewise the click trailing an abandoned pinch or cancelled touch.
+      if (swallowNextClickRef.current) {
+        swallowNextClickRef.current = false;
         return;
       }
       const point = { lng: e.lngLat.lng, lat: e.lngLat.lat };
