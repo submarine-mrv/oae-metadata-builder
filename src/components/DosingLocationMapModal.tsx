@@ -116,8 +116,11 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
   const [north, setNorth] = useState<number | string>(initialBox?.north ?? "");
   const [south, setSouth] = useState<number | string>(initialBox?.south ?? "");
   const [west, setWest] = useState<number | string>(initialBox?.west ?? "");
-  // Set when north is not above south; mirrors SpatialCoverageMapModal.
-  const [hasLatitudeError, setHasLatitudeError] = useState(false);
+  // Set when north is not above south; mirrors SpatialCoverageMapModal. An
+  // existing box can already be wrong, so it starts from the stored values.
+  const [hasLatitudeError, setHasLatitudeError] = useState(
+    () => initialBox !== null && initialBox.north <= initialBox.south,
+  );
   const [east, setEast] = useState<number | string>(initialBox?.east ?? "");
 
   const [localFileLocation, setLocalFileLocation] = useState(fileLocation);

@@ -4,11 +4,24 @@ import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
-import { hideLabelLayers, parseBoundsString } from "@/utils/mapLayerUtils";
-import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
+import {
+  addBoundingBox,
+  addLine,
+  fitBoundsWithAntimeridian,
+  hideLabelLayers,
+  lineBounds,
+  MARKER_COLOR,
+  parseBoundsString,
+  removeBoundingBox,
+  removeLine,
+} from "@/utils/mapLayerUtils";
 import DosingLocationMapModal from "./DosingLocationMapModal";
 
 type DosingMode = "point" | "line" | "box";
+
+// Layer namespaces shared with the modal, so both draw the same features.
+const BBOX_OPTS = { sourceId: "dosing-bbox" } as const;
+const LINE_OPTS = { sourceId: "dosing-line" } as const;
 
 // Infer mode from formData
 function inferMode(formData: any): DosingMode | null {
@@ -201,22 +214,15 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
       markerRef.current.remove();
       markerRef.current = null;
     }
-    if (map.getSource("dosing-line")) {
-      if (map.getLayer("dosing-line")) map.removeLayer("dosing-line");
-      map.removeSource("dosing-line");
-    }
-    if (map.getSource("dosing-bbox")) {
-      if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
-      if (map.getLayer("dosing-bbox-outline")) map.removeLayer("dosing-bbox-outline");
-      map.removeSource("dosing-bbox");
-    }
+    removeLine(map, LINE_OPTS);
+    removeBoundingBox(map, BBOX_OPTS);
 
     // Add visualization based on mode
     if (selectedMode === "point") {
       const lat = formData?.geo?.latitude;
       const lon = formData?.geo?.longitude;
       if (lat !== undefined && lon !== undefined) {
-        const marker = new window.maplibregl.Marker({ color: "#228be6" })
+        const marker = new window.maplibregl.Marker({ color: MARKER_COLOR })
           .setLngLat([lon, lat])
           .addTo(map);
         markerRef.current = marker;
@@ -228,27 +234,10 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         const parts = line.trim().split(/\s+/).map(Number);
         if (parts.length === 4) {
           const [lat1, lon1, lat2, lon2] = parts;
-          map.addSource("dosing-line", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: [
-                  [lon1, lat1],
-                  [lon2, lat2],
-                ],
-              },
-            },
-          });
-          map.addLayer({
-            id: "dosing-line",
-            type: "line",
-            source: "dosing-line",
-            paint: { "line-color": "#228be6", "line-width": 3 },
-          });
-          const bounds = new window.maplibregl.LngLatBounds([lon1, lat1], [lon2, lat2]);
-          map.fitBounds(bounds, { padding: 20, duration: 0 });
+          // Same helpers as the modal, so a line across the antimeridian is
+          // drawn and framed the short way here too.
+          addLine(map, lat1, lon1, lat2, lon2, LINE_OPTS);
+          map.fitBounds(lineBounds(lat1, lon1, lat2, lon2), { padding: 20, duration: 0 });
         }
       }
     } else if (selectedMode === "box") {
@@ -257,44 +246,8 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         const bounds = parseBoundsString(box);
         if (bounds) {
           const { west, south, east, north } = bounds;
-          const renderEast = adjustEastForAntimeridian(west, east);
-          map.addSource("dosing-bbox", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [west, north],
-                    [renderEast, north],
-                    [renderEast, south],
-                    [west, south],
-                    [west, north],
-                  ],
-                ],
-              },
-            },
-          });
-          map.addLayer({
-            id: "dosing-bbox-fill",
-            type: "fill",
-            source: "dosing-bbox",
-            paint: { "fill-color": "#ff7800", "fill-opacity": 0.1 },
-          });
-          map.addLayer({
-            id: "dosing-bbox-outline",
-            type: "line",
-            source: "dosing-bbox",
-            paint: { "line-color": "#ff7800", "line-width": 2 },
-          });
-          map.fitBounds(
-            [
-              [west, south],
-              [renderEast, north],
-            ],
-            { padding: 20, duration: 0 },
-          );
+          addBoundingBox(map, west, south, east, north, BBOX_OPTS);
+          fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 20, duration: 0 });
         }
       }
     }
