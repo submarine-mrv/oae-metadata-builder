@@ -1,17 +1,31 @@
 /**
  * IsoIntervalWidget - Two date inputs backed by one ISO 8601 interval string.
  *
+ * Each half is a Mantine DateInput, the same control as the data access date:
+ * clicking anywhere in the input opens the calendar, and text that does not
+ * parse as a date is discarded on blur instead of stored and flagged. That is
+ * why this widget no longer carries its own format validation.
+ *
  * `ui:options.layout: "vertical"` stacks the inputs for narrow columns; the
- * default puts them side by side. Both share the same value contract, so the
- * layout is the only difference.
+ * default puts them side by side. `ui:options.endDateRequired` makes the end
+ * date mandatory.
  */
 
-import { Group, Stack, Text, TextInput } from "@mantine/core";
+import { Group, Stack, Text } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import type { WidgetProps } from "@rjsf/utils";
+import dayjs from "dayjs";
 import type * as React from "react";
 import { useIsoInterval } from "@/hooks/useIsoInterval";
-import { validateDate } from "@/utils/dateUtils";
-import DatePickerPopover from "./DatePickerPopover";
+
+const DATE_FORMAT = "YYYY-MM-DD";
+
+/**
+ * DateInput takes a YYYY-MM-DD string; anything else (a malformed half from an
+ * imported file) is shown as empty rather than echoed back as text.
+ */
+const asDateString = (value: string): string | null =>
+  value && dayjs(value, DATE_FORMAT, true).isValid() ? value : null;
 
 const IsoIntervalWidget: React.FC<WidgetProps> = ({
   id,
@@ -26,17 +40,10 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
   options,
   rawErrors,
 }) => {
-  // Surface RJSF-supplied errors on both date inputs. We display the
-  // actual first message (which has been normalized by transformFormErrors
-  // upstream — required errors become "Field is required", others retain
-  // their specific text). Internal format errors take precedence so the
-  // user sees the most specific message first.
+  // Surface RJSF-supplied errors, already normalized by transformFormErrors.
   const externalError = rawErrors && rawErrors.length > 0 ? rawErrors[0] : undefined;
-  // Check if end date is required via ui:options
   const endDateRequired = options?.endDateRequired === true;
   const isVertical = options?.layout === "vertical";
-  // Stacked inputs are already full width; side-by-side ones need `grow` to
-  // split the row evenly.
   const Layout = isVertical ? Stack : Group;
   const layoutProps = isVertical
     ? { gap: "sm" as const }
@@ -48,22 +55,23 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
     onChange,
     onBlur,
     onFocus,
-    hasError: !!externalError,
   });
 
   // Both dates live in one interval string, so a schema error on it arrives
-  // without saying which half is wrong. Attribute it to whichever input is
-  // actually malformed, or a valid start date gets marked for the end date's
-  // mistake. When neither is malformed (an ordering rule, say) it falls to the
-  // start input.
-  const startAtFault = !interval.startDate || !validateDate(interval.startDate);
-  const endAtFault =
-    (Boolean(interval.endDate) && !validateDate(interval.endDate)) ||
-    (endDateRequired && !interval.endDate);
-  // Neither identifiably at fault (an ordering rule, say) means the error
-  // belongs to the interval as a whole, so it goes on the start input.
-  const startExternalError = startAtFault || !endAtFault ? externalError : undefined;
-  const endExternalError = endAtFault ? externalError : undefined;
+  // without saying which half is wrong. With malformed text no longer storable,
+  // the only attributable case is a required half that is empty; anything else
+  // (an ordering rule, say) belongs to the interval and goes on the start input.
+  const endMissing = endDateRequired && !interval.endDate;
+  const startExternalError = !interval.startDate || !endMissing ? externalError : undefined;
+  const endExternalError = endMissing ? externalError : undefined;
+
+  const common = {
+    valueFormat: DATE_FORMAT,
+    placeholder: DATE_FORMAT,
+    disabled: disabled || readonly,
+    clearable: true,
+    popoverProps: { withinPortal: true },
+  };
 
   return (
     <div id={id}>
@@ -73,54 +81,30 @@ const IsoIntervalWidget: React.FC<WidgetProps> = ({
         </Text>
       )}
       <Layout {...layoutProps}>
-        <div style={{ position: "relative" }}>
-          <TextInput
-            label="Start date"
-            value={interval.startDate}
-            onChange={(event) => interval.handleStartChange(event.currentTarget.value)}
-            onBlur={interval.handleStartBlur}
-            onFocus={interval.handleStartFocus}
-            disabled={disabled || readonly}
-            placeholder="YYYY-MM-DD"
-            required={required}
-            error={interval.startError || startExternalError}
-            rightSection={
-              <DatePickerPopover
-                opened={interval.startPickerOpen}
-                onChange={interval.setStartPickerOpen}
-                value={interval.startDate}
-                onDateChange={interval.handleStartDatePick}
-                onTouched={() => interval.setStartTouched(true)}
-                disabled={disabled}
-                readonly={readonly}
-              />
-            }
-          />
-        </div>
-        <div style={{ position: "relative" }}>
-          <TextInput
-            label={endDateRequired ? "End date" : "End date (optional)"}
-            value={interval.endDate}
-            onChange={(event) => interval.handleEndChange(event.currentTarget.value)}
-            onBlur={interval.handleEndBlur}
-            onFocus={interval.handleEndFocus}
-            disabled={disabled || readonly}
-            placeholder="YYYY-MM-DD"
-            required={endDateRequired}
-            error={interval.endError || endExternalError}
-            rightSection={
-              <DatePickerPopover
-                opened={interval.endPickerOpen}
-                onChange={interval.setEndPickerOpen}
-                value={interval.endDate}
-                onDateChange={interval.handleEndDatePick}
-                onTouched={() => interval.setEndTouched(true)}
-                disabled={disabled}
-                readonly={readonly}
-              />
-            }
-          />
-        </div>
+        <DateInput
+          {...common}
+          id={`${id}_start`}
+          label="Start date"
+          value={asDateString(interval.startDate)}
+          onChange={(next) => interval.setStart(next ?? "")}
+          weekendDays={[]}
+          onBlur={interval.handleStartBlur}
+          onFocus={interval.handleStartFocus}
+          required={required}
+          error={startExternalError}
+        />
+        <DateInput
+          {...common}
+          id={`${id}_end`}
+          label={endDateRequired ? "End date" : "End date (optional)"}
+          value={asDateString(interval.endDate)}
+          onChange={(next) => interval.setEnd(next ?? "")}
+          weekendDays={[]}
+          onBlur={interval.handleEndBlur}
+          onFocus={interval.handleEndFocus}
+          required={endDateRequired}
+          error={endExternalError}
+        />
       </Layout>
     </div>
   );

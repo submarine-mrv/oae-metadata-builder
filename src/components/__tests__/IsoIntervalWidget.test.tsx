@@ -79,10 +79,13 @@ describe("IsoIntervalWidget", () => {
       expect(errorTextFor(END)).toBeNull();
     });
 
-    it("puts the error on the end date when only the end is malformed", () => {
+    // A malformed half cannot be typed any more, only imported. The input shows
+    // it as empty, so the interval-level error goes to the start input.
+    it("shows an imported malformed end as empty and puts the error on the start", () => {
       renderWidget({ value: "2024-01-01/20xx", rawErrors: ["Invalid date format"] });
-      expect(errorTextFor(START)).toBeNull();
-      expect(errorTextFor(END)).toBe("Invalid date format");
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
+      expect(errorTextFor(START)).toBe("Invalid date format");
+      expect(errorTextFor(END)).toBeNull();
     });
 
     it("puts the error on the start date when only the start is malformed", () => {
@@ -120,14 +123,14 @@ describe("IsoIntervalWidget", () => {
       expect(errorTextFor(END)).toBeNull();
     });
 
-    it("marks both when the start is malformed and a required end is missing", () => {
+    it("marks both when the start is empty and a required end is missing", () => {
       renderWidget({
-        value: "20xx/..",
+        value: "/..",
         options: { endDateRequired: true },
-        rawErrors: ["Invalid date format"],
+        rawErrors: ["Field is required"],
       });
-      expect(errorTextFor(START)).toBe("Invalid date format");
-      expect(errorTextFor(END)).toBe("Invalid date format");
+      expect(errorTextFor(START)).toBe("Field is required");
+      expect(errorTextFor(END)).toBe("Field is required");
     });
 
     it("leaves both inputs clean when there are no errors", () => {
