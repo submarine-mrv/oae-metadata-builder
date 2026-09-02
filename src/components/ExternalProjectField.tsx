@@ -1,15 +1,52 @@
 import { Box, Grid, Pill, PillsInput, Stack, Textarea, TextInput } from "@mantine/core";
 import type { FieldProps } from "@rjsf/utils";
 import React from "react";
-import IsoIntervalWidgetVertical from "./IsoIntervalWidgetVertical";
+import IsoIntervalWidget from "./IsoIntervalWidget";
 import { FieldLabelSmall } from "./rjsf/FieldLabel";
 import SpatialCoverageField from "./SpatialCoverageField";
 
 const ExternalProjectField: React.FC<FieldProps> = (props) => {
-  const { formData, onChange, disabled, readonly, schema, uiSchema, fieldPathId } = props;
+  const { formData, onChange, disabled, readonly, schema, uiSchema, fieldPathId, errorSchema } =
+    props;
 
   // Handle null/undefined formData
   const data = formData || {};
+
+  /**
+   * Errors for one sub-field, from the errorSchema RJSF hands this Field.
+   *
+   * This component renders its children itself rather than delegating to RJSF's
+   * ObjectField, so nothing else propagates the errors down — without this the
+   * inputs stay unmarked while the summary box lists their errors.
+   *
+   * Errors are collected from the whole subtree, not just the sub-field's own
+   * `__errors`: a bad `spatial_coverage.geo.box` or `related_links[0]` sits
+   * below the input that has to show it.
+   */
+  const collectErrors = (node: unknown): string[] => {
+    if (!node || typeof node !== "object") return [];
+    const found: string[] = [];
+    for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
+      if (key === "__errors") {
+        if (Array.isArray(child)) found.push(...child.filter((m) => typeof m === "string"));
+      } else {
+        found.push(...collectErrors(child));
+      }
+    }
+    return found;
+  };
+
+  const nestedErrorSchema = (fieldName: string): unknown =>
+    (errorSchema as Record<string, unknown> | undefined)?.[fieldName];
+
+  const errorsFor = (fieldName: string): string[] => [
+    ...new Set(collectErrors(nestedErrorSchema(fieldName))),
+  ];
+
+  const errorTextFor = (fieldName: string): string | undefined => {
+    const errors = errorsFor(fieldName);
+    return errors.length > 0 ? errors.join(", ") : undefined;
+  };
 
   const handleFieldChange = (fieldName: string, value: any) => {
     // For a custom Field managing a complex object, we merge the changes ourselves
@@ -27,7 +64,10 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     name: fieldName,
     value: data[fieldName],
     formData: data[fieldName],
-    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData.formData || widgetData),
+    // Widgets pass either a bare value or an object wrapping one, and clearing a
+    // date emits `undefined` — which the old `widgetData.formData` threw on, so
+    // the field kept its stale value and its stale error.
+    onChange: (widgetData: any) => handleFieldChange(fieldName, widgetData?.formData ?? widgetData),
     onBlur: () => {},
     onFocus: () => {},
     disabled,
@@ -36,9 +76,9 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
     schema: fieldSchema,
     uiSchema: uiSchema?.[fieldName] || {},
     options: {},
-    label: fieldName,
+    label: fieldSchema?.title ?? fieldName,
     placeholder: "",
-    rawErrors: [],
+    rawErrors: errorsFor(fieldName),
     registry: props.registry,
   });
 
@@ -61,9 +101,10 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
       path: [...fieldPathId.path, fieldName],
     },
     options: {},
-    label: fieldName,
+    label: fieldSchema?.title ?? fieldName,
     placeholder: "",
-    rawErrors: [],
+    rawErrors: errorsFor(fieldName),
+    errorSchema: nestedErrorSchema(fieldName) ?? {},
     registry: props.registry,
   });
 
@@ -94,14 +135,16 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                     onChange={(e) => handleFieldChange("name", e.currentTarget.value)}
                     disabled={disabled || readonly}
                     placeholder="Project name"
+                    error={errorTextFor("name")}
                   />
                 </Box>
               )}
 
               {/* Temporal coverage */}
               {schema.properties?.temporal_coverage && (
-                <IsoIntervalWidgetVertical
+                <IsoIntervalWidget
                   {...createWidgetProps("temporal_coverage", schema.properties.temporal_coverage)}
+                  options={{ layout: "vertical" }}
                 />
               )}
             </Grid.Col>
@@ -135,6 +178,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
               disabled={disabled || readonly}
               placeholder="Project description"
               rows={3}
+              error={errorTextFor("description")}
             />
           </Box>
         )}
@@ -151,6 +195,7 @@ const ExternalProjectField: React.FC<FieldProps> = (props) => {
                 : undefined
             }
             required={schema.required?.includes("related_links")}
+            error={errorTextFor("related_links")}
           />
         )}
       </Stack>
@@ -165,6 +210,7 @@ interface RelatedLinksFieldProps {
   disabled?: boolean;
   description?: string;
   required?: boolean;
+  error?: string;
 }
 
 const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
@@ -173,6 +219,7 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
   disabled,
   description,
   required = false,
+  error,
 }) => {
   const [search, setSearch] = React.useState("");
 
@@ -196,7 +243,7 @@ const RelatedLinksField: React.FC<RelatedLinksFieldProps> = ({
   return (
     <Box>
       <FieldLabelSmall label="Related Links" description={description} required={required} />
-      <PillsInput>
+      <PillsInput error={error}>
         <Pill.Group>
           {value.map((link, index) => (
             <Pill key={index} withRemoveButton onRemove={() => !disabled && handleRemove(link)}>
