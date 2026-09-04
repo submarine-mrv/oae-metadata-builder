@@ -84,8 +84,8 @@
       "mol kg-1", "mmol kg-1", "umol kg-1", "ueq kg-1"
     ],
 
-    "partial_pressure_of_carbon_dioxide_in_sea_water": ["uatm", "Pa", "ppm"],
-    "surface_partial_pressure_of_carbon_dioxide_in_sea_water": ["uatm", "Pa", "ppm"],
+    "partial_pressure_of_carbon_dioxide_in_sea_water": ["uatm", "Pa"],
+    "surface_partial_pressure_of_carbon_dioxide_in_sea_water": ["uatm", "Pa"],
     "fugacity_of_carbon_dioxide_in_sea_water": ["uatm", "Pa"],
     "mole_fraction_of_carbon_dioxide_in_air": ["ppm", "umol mol-1", "1"],
     "mole_fraction_of_carbon_dioxide_in_dry_air": ["ppm", "umol mol-1", "1"],
