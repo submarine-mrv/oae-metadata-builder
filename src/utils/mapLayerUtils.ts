@@ -1,15 +1,20 @@
 /**
  * Map Layer Utilities - Reusable functions for MapLibre GL map visualizations
  *
- * Currently used by:
- * - SpatialCoverageField
- * - SpatialCoverageMapModal
+ * Used by SpatialCoverageField, SpatialCoverageMapModal, DosingLocationField and
+ * DosingLocationMapModal.
  *
- * TODO: Integrate with DosingLocationField and DosingLocationMapModal
- * (these currently have their own inline implementations for addLine/addBoundingBox)
+ * `add*` creates the source and layers. `set*` updates an existing source's data
+ * in place and is what the drag-to-draw preview uses — re-adding layers on every
+ * mousemove flickers.
  */
 
-import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
+import {
+  adjustEastForAntimeridian,
+  DEGREES_IN_CIRCLE,
+  MAX_LONGITUDE,
+  MIN_LONGITUDE,
+} from "@/utils/spatialUtils";
 
 // Layer style configurations
 export const BBOX_STYLES = {
@@ -29,6 +34,87 @@ export const LINE_STYLES = {
 } as const;
 
 export const MARKER_COLOR = "#228be6";
+
+/** GeoJSON Feature for a bounding box, with the antimeridian-adjusted east edge. */
+function boundingBoxFeature(
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  handleAntimeridian = true,
+) {
+  const renderEast = handleAntimeridian ? adjustEastForAntimeridian(west, east) : east;
+  return {
+    type: "Feature" as const,
+    geometry: {
+      type: "Polygon" as const,
+      coordinates: [
+        [
+          [west, north],
+          [renderEast, north],
+          [renderEast, south],
+          [west, south],
+          [west, north],
+        ],
+      ],
+    },
+  };
+}
+
+/**
+ * Shift `to` by a full turn when the direct path from `from` is longer than
+ * half the globe, so a segment across the antimeridian is expressed the short
+ * way. Rendering and camera fitting must both use this, or the line is drawn
+ * one way and framed the other.
+ */
+export function unwrapLongitudeTowards(from: number, to: number): number {
+  const delta = to - from;
+  if (delta > MAX_LONGITUDE) return to - DEGREES_IN_CIRCLE;
+  if (delta < MIN_LONGITUDE) return to + DEGREES_IN_CIRCLE;
+  return to;
+}
+
+/**
+ * Southwest/northeast corners framing a two-point line, for `fitBounds`.
+ *
+ * `LngLatBounds` wants the corners in that order, so the endpoints are sorted
+ * rather than passed through; and the far longitude is unwrapped first, so a
+ * line across the antimeridian is framed the short way it is drawn.
+ */
+export function lineBounds(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): [[number, number], [number, number]] {
+  const farLon = unwrapLongitudeTowards(lon1, lon2);
+  return [
+    [Math.min(lon1, farLon), Math.min(lat1, lat2)],
+    [Math.max(lon1, farLon), Math.max(lat1, lat2)],
+  ];
+}
+
+/**
+ * GeoJSON Feature for a two-point line.
+ *
+ * Endpoints are stored normalized to [-180, 180], which makes a line that
+ * crosses the antimeridian look like the long way round (170° to -170° reads as
+ * 340° of travel, not 20°). Unwrap the far end so the short route is drawn.
+ */
+function lineFeature(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const renderLon2 = unwrapLongitudeTowards(lon1, lon2);
+
+  return {
+    type: "Feature" as const,
+    geometry: {
+      type: "LineString" as const,
+      coordinates: [
+        [lon1, lat1],
+        [renderLon2, lat2],
+      ],
+    },
+  };
+}
 
 interface BoundingBoxOptions {
   sourceId?: string;
@@ -74,28 +160,9 @@ export function addBoundingBox(
   // Remove existing layers and source
   removeBoundingBox(map, { sourceId, fillLayerId, outlineLayerId });
 
-  // Handle antimeridian crossing for rendering
-  const renderWest = west;
-  const renderEast = handleAntimeridian ? adjustEastForAntimeridian(west, east) : east;
-
-  // Add bounding box as GeoJSON source
   map.addSource(sourceId, {
     type: "geojson",
-    data: {
-      type: "Feature",
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [renderWest, north],
-            [renderEast, north],
-            [renderEast, south],
-            [renderWest, south],
-            [renderWest, north],
-          ],
-        ],
-      },
-    },
+    data: boundingBoxFeature(west, south, east, north, handleAntimeridian),
   });
 
   // Add fill layer
@@ -147,6 +214,29 @@ interface LineOptions {
 }
 
 /**
+ * Update an existing bounding box's geometry in place, adding it if absent.
+ *
+ * Used for the drag-to-draw preview: `addBoundingBox` tears down and rebuilds a
+ * source plus two layers, which flickers when called on every mousemove.
+ */
+export function setBoundingBoxData(
+  map: any,
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  options: BoundingBoxOptions = {},
+): void {
+  const { sourceId = "bbox", handleAntimeridian = true } = options;
+  const source = map.getSource(sourceId);
+  if (!source) {
+    addBoundingBox(map, west, south, east, north, options);
+    return;
+  }
+  source.setData(boundingBoxFeature(west, south, east, north, handleAntimeridian));
+}
+
+/**
  * Add a line visualization to a MapLibre map
  *
  * @param map - MapLibre map instance
@@ -169,19 +259,9 @@ export function addLine(
   // Remove existing line
   removeLine(map, options);
 
-  // Add line as GeoJSON source
   map.addSource(sourceId, {
     type: "geojson",
-    data: {
-      type: "Feature",
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [lon1, lat1],
-          [lon2, lat2],
-        ],
-      },
-    },
+    data: lineFeature(lat1, lon1, lat2, lon2),
   });
 
   // Add line layer
@@ -208,6 +288,41 @@ export function removeLine(map: any, options: LineOptions = {}): void {
   if (map.getSource(sourceId)) {
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     map.removeSource(sourceId);
+  }
+}
+
+/**
+ * Update an existing line's geometry in place, adding it if absent.
+ * Counterpart to `setBoundingBoxData` for line-mode drawing.
+ */
+export function setLineData(
+  map: any,
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+  options: LineOptions = {},
+): void {
+  const { sourceId = "line" } = options;
+  const source = map.getSource(sourceId);
+  if (!source) {
+    addLine(map, lat1, lon1, lat2, lon2, options);
+    return;
+  }
+  source.setData(lineFeature(lat1, lon1, lat2, lon2));
+}
+
+/**
+ * Hide every text layer in the basemap style.
+ *
+ * The preview maps carry a "click to set…" prompt over the tiles, and country
+ * and sea names underneath it make that prompt hard to read. The full modal
+ * maps keep their labels; only the previews call this.
+ */
+export function hideLabelLayers(map: any): void {
+  const layers: Array<{ id: string; type: string }> = map.getStyle?.()?.layers ?? [];
+  for (const layer of layers) {
+    if (layer.type === "symbol") map.setLayoutProperty(layer.id, "visibility", "none");
   }
 }
 

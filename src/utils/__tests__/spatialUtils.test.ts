@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatBoundsString, parseBoundsString } from "../mapLayerUtils";
 import {
   adjustEastForAntimeridian,
+  clampLatitude,
   isValidLatitude,
   isValidLongitude,
   migrateFormDataBoxStrings,
@@ -31,6 +32,22 @@ describe("normalizeLongitude", () => {
   it("wraps values < -180 back into range", () => {
     expect(normalizeLongitude(-181)).toBe(179);
     expect(normalizeLongitude(-360)).toBe(-0); // JS: -360 % 360 === -0
+  });
+});
+
+// ── clampLatitude ───────────────────────────────────────────────────
+
+describe("clampLatitude", () => {
+  it("passes through values already in [-90, 90]", () => {
+    expect(clampLatitude(0)).toBe(0);
+    expect(clampLatitude(90)).toBe(90);
+    expect(clampLatitude(-90)).toBe(-90);
+    expect(clampLatitude(47.6)).toBe(47.6);
+  });
+
+  it("clamps past the poles", () => {
+    expect(clampLatitude(105)).toBe(90);
+    expect(clampLatitude(-105)).toBe(-90);
   });
 });
 
@@ -481,5 +498,34 @@ describe("migrateFormDataBoxStrings", () => {
     };
     const result = migrateFormDataBoxStrings(data);
     expect(result.grid_details[0].spatial_coverage.geo.box).toBe("32 -125 42 -114");
+  });
+});
+
+// ── resolveBoxFromClicks: drag gestures ─────────────────────────────
+
+describe("resolveBoxFromClicks (drag gestures)", () => {
+  it("clamps latitudes when a drag runs past the poles", () => {
+    // Reachable at globe zoom: MapLibre reports latitudes beyond ±90.
+    const result = resolveBoxFromClicks({ lng: -20, lat: 120 }, { lng: 20, lat: -95 });
+    expect(result).toEqual({ west: -20, south: -90, east: 20, north: 90 });
+  });
+
+  it("produces a zero-area box when both points coincide", () => {
+    const result = resolveBoxFromClicks({ lng: 10, lat: 20 }, { lng: 10, lat: 20 });
+    expect(result).toEqual({ west: 10, south: 20, east: 10, north: 20 });
+  });
+
+  it("keeps west > east for an antimeridian drag", () => {
+    const result = resolveBoxFromClicks({ lng: 170, lat: 10 }, { lng: -170, lat: -10 });
+    expect(result.west).toBe(170);
+    expect(result.east).toBe(-170);
+    expect(result.south).toBe(-10);
+    expect(result.north).toBe(10);
+  });
+
+  it("normalizes longitudes dragged beyond the antimeridian", () => {
+    const result = resolveBoxFromClicks({ lng: 190, lat: 0 }, { lng: 200, lat: 5 });
+    expect(result.west).toBe(-170);
+    expect(result.east).toBe(-160);
   });
 });

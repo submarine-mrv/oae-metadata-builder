@@ -48,7 +48,9 @@ test.describe("Spatial Coverage Field", () => {
     await page.click("button:has-text('Draw Selection')");
 
     // Verify the instruction text
-    await expect(page.locator("text=Click first point to start selection")).toBeVisible();
+    await expect(
+      page.locator("text=Drag a box on the map, or click each corner."),
+    ).toBeVisible();
 
     // Draw a bounding box
     await mapModal.drawBoundingBox(-100, -50, 100, 50);
@@ -57,8 +59,97 @@ test.describe("Spatial Coverage Field", () => {
     await page.waitForTimeout(500);
 
     // Verify coordinate inputs have values
-    const northInput = page.locator("input").filter({ has: page.locator("[for]") }).first();
-    await expect(page.getByLabel("°N (max latitude)")).not.toHaveValue("");
+    await expect(mapModal.edge("north")).not.toHaveValue("");
+  });
+
+  test("shows a live preview between the two clicks", async ({ page }) => {
+    await projectPage.openSpatialCoverageModal();
+    await mapModal.waitForMapLoad();
+    await page.click("button:has-text('Draw Selection')");
+
+    // First corner only — the box should already be on the map.
+    await mapModal.clickOnMap(-100, -50);
+    await mapModal.moveOnMap(60, 40);
+    // The prompt flips only once a start point is held, so the shape is being sized.
+    await expect(page.locator("text=Release, or click again to complete the box.")).toBeVisible();
+
+    // The preview rectangle is drawn into the canvas, so moving the pointer
+    // must change the pixels. Without this the test would pass even if
+    // onPreview were never wired to the map.
+    await mapModal.waitForIdle();
+    const before = await mapModal.canvasPixels();
+    await mapModal.moveOnMap(140, 90);
+    await mapModal.waitForIdle();
+    expect(await mapModal.canvasPixels()).not.toBe(before);
+
+    // Closing click commits it.
+    await mapModal.clickOnMap(100, 50);
+    await expect(mapModal.edge("north")).not.toHaveValue("");
+  });
+
+  for (const width of [320, 360, 390]) {
+    test(`compass inputs fit a ${width}px wide viewport`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width, height: 844 } });
+      const page = await context.newPage();
+      const narrowProject = new ProjectPage(page);
+      const narrowModal = new MapModal(page);
+
+      await page.goto("/overview");
+      await page.waitForLoadState("networkidle");
+      await page.getByRole("button", { name: /Create.*Project/i }).click();
+      await page.waitForURL("**/project");
+      await page.waitForLoadState("networkidle");
+      await narrowProject.openSpatialCoverageModal();
+      await narrowModal.waitForMapLoad();
+
+      // Every input must sit inside the viewport; the east one is the last to overflow.
+      for (const edge of ["north", "south", "east", "west"] as const) {
+        const box = await narrowModal.edge(edge).boundingBox();
+        expect(box, `${edge} edge is rendered`).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+      }
+      await context.close();
+    });
+  }
+
+  test("can draw a bounding box by touch drag", async ({ browser }) => {
+    // Own context: touch emulation cannot be toggled on an existing page.
+    const context = await browser.newContext({ hasTouch: true, isMobile: false });
+    const page = await context.newPage();
+    const touchProject = new ProjectPage(page);
+    const touchModal = new MapModal(page);
+
+    await page.goto("/overview");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /Create.*Project/i }).click();
+    await page.waitForURL("**/project");
+    await page.waitForLoadState("networkidle");
+
+    await touchProject.openSpatialCoverageModal();
+    await touchModal.waitForMapLoad();
+    await page.click("button:has-text('Draw Selection')");
+
+    await touchModal.touchDragBoundingBox(-90, -50, 90, 50);
+
+    for (const edge of ["north", "south", "east", "west"] as const) {
+      await expect(touchModal.edge(edge)).not.toHaveValue("");
+    }
+    await context.close();
+  });
+
+  test("can draw a bounding box by dragging", async ({ page }) => {
+    await projectPage.openSpatialCoverageModal();
+    await mapModal.waitForMapLoad();
+    await page.click("button:has-text('Draw Selection')");
+
+    await mapModal.dragBoundingBox(-120, -60, 120, 60);
+
+    for (const edge of ["north", "south", "east", "west"] as const) {
+      await expect(mapModal.edge(edge)).not.toHaveValue("");
+    }
+    // Drawing has ended, so the button is offered again.
+    await expect(page.locator("button:has-text('Draw Selection')")).toBeEnabled();
   });
 
   test("can enter coordinates manually", async ({ page }) => {
@@ -66,10 +157,10 @@ test.describe("Spatial Coverage Field", () => {
     await mapModal.waitForMapLoad();
 
     // Fill in coordinate inputs
-    await page.getByLabel("°W (west edge)").fill("-125");
-    await page.getByLabel("°S (min latitude)").fill("32");
-    await page.getByLabel("°E (east edge)").fill("-117");
-    await page.getByLabel("°N (max latitude)").fill("42");
+    await mapModal.edge("west").fill("-125");
+    await mapModal.edge("south").fill("32");
+    await mapModal.edge("east").fill("-117");
+    await mapModal.edge("north").fill("42");
 
     // Confirm the selection
     await page.click("button:has-text('Confirm')");
@@ -86,8 +177,8 @@ test.describe("Spatial Coverage Field", () => {
     await mapModal.waitForMapLoad();
 
     // Enter invalid coordinates where north < south
-    await page.getByLabel("°S (min latitude)").fill("50");
-    await page.getByLabel("°N (max latitude)").fill("30");
+    await mapModal.edge("south").fill("50");
+    await mapModal.edge("north").fill("30");
 
     // Verify error message appears
     await expect(page.locator("text=North latitude must be greater than South latitude")).toBeVisible();
@@ -102,10 +193,10 @@ test.describe("Spatial Coverage Field", () => {
     await mapModal.waitForMapLoad();
 
     // Enter some coordinates
-    await page.getByLabel("°W (west edge)").fill("-125");
-    await page.getByLabel("°S (min latitude)").fill("32");
-    await page.getByLabel("°E (east edge)").fill("-117");
-    await page.getByLabel("°N (max latitude)").fill("42");
+    await mapModal.edge("west").fill("-125");
+    await mapModal.edge("south").fill("32");
+    await mapModal.edge("east").fill("-117");
+    await mapModal.edge("north").fill("42");
 
     // Cancel
     await page.click("button:has-text('Cancel')");
@@ -122,10 +213,10 @@ test.describe("Spatial Coverage Field", () => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    await page.getByLabel("°W (west edge)").fill("-125");
-    await page.getByLabel("°S (min latitude)").fill("32");
-    await page.getByLabel("°E (east edge)").fill("-117");
-    await page.getByLabel("°N (max latitude)").fill("42");
+    await mapModal.edge("west").fill("-125");
+    await mapModal.edge("south").fill("32");
+    await mapModal.edge("east").fill("-117");
+    await mapModal.edge("north").fill("42");
     await page.click("button:has-text('Confirm')");
     await page.waitForTimeout(500);
 
@@ -134,10 +225,10 @@ test.describe("Spatial Coverage Field", () => {
     await mapModal.waitForMapLoad();
 
     // Verify the coordinates are preserved
-    await expect(page.getByLabel("°W (west edge)")).toHaveValue("-125");
-    await expect(page.getByLabel("°S (min latitude)")).toHaveValue("32");
-    await expect(page.getByLabel("°E (east edge)")).toHaveValue("-117");
-    await expect(page.getByLabel("°N (max latitude)")).toHaveValue("42");
+    await expect(mapModal.edge("west")).toHaveValue("-125");
+    await expect(mapModal.edge("south")).toHaveValue("32");
+    await expect(mapModal.edge("east")).toHaveValue("-117");
+    await expect(mapModal.edge("north")).toHaveValue("42");
 
     await page.click("button:has-text('Cancel')");
   });
@@ -150,10 +241,10 @@ test.describe("Spatial Coverage Field", () => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    await page.getByLabel("°W (west edge)").fill("-125");
-    await page.getByLabel("°S (min latitude)").fill("32");
-    await page.getByLabel("°E (east edge)").fill("-117");
-    await page.getByLabel("°N (max latitude)").fill("42");
+    await mapModal.edge("west").fill("-125");
+    await mapModal.edge("south").fill("32");
+    await mapModal.edge("east").fill("-117");
+    await mapModal.edge("north").fill("42");
     await page.click("button:has-text('Confirm')");
 
     // Wait for mini map to update
