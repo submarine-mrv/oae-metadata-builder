@@ -142,8 +142,10 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
       for (const rule of rules) if (rule?.then?.anyOf) offenders.push(name);
     }
     expect(offenders).toEqual([]);
-    expect(defs.FieldDataset.allOf.some((r: any) => r.then?.if && r.then?.then?.required)).toBe(
-      true,
-    );
+    // The rewritten form: "not both absent", which RJSF neither renders as a
+    // selector nor resolves into `required`.
+    const rule = defs.FieldDataset.allOf.find((r: any) => r.then?.not?.properties);
+    expect(rule?.then.not.properties).toEqual({ data_access_link: false, data_access_date: false });
+    expect(defs.FieldDataset.allOf.some((r: any) => r.then?.then)).toBe(false);
   });
 });

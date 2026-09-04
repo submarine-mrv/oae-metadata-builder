@@ -104,21 +104,16 @@ describe("transformFormErrors", () => {
   describe("data access either/or rule", () => {
     // Raw AJV output for the bundler's nested if/then form of the rule: one
     // required error two `then`s deep, plus the wrappers.
+    // Raw AJV output for the bundler's "not both absent" form of the rule: one
+    // `not` failure on the object, plus the if-wrapper.
     const anyOfErrors = (): RJSFValidationError[] =>
       [
         {
-          name: "required",
+          name: "not",
           property: "",
-          message: "must have required property 'data_access_date'",
-          params: { missingProperty: "data_access_date" },
-          schemaPath: "#/allOf/1/then/then/required",
-        },
-        {
-          name: "if",
-          property: "",
-          message: 'must match "then" schema',
-          params: { failingKeyword: "then" },
-          schemaPath: "#/allOf/1/then/if",
+          message: "must NOT be valid",
+          params: {},
+          schemaPath: "#/allOf/1/then/not",
         },
         {
           name: "if",
@@ -138,11 +133,12 @@ describe("transformFormErrors", () => {
       ]);
     });
 
-    it("gives both fields the either/or message, not 'is required'", () => {
+    it("gives both fields the either/or message as required-class errors", () => {
       const result = transformFormErrors(anyOfErrors());
       for (const e of result) {
         expect(e.message).toBe(MESSAGES.validation.dataAccessEitherOr);
-        expect(e.message).not.toContain("Field is required");
+        // Required-class, so the form hides it until Validate like the others.
+        expect(e.name).toBe("required");
       }
     });
 

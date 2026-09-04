@@ -441,13 +441,16 @@ console.log(
 // Rewrite "at least one of A, B" rules for RJSF.
 //
 // LinkML emits `postconditions: any_of` as `then: { anyOf: [{required: [A]},
-// {required: [B]}] }`. AJV validates that fine, but when the `if` matches RJSF
-// merges the `then` into the object schema and renders its `anyOf` as an
-// "Option 1 / Option 2" selector. The same rule expressed as
-// `then: { if: { not: { required: [A] } }, then: { required: [B] } }` is
-// equivalent under AJV and RJSF resolves nested if/then without a selector.
-// Only two-branch, required-only anyOfs are rewritten; anything else is left
-// alone so a genuinely different shape fails loudly in review.
+// {required: [B]}] }`. AJV validates that fine, but RJSF renders a merged
+// `anyOf` as an "Option 1 / Option 2" selector, and a nested if/then form
+// resolves into `required` and draws an asterisk on whichever field the data
+// happens to leave empty. Neither field is required on its own.
+//
+// `then: { not: { properties: { A: false, B: false } } }` says "not both
+// absent": AJV rejects the object only when neither key is present, and RJSF
+// ignores `not` for rendering, so no selector and no asterisk. Only two-branch,
+// required-only anyOfs are rewritten; anything else is left alone so a
+// genuinely different shape fails loudly in review.
 function rewriteEitherOrRules(schema) {
   let rewritten = 0;
   // A branch qualifies only if it is purely "this one field is required":
@@ -472,7 +475,7 @@ function rewriteEitherOrRules(schema) {
     if (!Array.isArray(anyOf) || anyOf.length !== 2) return;
     const [a, b] = anyOf.map(requiredOf);
     if (!a || !b) return;
-    rule.then = { if: { not: { required: [a] } }, then: { required: [b] } };
+    rule.then = { not: { properties: { [a]: false, [b]: false } } };
     rewritten += 1;
   };
 

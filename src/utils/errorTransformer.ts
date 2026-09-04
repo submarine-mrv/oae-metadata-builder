@@ -5,22 +5,23 @@ import { MESSAGES } from "@/constants/messages";
 
 /**
  * The open-access rule ("a data access link or a data access date") is a LinkML
- * `any_of` postcondition. The bundler rewrites it as nested if/then (see
- * rewriteEitherOrRules in bundle-schema.mjs), so AJV reports it as a single
- * required error for the second field, sitting under `then/then`, plus the
- * if-wrappers dropped elsewhere. That one error is fanned out to both fields
- * with the either/or wording, so neither reads as simply "required".
+ * `any_of` postcondition. The bundler rewrites it as "not both absent" (see
+ * rewriteEitherOrRules in bundle-schema.mjs), so AJV reports a single `not`
+ * failure on the dataset object with no field attached. It is fanned out to
+ * both fields as a required-class error with the either/or wording, so it is
+ * hidden until Validate like other required errors and then marks both.
  */
 const DATA_ACCESS_EITHER_OR_FIELDS = ["data_access_link", "data_access_date"];
 
 function isDataAccessBranchError(e: RJSFValidationError): boolean {
+  // The bundler expresses the rule as `then: { not: { properties: { link:
+  // false, date: false } } }`, which AJV reports as one `not` failure on the
+  // dataset object. The fanned-out copies below carry the message already, so
+  // a second pass (validateDataset and the form both transform) is a no-op.
   return (
-    e.name === "required" &&
-    // Already fanned out by an earlier pass; validateDataset and the form both
-    // run this transform, and a second pass must be a no-op.
+    e.name === "not" &&
     e.message !== MESSAGES.validation.dataAccessEitherOr &&
-    /\/then\/then\/required$/.test(e.schemaPath ?? "") &&
-    DATA_ACCESS_EITHER_OR_FIELDS.includes(e.params?.missingProperty ?? "")
+    /\/then\/not$/.test(e.schemaPath ?? "")
   );
 }
 
@@ -74,6 +75,7 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
       if (isDataAccessBranchError(e)) {
         return DATA_ACCESS_EITHER_OR_FIELDS.map((field) => ({
           ...e,
+          name: "required",
           property: `.${field}`,
           params: { ...e.params, missingProperty: field },
           message: MESSAGES.validation.dataAccessEitherOr,

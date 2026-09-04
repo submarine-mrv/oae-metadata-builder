@@ -2089,17 +2089,11 @@
             ]
           },
           "then": {
-            "if": {
-              "not": {
-                "required": [
-                  "data_access_link"
-                ]
+            "not": {
+              "properties": {
+                "data_access_link": false,
+                "data_access_date": false
               }
-            },
-            "then": {
-              "required": [
-                "data_access_date"
-              ]
             }
           }
         }
@@ -3801,17 +3795,11 @@
             ]
           },
           "then": {
-            "if": {
-              "not": {
-                "required": [
-                  "data_access_link"
-                ]
+            "not": {
+              "properties": {
+                "data_access_link": false,
+                "data_access_date": false
               }
-            },
-            "then": {
-              "required": [
-                "data_access_date"
-              ]
             }
           }
         }
@@ -5600,17 +5588,11 @@
             ]
           },
           "then": {
-            "if": {
-              "not": {
-                "required": [
-                  "data_access_link"
-                ]
+            "not": {
+              "properties": {
+                "data_access_link": false,
+                "data_access_date": false
               }
-            },
-            "then": {
-              "required": [
-                "data_access_date"
-              ]
             }
           }
         }
