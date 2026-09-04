@@ -497,7 +497,7 @@ function rewriteEitherOrRules(schema) {
 }
 
 const eitherOrRewrites = rewriteEitherOrRules(decorated);
-console.log(`✓ Rewrote ${eitherOrRewrites} either/or rule(s) as nested if/then for RJSF`);
+console.log(`✓ Rewrote ${eitherOrRewrites} either/or rule(s) as "not both absent" for RJSF`);
 
 // Discriminate the polymorphic variables union on schema_class.
 decorated = discriminateVariableUnions(decorated, [

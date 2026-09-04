@@ -60,14 +60,30 @@ access requires either `data_access_date` or `data_access_link`. Neither field i
 `conditionalFields`, and neither should be — `data_access_date` stays in root `properties` and is
 always rendered.
 
-`fixConditionalFields()` cannot relocate it anyway. It writes the definition into
-`allOf[].then.properties[field]`, but the open-access rule nests its `properties` a level deeper
-inside `anyOf`, which the function does not walk. Adding the field to the list would make it render
-under scheduled access and vanish under open access — the case that needs it most.
+### The either/or rule is rewritten for RJSF
 
-The open-access rule is enforced by AJV and presented by `errorTransformer.ts`, which collapses the
-four raw AJV errors (one per anyOf branch, plus a bare `anyOf` and `if`) into one message attached
-to both fields.
+LinkML emits the open-access rule as `then: { anyOf: [{ required: [link] }, { required: [date] }] }`.
+AJV validates that as intended, but RJSF mishandles it two different ways: a merged `anyOf` renders
+as an "Option 1 / Option 2" selector, and a nested `if/then` form resolves into `required` and
+draws an asterisk on whichever field the data leaves empty. Neither field is required on its own.
+
+`rewriteEitherOrRules()` in `scripts/bundle-schema.mjs` rewrites two-branch, required-only
+`anyOf` rules as:
+
+```json
+{ "then": { "not": { "properties": { "data_access_link": false, "data_access_date": false } } } }
+```
+
+"Not both absent": AJV rejects the object only when neither key is present, and RJSF ignores `not`
+for rendering, so no selector and no asterisk. Only branches that are purely one required field
+(an empty `properties` entry at most) are rewritten; anything else is left alone so a different
+shape fails in review rather than being silently loosened. `schemaTypeSync.test.ts` guards the
+rewrite.
+
+AJV reports a failure as one `not` error on the dataset object, plus the `if` wrapper that every
+if/then rule produces. `errorTransformer.ts` drops the wrapper and fans the `not` error out to both
+fields as a required-class error with the either/or wording, so it hides until Validate like other
+required errors and then marks both inputs with one sentence.
 
 ## Watch the rule count
 
