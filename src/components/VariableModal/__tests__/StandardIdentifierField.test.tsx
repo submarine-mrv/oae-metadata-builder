@@ -350,6 +350,31 @@ describe("StandardIdentifierField — full list mode", () => {
     });
   });
 
+  it("submits the narrowed match on Enter, not the option at the old highlight index", async () => {
+    const onSelect = vi.fn();
+    renderPicker({}, onSelect, null);
+    fireEvent.click(trigger());
+    const search = await screen.findByPlaceholderText(/Search CF standard names/);
+    await waitFor(() => expect(options().length).toBeGreaterThan(2));
+
+    // Highlight the second option, then narrow the list to one result.
+    fireEvent.keyDown(search, { code: "ArrowDown" });
+    fireEvent.keyDown(search, { code: "ArrowDown" });
+    fireEvent.change(search, { target: { value: "air_temperature" } });
+    await waitFor(() => {
+      expect(screen.getByText("air_temperature")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText("air_temperature").closest("[data-combobox-option]")).toHaveAttribute(
+        "data-combobox-selected",
+      );
+    });
+
+    fireEvent.keyDown(search, { code: "Enter" });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0][0]).toMatchObject({ name: "air_temperature" });
+  });
+
   it("caps the rendered options and says how many matched", async () => {
     renderPicker({}, vi.fn(), null);
     fireEvent.click(trigger());

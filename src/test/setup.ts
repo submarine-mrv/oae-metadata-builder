@@ -81,3 +81,8 @@ class MockBlob {
 }
 
 globalThis.Blob = vi.fn((parts: any[], options?: any) => new MockBlob(parts, options)) as any;
+
+// jsdom has no scrollIntoView; Mantine's Combobox calls it on keyboard selection.
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}

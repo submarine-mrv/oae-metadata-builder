@@ -242,14 +242,24 @@ export default function StandardIdentifierField({
   const showAll = () => {
     setSearchAll(true);
     setSearch("");
+    combobox.resetSelectedOption();
     combobox.openDropdown();
   };
 
   const backToSuggested = () => {
     setSearchAll(false);
     setSearch("");
+    combobox.resetSelectedOption();
     combobox.openDropdown();
   };
+
+  // Mantine keeps the highlighted index across re-renders, and Enter clicks
+  // whatever option now sits at that index. Once the list has been rebuilt, move
+  // the highlight to the first match so Enter selects what the user is looking at.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the store is a fresh object each render
+  React.useEffect(() => {
+    if (combobox.dropdownOpened) combobox.selectFirstOption();
+  }, [search, isFullList]);
 
   const showingOther = noStandardName && !selectedTerm;
   const isClearable = !loading && (!!selectedTerm || showingOther);
@@ -328,7 +338,10 @@ export default function StandardIdentifierField({
           {isFullList && (
             <Combobox.Search
               value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
+              onChange={(e) => {
+                setSearch(e.currentTarget.value);
+                combobox.resetSelectedOption();
+              }}
               placeholder="Search CF standard names…"
               disabled={loading}
             />
