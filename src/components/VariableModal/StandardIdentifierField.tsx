@@ -127,7 +127,9 @@ export default function StandardIdentifierField({
     let active = true;
     loadCfIndex().then(
       (loaded) => {
-        if (active) setIndex(loaded);
+        if (!active) return;
+        setIndex(loaded);
+        setLoadFailed(false);
       },
       () => {
         if (active) setLoadFailed(true);
