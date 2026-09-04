@@ -49,6 +49,13 @@ Reason (1) is a legitimate, lasting choice. Reason (2) no longer applies.
 **Do not assume RJSF handles variables.** The dataset RJSF form excludes the `variables` array
 from its own validation; `validateDataset` checks it in a single discriminated AJV pass.
 
+The bespoke engine also carries the app's only **vocabulary-backed field** and its only
+**runtime-loaded auxiliary data file**: the CF standard name picker on `standard_identifier`, whose
+~5,000-name index arrives as a lazy chunk rather than through the bundled schema. Sea names and
+platform types work the other way round — those vocabularies are merged *into* the schema at bundle
+time by `decorateWithNvsLabels` and rendered by an RJSF widget. See
+[`cf-standard-names.md`](cf-standard-names.md) before touching either path.
+
 ## 3. Variable polymorphism — what's already correct (don't "fix" it)
 
 Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designates_type: true`,
@@ -87,7 +94,11 @@ instrument subtypes). It exists for other programmatic-validation use cases, not
 `ModelOutputDataset.variables` ranges over the single concrete class `ModelOutputVariable` — no union, no
 discriminator needed. A model variable is produced by the simulation, so it carries none of the
 sampling, instrument, calibration or in-situ QC metadata a field variable does; it has only
-`variable_type`, `long_name`, `dataset_variable_name`, `units` and an optional `standard_identifier`.
+`variable_type`, `long_name`, `dataset_variable_name`, `units` and an optional
+`standard_identifier`. That last one is a `VocabularyItemReference` (`term` + `uri` both required,
+`description` optional) and is where a CF standard name is recorded — the picker treats the four
+model types that mirror field quantities as shortlisted and searches the full CF table for the
+rest.
 
 The two families are disjoint in both directions:
 

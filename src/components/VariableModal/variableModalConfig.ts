@@ -319,8 +319,17 @@ export interface FieldConfig {
    * - "enum_with_other" - enum dropdown with auto-shown custom field when "other" selected
    * - "boolean_select" - renders boolean as Yes/No dropdown instead of checkbox
    * - "optional_with_gate" - Yes/No gate question that shows text input when "Yes" selected
+   * - "standard_identifier" - CF standard name picker writing a VocabularyItemReference
+   * - "units_combobox" - unit input suggesting the selected CF name's canonical units
    */
-  inputType?: "text" | "textarea" | "enum_with_other" | "boolean_select" | "optional_with_gate";
+  inputType?:
+    | "text"
+    | "textarea"
+    | "enum_with_other"
+    | "boolean_select"
+    | "optional_with_gate"
+    | "standard_identifier"
+    | "units_combobox";
   /** Show description in a modal popup instead of tooltip. Default is false (tooltip) */
   descriptionModal?: boolean;
   /** Placeholder text for the input field */
@@ -454,10 +463,12 @@ const BASE: HierarchyLayer = {
   name: "Variable",
   sections: {
     basic: [
+      { path: "standard_identifier", inputType: "standard_identifier" },
       { path: "long_name", span: 6, placeholderText: "Full descriptive name" },
       {
         path: "units",
         span: 6,
+        inputType: "units_combobox",
         placeholderText: "e.g., umol/kg, dimensionless",
       },
       {
