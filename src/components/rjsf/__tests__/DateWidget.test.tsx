@@ -2,6 +2,7 @@ import { MantineProvider } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { theme } from "@/theme";
 import DateWidget from "../DateWidget";
@@ -68,6 +69,51 @@ describe("DateWidget", () => {
     const emitted = onChange.mock.calls.map(([v]) => v);
     expect(emitted).toContain(undefined);
     expect(emitted).not.toContain("");
+  });
+
+  it("keeps an imported invalid date visible and lets the user remove it", async () => {
+    const { onChange } = renderWidget({ value: "2027-02-30" });
+    expect(screen.getByRole("textbox")).toHaveValue("2027-02-30");
+    expect(screen.getByText("Invalid date format")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Clear date" }));
+    expect(onChange).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("hands an imported invalid date back to the picker once it is corrected", async () => {
+    // Controlled like RJSF does it: each change flows back in as the new value.
+    const seen: unknown[] = [];
+    function Harness() {
+      const [value, setValue] = useState<unknown>("2027-02-30");
+      const props = {
+        id: "root_data_access_date",
+        name: "data_access_date",
+        label: "Data Access Date",
+        value,
+        options: {},
+        schema: { type: "string" as const, format: "date" },
+        uiSchema: {},
+        rawErrors: [],
+        onChange: (v: unknown) => {
+          seen.push(v);
+          setValue(v);
+        },
+        onBlur: vi.fn(),
+        onFocus: vi.fn(),
+        registry: { formContext: {}, fields: {}, widgets: {}, templates: {} },
+      } as unknown as WidgetProps;
+      return <DateWidget {...props} />;
+    }
+    render(
+      <MantineProvider theme={theme}>
+        <Harness />
+      </MantineProvider>,
+    );
+
+    await userEvent.clear(screen.getByRole("textbox"));
+    await userEvent.type(screen.getByRole("textbox"), "2027-03-01");
+    expect(seen).toContain("2027-03-01");
+    // Back on the picker: the invalid-date message is gone.
+    expect(screen.queryByText("Invalid date format")).not.toBeInTheDocument();
   });
 
   it("refuses an impossible calendar date instead of normalising it", async () => {

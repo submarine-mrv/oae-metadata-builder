@@ -1,3 +1,4 @@
+import { CloseButton, TextInput } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import type { WidgetProps } from "@rjsf/utils";
 import { ariaDescribedByIds, labelValue } from "@rjsf/utils";
@@ -51,6 +52,10 @@ const DateWidget: React.FC<WidgetProps> = ({
 }) => {
   const parsed = typeof value === "string" && value ? dayjs(value, DATE_FORMAT, true) : null;
   const dateValue = parsed?.isValid() ? parsed.toDate() : null;
+  // An imported value the strict parser rejects. DateInput would show it as
+  // empty with no clear control, leaving an invisible value that keeps failing
+  // validation, so it is shown as text until it is corrected or removed.
+  const storedInvalid = parsed !== null && !parsed.isValid();
 
   const handleChange = useCallback(
     (next: Date | string | null) => {
@@ -68,21 +73,61 @@ const DateWidget: React.FC<WidgetProps> = ({
   const labelText = labelValue(label || undefined, hideLabel, false);
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
 
+  const fieldLabel = labelText && (
+    <FieldLabel
+      label={String(labelText)}
+      description={schema?.description}
+      required={required}
+      useModal={useModal}
+      // Match a native Mantine input label: md line height plus its 3px
+      // bottom margin, so this control lines up with text inputs beside it.
+      mb={3}
+      lh="md"
+      labelId={`${id}-label`}
+    />
+  );
+
+  if (storedInvalid) {
+    return (
+      <div>
+        {fieldLabel}
+        <TextInput
+          id={id}
+          name={id}
+          value={value}
+          placeholder={placeholder || DATE_FORMAT}
+          disabled={disabled || readonly}
+          error={rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : "Invalid date format"}
+          rightSection={
+            <CloseButton
+              size="sm"
+              aria-label="Clear date"
+              disabled={disabled || readonly}
+              onClick={() => onChange(undefined)}
+            />
+          }
+          onChange={(e) => {
+            const text = e.currentTarget.value;
+            if (!text.trim()) {
+              onChange(undefined);
+              return;
+            }
+            // Valid text hands the field back to the picker; anything else stays
+            // as typed so the user can keep editing it.
+            onChange(strictDateParser(text) ?? text);
+          }}
+          onBlur={() => onBlur?.(id, value)}
+          onFocus={() => onFocus?.(id, value)}
+          aria-labelledby={labelText ? `${id}-label` : undefined}
+          aria-describedby={ariaDescribedByIds(id)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
-      {labelText && (
-        <FieldLabel
-          label={String(labelText)}
-          description={schema?.description}
-          required={required}
-          useModal={useModal}
-          // Match a native Mantine input label: md line height plus its 3px
-          // bottom margin, so this control lines up with text inputs beside it.
-          mb={3}
-          lh="md"
-          labelId={`${id}-label`}
-        />
-      )}
+      {fieldLabel}
       <DateInput
         id={id}
         name={id}
