@@ -205,9 +205,12 @@ describe("transformFormErrors", () => {
       expect(result.map((e) => e.name)).toEqual(["required"]);
     });
 
-    it("fans an unrelated either/or rule out to its own fields, not the data-access pair", () => {
-      // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
-      const schema = { allOf: [{ if: {}, then: { not: { properties: { a: false, b: false } } } }] };
+    it("fans an unrelated either/or rule out to its own fields with its own wording", () => {
+      const schema = {
+        properties: { a: { title: "Alpha" }, b: { title: "Beta" } },
+        // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+        allOf: [{ if: {}, then: { not: { properties: { a: false, b: false } } } }],
+      };
       const result = transformFormErrors(
         [
           {
@@ -221,6 +224,10 @@ describe("transformFormErrors", () => {
         schema,
       );
       expect(result.map((e) => e.property).sort()).toEqual([".a", ".b"]);
+      for (const e of result) {
+        expect(e.message).toBe("Either Alpha or Beta must be provided.");
+        expect(e.message).not.toContain("data access");
+      }
     });
 
     it("leaves a not error alone when no schema is available to resolve it", () => {
