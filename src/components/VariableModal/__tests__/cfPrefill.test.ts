@@ -75,6 +75,29 @@ describe("applyCfSelection", () => {
     expect(second.data.concentration_basis).toBe("per_mass");
   });
 
+  it("drops its own basis when the next name has none mapped", () => {
+    // An uncurated per-volume DIC analogue: a real CF name with no basis entry.
+    const analogue: CfEntry = {
+      name: "mole_concentration_of_dissolved_inorganic_carbon_abiotic_analogue_in_sea_water",
+      uri: "http://vocab.nerc.ac.uk/collection/P07/current/X/",
+      units: "mol m-3",
+    };
+    const first = applyCfSelection({}, DIC_MASS, {});
+    const second = applyCfSelection(first.data, analogue, first.prefilled);
+    expect(second.data.concentration_basis).toBeUndefined();
+    expect(second.prefilled.concentration_basis).toBeUndefined();
+  });
+
+  it("keeps a basis the user chose when the next name has none mapped", () => {
+    const analogue: CfEntry = {
+      name: "mole_concentration_of_dissolved_inorganic_carbon_abiotic_analogue_in_sea_water",
+      uri: "http://vocab.nerc.ac.uk/collection/P07/current/X/",
+      units: "mol m-3",
+    };
+    const { data } = applyCfSelection({ concentration_basis: "per_mass" }, analogue, {});
+    expect(data.concentration_basis).toBe("per_mass");
+  });
+
   it("skips concentration_basis on a class that has no such field", () => {
     // ModelOutputVariable carries neither, so writing it would only be stripped again.
     const { data } = applyCfSelection({}, DIC_MASS, {}, { hasConcentrationBasis: false });

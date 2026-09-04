@@ -167,7 +167,7 @@ describe("getUnitSuggestions", () => {
   it("replaces the canonical unit where a name is curated", () => {
     // pH is reported on a named scale, never as CF's dimensionless "1".
     const suggestions = getUnitSuggestions(entry("sea_water_ph_reported_on_total_scale"));
-    expect(suggestions).toEqual(["Total Scale", "Seawater Scale", "Free Scale", "NBS Scale"]);
+    expect(suggestions).toEqual(["Total Scale"]);
     expect(suggestions).not.toContain("1");
   });
 

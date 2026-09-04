@@ -67,7 +67,7 @@
   },
   "$unitSuggestionsNote": "Authoritative when present: these replace the CF canonical unit rather than adding to it, because the reported unit is often not the canonical one (pH scales, PSU). A name with no entry here falls back to its CF canonical unit.",
   "unitSuggestions": {
-    "sea_water_ph_reported_on_total_scale": ["Total Scale", "Seawater Scale", "Free Scale", "NBS Scale"],
+    "sea_water_ph_reported_on_total_scale": ["Total Scale"],
 
     "sea_water_alkalinity_expressed_as_mole_equivalent": [
       "mol m-3", "mmol m-3", "umol m-3", "ueq m-3",

@@ -84,9 +84,16 @@ export function applyCfSelection(
   // is required on both — leaving it unset lets the two disagree.
   const basis =
     options.hasConcentrationBasis === false ? undefined : getConcentrationBasisFor(entry.name);
-  if (basis && isOursToPrefill(data, prefilled, "concentration_basis")) {
-    data.concentration_basis = basis;
-    next.concentration_basis = basis;
+  if (isOursToPrefill(data, prefilled, "concentration_basis")) {
+    if (basis) {
+      data.concentration_basis = basis;
+      next.concentration_basis = basis;
+    } else if (prefilled.concentration_basis !== undefined) {
+      // The new name says nothing about basis, so the one the picker wrote for
+      // the previous name would now be stale.
+      delete data.concentration_basis;
+      delete next.concentration_basis;
+    }
   }
 
   return { data, prefilled: next };

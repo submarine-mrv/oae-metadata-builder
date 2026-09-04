@@ -59,6 +59,10 @@ export function loadCfIndex(): Promise<CfIndex> {
         cfTableVersion: raw.meta.cfTableVersion,
       };
     });
+    // A rejected promise must not stay cached, or no retry could ever succeed.
+    indexPromise.catch(() => {
+      indexPromise = null;
+    });
   }
   return indexPromise;
 }

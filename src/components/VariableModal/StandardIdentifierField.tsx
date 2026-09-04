@@ -99,6 +99,9 @@ export default function StandardIdentifierField({
   const [noStandardName, setNoStandardName] = React.useState(false);
   /** Escape hatch out of a shortlist into the full CF table, and back again. */
   const [searchAll, setSearchAll] = React.useState(false);
+  /** Set when the index chunk failed to load; bumping `loadAttempt` tries again. */
+  const [loadFailed, setLoadFailed] = React.useState(false);
+  const [loadAttempt, setLoadAttempt] = React.useState(0);
 
   const hasShortlist = shortlist !== null;
   const isFullList = !hasShortlist || searchAll;
@@ -122,18 +125,28 @@ export default function StandardIdentifierField({
   React.useEffect(() => {
     if (!needsIndex) return;
     let active = true;
-    loadCfIndex().then((loaded) => {
-      if (active) setIndex(loaded);
-    });
+    loadCfIndex().then(
+      (loaded) => {
+        if (active) setIndex(loaded);
+      },
+      () => {
+        if (active) setLoadFailed(true);
+      },
+    );
     return () => {
       active = false;
     };
-  }, [needsIndex]);
+  }, [needsIndex, loadAttempt]);
+
+  const retryLoad = () => {
+    setLoadFailed(false);
+    setLoadAttempt((n) => n + 1);
+  };
 
   // Derived, never stored. Held as state it could stick on forever: setIndex
   // re-renders, the effect cleanup fires, and the separate `.finally` microtask that
   // meant to clear it finds the effect already torn down and skips the write.
-  const loading = needsIndex && !index;
+  const loading = needsIndex && !index && !loadFailed;
 
   const combobox = useCombobox({
     onDropdownClose: () => {
@@ -167,7 +180,7 @@ export default function StandardIdentifierField({
    * A stored term nothing recognises: an imported document, or a name deprecated
    * since this vocabulary snapshot. Show it rather than blanking it.
    */
-  const offList = selectedTerm && !selectedEntry && !loading ? selectedTerm : null;
+  const offList = selectedTerm && !selectedEntry && !loading && !loadFailed ? selectedTerm : null;
 
   const matches = React.useMemo<Match[]>(() => {
     const q = norm(search);
@@ -324,6 +337,20 @@ export default function StandardIdentifierField({
           <Combobox.Options mah={280} style={{ overflowY: "auto" }}>
             {loading ? (
               <Combobox.Empty>Loading CF standard names…</Combobox.Empty>
+            ) : loadFailed && isFullList ? (
+              <Combobox.Empty>
+                <Text size="sm" component="span">
+                  Could not load the CF standard name list.{" "}
+                </Text>
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  onMouseDown={keepOpen}
+                  onClick={retryLoad}
+                >
+                  Retry
+                </Button>
+              </Combobox.Empty>
             ) : shown.length === 0 ? (
               <Combobox.Empty>No matching standard name.</Combobox.Empty>
             ) : (
