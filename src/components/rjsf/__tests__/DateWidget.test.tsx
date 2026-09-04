@@ -122,6 +122,47 @@ describe("DateWidget", () => {
     expect(screen.queryByText("Invalid date format")).not.toBeInTheDocument();
   });
 
+  it("keeps focus while an imported invalid date is cleared and retyped", async () => {
+    const seen: unknown[] = [];
+    function Harness() {
+      const [value, setValue] = useState<unknown>("2027-02-30");
+      const props = {
+        id: "root_data_access_date",
+        name: "data_access_date",
+        label: "Data Access Date",
+        value,
+        options: {},
+        schema: { type: "string" as const, format: "date" },
+        uiSchema: {},
+        rawErrors: [],
+        onChange: (v: unknown) => {
+          seen.push(v);
+          setValue(v);
+        },
+        onBlur: vi.fn(),
+        onFocus: vi.fn(),
+        registry: { formContext: {}, fields: {}, widgets: {}, templates: {} },
+      } as unknown as WidgetProps;
+      return <DateWidget {...props} />;
+    }
+    render(
+      <MantineProvider theme={theme}>
+        <Harness />
+      </MantineProvider>,
+    );
+
+    // One click to focus, then keyboard only: select all, delete, retype.
+    await userEvent.click(screen.getByRole("textbox"));
+    await userEvent.keyboard("{Control>}a{/Control}{Backspace}2027-03-01");
+    expect(seen).toContain(undefined);
+    expect(seen).toContain("2027-03-01");
+    expect(screen.getByRole("textbox")).toHaveValue("2027-03-01");
+    // Blur hands the field to the picker, which shows the corrected date.
+    await userEvent.tab();
+    expect(screen.queryByText("Invalid date format")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("2027-03-01");
+  });
+
   it("refuses an impossible calendar date instead of normalising it", async () => {
     const { onChange } = renderWidget();
     await userEvent.type(screen.getByRole("textbox"), "2027-02-30");

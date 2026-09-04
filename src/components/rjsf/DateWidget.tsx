@@ -5,7 +5,7 @@ import { ariaDescribedByIds, labelValue } from "@rjsf/utils";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import type React from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FieldLabel from "./FieldLabel";
 
 // Strict format parsing is a plugin. Without it dayjs ignores the format and
@@ -56,6 +56,10 @@ const DateWidget: React.FC<WidgetProps> = ({
   // empty with no clear control, leaving an invisible value that keeps failing
   // validation, so it is shown as text until it is corrected or removed.
   const storedInvalid = parsed !== null && !parsed.isValid();
+  // Swapping controls while the text input has focus would drop the keystrokes
+  // that follow a clear, so the text control stays until it blurs.
+  const [textFocused, setTextFocused] = useState(false);
+  const showText = storedInvalid || textFocused;
 
   // An imported "" looks cleared but still fails `format: date`, and the picker
   // offers nothing to clear. Drop it, the same as a user clearing the field.
@@ -93,17 +97,23 @@ const DateWidget: React.FC<WidgetProps> = ({
     />
   );
 
-  if (storedInvalid) {
+  if (showText) {
     return (
       <div>
         {fieldLabel}
         <TextInput
           id={id}
           name={id}
-          value={value}
+          value={typeof value === "string" ? value : ""}
           placeholder={placeholder || DATE_FORMAT}
           disabled={disabled || readonly}
-          error={rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : "Invalid date format"}
+          error={
+            rawErrors && rawErrors.length > 0
+              ? rawErrors.join("\n")
+              : storedInvalid
+                ? "Invalid date format"
+                : undefined
+          }
           rightSection={
             <CloseButton
               size="sm"
@@ -122,8 +132,14 @@ const DateWidget: React.FC<WidgetProps> = ({
             // as typed so the user can keep editing it.
             onChange(strictDateParser(text) ?? text);
           }}
-          onBlur={() => onBlur?.(id, value)}
-          onFocus={() => onFocus?.(id, value)}
+          onBlur={() => {
+            setTextFocused(false);
+            onBlur?.(id, value);
+          }}
+          onFocus={() => {
+            setTextFocused(true);
+            onFocus?.(id, value);
+          }}
           aria-labelledby={labelText ? `${id}-label` : undefined}
           aria-describedby={ariaDescribedByIds(id)}
         />
