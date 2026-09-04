@@ -71,6 +71,12 @@ describe("DateWidget", () => {
     expect(emitted).not.toContain("");
   });
 
+  it("drops an imported empty string rather than holding an invisible invalid value", () => {
+    const { onChange } = renderWidget({ value: "" });
+    expect(onChange).toHaveBeenCalledWith(undefined);
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+
   it("keeps an imported invalid date visible and lets the user remove it", async () => {
     const { onChange } = renderWidget({ value: "2027-02-30" });
     expect(screen.getByRole("textbox")).toHaveValue("2027-02-30");

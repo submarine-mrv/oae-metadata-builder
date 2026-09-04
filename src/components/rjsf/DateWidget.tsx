@@ -5,7 +5,7 @@ import { ariaDescribedByIds, labelValue } from "@rjsf/utils";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import type React from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import FieldLabel from "./FieldLabel";
 
 // Strict format parsing is a plugin. Without it dayjs ignores the format and
@@ -56,6 +56,12 @@ const DateWidget: React.FC<WidgetProps> = ({
   // empty with no clear control, leaving an invisible value that keeps failing
   // validation, so it is shown as text until it is corrected or removed.
   const storedInvalid = parsed !== null && !parsed.isValid();
+
+  // An imported "" looks cleared but still fails `format: date`, and the picker
+  // offers nothing to clear. Drop it, the same as a user clearing the field.
+  useEffect(() => {
+    if (value === "") onChange(undefined);
+  }, [value, onChange]);
 
   const handleChange = useCallback(
     (next: Date | string | null) => {
