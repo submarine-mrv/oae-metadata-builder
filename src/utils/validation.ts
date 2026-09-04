@@ -85,7 +85,7 @@ export function validateProject(projectData: DraftProject): ValidationResult {
     const result = validator.validateFormData(projectData, schema, projectCustomValidate);
     // Same transform the form shows, so the badge does not count an if/then
     // wrapper the list never displays.
-    const errors = transformFormErrors(result.errors);
+    const errors = transformFormErrors(result.errors, schema);
 
     return {
       isValid: errors.length === 0,
@@ -113,7 +113,7 @@ export function validateExperiment(experimentData: DraftExperiment): ValidationR
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage).
     const result = validator.validateFormData(experimentData, schema, experimentCustomValidate);
-    const errors = transformFormErrors(result.errors);
+    const errors = transformFormErrors(result.errors, schema);
 
     return {
       isValid: errors.length === 0,
@@ -202,7 +202,7 @@ export function validateDataset(
     // raw AJV errors behind the data-access either/or rule where the form shows
     // two. Project and experiment thread their custom validators here for the
     // same reason.
-    let errors = transformFormErrors(result.errors).map((e) =>
+    let errors = transformFormErrors(result.errors, schema).map((e) =>
       relabelVariableError(e, datasetData),
     );
 

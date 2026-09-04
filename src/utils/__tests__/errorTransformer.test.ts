@@ -104,8 +104,21 @@ describe("transformFormErrors", () => {
   describe("data access either/or rule", () => {
     // Raw AJV output for the bundler's nested if/then form of the rule: one
     // required error two `then`s deep, plus the wrappers.
-    // Raw AJV output for the bundler's "not both absent" form of the rule: one
-    // `not` failure on the object, plus the if-wrapper.
+    // The dataset schema as the form sees it: the rule's field pair is read
+    // from `then.not.properties` at the error's schemaPath.
+    const datasetSchema = {
+      allOf: [
+        // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+        { if: {}, then: { required: ["data_access_date"] } },
+        {
+          if: {},
+          // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+          then: { not: { properties: { data_access_link: false, data_access_date: false } } },
+        },
+      ],
+    };
+
+    // Raw AJV output: one `not` failure on the object, plus the if-wrapper.
     const anyOfErrors = (): RJSFValidationError[] =>
       [
         {
@@ -125,7 +138,7 @@ describe("transformFormErrors", () => {
       ] as RJSFValidationError[];
 
     it("fans the single raw error out to both fields", () => {
-      const result = transformFormErrors(anyOfErrors());
+      const result = transformFormErrors(anyOfErrors(), datasetSchema);
       expect(result).toHaveLength(2);
       expect(result.map((e) => e.property).sort()).toEqual([
         ".data_access_date",
@@ -134,7 +147,7 @@ describe("transformFormErrors", () => {
     });
 
     it("gives both fields the either/or message as required-class errors", () => {
-      const result = transformFormErrors(anyOfErrors());
+      const result = transformFormErrors(anyOfErrors(), datasetSchema);
       for (const e of result) {
         expect(e.message).toBe(MESSAGES.validation.dataAccessEitherOr);
         // Required-class, so the form hides it until Validate like the others.
@@ -143,8 +156,8 @@ describe("transformFormErrors", () => {
     });
 
     it("is idempotent, so validateDataset and the form agree", () => {
-      const once = transformFormErrors(anyOfErrors());
-      const twice = transformFormErrors(once);
+      const once = transformFormErrors(anyOfErrors(), datasetSchema);
+      const twice = transformFormErrors(once, datasetSchema);
       expect(twice).toEqual(once);
     });
 
@@ -190,6 +203,30 @@ describe("transformFormErrors", () => {
       ] as RJSFValidationError[]);
 
       expect(result.map((e) => e.name)).toEqual(["required"]);
+    });
+
+    it("fans an unrelated either/or rule out to its own fields, not the data-access pair", () => {
+      // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+      const schema = { allOf: [{ if: {}, then: { not: { properties: { a: false, b: false } } } }] };
+      const result = transformFormErrors(
+        [
+          {
+            name: "not",
+            property: "",
+            message: "must NOT be valid",
+            params: {},
+            schemaPath: "#/allOf/0/then/not",
+          },
+        ] as RJSFValidationError[],
+        schema,
+      );
+      expect(result.map((e) => e.property).sort()).toEqual([".a", ".b"]);
+    });
+
+    it("leaves a not error alone when no schema is available to resolve it", () => {
+      const result = transformFormErrors(anyOfErrors());
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("not");
     });
 
     it("keeps an unrelated anyOf envelope when no data-access branch failed", () => {

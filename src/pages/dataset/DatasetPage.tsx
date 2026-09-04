@@ -169,7 +169,7 @@ export default function DatasetPage() {
       // Transform first. The data-access either/or rule is recognised by its
       // per-branch "required" errors, so filtering those out beforehand would
       // leave only the meaningless anyOf/if envelope on the dataset object.
-      let transformed = transformFormErrors(errors);
+      let transformed = transformFormErrors(errors, activeSchema);
 
       // Hide required-field errors from inline display unless the user has
       // explicitly clicked the badge to reveal the full error list. The
@@ -201,7 +201,7 @@ export default function DatasetPage() {
 
       return transformed;
     };
-  }, [hasExperiments, validation.showErrorList]);
+  }, [hasExperiments, validation.showErrorList, activeSchema]);
 
   useEffect(() => {
     setActiveTab("dataset");

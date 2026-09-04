@@ -4,30 +4,38 @@ import type { RJSFValidationError } from "@rjsf/utils";
 import { MESSAGES } from "@/constants/messages";
 
 /**
- * The open-access rule ("a data access link or a data access date") is a LinkML
- * `any_of` postcondition. The bundler rewrites it as "not both absent" (see
- * rewriteEitherOrRules in bundle-schema.mjs), so AJV reports a single `not`
- * failure on the dataset object with no field attached. It is fanned out to
- * both fields as a required-class error with the either/or wording, so it is
- * hidden until Validate like other required errors and then marks both.
+ * "At least one of A, B" rules arrive from the bundler as
+ * `then: { not: { properties: { A: false, B: false } } }` (see
+ * rewriteEitherOrRules in bundle-schema.mjs), and AJV reports a failure as one
+ * `not` error on the object with no field attached. The field pair is read
+ * back out of the schema at the error's own schemaPath, so the transform fans
+ * the error out to exactly the fields that rule names and nothing else.
  */
-const DATA_ACCESS_EITHER_OR_FIELDS = ["data_access_link", "data_access_date"];
+const EITHER_OR_PATH = /\/then\/not$/;
 
-function isDataAccessBranchError(e: RJSFValidationError): boolean {
-  // The bundler expresses the rule as `then: { not: { properties: { link:
-  // false, date: false } } }`, which AJV reports as one `not` failure on the
-  // dataset object. The fanned-out copies below carry the message already, so
-  // a second pass (validateDataset and the form both transform) is a no-op.
-  return (
-    e.name === "not" &&
-    e.message !== MESSAGES.validation.dataAccessEitherOr &&
-    /\/then\/not$/.test(e.schemaPath ?? "")
-  );
+function resolveSchemaPath(schema: unknown, schemaPath: string): unknown {
+  if (!schema || !schemaPath.startsWith("#")) return undefined;
+  let node: unknown = schema;
+  for (const raw of schemaPath.slice(1).split("/").filter(Boolean)) {
+    const key = raw.replace(/~1/g, "/").replace(/~0/g, "~");
+    if (node === null || typeof node !== "object") return undefined;
+    node = (node as Record<string, unknown>)[key];
+  }
+  return node;
 }
 
-function isDataAccessEnvelopeError(e: RJSFValidationError): boolean {
-  return e.name === "anyOf" && /\/then\/anyOf$/.test(e.schemaPath ?? "");
+/** The fields an either/or `not` error is about, or null if it is not one. */
+function eitherOrFieldsFor(e: RJSFValidationError, schema: unknown): string[] | null {
+  if (e.name !== "not" || !EITHER_OR_PATH.test(e.schemaPath ?? "")) return null;
+  const node = resolveSchemaPath(schema, e.schemaPath ?? "") as
+    | { properties?: Record<string, unknown> }
+    | undefined;
+  const fields = Object.keys(node?.properties ?? {});
+  return fields.length === 2 ? fields : null;
 }
+
+const isEitherOrError = (e: RJSFValidationError) =>
+  e.message === MESSAGES.validation.dataAccessEitherOr;
 
 /**
  * AJV reports an if/then rule twice: the concrete failure inside `then` (a
@@ -61,19 +69,19 @@ function isSpatialCoverageError(e: RJSFValidationError): boolean {
  * @param errors - Array of validation errors from RJSF
  * @returns Transformed errors with improved messaging
  */
-export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidationError[] {
-  // Drop the anyOf/if envelope around the data-access rule. Its branch errors
-  // are retargeted onto the two fields below and carry the whole message.
-  const hasDataAccessBranchError = errors.some(isDataAccessBranchError);
-
+export function transformFormErrors(
+  errors: RJSFValidationError[],
+  schema?: unknown,
+): RJSFValidationError[] {
   return errors
     .filter((e) => !isIfThenEnvelopeError(e))
-    .filter((e) => !(hasDataAccessBranchError && isDataAccessEnvelopeError(e)))
     .flatMap((e) => {
       // One rule, two fields: both inputs turn red carrying one sentence
-      // rather than either reading as plainly required.
-      if (isDataAccessBranchError(e)) {
-        return DATA_ACCESS_EITHER_OR_FIELDS.map((field) => ({
+      // rather than either reading as plainly required. Required-class, so
+      // the form hides it until Validate like the others.
+      const fields = eitherOrFieldsFor(e, schema);
+      if (fields) {
+        return fields.map((field) => ({
           ...e,
           name: "required",
           property: `.${field}`,
@@ -105,8 +113,7 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
           e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id";
         // The either/or errors are fanned out above with their own wording and
         // must not be flattened back into a plain "required".
-        const isEitherOr = e.message === MESSAGES.validation.dataAccessEitherOr;
-        if (!isSpatialCov && !isExperimentId && !isEitherOr) {
+        if (!isSpatialCov && !isExperimentId && !isEitherOrError(e)) {
           e = { ...e, message: "Field is required" };
         }
       }

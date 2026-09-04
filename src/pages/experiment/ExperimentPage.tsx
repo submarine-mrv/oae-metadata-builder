@@ -89,7 +89,7 @@ export default function ExperimentPage() {
       const filtered = validation.showErrorList
         ? errors
         : errors.filter((e) => e.name !== "required");
-      return transformFormErrors(filtered);
+      return transformFormErrors(filtered, activeSchema);
     };
   }, [validation.showErrorList]);
 

@@ -72,7 +72,7 @@ export default function ProjectPage() {
       const filtered = validation.showErrorList
         ? errors
         : errors.filter((e) => e.name !== "required");
-      return transformFormErrors(filtered);
+      return transformFormErrors(filtered, schema);
     };
   }, [validation.showErrorList]);
 
