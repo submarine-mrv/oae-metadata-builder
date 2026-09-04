@@ -119,6 +119,9 @@ const DateWidget: React.FC<WidgetProps> = ({
               size="sm"
               aria-label="Clear date"
               disabled={disabled || readonly}
+              // Taking focus would blur the input and swap controls before the
+              // click lands, so the button never gets it.
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onChange(undefined)}
             />
           }

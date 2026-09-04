@@ -163,6 +163,42 @@ describe("DateWidget", () => {
     expect(screen.getByRole("textbox")).toHaveValue("2027-03-01");
   });
 
+  it("clears a just-corrected date when Clear is clicked without leaving the field", async () => {
+    const seen: unknown[] = [];
+    function Harness() {
+      const [value, setValue] = useState<unknown>("2027-02-30");
+      const props = {
+        id: "root_data_access_date",
+        name: "data_access_date",
+        label: "Data Access Date",
+        value,
+        options: {},
+        schema: { type: "string" as const, format: "date" },
+        uiSchema: {},
+        rawErrors: [],
+        onChange: (v: unknown) => {
+          seen.push(v);
+          setValue(v);
+        },
+        onBlur: vi.fn(),
+        onFocus: vi.fn(),
+        registry: { formContext: {}, fields: {}, widgets: {}, templates: {} },
+      } as unknown as WidgetProps;
+      return <DateWidget {...props} />;
+    }
+    render(
+      <MantineProvider theme={theme}>
+        <Harness />
+      </MantineProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("textbox"));
+    await userEvent.keyboard("{Control>}a{/Control}{Backspace}2027-03-01");
+    await userEvent.click(screen.getByRole("button", { name: "Clear date" }));
+    expect(seen[seen.length - 1]).toBeUndefined();
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+
   it("refuses an impossible calendar date instead of normalising it", async () => {
     const { onChange } = renderWidget();
     await userEvent.type(screen.getByRole("textbox"), "2027-02-30");
