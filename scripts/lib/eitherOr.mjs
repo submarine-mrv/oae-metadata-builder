@@ -45,7 +45,9 @@ export function rewriteEitherOrRules(schema) {
     if (!Array.isArray(anyOf) || anyOf.length !== 2) return;
     const [a, b] = anyOf.map(requiredOf);
     if (!a || !b) return;
-    rule.then = { not: { properties: { [a]: false, [b]: false } } };
+    // Only the anyOf is replaced; anything else in the `then` still applies.
+    const { anyOf: _replaced, ...rest } = rule.then;
+    rule.then = { ...rest, not: { properties: { [a]: false, [b]: false } } };
     rewritten += 1;
   };
 

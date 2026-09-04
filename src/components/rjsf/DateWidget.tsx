@@ -80,6 +80,7 @@ const DateWidget: React.FC<WidgetProps> = ({
           // bottom margin, so this control lines up with text inputs beside it.
           mb={3}
           lh="md"
+          labelId={`${id}-label`}
         />
       )}
       <DateInput
@@ -97,6 +98,7 @@ const DateWidget: React.FC<WidgetProps> = ({
         onBlur={() => onBlur?.(id, value)}
         onFocus={() => onFocus?.(id, value)}
         error={rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : undefined}
+        aria-labelledby={labelText ? `${id}-label` : undefined}
         aria-describedby={ariaDescribedByIds(id)}
         popoverProps={{ withinPortal: false }}
       />

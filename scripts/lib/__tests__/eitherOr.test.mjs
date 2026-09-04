@@ -41,6 +41,16 @@ describe("rewriteEitherOrRules", () => {
     expect(rewriteEitherOrRules(schemaWith(multi))).toBe(0);
   });
 
+  it("keeps other keywords in the then alongside the rewritten anyOf", () => {
+    const then = { required: ["c"], ...anyOf({ required: ["a"] }, { required: ["b"] }) };
+    const schema = schemaWith(then);
+    expect(rewriteEitherOrRules(schema)).toBe(1);
+    expect(schema.$defs.Thing.allOf[0].then).toEqual({
+      required: ["c"],
+      not: { properties: { a: false, b: false } },
+    });
+  });
+
   it("also handles a bare root-level if/then", () => {
     const schema = { $defs: { Thing: rule(anyOf({ required: ["a"] }, { required: ["b"] })) } };
     expect(rewriteEitherOrRules(schema)).toBe(1);

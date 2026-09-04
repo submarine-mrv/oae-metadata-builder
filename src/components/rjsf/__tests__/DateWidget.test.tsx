@@ -42,6 +42,11 @@ function renderWidget(over: Partial<WidgetProps> = {}) {
 }
 
 describe("DateWidget", () => {
+  it("names its input after the label for assistive tech", () => {
+    renderWidget();
+    expect(screen.getByRole("textbox", { name: "Data Access Date" })).toBeInTheDocument();
+  });
+
   it("renders a stored date", () => {
     renderWidget({ value: "2027-06-01" });
     expect(screen.getByRole("textbox")).toHaveValue("2027-06-01");

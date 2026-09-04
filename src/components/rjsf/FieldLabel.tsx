@@ -20,6 +20,12 @@ interface FieldLabelProps {
    * text input beside it.
    */
   lh?: "sm" | "md";
+  /**
+   * Id for the label text, so a control rendered beside it can point at it
+   * with `aria-labelledby`. Custom widgets draw this label instead of Mantine's
+   * `label` prop, which would otherwise leave the input unnamed.
+   */
+  labelId?: string;
   /** URL for a "view all" link beside the label, from `ui:viewAllLink`. */
   viewAllLink?: string;
 }
@@ -37,12 +43,13 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   fw = 500,
   mb = "xs",
   lh,
+  labelId,
   viewAllLink,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const titleNode = (
-    <Text size="sm" fw={fw} lh={lh}>
+    <Text size="sm" fw={fw} lh={lh} id={labelId}>
       {label} {required && <span style={{ color: "red" }}>*</span>}
     </Text>
   );
@@ -50,7 +57,7 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   // Nothing to hang off the label — render it on its own
   if (!description && !viewAllLink) {
     return (
-      <Text size="sm" fw={fw} lh={lh} mb={mb}>
+      <Text size="sm" fw={fw} lh={lh} id={labelId} mb={mb}>
         {label} {required && <span style={{ color: "red" }}>*</span>}
       </Text>
     );

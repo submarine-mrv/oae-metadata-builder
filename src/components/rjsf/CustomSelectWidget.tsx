@@ -104,6 +104,7 @@ export default function CustomSelectWidget<
           // bottom margin, so this control lines up with text inputs beside it.
           mb={3}
           lh="md"
+          labelId={`${id}-label`}
           viewAllLink={viewAllLink}
         />
       )}
@@ -126,6 +127,7 @@ export default function CustomSelectWidget<
         error={rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : undefined}
         searchable
         clearable={!multiple}
+        aria-labelledby={labelText ? `${id}-label` : undefined}
         aria-describedby={ariaDescribedByIds(id)}
         comboboxProps={{ withinPortal: false }}
       />

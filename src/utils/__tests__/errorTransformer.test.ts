@@ -99,11 +99,10 @@ describe("transformFormErrors", () => {
     expect(result[2].message).toBe("Field is required");
   });
 
-  // The open-access rule is a LinkML any_of postcondition. AJV reports one
-  // failure per branch plus a bare anyOf and if, all on the dataset object.
+  // The open-access rule is a LinkML any_of postcondition that the bundler
+  // rewrites as "not both absent"; AJV reports it as one `not` failure on the
+  // dataset object.
   describe("data access either/or rule", () => {
-    // Raw AJV output for the bundler's nested if/then form of the rule: one
-    // required error two `then`s deep, plus the wrappers.
     // The dataset schema as the form sees it: the rule's field pair is read
     // from `then.not.properties` at the error's schemaPath.
     const datasetSchema = {
