@@ -51,6 +51,13 @@ describe("rewriteEitherOrRules", () => {
     });
   });
 
+  it("leaves a then alone when it already carries a not", () => {
+    const then = { not: { required: ["z"] }, ...anyOf({ required: ["a"] }, { required: ["b"] }) };
+    const schema = schemaWith(then);
+    expect(rewriteEitherOrRules(schema)).toBe(0);
+    expect(schema.$defs.Thing.allOf[0].then).toEqual(then);
+  });
+
   it("also handles a bare root-level if/then", () => {
     const schema = { $defs: { Thing: rule(anyOf({ required: ["a"] }, { required: ["b"] })) } };
     expect(rewriteEitherOrRules(schema)).toBe(1);

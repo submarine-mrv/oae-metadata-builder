@@ -45,6 +45,9 @@ export function rewriteEitherOrRules(schema) {
     if (!Array.isArray(anyOf) || anyOf.length !== 2) return;
     const [a, b] = anyOf.map(requiredOf);
     if (!a || !b) return;
+    // A `then` that already carries a `not` would lose it to the rewrite.
+    // Leave such a rule alone; it fails loudly in review rather than silently.
+    if ("not" in rule.then) return;
     // Only the anyOf is replaced; anything else in the `then` still applies.
     const { anyOf: _replaced, ...rest } = rule.then;
     rule.then = { ...rest, not: { properties: { [a]: false, [b]: false } } };
