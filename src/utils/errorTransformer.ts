@@ -24,18 +24,33 @@ function resolveSchemaPath(schema: unknown, schemaPath: string): unknown {
   return node;
 }
 
-/** The fields an either/or `not` error is about, or null if it is not one. */
-function eitherOrFieldsFor(e: RJSFValidationError, schema: unknown): string[] | null {
+/** An either/or `not` error resolved against the schema, or null if it is not one. */
+function eitherOrRuleFor(
+  e: RJSFValidationError,
+  schema: unknown,
+): { fields: string[]; message: string } | null {
   if (e.name !== "not" || !EITHER_OR_PATH.test(e.schemaPath ?? "")) return null;
   const node = resolveSchemaPath(schema, e.schemaPath ?? "") as
     | { properties?: Record<string, unknown> }
     | undefined;
   const fields = Object.keys(node?.properties ?? {});
-  return fields.length === 2 ? fields : null;
+  if (fields.length !== 2) return null;
+
+  // The data-access pair has its own wording; any other pair gets one built
+  // from the field titles, falling back to the property names.
+  const isDataAccess = fields.includes("data_access_link") && fields.includes("data_access_date");
+  const titles = (schema as { properties?: Record<string, { title?: string }> })?.properties;
+  const titleOf = (f: string) => titles?.[f]?.title ?? f;
+  const message = isDataAccess
+    ? MESSAGES.validation.dataAccessEitherOr
+    : `Either ${titleOf(fields[0])} or ${titleOf(fields[1])} must be provided.`;
+  return { fields, message };
 }
 
+/** Errors produced by the fan-out below carry this marker so a second pass leaves them alone. */
+const EITHER_OR_MARKER = "eitherOr";
 const isEitherOrError = (e: RJSFValidationError) =>
-  e.message === MESSAGES.validation.dataAccessEitherOr;
+  (e.params as Record<string, unknown> | undefined)?.[EITHER_OR_MARKER] === true;
 
 /**
  * AJV reports an if/then rule twice: the concrete failure inside `then` (a
@@ -79,14 +94,14 @@ export function transformFormErrors(
       // One rule, two fields: both inputs turn red carrying one sentence
       // rather than either reading as plainly required. Required-class, so
       // the form hides it until Validate like the others.
-      const fields = eitherOrFieldsFor(e, schema);
-      if (fields) {
-        return fields.map((field) => ({
+      const rule = eitherOrRuleFor(e, schema);
+      if (rule) {
+        return rule.fields.map((field) => ({
           ...e,
           name: "required",
           property: `.${field}`,
-          params: { ...e.params, missingProperty: field },
-          message: MESSAGES.validation.dataAccessEitherOr,
+          params: { ...e.params, missingProperty: field, [EITHER_OR_MARKER]: true },
+          message: rule.message,
         }));
       }
       return [e];
