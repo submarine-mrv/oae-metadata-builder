@@ -465,7 +465,17 @@ function rewriteEitherOrRules(schema) {
       if (key !== "properties") return null;
       const propKeys = Object.keys(value ?? {});
       if (propKeys.length > 1 || (propKeys.length === 1 && propKeys[0] !== field)) return null;
-      if (propKeys.length === 1 && Object.keys(value[field] ?? {}).length > 0) return null;
+      if (propKeys.length === 1) {
+        // Only an empty object schema adds no constraint. A boolean schema
+        // (`false` forbids the property) or anything with keys must survive.
+        const fieldSchema = value[field];
+        const isEmptyObject =
+          fieldSchema !== null &&
+          typeof fieldSchema === "object" &&
+          !Array.isArray(fieldSchema) &&
+          Object.keys(fieldSchema).length === 0;
+        if (!isEmptyObject) return null;
+      }
     }
     return field;
   };

@@ -133,7 +133,7 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
   });
 
   // RJSF turns a `then.anyOf` into an "Option 1 / Option 2" selector. The
-  // bundler rewrites those as nested if/then; this guards the rewrite.
+  // bundler rewrites those as "not both absent"; this guards the rewrite.
   it("carries no then.anyOf rules RJSF would render as a selector", () => {
     const defs = (bundled as { $defs?: Record<string, any> }).$defs ?? {};
     const offenders: string[] = [];
