@@ -134,15 +134,30 @@ test.describe("Dosing Location Field", () => {
 
     const box = await dosingModal.mapCanvas.boundingBox();
     if (!box) throw new Error("Map canvas not found");
-    // Far right edge of the canvas, which at globe zoom is a repeated copy.
+
+    // At the default zoom the whole canvas can sit inside the primary world, so
+    // step out one level with the map's own keyboard handler. Zoom 0 makes the
+    // world exactly 512px wide, which lets the expected longitude be computed.
+    await dosingModal.mapCanvas.focus();
+    await page.keyboard.press("-");
+    await page.waitForTimeout(800);
+
+    const clickOffset = box.width / 2 - 8;
+    const rawLon = (clickOffset / 512) * 360;
+    // Would be pointless if the click were still in the primary world.
+    expect(rawLon).toBeGreaterThan(180);
     await page.mouse.click(box.x + box.width - 8, box.y + box.height / 2);
     await page.waitForTimeout(500);
 
-    const lon = Number(await page.getByLabel("Longitude").inputValue());
-    const lat = Number(await page.getByLabel("Latitude").inputValue());
-    expect(Number.isFinite(lon)).toBe(true);
+    const lonText = await page.getByLabel("Longitude").inputValue();
+    const latText = await page.getByLabel("Latitude").inputValue();
+    expect(lonText).not.toBe("");
+    expect(latText).not.toBe("");
+    const lon = Number(lonText);
+    const lat = Number(latText);
     expect(lon).toBeGreaterThanOrEqual(-180);
     expect(lon).toBeLessThanOrEqual(180);
+    expect(Math.abs(lon - (rawLon - 360))).toBeLessThan(2);
     expect(lat).toBeGreaterThanOrEqual(-90);
     expect(lat).toBeLessThanOrEqual(90);
   });
