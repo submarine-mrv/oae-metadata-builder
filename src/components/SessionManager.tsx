@@ -1,15 +1,13 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import SessionRestoreModal from "@/components/SessionRestoreModal";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useSessionPersistence } from "@/hooks/useSessionPersistence";
+import { router } from "@/router";
 
 export default function SessionManager() {
   const { state, restoreFullState, setActiveExperiment, setActiveDataset } = useAppState();
   const { savedSession, isRestoreModalOpen, restoreSession, discardSession } =
     useSessionPersistence(state, restoreFullState);
-  const navigate = useNavigate();
-
   const handleRestore = useCallback(() => {
     restoreSession();
     // Select the first experiment/dataset so tabs work immediately
@@ -21,8 +19,8 @@ export default function SessionManager() {
         setActiveDataset(savedSession.datasets[0].id);
       }
     }
-    navigate({ to: "/overview" });
-  }, [restoreSession, savedSession, setActiveExperiment, setActiveDataset, navigate]);
+    void router.navigate({ to: "/overview" });
+  }, [restoreSession, savedSession, setActiveExperiment, setActiveDataset]);
 
   return (
     <>
