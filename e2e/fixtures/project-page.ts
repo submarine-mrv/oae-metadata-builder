@@ -31,7 +31,9 @@ export class ProjectPage extends BasePage {
    */
   async hasSpatialCoverageValue(): Promise<boolean> {
     // Look for coordinate text (SOSO format: "minLat minLon maxLat maxLon" like "36.8 -124.5 38.2 -121.9")
-    const coordText = this.page.locator("text=/^-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?$/");
+    const coordText = this.page.locator(
+      "text=/^-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?$/",
+    );
     return await coordText.isVisible();
   }
 

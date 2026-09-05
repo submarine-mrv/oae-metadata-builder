@@ -1,6 +1,6 @@
-import { expect, test } from "./fixtures/test";
 import * as path from "path";
 import { ExperimentPage } from "./fixtures/experiment-page";
+import { expect, test } from "./fixtures/test";
 
 test.describe("Conditional Dropdown Fields", () => {
   let experimentPage: ExperimentPage;

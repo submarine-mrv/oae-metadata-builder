@@ -1,7 +1,7 @@
-import { type Download, type Page } from "@playwright/test";
-import { expect, test } from "./fixtures/test";
+import type { Download, Page } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
+import { expect, test } from "./fixtures/test";
 
 /**
  * Variable round-trip test suite.
@@ -16,30 +16,132 @@ import * as path from "path";
 // expectedPill: short label shown in the collapsed pill after save/import
 const VARIABLE_COMBOS = [
   // Specific types — measured discrete
-  { variableType: "pH", expectedPill: "pH", genesis: "measured", sampling: "discrete", expectedClass: "DiscretePHVariable" },
-  { variableType: "Total Alkalinity (TA)", expectedPill: "Total Alkalinity", genesis: "measured", sampling: "discrete", expectedClass: "DiscreteTAVariable" },
-  { variableType: "Dissolved Inorganic Carbon (DIC)", expectedPill: "DIC", genesis: "measured", sampling: "discrete", expectedClass: "DiscreteDICVariable" },
-  { variableType: "xCO₂/pCO₂/fCO₂", expectedPill: "CO₂", genesis: "measured", sampling: "discrete", expectedClass: "DiscreteCO2Variable" },
-  { variableType: "Sediment", expectedPill: "Sediment", genesis: "measured", sampling: "discrete", expectedClass: "DiscreteSedimentVariable" },
+  {
+    variableType: "pH",
+    expectedPill: "pH",
+    genesis: "measured",
+    sampling: "discrete",
+    expectedClass: "DiscretePHVariable",
+  },
+  {
+    variableType: "Total Alkalinity (TA)",
+    expectedPill: "Total Alkalinity",
+    genesis: "measured",
+    sampling: "discrete",
+    expectedClass: "DiscreteTAVariable",
+  },
+  {
+    variableType: "Dissolved Inorganic Carbon (DIC)",
+    expectedPill: "DIC",
+    genesis: "measured",
+    sampling: "discrete",
+    expectedClass: "DiscreteDICVariable",
+  },
+  {
+    variableType: "xCO₂/pCO₂/fCO₂",
+    expectedPill: "CO₂",
+    genesis: "measured",
+    sampling: "discrete",
+    expectedClass: "DiscreteCO2Variable",
+  },
+  {
+    variableType: "Sediment",
+    expectedPill: "Sediment",
+    genesis: "measured",
+    sampling: "discrete",
+    expectedClass: "DiscreteSedimentVariable",
+  },
   // Specific types — measured continuous
-  { variableType: "pH", expectedPill: "pH", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousPHVariable" },
-  { variableType: "Total Alkalinity (TA)", expectedPill: "Total Alkalinity", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousTAVariable" },
-  { variableType: "Dissolved Inorganic Carbon (DIC)", expectedPill: "DIC", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousDICVariable" },
-  { variableType: "xCO₂/pCO₂/fCO₂", expectedPill: "CO₂", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousCO2Variable" },
-  { variableType: "Sediment", expectedPill: "Sediment", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousSedimentVariable" },
+  {
+    variableType: "pH",
+    expectedPill: "pH",
+    genesis: "measured",
+    sampling: "continuous",
+    expectedClass: "ContinuousPHVariable",
+  },
+  {
+    variableType: "Total Alkalinity (TA)",
+    expectedPill: "Total Alkalinity",
+    genesis: "measured",
+    sampling: "continuous",
+    expectedClass: "ContinuousTAVariable",
+  },
+  {
+    variableType: "Dissolved Inorganic Carbon (DIC)",
+    expectedPill: "DIC",
+    genesis: "measured",
+    sampling: "continuous",
+    expectedClass: "ContinuousDICVariable",
+  },
+  {
+    variableType: "xCO₂/pCO₂/fCO₂",
+    expectedPill: "CO₂",
+    genesis: "measured",
+    sampling: "continuous",
+    expectedClass: "ContinuousCO2Variable",
+  },
+  {
+    variableType: "Sediment",
+    expectedPill: "Sediment",
+    genesis: "measured",
+    sampling: "continuous",
+    expectedClass: "ContinuousSedimentVariable",
+  },
   // Specific types — calculated (no sampling)
-  { variableType: "pH", expectedPill: "pH", genesis: "calculated", sampling: null, expectedClass: "CalculatedVariable" },
-  { variableType: "Total Alkalinity (TA)", expectedPill: "Total Alkalinity", genesis: "calculated", sampling: null, expectedClass: "CalculatedVariable" },
+  {
+    variableType: "pH",
+    expectedPill: "pH",
+    genesis: "calculated",
+    sampling: null,
+    expectedClass: "CalculatedVariable",
+  },
+  {
+    variableType: "Total Alkalinity (TA)",
+    expectedPill: "Total Alkalinity",
+    genesis: "calculated",
+    sampling: null,
+    expectedClass: "CalculatedVariable",
+  },
   // Fixed types
-  { variableType: "HPLC", expectedPill: "HPLC", genesis: null, sampling: null, expectedClass: "HPLCVariable" },
+  {
+    variableType: "HPLC",
+    expectedPill: "HPLC",
+    genesis: null,
+    sampling: null,
+    expectedClass: "HPLCVariable",
+  },
   // Generic Variable — measured
-  { variableType: "Generic Variable", expectedPill: "Generic Variable", genesis: "measured", sampling: "discrete", expectedClass: "DiscreteMeasuredVariable" },
-  { variableType: "Generic Variable", expectedPill: "Generic Variable", genesis: "measured", sampling: "continuous", expectedClass: "ContinuousMeasuredVariable" },
+  {
+    variableType: "Generic Variable",
+    expectedPill: "Generic Variable",
+    genesis: "measured",
+    sampling: "discrete",
+    expectedClass: "DiscreteMeasuredVariable",
+  },
+  {
+    variableType: "Generic Variable",
+    expectedPill: "Generic Variable",
+    genesis: "measured",
+    sampling: "continuous",
+    expectedClass: "ContinuousMeasuredVariable",
+  },
   // Generic Variable — calculated
-  { variableType: "Generic Variable", expectedPill: "Generic Variable", genesis: "calculated", sampling: null, expectedClass: "CalculatedVariable" },
+  {
+    variableType: "Generic Variable",
+    expectedPill: "Generic Variable",
+    genesis: "calculated",
+    sampling: null,
+    expectedClass: "CalculatedVariable",
+  },
   // Generic Variable — contextual (NonMeasuredVariable)
   // non_measured restores as UI "other" + genesis "contextual", pill shows "Generic Variable"
-  { variableType: "Generic Variable", expectedPill: "Generic Variable", genesis: "contextual", sampling: null, expectedClass: "NonMeasuredVariable" },
+  {
+    variableType: "Generic Variable",
+    expectedPill: "Generic Variable",
+    genesis: "contextual",
+    sampling: null,
+    expectedClass: "NonMeasuredVariable",
+  },
 ];
 
 // Map UI genesis labels to the option text in the dropdown
@@ -54,12 +156,7 @@ const SAMPLING_LABELS: Record<string, string> = {
   continuous: "Continuous",
 };
 
-
-async function createVariable(
-  page: Page,
-  combo: typeof VARIABLE_COMBOS[0],
-  index: number
-) {
+async function createVariable(page: Page, combo: (typeof VARIABLE_COMBOS)[0], index: number) {
   // Click "Add Variable" (use the enabled one, not the disabled RJSF array button)
   await page.locator("button:not([disabled])", { hasText: "Add Variable" }).click();
   await page.waitForTimeout(300);
@@ -88,10 +185,12 @@ async function createVariable(
   // Wait for auto-collapse: when type selection completes, the modal
   // auto-opens "Basic Information". If it didn't open, click it.
   const longNameInput = page.getByLabel("Variable full name");
-  if (!await longNameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+  if (!(await longNameInput.isVisible({ timeout: 2000 }).catch(() => false))) {
     // Click the chevron to toggle the section open
-    await page.locator(".mantine-Accordion-item", { hasText: "Basic Information" })
-      .locator(".mantine-Accordion-chevron").click();
+    await page
+      .locator(".mantine-Accordion-item", { hasText: "Basic Information" })
+      .locator(".mantine-Accordion-chevron")
+      .click();
     await page.waitForTimeout(500);
   }
   await expect(longNameInput).toBeVisible({ timeout: 3000 });
@@ -108,13 +207,17 @@ async function createVariable(
   }
 
   // Save — button text is "Add Variable" for new, "Save Changes" for edit
-  const saveButton = page.locator(".mantine-Modal-root").getByRole("button", { name: /Add Variable|Save/i });
+  const saveButton = page
+    .locator(".mantine-Modal-root")
+    .getByRole("button", { name: /Add Variable|Save/i });
   await saveButton.click();
   await page.waitForTimeout(500);
 }
 
 test.describe("Variable Round-Trip", () => {
-  test("creates all variable type combinations, exports, and re-imports correctly", async ({ page }) => {
+  test("creates all variable type combinations, exports, and re-imports correctly", async ({
+    page,
+  }) => {
     // Increase timeout for this comprehensive test
     test.setTimeout(120_000);
 
@@ -234,18 +337,24 @@ test.describe("Variable Round-Trip", () => {
       const typeSection = modal.locator(".mantine-Accordion-item", { hasText: "Variable Type" });
 
       // Verify variable type pill
-      await expect(typeSection.locator(".mantine-Pill-root", { hasText: combo.expectedPill })).toBeVisible();
+      await expect(
+        typeSection.locator(".mantine-Pill-root", { hasText: combo.expectedPill }),
+      ).toBeVisible();
 
       // Verify genesis pill (contextual doesn't show a genesis pill)
       if (combo.genesis && combo.genesis !== "contextual") {
         const expectedGenesisLabel = GENESIS_LABELS[combo.genesis];
-        await expect(typeSection.locator(".mantine-Pill-root", { hasText: expectedGenesisLabel })).toBeVisible();
+        await expect(
+          typeSection.locator(".mantine-Pill-root", { hasText: expectedGenesisLabel }),
+        ).toBeVisible();
       }
 
       // Verify sampling pill
       if (combo.sampling) {
         const expectedSamplingLabel = SAMPLING_LABELS[combo.sampling];
-        await expect(typeSection.locator(".mantine-Pill-root", { hasText: expectedSamplingLabel })).toBeVisible();
+        await expect(
+          typeSection.locator(".mantine-Pill-root", { hasText: expectedSamplingLabel }),
+        ).toBeVisible();
       }
 
       // Close the modal

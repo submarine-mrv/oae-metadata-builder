@@ -16,6 +16,7 @@
     "includes": [
       "src/**/*.ts",
       "src/**/*.tsx",
+      "e2e/**/*.ts",
       "*.json",
       "*.ts",
       "*.mts",
