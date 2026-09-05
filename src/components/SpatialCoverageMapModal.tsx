@@ -13,6 +13,7 @@ import {
   removeBoundingBox,
   setBoundingBoxData,
 } from "@/utils/mapLayerUtils";
+import { exposeMapForTests } from "@/utils/mapTestHooks";
 import { resolveBoxFromClicks } from "@/utils/spatialUtils";
 import BoundingBoxInputs, { type BoxEdge } from "./BoundingBoxInputs";
 
@@ -127,6 +128,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
     });
 
     mapInstanceRef.current = map;
+    exposeMapForTests("spatial-coverage-modal", mapRef.current, map);
 
     map.on("load", () => {
       setMapLoaded(true);
@@ -251,7 +253,7 @@ const SpatialCoverageMapModal: React.FC<SpatialCoverageMapModalProps> = ({
       zIndex={1100}
     >
       <Stack gap="md">
-        <Text size="sm" c="dimmed">
+        <Text size="sm" c="dimmed" role="status">
           {!mapLoaded
             ? "Loading map..."
             : !isDrawing

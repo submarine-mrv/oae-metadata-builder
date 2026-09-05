@@ -26,6 +26,7 @@ import {
   setBoundingBoxData,
   setLineData,
 } from "@/utils/mapLayerUtils";
+import { exposeMapForTests } from "@/utils/mapTestHooks";
 import {
   adjustEastForAntimeridian,
   clampLatitude,
@@ -344,6 +345,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     });
 
     mapInstanceRef.current = map;
+    exposeMapForTests("dosing-location-modal", mapRef.current, map);
 
     map.on("load", () => {
       setMapLoaded(true);
@@ -621,7 +623,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
           />
         )}
 
-        <Text size="sm" c="dimmed">
+        <Text size="sm" c="dimmed" role="status">
           {getHelperText()}
         </Text>
 

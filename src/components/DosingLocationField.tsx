@@ -15,6 +15,7 @@ import {
   removeBoundingBox,
   removeLine,
 } from "@/utils/mapLayerUtils";
+import { exposeMapForTests } from "@/utils/mapTestHooks";
 import DosingLocationMapModal from "./DosingLocationMapModal";
 
 type DosingMode = "point" | "line" | "box";
@@ -158,6 +159,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
       });
 
       mapInstanceRef.current = map;
+      exposeMapForTests("dosing-location-preview", mapRef.current, map);
 
       map.on("load", () => {
         hideLabelLayers(map);
@@ -322,6 +324,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         {!disabled && !readonly && (
           <Tooltip label="Edit location">
             <ActionIcon
+              aria-label="Edit location"
               variant="filled"
               size="md"
               style={{

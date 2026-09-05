@@ -12,6 +12,7 @@ import {
   parseBoundsString,
   removeBoundingBox,
 } from "@/utils/mapLayerUtils";
+import { exposeMapForTests } from "@/utils/mapTestHooks";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
 import SpatialCoverageMapModal from "./SpatialCoverageMapModal";
 
@@ -75,6 +76,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     });
 
     mapInstanceRef.current = map;
+    exposeMapForTests("spatial-coverage-preview", mapRef.current, map);
 
     map.on("load", () => {
       hideLabelLayers(map);
@@ -200,6 +202,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
           {!disabled && !readonly && (
             <Tooltip label="Edit location">
               <ActionIcon
+                aria-label="Edit location"
                 variant="filled"
                 size="md"
                 style={{
