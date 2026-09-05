@@ -24,6 +24,10 @@ type DosingMode = "point" | "line" | "box";
 const BBOX_OPTS = { sourceId: "dosing-bbox" } as const;
 const LINE_OPTS = { sourceId: "dosing-line" } as const;
 
+// The modal rebuilds its map whenever geoData changes identity, so an empty
+// value has to be the same object on every render.
+const EMPTY_GEO = {} as const;
+
 // Infer mode from formData
 function inferMode(formData: any): DosingMode | null {
   const geo = formData?.geo;
@@ -356,7 +360,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         <DosingLocationMapModal
           isOpen={showMapModal}
           onClose={() => setShowMapModal(false)}
-          geoData={formData?.geo || {}}
+          geoData={formData?.geo ?? EMPTY_GEO}
           fileLocation={formData?.dosing_location_file || ""}
           mode={selectedMode}
           onChange={handleMapDataChange}
