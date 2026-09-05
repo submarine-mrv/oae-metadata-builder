@@ -1,6 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { createFromOverview, waitForRoute } from "./fixtures/app";
+import { MAP_NAMES, MapModal, MapState } from "./fixtures/map-modal";
 import { ProjectPage } from "./fixtures/project-page";
-import { MapModal } from "./fixtures/map-modal";
+import { expect, test } from "./fixtures/test";
 
 test.describe("Spatial Coverage Field", () => {
   let projectPage: ProjectPage;
@@ -10,77 +11,57 @@ test.describe("Spatial Coverage Field", () => {
     projectPage = new ProjectPage(page);
     mapModal = new MapModal(page);
 
-    // Navigate to overview and create a project first
-    await page.goto("/overview");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /Create.*Project/i }).click();
-    await page.waitForURL("**/project");
-    await page.waitForLoadState("networkidle");
+    await createFromOverview(page, "Project");
+    await waitForRoute(page.getByText("Click to set spatial coverage"));
   });
 
   test("displays empty state with prompt to click map", async ({ page }) => {
     // Verify the empty state message is shown
-    await expect(page.locator("text=Click to set spatial coverage")).toBeVisible();
+    await expect(page.getByText("Click to set spatial coverage")).toBeVisible();
 
     // Verify no coordinates are displayed yet
-    const coordDisplay = page.locator("text=Click the map to set bounding box");
-    await expect(coordDisplay).toBeVisible();
+    await expect(page.getByText("Click the map to set bounding box")).toBeVisible();
   });
 
-  test("opens map modal when clicking on the field", async ({ page }) => {
-    // Click on the spatial coverage area
+  test("opens map modal when clicking on the field", async () => {
     await projectPage.openSpatialCoverageModal();
 
-    // Verify modal is open
-    await expect(page.locator("text=Select Bounding Box")).toBeVisible();
-
-    // Verify map canvas is present
+    await expect(mapModal.heading).toBeVisible();
     await mapModal.waitForMapLoad();
     await expect(mapModal.mapCanvas).toBeVisible();
   });
 
-  test("can draw bounding box by clicking two points", async ({ page }) => {
-    // Open the modal
+  test("can draw bounding box by clicking two points", async () => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    // Click the Draw Selection button
-    await page.click("button:has-text('Draw Selection')");
+    await mapModal.startDrawing();
+    await expect(mapModal.prompt).toHaveText("Drag a box on the map, or click each corner.");
 
-    // Verify the instruction text
-    await expect(
-      page.locator("text=Drag a box on the map, or click each corner."),
-    ).toBeVisible();
-
-    // Draw a bounding box
     await mapModal.drawBoundingBox(-100, -50, 100, 50);
-
-    // Wait for coordinates to be calculated
-    await page.waitForTimeout(500);
 
     // Verify coordinate inputs have values
     await expect(mapModal.edge("north")).not.toHaveValue("");
   });
 
-  test("shows a live preview between the two clicks", async ({ page }) => {
+  test("shows a live preview between the two clicks", async () => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
-    await page.click("button:has-text('Draw Selection')");
+    await mapModal.startDrawing();
 
     // First corner only — the box should already be on the map.
     await mapModal.clickOnMap(-100, -50);
     await mapModal.moveOnMap(60, 40);
     // The prompt flips only once a start point is held, so the shape is being sized.
-    await expect(page.locator("text=Release, or click again to complete the box.")).toBeVisible();
+    await expect(mapModal.prompt).toHaveText("Release, or click again to complete the box.");
 
-    // The preview rectangle is drawn into the canvas, so moving the pointer
-    // must change the pixels. Without this the test would pass even if
+    // The preview is pushed into the map's bbox source, so moving the pointer
+    // must change its geometry. Without this the test would pass even if
     // onPreview were never wired to the map.
-    await mapModal.waitForIdle();
-    const before = await mapModal.canvasPixels();
+    const before = await mapModal.previewGeometry();
+    expect(before).not.toBeNull();
     await mapModal.moveOnMap(140, 90);
-    await mapModal.waitForIdle();
-    expect(await mapModal.canvasPixels()).not.toBe(before);
+    await expect.poll(() => mapModal.previewGeometry()).not.toEqual(before);
 
     // Closing click commits it.
     await mapModal.clickOnMap(100, 50);
@@ -88,60 +69,45 @@ test.describe("Spatial Coverage Field", () => {
   });
 
   for (const width of [320, 360, 390]) {
-    test(`compass inputs fit a ${width}px wide viewport`, async ({ browser }) => {
-      const context = await browser.newContext({ viewport: { width, height: 844 } });
-      const page = await context.newPage();
-      const narrowProject = new ProjectPage(page);
-      const narrowModal = new MapModal(page);
+    test.describe(`${width}px viewport`, () => {
+      test.use({ viewport: { width, height: 844 } });
 
-      await page.goto("/overview");
-      await page.waitForLoadState("networkidle");
-      await page.getByRole("button", { name: /Create.*Project/i }).click();
-      await page.waitForURL("**/project");
-      await page.waitForLoadState("networkidle");
-      await narrowProject.openSpatialCoverageModal();
-      await narrowModal.waitForMapLoad();
+      test("compass inputs fit the viewport", async () => {
+        await projectPage.openSpatialCoverageModal();
+        await mapModal.waitForMapLoad();
 
-      // Every input must sit inside the viewport; the east one is the last to overflow.
-      for (const edge of ["north", "south", "east", "west"] as const) {
-        const box = await narrowModal.edge(edge).boundingBox();
-        expect(box, `${edge} edge is rendered`).not.toBeNull();
-        expect(box!.x).toBeGreaterThanOrEqual(0);
-        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-      }
-      await context.close();
+        // Every input must sit inside the viewport; the east one is the last to overflow.
+        for (const edge of ["north", "south", "east", "west"] as const) {
+          const box = await mapModal.edge(edge).boundingBox();
+          expect(box, `${edge} edge is rendered`).not.toBeNull();
+          expect(box!.x).toBeGreaterThanOrEqual(0);
+          expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        }
+      });
     });
   }
 
-  test("can draw a bounding box by touch drag", async ({ browser }) => {
-    // Own context: touch emulation cannot be toggled on an existing page.
-    const context = await browser.newContext({ hasTouch: true, isMobile: false });
-    const page = await context.newPage();
-    const touchProject = new ProjectPage(page);
-    const touchModal = new MapModal(page);
+  test.describe("touch", () => {
+    // Touch emulation is a context option, so it needs its own describe.
+    test.use({ hasTouch: true });
 
-    await page.goto("/overview");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /Create.*Project/i }).click();
-    await page.waitForURL("**/project");
-    await page.waitForLoadState("networkidle");
+    test("can draw a bounding box by touch drag", async () => {
+      await projectPage.openSpatialCoverageModal();
+      await mapModal.waitForMapLoad();
+      await mapModal.startDrawing();
 
-    await touchProject.openSpatialCoverageModal();
-    await touchModal.waitForMapLoad();
-    await page.click("button:has-text('Draw Selection')");
+      await mapModal.touchDragBoundingBox(-90, -50, 90, 50);
 
-    await touchModal.touchDragBoundingBox(-90, -50, 90, 50);
-
-    for (const edge of ["north", "south", "east", "west"] as const) {
-      await expect(touchModal.edge(edge)).not.toHaveValue("");
-    }
-    await context.close();
+      for (const edge of ["north", "south", "east", "west"] as const) {
+        await expect(mapModal.edge(edge)).not.toHaveValue("");
+      }
+    });
   });
 
-  test("can draw a bounding box by dragging", async ({ page }) => {
+  test("can draw a bounding box by dragging", async () => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
-    await page.click("button:has-text('Draw Selection')");
+    await mapModal.startDrawing();
 
     await mapModal.dragBoundingBox(-120, -60, 120, 60);
 
@@ -149,27 +115,18 @@ test.describe("Spatial Coverage Field", () => {
       await expect(mapModal.edge(edge)).not.toHaveValue("");
     }
     // Drawing has ended, so the button is offered again.
-    await expect(page.locator("button:has-text('Draw Selection')")).toBeEnabled();
+    await expect(mapModal.drawButton).toBeEnabled();
   });
 
   test("can enter coordinates manually", async ({ page }) => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    // Fill in coordinate inputs
-    await mapModal.edge("west").fill("-125");
-    await mapModal.edge("south").fill("32");
-    await mapModal.edge("east").fill("-117");
-    await mapModal.edge("north").fill("42");
-
-    // Confirm the selection
-    await page.click("button:has-text('Confirm')");
-
-    // Verify modal is closed
-    await expect(page.getByRole("heading", { name: "Select Bounding Box" })).not.toBeVisible();
+    await mapModal.fillBounds({ west: "-125", south: "32", east: "-117", north: "42" });
+    await mapModal.confirm();
 
     // Verify coordinates are displayed - empty state prompt should be hidden
-    await expect(page.locator("text=Click to set spatial coverage")).not.toBeVisible();
+    await expect(page.getByText("Click to set spatial coverage")).not.toBeVisible();
   });
 
   test("validates north must be greater than south", async ({ page }) => {
@@ -180,45 +137,29 @@ test.describe("Spatial Coverage Field", () => {
     await mapModal.edge("south").fill("50");
     await mapModal.edge("north").fill("30");
 
-    // Verify error message appears
-    await expect(page.locator("text=North latitude must be greater than South latitude")).toBeVisible();
-
-    // Verify confirm button is disabled
-    const confirmButton = page.locator("button:has-text('Confirm')");
-    await expect(confirmButton).toBeDisabled();
+    await expect(
+      page.getByText("North latitude must be greater than South latitude"),
+    ).toBeVisible();
+    await expect(mapModal.confirmButton).toBeDisabled();
   });
 
   test("cancel button closes modal without saving", async ({ page }) => {
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    // Enter some coordinates
-    await mapModal.edge("west").fill("-125");
-    await mapModal.edge("south").fill("32");
-    await mapModal.edge("east").fill("-117");
-    await mapModal.edge("north").fill("42");
-
-    // Cancel
-    await page.click("button:has-text('Cancel')");
-
-    // Verify modal is closed
-    await expect(page.locator("text=Select Bounding Box")).not.toBeVisible();
+    await mapModal.fillBounds({ west: "-125", south: "32", east: "-117", north: "42" });
+    await mapModal.cancel();
 
     // Verify the field still shows empty state
-    await expect(page.locator("text=Click the map to set bounding box")).toBeVisible();
+    await expect(page.getByText("Click the map to set bounding box")).toBeVisible();
   });
 
   test("preserves existing bounds when reopening modal", async ({ page }) => {
-    // First set some coordinates
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    await mapModal.edge("west").fill("-125");
-    await mapModal.edge("south").fill("32");
-    await mapModal.edge("east").fill("-117");
-    await mapModal.edge("north").fill("42");
-    await page.click("button:has-text('Confirm')");
-    await page.waitForTimeout(500);
+    await mapModal.fillBounds({ west: "-125", south: "32", east: "-117", north: "42" });
+    await mapModal.confirm();
 
     // Reopen the modal by clicking on the map region within the Spatial Coverage field
     await page.getByRole("region", { name: "Map" }).first().click();
@@ -230,27 +171,19 @@ test.describe("Spatial Coverage Field", () => {
     await expect(mapModal.edge("east")).toHaveValue("-117");
     await expect(mapModal.edge("north")).toHaveValue("42");
 
-    await page.click("button:has-text('Cancel')");
+    await mapModal.cancel();
   });
 
   test("updates mini map preview when coordinates are set", async ({ page }) => {
-    // Wait for mini map to load
-    await projectPage.waitForMapLibre();
+    await new MapState(page, MAP_NAMES.spatialPreview).waitForLoad();
 
-    // Set coordinates
     await projectPage.openSpatialCoverageModal();
     await mapModal.waitForMapLoad();
 
-    await mapModal.edge("west").fill("-125");
-    await mapModal.edge("south").fill("32");
-    await mapModal.edge("east").fill("-117");
-    await mapModal.edge("north").fill("42");
-    await page.click("button:has-text('Confirm')");
+    await mapModal.fillBounds({ west: "-125", south: "32", east: "-117", north: "42" });
+    await mapModal.confirm();
 
-    // Wait for mini map to update
-    await page.waitForTimeout(1000);
-
-    // Verify the overlay "Click to set" is hidden (meaning the mini map shows the selection)
-    await expect(page.locator("text=Click to set spatial coverage")).not.toBeVisible();
+    // The overlay only shows while the field has no value.
+    await expect(page.getByText("Click to set spatial coverage")).not.toBeVisible();
   });
 });

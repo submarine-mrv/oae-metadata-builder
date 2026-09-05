@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { BasePage } from "./base-page";
 
 /**
@@ -13,7 +13,7 @@ export class ExperimentPage extends BasePage {
 
     // Dosing location field
     this.dosingLocationField = page.locator("text=Dosing Location").locator("..");
-    this.dosingLocationEditButton = page.locator("text=Dosing Location").locator("..").locator("[aria-label='Edit location']");
+    this.dosingLocationEditButton = page.getByRole("button", { name: "Edit location" });
   }
 
   /**
@@ -27,10 +27,7 @@ export class ExperimentPage extends BasePage {
    * Open dosing location map modal
    */
   async openDosingLocationModal() {
-    const mapField = this.page.locator("text=Click to set dosing location").first();
-    // Wait for mini map to be ready before clicking
-    await this.waitForMapLibre();
-    await mapField.click();
+    await this.page.getByText("Click to set dosing location").click();
   }
 
   /**
@@ -51,17 +48,16 @@ export class ExperimentPage extends BasePage {
     const select = selectContainer.locator("[role='combobox'], input[role='searchbox']").first();
 
     await select.click();
-
-    // Wait for dropdown to open and select option
-    await this.page.waitForTimeout(200);
-    await this.page.locator(`[role='option']:has-text("${optionLabel}")`).click();
+    await this.page.getByRole("option", { name: optionLabel }).click();
   }
 
   /**
    * Check if a custom input field is visible (for "other" selections)
    */
   async isCustomInputVisible(fieldLabel: string): Promise<boolean> {
-    const customInput = this.page.locator(`input[placeholder*="${fieldLabel}"], input[id*="custom"], input[id*="other"]`);
+    const customInput = this.page.locator(
+      `input[placeholder*="${fieldLabel}"], input[id*="custom"], input[id*="other"]`,
+    );
     return await customInput.isVisible().catch(() => false);
   }
 
@@ -69,7 +65,11 @@ export class ExperimentPage extends BasePage {
    * Check if a field with matching text/label exists and is visible
    */
   async isFieldVisible(fieldText: string): Promise<boolean> {
-    return await this.page.locator(`text=${fieldText}`).first().isVisible().catch(() => false);
+    return await this.page
+      .locator(`text=${fieldText}`)
+      .first()
+      .isVisible()
+      .catch(() => false);
   }
 
   /**
