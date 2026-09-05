@@ -14,6 +14,8 @@ export function exposeMapForTests(name: string, container: HTMLElement | null, m
 
   container.dataset.mapName = name;
   container.dataset.mapLoaded = "false";
+  // Counts instances per container, so a test can tell a rebuilt map from the old one.
+  container.dataset.mapGeneration = String(Number(container.dataset.mapGeneration ?? 0) + 1);
 
   map.on("load", () => {
     container.dataset.mapLoaded = "true";

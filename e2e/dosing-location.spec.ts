@@ -1,5 +1,9 @@
-import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { createFromOverview, waitForRoute } from "./fixtures/app";
 import { DosingLocationModal } from "./fixtures/map-modal";
+import { expect, test } from "./fixtures/test";
+
+const ORDER_ERROR = "North latitude must be greater than South latitude";
 
 test.describe("Dosing Location Field", () => {
   let dosingModal: DosingLocationModal;
@@ -7,130 +11,84 @@ test.describe("Dosing Location Field", () => {
   test.beforeEach(async ({ page }) => {
     dosingModal = new DosingLocationModal(page);
 
-    // Navigate to overview and create an experiment
-    await page.goto("/overview");
-    await page.waitForLoadState("networkidle");
+    await createFromOverview(page, "Experiment");
 
-    // Create a new experiment
-    await page.getByRole("button", { name: /Create.*Experiment/i }).click();
-    await page.waitForURL("**/experiment");
-    await page.waitForLoadState("networkidle");
-
-    // Select "Intervention" experiment type to get dosing location field
-    await page.locator("#root_experiment_types").click();
-    await page.waitForTimeout(200);
+    // The dosing location field only renders for an intervention experiment.
+    const experimentTypes = page.locator("#root_experiment_types");
+    await waitForRoute(experimentTypes);
+    await experimentTypes.click();
     await page.getByRole("option", { name: "Intervention" }).click();
-    await page.waitForTimeout(500);
+    await expect(page.getByText("Click to set dosing location")).toBeVisible();
   });
 
+  async function openModal(page: Page) {
+    await page.getByText("Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+  }
+
   test("displays empty state with prompt to set location", async ({ page }) => {
-    // Check for the prompt text in the dosing location field
-    const prompt = page.locator("text=Click to set dosing location");
-    await expect(prompt).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Click to set dosing location")).toBeVisible();
   });
 
   test("opens modal when clicking on the field", async ({ page }) => {
-    // Click on the dosing location field
-    await page.locator("text=Click to set dosing location").click();
-
-    // Verify modal is open - use heading to be specific
-    await expect(page.getByRole("heading", { name: "Set Dosing Location" })).toBeVisible();
+    await page.getByText("Click to set dosing location").click();
+    await expect(dosingModal.heading).toBeVisible();
   });
 
   test("shows mode selector with three options", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
 
-    // Click on the mode selector (use textbox role to be specific)
-    await page.getByRole("textbox", { name: "Dosing Location Type" }).click();
+    await dosingModal.modeSelect.click();
 
-    // Verify all three options are available
     await expect(page.getByRole("option", { name: "Fixed Point" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Line" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Provided as a file" })).toBeVisible();
   });
 
   test("Fixed Point mode: can enter coordinates manually", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
-
-    // Select Fixed Point mode
+    await openModal(page);
     await dosingModal.selectMode("Fixed Point");
-    await page.waitForTimeout(300);
 
-    // Enter coordinates
     await page.getByLabel("Latitude").fill("47.5");
     await page.getByLabel("Longitude").fill("-122.3");
-
-    // Save
-    await page.click("button:has-text('Save')");
-
-    // Verify modal closes
-    await expect(page.getByRole("heading", { name: "Set Dosing Location" })).not.toBeVisible();
+    await dosingModal.confirm();
 
     // Verify coordinates are displayed on the field
-    await expect(page.locator("text=/47\\.5.*-122\\.3/")).toBeVisible();
+    await expect(page.getByText(/47\.5.*-122\.3/)).toBeVisible();
   });
 
   test("Line mode: can enter coordinates manually", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
-
-    // Select Line mode
+    await openModal(page);
     await dosingModal.selectMode("Line");
-    await page.waitForTimeout(300);
 
-    // Fill in Point 1 and Point 2 coordinates using the placeholder selectors
-    // Mantine NumberInput needs proper interaction to convert string to number
+    // Mantine NumberInput converts on blur, so type each value then leave the field.
     const latInputs = page.locator("input[placeholder='Latitude']");
     const lonInputs = page.locator("input[placeholder='Longitude']");
 
-    // Clear and type each value, then blur to trigger number conversion
-    await latInputs.first().click();
     await latInputs.first().fill("47");
     await latInputs.first().blur();
-
-    await lonInputs.first().click();
     await lonInputs.first().fill("-123");
     await lonInputs.first().blur();
-
-    await latInputs.last().click();
     await latInputs.last().fill("48");
     await latInputs.last().blur();
-
-    await lonInputs.last().click();
     await lonInputs.last().fill("-122");
     await lonInputs.last().blur();
 
-    // Wait for state updates
-    await page.waitForTimeout(300);
-
-    // Save
-    await page.click("button:has-text('Save')");
-    await expect(page.getByRole("heading", { name: "Set Dosing Location" })).not.toBeVisible();
+    await dosingModal.confirm();
   });
 
   test("Box mode: shows file location input", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
+    await dosingModal.selectMode("Provided as a file");
 
-    // Select Box mode (Provided as a file)
-    await page.getByRole("textbox", { name: "Dosing Location Type" }).click();
-    await page.waitForTimeout(200);
-    await page.getByRole("option", { name: "Provided as a file" }).click();
-    await page.waitForTimeout(300);
-
-    // Verify file location input is visible
-    await expect(page.getByLabel("Dosing Location File")).toBeVisible();
+    await expect(dosingModal.fileLocationInput()).toBeVisible();
   });
 
   // The globe default repeats the world at the edges. A click on a repeated copy
   // must still store a longitude the schema accepts.
   test("Fixed Point mode: a click on a repeated world stays within range", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
     await dosingModal.selectMode("Fixed Point");
-    await page.waitForTimeout(300);
 
     const box = await dosingModal.mapCanvas.boundingBox();
     if (!box) throw new Error("Map canvas not found");
@@ -140,15 +98,15 @@ test.describe("Dosing Location Field", () => {
     // world exactly 512px wide, which lets the expected longitude be computed.
     await dosingModal.mapCanvas.focus();
     await page.keyboard.press("-");
-    await page.waitForTimeout(800);
+    await dosingModal.map.waitForZoom(0);
 
     const clickOffset = box.width / 2 - 8;
     const rawLon = (clickOffset / 512) * 360;
     // Would be pointless if the click were still in the primary world.
     expect(rawLon).toBeGreaterThan(180);
     await page.mouse.click(box.x + box.width - 8, box.y + box.height / 2);
-    await page.waitForTimeout(500);
 
+    await expect(page.getByLabel("Longitude")).not.toHaveValue("");
     const lonText = await page.getByLabel("Longitude").inputValue();
     const latText = await page.getByLabel("Latitude").inputValue();
     expect(lonText).not.toBe("");
@@ -163,61 +121,42 @@ test.describe("Dosing Location Field", () => {
   });
 
   test("Box mode: flags north below south and blocks save", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
     await dosingModal.selectMode("Provided as a file");
-    await page.waitForTimeout(300);
-    await page.getByLabel("Dosing Location File").fill("data/dosing.geojson");
+    await dosingModal.fillFileLocation("data/dosing.geojson");
 
     await dosingModal.fillBounds({ north: "40", south: "50", east: "-122", west: "-123" });
-    await expect(page.locator("text=North latitude must be greater than South latitude")).toBeVisible();
-    await expect(page.locator("button:has-text('Save')")).toBeDisabled();
+    await expect(page.getByText(ORDER_ERROR)).toBeVisible();
+    await expect(dosingModal.confirmButton).toBeDisabled();
 
     await dosingModal.edge("north").fill("60");
-    await expect(page.locator("text=North latitude must be greater than South latitude")).toHaveCount(0);
-    await expect(page.locator("text=Decimal degrees")).toBeVisible();
-    await expect(page.locator("button:has-text('Save')")).toBeEnabled();
+    await expect(page.getByText(ORDER_ERROR)).toHaveCount(0);
+    await expect(page.getByText("Decimal degrees")).toBeVisible();
+    await expect(dosingModal.confirmButton).toBeEnabled();
   });
 
   test("Box mode: requires file location to save", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
+    await dosingModal.selectMode("Provided as a file");
 
-    // Select Box mode (Provided as a file)
-    await page.getByRole("textbox", { name: "Dosing Location Type" }).click();
-    await page.waitForTimeout(200);
-    await page.getByRole("option", { name: "Provided as a file" }).click();
-    await page.waitForTimeout(300);
+    // Coordinates only, no file
+    await dosingModal.fillBounds({ north: "48", south: "47", east: "-122", west: "-123" });
+    await expect(dosingModal.confirmButton).toBeDisabled();
 
-    // Fill in coordinates only (no file)
-    await dosingModal.edge("north").fill("48");
-    await dosingModal.edge("south").fill("47");
-    await dosingModal.edge("east").fill("-122");
-    await dosingModal.edge("west").fill("-123");
-
-    // Verify save button is disabled without file
-    await expect(page.locator("button:has-text('Save')")).toBeDisabled();
-
-    // Add file location
-    await page.getByLabel("Dosing Location File").fill("data/dosing.geojson");
-
-    // Now save should be enabled
-    await expect(page.locator("button:has-text('Save')")).toBeEnabled();
+    await dosingModal.fillFileLocation("data/dosing.geojson");
+    await expect(dosingModal.confirmButton).toBeEnabled();
   });
 
   // Switching modes rebuilds the map. The replacement has to be drawable, or
   // the draw hook keeps a handle on the disposed instance.
   test("can still draw after switching dosing modes", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
 
     // Land on one mode first so the map is built, then switch.
     await dosingModal.selectMode("Line");
-    await page.waitForTimeout(600);
     await dosingModal.selectMode("Provided as a file");
-    await dosingModal.waitForMapLoad();
 
-    await page.click("button:has-text('Draw Selection')");
+    await dosingModal.startDrawing();
     await dosingModal.dragBoundingBox(-80, -40, 80, 40);
 
     for (const edge of ["north", "south", "east", "west"] as const) {
@@ -226,30 +165,20 @@ test.describe("Dosing Location Field", () => {
   });
 
   test("cancel button closes modal without saving", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
-
-    // Enter some data
+    await openModal(page);
     await dosingModal.selectMode("Fixed Point");
-    await page.waitForTimeout(300);
+
     await page.getByLabel("Latitude").fill("47.5");
     await page.getByLabel("Longitude").fill("-122.3");
-
-    // Cancel
-    await page.click("button:has-text('Cancel')");
-
-    // Verify modal is closed
-    await expect(page.getByRole("heading", { name: "Set Dosing Location" })).not.toBeVisible();
+    await dosingModal.cancel();
 
     // Verify the field still shows empty state
-    await expect(page.locator("text=Click to set dosing location")).toBeVisible();
+    await expect(page.getByText("Click to set dosing location")).toBeVisible();
   });
 
   test("map is disabled until mode is selected", async ({ page }) => {
-    await page.locator("text=Click to set dosing location").click();
-    await dosingModal.waitForMapLoad();
+    await openModal(page);
 
-    // Verify the overlay message
-    await expect(page.locator("text=Select location type to activate map")).toBeVisible();
+    await expect(page.getByText("Select location type to activate map")).toBeVisible();
   });
 });

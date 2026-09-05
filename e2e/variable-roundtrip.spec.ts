@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Download } from "@playwright/test";
+import { type Download, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures/test";
 import * as fs from "fs";
 import * as path from "path";
 
