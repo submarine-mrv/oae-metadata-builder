@@ -14,6 +14,7 @@ import { IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_MAP_CENTER, DEFAULT_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
+import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import { type DrawPoint, useTwoPointDraw } from "@/hooks/useTwoPointDraw";
 import {
   addBoundingBox,
@@ -66,6 +67,9 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [localMode, setLocalMode] = useState<DosingMode | null>(mode);
+
+  // Shared loader, so the field and the modal never inject the script twice.
+  const { loadMapLibre } = useMapLibreLoader(false);
 
   // Point mode state - individual coordinate states
   const [pointLat, setPointLat] = useState<number | string>(() => {
@@ -335,7 +339,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
 
   // Initialize map function
   const initializeMap = useCallback(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current || !window.maplibregl || mapInstanceRef.current) return;
 
     const map = new window.maplibregl.Map({
       container: mapRef.current,
@@ -409,25 +413,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
     if (!isOpen) return;
 
     const loadAndInitialize = async () => {
-      // Load MapLibre if not already loaded
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
-        }
-
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
-      }
+      await loadMapLibre();
 
       // Wait for next tick to ensure DOM is ready
       requestAnimationFrame(() => {
@@ -450,7 +436,7 @@ const DosingLocationMapModal: React.FC<DosingLocationMapModalProps> = ({
       // re-render follows, and the draw hook keeps a handle on the removed map.
       setMapLoaded(false);
     };
-  }, [isOpen, initializeMap, cancelSelection]);
+  }, [isOpen, initializeMap, cancelSelection, loadMapLibre]);
 
   // Update markers for point mode
   useEffect(() => {
