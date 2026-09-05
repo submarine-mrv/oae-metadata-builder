@@ -1,12 +1,8 @@
 /**
  * useMapLibreLoader - Hook to load MapLibre GL library dynamically
  *
- * Currently used by:
- * - SpatialCoverageField
- * - SpatialCoverageMapModal
- *
- * TODO: Integrate with DosingLocationField and DosingLocationMapModal
- * (these currently have their own inline MapLibre loading logic)
+ * Used by every map component so the script is injected once, however many
+ * maps mount at the same time.
  *
  * @returns Object with `isLoaded` boolean and `error` if loading failed
  */

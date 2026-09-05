@@ -4,6 +4,7 @@ import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
+import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
   addBoundingBox,
   addLine,
@@ -74,6 +75,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
   const [selectedMode, setSelectedMode] = useState<DosingMode | null>(inferMode(formData));
   const [showMapModal, setShowMapModal] = useState(false);
   const [miniMapLoaded, setMiniMapLoaded] = useState(false);
+  const { isLoaded: mapLibreLoaded } = useMapLibreLoader();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -150,7 +152,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
 
   // Initialize mini map preview
   const initializeMiniMap = useCallback(() => {
-    if (!mapRef.current || miniMapLoaded) return;
+    if (!mapRef.current || !window.maplibregl || miniMapLoaded) return;
 
     try {
       const map = new window.maplibregl.Map({
@@ -174,41 +176,16 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
     }
   }, [miniMapLoaded]);
 
+  // Initialize the preview once MapLibre is loaded
   useEffect(() => {
-    // Always load the map preview
-    if (typeof window === "undefined" || miniMapLoaded) return;
+    if (!mapLibreLoaded || miniMapLoaded) return;
 
-    const loadAndInitialize = async () => {
-      // Load MapLibre if not already loaded
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
-        }
-
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
+    requestAnimationFrame(() => {
+      if (mapRef.current && !mapInstanceRef.current) {
+        initializeMiniMap();
       }
-
-      // Wait for next tick to ensure DOM is ready
-      requestAnimationFrame(() => {
-        if (mapRef.current && !miniMapLoaded) {
-          initializeMiniMap();
-        }
-      });
-    };
-
-    loadAndInitialize();
-  }, [initializeMiniMap, miniMapLoaded]);
+    });
+  }, [mapLibreLoaded, miniMapLoaded, initializeMiniMap]);
 
   // Update mini map visualization when formData changes
   useEffect(() => {
