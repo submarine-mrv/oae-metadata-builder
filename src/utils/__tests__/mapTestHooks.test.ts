@@ -27,6 +27,7 @@ describe("exposeMapForTests", () => {
     exposeMapForTests("test-map", container, map);
     expect(container.dataset.mapName).toBe("test-map");
     expect(container.dataset.mapLoaded).toBe("false");
+    expect(container.dataset.mapGeneration).toBe("1");
 
     map.fire("load");
     expect(container.dataset.mapLoaded).toBe("true");
@@ -43,6 +44,23 @@ describe("exposeMapForTests", () => {
     map.fire("remove");
     expect(container.dataset.mapLoaded).toBe("false");
     expect(window.__oaeMaps?.has("test-map")).toBe(false);
+  });
+
+  it("counts rebuilds in the same container", () => {
+    const container = document.createElement("div");
+    const first = fakeMap();
+    const second = fakeMap();
+
+    exposeMapForTests("test-map", container, first);
+    first.fire("load");
+    first.fire("remove");
+    exposeMapForTests("test-map", container, second);
+
+    expect(container.dataset.mapGeneration).toBe("2");
+    expect(container.dataset.mapLoaded).toBe("false");
+    second.fire("load");
+    expect(container.dataset.mapLoaded).toBe("true");
+    expect(window.__oaeMaps?.get("test-map")).toBe(second);
   });
 
   it("keeps one registry entry per map name", () => {
