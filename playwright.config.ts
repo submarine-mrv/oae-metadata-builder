@@ -19,8 +19,14 @@ export default defineConfig({
   // Opt out of parallel tests on CI
   workers: process.env.CI ? 1 : undefined,
 
+  // Map tests run WebGL through SwiftShader on CI runners, which is slow.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
+
   // Reporter to use
-  reporter: [["html", { open: "never" }], ["list"]],
+  reporter: process.env.CI
+    ? [["html", { open: "never" }], ["github"], ["list"]]
+    : [["html", { open: "never" }], ["list"]],
 
   // Shared settings for all projects
   use: {
@@ -34,7 +40,8 @@ export default defineConfig({
     screenshot: "only-on-failure",
 
     // Increase default timeout for map loading
-    actionTimeout: 10000,
+    actionTimeout: 10_000,
+    navigationTimeout: 30_000,
   },
 
   // Configure projects for major browsers
@@ -58,7 +65,11 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000",
+    // Locally an already-running dev server is reused as-is, so its own env
+    // (not the one below) applies. Stop it, or run with CI=1, when that matters.
     reuseExistingServer: !process.env.CI,
     timeout: 120000, // 2 minutes for dev server to start
+    // e2e never needs a Supabase project; the in-memory auth client stands in.
+    env: { VITE_AUTH_ENABLED: "false" },
   },
 });
