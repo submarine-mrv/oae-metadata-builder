@@ -7878,7 +7878,7 @@
   },
   "$id": "https://schema.oaedata.org/OAEDataSchema",
   "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "description": "",
   "metamodel_version": "1.7.0",
   "properties": {
@@ -7919,5 +7919,5 @@
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
   "version": "0.4.0",
-  "x-protocol-git-hash": "ddc3c46f973b8518ede23e8c491655b242abbc57"
+  "x-protocol-git-hash": "da46c9d28a324836a4b2568ab7c0070db3e6598e"
 }
