@@ -1,6 +1,17 @@
 import { Page, Locator, expect } from "@playwright/test";
 
 /**
+ * Bounding box input labels, as rendered by BoundingBoxInputs.
+ * Kept here so a wording change updates every spec at once.
+ */
+export const BOX_LABELS = {
+  north: "North edge",
+  south: "South edge",
+  east: "East edge",
+  west: "West edge",
+} as const;
+
+/**
  * Page object for map modal interactions.
  * Shared between SpatialCoverageMapModal and DosingLocationMapModal.
  */
@@ -86,6 +97,100 @@ export class MapModal {
     await this.clickOnMap(x2, y2);
   }
 
+  /** Move the pointer over the map without clicking, to drive the draw preview. */
+  async moveOnMap(xOffset = 0, yOffset = 0) {
+    const box = await this.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found or not visible");
+    await this.page.mouse.move(
+      box.x + box.width / 2 + xOffset,
+      box.y + box.height / 2 + yOffset,
+      { steps: 5 },
+    );
+    await this.page.waitForTimeout(100);
+  }
+
+  /**
+   * Composited pixels of the map canvas.
+   *
+   * Uses Playwright's screenshot rather than `canvas.toDataURL()`: MapLibre
+   * creates its WebGL context with `preserveDrawingBuffer: false`, so reading
+   * the canvas directly returns a blank buffer. The preview rectangle is drawn
+   * into that canvas, so comparing two captures is the only way to assert it
+   * changed without exposing the map instance on `window`.
+   */
+  async canvasPixels(): Promise<string> {
+    const shot = await this.mapCanvas.screenshot();
+    return shot.toString("base64");
+  }
+
+  /** Wait until the map stops loading tiles, so captures compare like for like. */
+  async waitForIdle() {
+    await this.page.waitForTimeout(1200);
+  }
+
+  /** Locator for one of the four bounding box inputs. */
+  edge(name: keyof typeof BOX_LABELS): Locator {
+    return this.page.getByLabel(BOX_LABELS[name]);
+  }
+
+  /** Fill all four edges at once. */
+  async fillBounds(bounds: { north: string; south: string; east: string; west: string }) {
+    await this.edge("west").fill(bounds.west);
+    await this.edge("south").fill(bounds.south);
+    await this.edge("east").fill(bounds.east);
+    await this.edge("north").fill(bounds.north);
+  }
+
+  /**
+   * Draw a bounding box by pressing, dragging and releasing, rather than by two
+   * separate clicks. Exercises the rubber-band path.
+   */
+  async dragBoundingBox(x1 = -100, y1 = -50, x2 = 100, y2 = 50) {
+    const box = await this.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found or not visible");
+
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+
+    await this.page.mouse.move(cx + x1, cy + y1);
+    await this.page.mouse.down();
+    // Intermediate moves so the preview handler actually fires.
+    await this.page.mouse.move(cx + (x1 + x2) / 2, cy + (y1 + y2) / 2, { steps: 5 });
+    await this.page.mouse.move(cx + x2, cy + y2, { steps: 5 });
+    await this.page.mouse.up();
+    await this.page.waitForTimeout(200);
+  }
+
+  /**
+   * Draw a bounding box with a single-finger touch drag. Requires a context
+   * created with `hasTouch: true`.
+   */
+  async touchDragBoundingBox(x1 = -90, y1 = -50, x2 = 90, y2 = 50) {
+    const box = await this.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found or not visible");
+
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    const mid = { x: cx + (x1 + x2) / 2, y: cy + (y1 + y2) / 2 };
+
+    const cdp = await this.page.context().newCDPSession(this.page);
+    const send = (type: string, pt: { x: number; y: number } | null) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: pt ? [{ x: pt.x, y: pt.y, radiusX: 1, radiusY: 1, force: 1 }] : [],
+      });
+
+    await send("touchStart", { x: cx + x1, y: cy + y1 });
+    await this.page.waitForTimeout(80);
+    await send("touchMove", mid);
+    await this.page.waitForTimeout(80);
+    await send("touchMove", { x: cx + x2, y: cy + y2 });
+    await this.page.waitForTimeout(80);
+    await send("touchEnd", null);
+    await this.page.waitForTimeout(300);
+    await cdp.detach();
+  }
+
   /**
    * Confirm the selection and close the modal
    */
@@ -152,7 +257,7 @@ export class DosingLocationModal extends MapModal {
   /**
    * Select the dosing location mode
    */
-  async selectMode(mode: "Fixed Point" | "Line" | "Bounding Box") {
+  async selectMode(mode: "Fixed Point" | "Line" | "Provided as a file") {
     // Use textbox role which is more reliable for Mantine Select
     await this.page.getByRole("textbox", { name: "Dosing Location Type" }).click();
     await this.page.waitForTimeout(200);

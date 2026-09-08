@@ -9,6 +9,7 @@ import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
   addBoundingBox,
   fitBoundsWithAntimeridian,
+  hideLabelLayers,
   parseBoundsString,
   removeBoundingBox,
 } from "@/utils/mapLayerUtils";
@@ -86,6 +87,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     mapInstanceRef.current = map;
 
     map.on("load", () => {
+      hideLabelLayers(map);
       setMiniMapLoaded(true);
 
       // Add bounding box if we have coordinates
