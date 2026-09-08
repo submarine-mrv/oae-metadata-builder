@@ -17,7 +17,40 @@ describe("transformFormErrors", () => {
 
     const result = transformFormErrors(errors);
 
-    expect(result[0].message).toBe(MESSAGES.validation.temporalCoveragePattern);
+    expect(result[0].message).toBe(MESSAGES.validation.invalidDateFormat);
+  });
+
+  // The nested form of this property is what the co-located research entries
+  // produce. An exact-match rule let the raw AJV regex reach the user.
+  it("transforms a nested temporal coverage pattern error", () => {
+    const errors = [
+      {
+        property: ".previous_or_ongoing_colocated_research.0.temporal_coverage",
+        name: "pattern",
+        message: 'must match pattern "^\\d{4}-\\d{2}-\\d{2}/(\\d{4}-\\d{2}-\\d{2}|\\.\\.)$"',
+      },
+    ] as RJSFValidationError[];
+
+    const result = transformFormErrors(errors);
+
+    expect(result[0].message).toBe(MESSAGES.validation.invalidDateFormat);
+    expect(result[0].message).not.toContain("must match pattern");
+  });
+
+  it("uses the same wording useIsoInterval shows, so the message cannot flicker", () => {
+    const [transformed] = transformFormErrors([
+      { property: ".temporal_coverage", name: "pattern", message: "should match pattern" },
+    ] as RJSFValidationError[]);
+
+    expect(transformed.message).toBe("Invalid date format");
+  });
+
+  it("leaves a pattern error on an unrelated field alone", () => {
+    const [untouched] = transformFormErrors([
+      { property: ".some_other_field", name: "pattern", message: "should match pattern" },
+    ] as RJSFValidationError[]);
+
+    expect(untouched.message).toBe("should match pattern");
   });
 
   it("should normalize spatial coverage errors", () => {
@@ -93,7 +126,7 @@ describe("transformFormErrors", () => {
     const result = transformFormErrors(errors);
 
     expect(result).toHaveLength(3);
-    expect(result[0].message).toBe(MESSAGES.validation.temporalCoveragePattern);
+    expect(result[0].message).toBe(MESSAGES.validation.invalidDateFormat);
     expect(result[1].message).toBe(MESSAGES.validation.spatialCoverage);
     // Generic required errors get normalized to "Field is required"
     expect(result[2].message).toBe("Field is required");
