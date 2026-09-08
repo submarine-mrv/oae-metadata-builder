@@ -124,6 +124,61 @@ test.describe("Dosing Location Field", () => {
     await expect(page.getByLabel("Dosing Location File")).toBeVisible();
   });
 
+  // The globe default repeats the world at the edges. A click on a repeated copy
+  // must still store a longitude the schema accepts.
+  test("Fixed Point mode: a click on a repeated world stays within range", async ({ page }) => {
+    await page.locator("text=Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+    await dosingModal.selectMode("Fixed Point");
+    await page.waitForTimeout(300);
+
+    const box = await dosingModal.mapCanvas.boundingBox();
+    if (!box) throw new Error("Map canvas not found");
+
+    // At the default zoom the whole canvas can sit inside the primary world, so
+    // step out one level with the map's own keyboard handler. Zoom 0 makes the
+    // world exactly 512px wide, which lets the expected longitude be computed.
+    await dosingModal.mapCanvas.focus();
+    await page.keyboard.press("-");
+    await page.waitForTimeout(800);
+
+    const clickOffset = box.width / 2 - 8;
+    const rawLon = (clickOffset / 512) * 360;
+    // Would be pointless if the click were still in the primary world.
+    expect(rawLon).toBeGreaterThan(180);
+    await page.mouse.click(box.x + box.width - 8, box.y + box.height / 2);
+    await page.waitForTimeout(500);
+
+    const lonText = await page.getByLabel("Longitude").inputValue();
+    const latText = await page.getByLabel("Latitude").inputValue();
+    expect(lonText).not.toBe("");
+    expect(latText).not.toBe("");
+    const lon = Number(lonText);
+    const lat = Number(latText);
+    expect(lon).toBeGreaterThanOrEqual(-180);
+    expect(lon).toBeLessThanOrEqual(180);
+    expect(Math.abs(lon - (rawLon - 360))).toBeLessThan(2);
+    expect(lat).toBeGreaterThanOrEqual(-90);
+    expect(lat).toBeLessThanOrEqual(90);
+  });
+
+  test("Box mode: flags north below south and blocks save", async ({ page }) => {
+    await page.locator("text=Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+    await dosingModal.selectMode("Provided as a file");
+    await page.waitForTimeout(300);
+    await page.getByLabel("Dosing Location File").fill("data/dosing.geojson");
+
+    await dosingModal.fillBounds({ north: "40", south: "50", east: "-122", west: "-123" });
+    await expect(page.locator("text=North latitude must be greater than South latitude")).toBeVisible();
+    await expect(page.locator("button:has-text('Save')")).toBeDisabled();
+
+    await dosingModal.edge("north").fill("60");
+    await expect(page.locator("text=North latitude must be greater than South latitude")).toHaveCount(0);
+    await expect(page.locator("text=Decimal degrees")).toBeVisible();
+    await expect(page.locator("button:has-text('Save')")).toBeEnabled();
+  });
+
   test("Box mode: requires file location to save", async ({ page }) => {
     await page.locator("text=Click to set dosing location").click();
     await dosingModal.waitForMapLoad();
@@ -135,10 +190,10 @@ test.describe("Dosing Location Field", () => {
     await page.waitForTimeout(300);
 
     // Fill in coordinates only (no file)
-    await page.getByLabel("°N (max latitude)").fill("48");
-    await page.getByLabel("°S (min latitude)").fill("47");
-    await page.getByLabel("°E (max longitude)").fill("-122");
-    await page.getByLabel("°W (min longitude)").fill("-123");
+    await dosingModal.edge("north").fill("48");
+    await dosingModal.edge("south").fill("47");
+    await dosingModal.edge("east").fill("-122");
+    await dosingModal.edge("west").fill("-123");
 
     // Verify save button is disabled without file
     await expect(page.locator("button:has-text('Save')")).toBeDisabled();
@@ -148,6 +203,26 @@ test.describe("Dosing Location Field", () => {
 
     // Now save should be enabled
     await expect(page.locator("button:has-text('Save')")).toBeEnabled();
+  });
+
+  // Switching modes rebuilds the map. The replacement has to be drawable, or
+  // the draw hook keeps a handle on the disposed instance.
+  test("can still draw after switching dosing modes", async ({ page }) => {
+    await page.locator("text=Click to set dosing location").click();
+    await dosingModal.waitForMapLoad();
+
+    // Land on one mode first so the map is built, then switch.
+    await dosingModal.selectMode("Line");
+    await page.waitForTimeout(600);
+    await dosingModal.selectMode("Provided as a file");
+    await dosingModal.waitForMapLoad();
+
+    await page.click("button:has-text('Draw Selection')");
+    await dosingModal.dragBoundingBox(-80, -40, 80, 40);
+
+    for (const edge of ["north", "south", "east", "west"] as const) {
+      await expect(dosingModal.edge(edge)).not.toHaveValue("");
+    }
   });
 
   test("cancel button closes modal without saving", async ({ page }) => {

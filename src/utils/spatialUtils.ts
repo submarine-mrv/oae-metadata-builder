@@ -22,6 +22,17 @@ export function normalizeLongitude(lng: number): number {
 }
 
 /**
+ * Clamp a latitude to the valid range.
+ *
+ * MapLibre reports latitudes beyond ±90 when the pointer goes past a pole, which
+ * is reachable at low zoom. Callers that build a box from pointer positions clamp
+ * rather than reject, so dragging off the top of the globe still yields a box.
+ */
+export function clampLatitude(lat: number): number {
+  return Math.min(MAX_LATITUDE, Math.max(MIN_LATITUDE, lat));
+}
+
+/**
  * Adjusts east coordinate for antimeridian crossing when rendering
  * When west > east, we're crossing the antimeridian (180°/-180° line),
  * so translate east into the +360 range for proper MapLibre rendering.
@@ -131,8 +142,10 @@ export function resolveBoxFromClicks(
     east = Math.max(lng1, lng2);
   }
 
-  const south = Math.min(click1.lat, click2.lat);
-  const north = Math.max(click1.lat, click2.lat);
+  const lat1 = clampLatitude(click1.lat);
+  const lat2 = clampLatitude(click2.lat);
+  const south = Math.min(lat1, lat2);
+  const north = Math.max(lat1, lat2);
 
   return { west, south, east, north };
 }
