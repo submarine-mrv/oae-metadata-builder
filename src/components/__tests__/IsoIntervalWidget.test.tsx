@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import type { WidgetProps } from "@rjsf/utils";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import IsoIntervalWidget from "../IsoIntervalWidget";
 
@@ -69,6 +70,61 @@ describe("IsoIntervalWidget", () => {
     });
   });
 
+  describe("calendar-date strictness", () => {
+    it("refuses an impossible date instead of normalising it", async () => {
+      const onChange = vi.fn();
+      renderWidget({ onChange });
+      const start = screen.getAllByPlaceholderText("YYYY-MM-DD")[START];
+      await userEvent.type(start, "2024-02-31");
+      await userEvent.tab();
+      expect(start).toHaveValue("");
+      for (const [v] of onChange.mock.calls) expect(v).not.toMatch(/2024-02-3|2024-03-0/);
+    });
+
+    // A pattern-shaped but impossible stored date passes the schema's pattern
+    // check while the input shows it as blank. The hook drops it so form data
+    // never keeps a value the user cannot see.
+    it("drops a stored impossible end date from the form data", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-01-01/2024-02-31", onChange });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
+      await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
+      expect(onChange).toHaveBeenLastCalledWith("2024-01-01/..");
+    });
+
+    // An interval has no meaning without a start, so an impossible start
+    // clears the whole value rather than leaving a dangling end date.
+    it("clears the interval when the stored start date is impossible", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-02-31/2024-12-31", onChange });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[START]).toHaveValue("");
+      await vi.waitFor(() => expect(onChange).toHaveBeenCalled());
+      expect(onChange).toHaveBeenLastCalledWith(undefined);
+    });
+
+    // Viewing is not editing: a read-only widget must not rewrite the data.
+    it("does not rewrite an impossible stored date while read-only", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-02-31/2024-12-31", onChange, readonly: true });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("does not rewrite an impossible stored date while disabled", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-01-01/2024-02-31", onChange, disabled: true });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("leaves a valid stored interval alone", async () => {
+      const onChange = vi.fn();
+      renderWidget({ value: "2024-01-01/2024-12-31", onChange });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
   describe("error attribution", () => {
     // One interval string covers both dates, so a schema error does not say
     // which half is wrong. Blaming the start date by default marks a perfectly
@@ -79,9 +135,18 @@ describe("IsoIntervalWidget", () => {
       expect(errorTextFor(END)).toBeNull();
     });
 
-    it("puts the error on the end date when only the end is malformed", () => {
+    // A malformed half cannot be typed any more, only imported. It renders
+    // blank, so that input carries the message rather than the valid start.
+    it("shows an imported malformed end as empty and marks that input", () => {
       renderWidget({ value: "2024-01-01/20xx", rawErrors: ["Invalid date format"] });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
+      expect(errorTextFor(END)).toBe("Invalid date format");
       expect(errorTextFor(START)).toBeNull();
+    });
+
+    it("marks an impossible stored date even while read-only", () => {
+      renderWidget({ value: "2024-01-01/2024-02-31", readonly: true });
+      expect(screen.getAllByPlaceholderText("YYYY-MM-DD")[END]).toHaveValue("");
       expect(errorTextFor(END)).toBe("Invalid date format");
     });
 
@@ -120,14 +185,14 @@ describe("IsoIntervalWidget", () => {
       expect(errorTextFor(END)).toBeNull();
     });
 
-    it("marks both when the start is malformed and a required end is missing", () => {
+    it("marks both when the start is empty and a required end is missing", () => {
       renderWidget({
-        value: "20xx/..",
+        value: "/..",
         options: { endDateRequired: true },
-        rawErrors: ["Invalid date format"],
+        rawErrors: ["Field is required"],
       });
-      expect(errorTextFor(START)).toBe("Invalid date format");
-      expect(errorTextFor(END)).toBe("Invalid date format");
+      expect(errorTextFor(START)).toBe("Field is required");
+      expect(errorTextFor(END)).toBe("Field is required");
     });
 
     it("leaves both inputs clean when there are no errors", () => {
