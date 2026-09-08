@@ -446,9 +446,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -840,9 +840,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -1036,9 +1036,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -1200,9 +1200,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -1367,9 +1367,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -1545,9 +1545,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -1719,9 +1719,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -1767,11 +1767,6 @@
                     "title": "Sediment Sampling Depth",
                     "type": "string"
                 },
-                "sediment_sampling_method": {
-                    "description": "e.g., sediment core, grab sampling, dredging, etc.",
-                    "title": "Sediment Sampling Method",
-                    "type": "string"
-                },
                 "sediment_sampling_water_depth": {
                     "description": "Water depth where sediment was collected. If provided as a variable (recommended), please list the column header name here.",
                     "title": "Sediment Sampling Water Depth",
@@ -1809,7 +1804,6 @@
             },
             "required": [
                 "sediment_type",
-                "sediment_sampling_method",
                 "sediment_sampling_depth",
                 "sediment_sampling_water_depth",
                 "raw_data_calculation_method",
@@ -1949,9 +1943,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -2062,11 +2056,71 @@
         },
         "Dataset": {
             "additionalProperties": false,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "data_accessibility": {
+                                "const": "scheduled_access"
+                            }
+                        },
+                        "required": [
+                            "data_accessibility"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "data_access_date": {}
+                        },
+                        "required": [
+                            "data_access_date"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "data_accessibility": {
+                                "const": "open_access"
+                            }
+                        },
+                        "required": [
+                            "data_accessibility"
+                        ]
+                    },
+                    "then": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "data_access_link": {}
+                                },
+                                "required": [
+                                    "data_access_link"
+                                ]
+                            },
+                            {
+                                "properties": {
+                                    "data_access_date": {}
+                                },
+                                "required": [
+                                    "data_access_date"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
             "description": "Abstract base class for all dataset types. Contains fields common to both field/observational and model simulation datasets. Generally following guidelines & best practices as outlined in [science-on-schema.org](https://github.com/ESIPFed/science-on-schema.org/blob/main/guides/Dataset.md)",
             "properties": {
                 "author_list_for_citation": {
                     "description": "Author list in the format of Lastname1, Firstname1 Middlename1; Lastname2, Firstname2 Middlename2; ...",
                     "title": "Author List (for citation)",
+                    "type": "string"
+                },
+                "data_access_date": {
+                    "description": "The date by when this dataset will be openly available on a public repository if it is not currently.",
+                    "format": "date",
+                    "title": "Data Access Date",
                     "type": "string"
                 },
                 "data_access_link": {
@@ -2082,6 +2136,7 @@
                 },
                 "data_submitter": {
                     "$ref": "#/$defs/Person",
+                    "description": "Information about the individual submitting the dataset(s), including contact information",
                     "title": "Data Submitter"
                 },
                 "dataset_type": {
@@ -2314,9 +2369,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -2504,9 +2559,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -2664,9 +2719,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -2830,9 +2885,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -3004,9 +3059,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -3167,9 +3222,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -3210,11 +3265,6 @@
                     "title": "Sediment Sampling Depth",
                     "type": "string"
                 },
-                "sediment_sampling_method": {
-                    "description": "e.g., sediment core, grab sampling, dredging, etc.",
-                    "title": "Sediment Sampling Method",
-                    "type": "string"
-                },
                 "sediment_sampling_water_depth": {
                     "description": "Water depth where sediment was collected. If provided as a variable (recommended), please list the column header name here.",
                     "title": "Sediment Sampling Water Depth",
@@ -3252,7 +3302,6 @@
             },
             "required": [
                 "sediment_type",
-                "sediment_sampling_method",
                 "sediment_sampling_depth",
                 "sediment_sampling_water_depth",
                 "analyzing_instrument",
@@ -3363,9 +3412,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -3508,7 +3557,7 @@
             "description": "A specific location of dosing for an OAE intervention and/or tracer study. Can be a point, line, or bounding box",
             "properties": {
                 "dosing_location_file": {
-                    "description": "Exact path and filename for the location file (relative to root path of project), attached separately. Format should be one of GeoJSON or Shapefile.",
+                    "description": "Exact filename, URL and/or DOI to access the location file. Format should be one of GeoJSON or Shapefile.",
                     "type": "string"
                 },
                 "geo": {
@@ -3583,9 +3632,15 @@
                     "type": "string"
                 },
                 "public_comments": {
-                    "description": "File name(s) of public comment related documents. If possible, please provide public comments concatenated into a single pdf",
+                    "description": "Public comment documents, each with a link or DOI and an optional description.\nPlease group/concatenate all public comments associated with a specific consultation (e.g., for permitting, non-mandated consultations on a specific topic, or informal public input such as unsolicited comments and media attention) into a single document if possible, and link to it here.",
+                    "items": {
+                        "$ref": "#/$defs/PublicComment"
+                    },
                     "title": "Public Comments",
-                    "type": "string"
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "spatial_coverage": {
                     "$ref": "#/$defs/SpatialCoverage",
@@ -3693,6 +3748,60 @@
         },
         "FieldDataset": {
             "additionalProperties": false,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "data_accessibility": {
+                                "const": "scheduled_access"
+                            }
+                        },
+                        "required": [
+                            "data_accessibility"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "data_access_date": {}
+                        },
+                        "required": [
+                            "data_access_date"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "data_accessibility": {
+                                "const": "open_access"
+                            }
+                        },
+                        "required": [
+                            "data_accessibility"
+                        ]
+                    },
+                    "then": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "data_access_link": {}
+                                },
+                                "required": [
+                                    "data_access_link"
+                                ]
+                            },
+                            {
+                                "properties": {
+                                    "data_access_date": {}
+                                },
+                                "required": [
+                                    "data_access_date"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
             "description": "A field or observational dataset related to an OAE experiment. Contains fields specific to in-situ data collection such as platform information, calibration files, QC flags, and measured variables.",
             "properties": {
                 "author_list_for_citation": {
@@ -3711,6 +3820,12 @@
                         "null"
                     ]
                 },
+                "data_access_date": {
+                    "description": "The date by when this dataset will be openly available on a public repository if it is not currently.",
+                    "format": "date",
+                    "title": "Data Access Date",
+                    "type": "string"
+                },
                 "data_access_link": {
                     "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
                     "pattern": "^https?://.+",
@@ -3724,11 +3839,12 @@
                 },
                 "data_product_type": {
                     "$ref": "#/$defs/DataProductType",
-                    "description": "\"Controlled vocabulary\" One of the three choices: (a) Originally collected dataset (e.g., a dataset collected from a research cruise or laboratory experiment), (b) Data compilation product (e.g., SOCAT, GLODAP), or (c) Derived product (e.g., gridded products, or model output).",
+                    "description": "One of the three choices: (a) Originally collected dataset (e.g., a dataset collected from a research cruise or laboratory experiment), (b) Data compilation product (e.g., SOCAT, GLODAP), or (c) Derived product (e.g., gridded products, or model output).",
                     "title": "Data Product Type"
                 },
                 "data_submitter": {
                     "$ref": "#/$defs/Person",
+                    "description": "Information about the individual submitting the dataset(s), including contact information",
                     "title": "Data Submitter"
                 },
                 "dataset_type": {
@@ -4060,9 +4176,9 @@
                     "type": "string"
                 },
                 "qc_researcher": {
-                    "$ref": "#/$defs/Person",
                     "description": "The name of the PI whose research team QCed this parameter.",
-                    "title": "Researcher who QCed this variable"
+                    "title": "Researcher who QCed this variable",
+                    "type": "string"
                 },
                 "qc_researcher_institution": {
                     "description": "The institution of the PI whose research team QCed this parameter.",
@@ -4274,9 +4390,15 @@
                     "type": "string"
                 },
                 "public_comments": {
-                    "description": "File name(s) of public comment related documents. If possible, please provide public comments concatenated into a single pdf",
+                    "description": "Public comment documents, each with a link or DOI and an optional description.\nPlease group/concatenate all public comments associated with a specific consultation (e.g., for permitting, non-mandated consultations on a specific topic, or informal public input such as unsolicited comments and media attention) into a single document if possible, and link to it here.",
+                    "items": {
+                        "$ref": "#/$defs/PublicComment"
+                    },
                     "title": "Public Comments",
-                    "type": "string"
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "spatial_coverage": {
                     "$ref": "#/$defs/SpatialCoverage",
@@ -4380,7 +4502,7 @@
                     "type": "string"
                 },
                 "alkalinity_feedstock_description": {
-                    "description": "Information such as feedstock source, characteristics, impurities, dilution prior to dosing, and concentration. For feedstock other than NaOH: trace metal composition and particulate grain size. Any variable information must be provided in the dosing data file, in this case include the data file and column header names here provided as variables. See Intervention Data for details.",
+                    "description": "Information such as feedstock source, characteristics, impurities, dilution prior to dosing, and concentration. For feedstock other than NaOH: trace metal composition and particulate grain size. Any variable information must be provided in the dosing data file, in this case include the data file and column header names here provided as variables. See [Intervention Data](https://www.carbontosea.org/oae-data-protocol/1-0-0/#intervention-data) for details.",
                     "title": "Alkalinity Feedstock Description",
                     "type": "string"
                 },
@@ -4504,9 +4626,15 @@
                     "type": "string"
                 },
                 "public_comments": {
-                    "description": "File name(s) of public comment related documents. If possible, please provide public comments concatenated into a single pdf",
+                    "description": "Public comment documents, each with a link or DOI and an optional description.\nPlease group/concatenate all public comments associated with a specific consultation (e.g., for permitting, non-mandated consultations on a specific topic, or informal public input such as unsolicited comments and media attention) into a single document if possible, and link to it here.",
+                    "items": {
+                        "$ref": "#/$defs/PublicComment"
+                    },
                     "title": "Public Comments",
-                    "type": "string"
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "spatial_coverage": {
                     "$ref": "#/$defs/SpatialCoverage",
@@ -4643,7 +4771,7 @@
                     "type": "string"
                 },
                 "alkalinity_feedstock_description": {
-                    "description": "Information such as feedstock source, characteristics, impurities, dilution prior to dosing, and concentration. For feedstock other than NaOH: trace metal composition and particulate grain size. Any variable information must be provided in the dosing data file, in this case include the data file and column header names here provided as variables. See Intervention Data for details.",
+                    "description": "Information such as feedstock source, characteristics, impurities, dilution prior to dosing, and concentration. For feedstock other than NaOH: trace metal composition and particulate grain size. Any variable information must be provided in the dosing data file, in this case include the data file and column header names here provided as variables. See [Intervention Data](https://www.carbontosea.org/oae-data-protocol/1-0-0/#intervention-data) for details.",
                     "title": "Alkalinity Feedstock Description",
                     "type": "string"
                 },
@@ -4767,9 +4895,15 @@
                     "type": "string"
                 },
                 "public_comments": {
-                    "description": "File name(s) of public comment related documents. If possible, please provide public comments concatenated into a single pdf",
+                    "description": "Public comment documents, each with a link or DOI and an optional description.\nPlease group/concatenate all public comments associated with a specific consultation (e.g., for permitting, non-mandated consultations on a specific topic, or informal public input such as unsolicited comments and media attention) into a single document if possible, and link to it here.",
+                    "items": {
+                        "$ref": "#/$defs/PublicComment"
+                    },
                     "title": "Public Comments",
-                    "type": "string"
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "spatial_coverage": {
                     "$ref": "#/$defs/SpatialCoverage",
@@ -4899,7 +5033,6 @@
             "enum": [
                 "unit:KiloGM-PER-M3",
                 "unit:MicroGM-PER-L",
-                "unit:MicroGM-PER-L-DAY",
                 "unit:MicroGM-PER-MilliL",
                 "unit:MilliGM-PER-L",
                 "unit:MilliGM-PER-M3",
@@ -4991,9 +5124,15 @@
                     "type": "string"
                 },
                 "public_comments": {
-                    "description": "File name(s) of public comment related documents. If possible, please provide public comments concatenated into a single pdf",
+                    "description": "Public comment documents, each with a link or DOI and an optional description.\nPlease group/concatenate all public comments associated with a specific consultation (e.g., for permitting, non-mandated consultations on a specific topic, or informal public input such as unsolicited comments and media attention) into a single document if possible, and link to it here.",
+                    "items": {
+                        "$ref": "#/$defs/PublicComment"
+                    },
                     "title": "Public Comments",
-                    "type": "string"
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "spatial_coverage": {
                     "$ref": "#/$defs/SpatialCoverage",
@@ -5285,19 +5424,89 @@
         },
         "ModelOutputDataset": {
             "additionalProperties": false,
-            "description": "A model simulation output dataset. Contains fields specific to computational model output including simulation configuration, output variables, and hardware information.",
-            "if": {
-                "properties": {
-                    "simulation_type": {}
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "simulation_type": {}
+                        },
+                        "required": [
+                            "simulation_type"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "mcdr_forcing_description": {}
+                        },
+                        "required": [
+                            "mcdr_forcing_description"
+                        ]
+                    }
                 },
-                "required": [
-                    "simulation_type"
-                ]
-            },
+                {
+                    "if": {
+                        "properties": {
+                            "data_accessibility": {
+                                "const": "scheduled_access"
+                            }
+                        },
+                        "required": [
+                            "data_accessibility"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "data_access_date": {}
+                        },
+                        "required": [
+                            "data_access_date"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "data_accessibility": {
+                                "const": "open_access"
+                            }
+                        },
+                        "required": [
+                            "data_accessibility"
+                        ]
+                    },
+                    "then": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "data_access_link": {}
+                                },
+                                "required": [
+                                    "data_access_link"
+                                ]
+                            },
+                            {
+                                "properties": {
+                                    "data_access_date": {}
+                                },
+                                "required": [
+                                    "data_access_date"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
+            "description": "A model simulation output dataset. Contains fields specific to computational model output including simulation configuration, output variables, and hardware information.",
             "properties": {
                 "author_list_for_citation": {
                     "description": "Author list in the format of Lastname1, Firstname1 Middlename1; Lastname2, Firstname2 Middlename2; ...",
                     "title": "Author List (for citation)",
+                    "type": "string"
+                },
+                "data_access_date": {
+                    "description": "The date by when this dataset will be openly available on a public repository if it is not currently.",
+                    "format": "date",
+                    "title": "Data Access Date",
                     "type": "string"
                 },
                 "data_access_link": {
@@ -5313,6 +5522,7 @@
                 },
                 "data_submitter": {
                     "$ref": "#/$defs/Person",
+                    "description": "Information about the individual submitting the dataset(s), including contact information",
                     "title": "Data Submitter"
                 },
                 "dataset_type": {
@@ -5424,14 +5634,6 @@
                 "data_submitter",
                 "data_accessibility"
             ],
-            "then": {
-                "properties": {
-                    "mcdr_forcing_description": {}
-                },
-                "required": [
-                    "mcdr_forcing_description"
-                ]
-            },
             "title": "ModelOutputDataset",
             "type": "object"
         },
@@ -5772,7 +5974,7 @@
                     "type": "string"
                 },
                 "approval_document": {
-                    "description": "Filename(s) of permitting documents included, separated by commas",
+                    "description": "Filename(s), links and/or DOIs to access files of permitting documents, separated by commas",
                     "title": "Permit Document",
                     "type": "string"
                 },
@@ -5905,7 +6107,7 @@
                 },
                 "platform_type": {
                     "$ref": "#/$defs/PlatformType",
-                    "description": "Controlled vocabularies for the types of the platform: https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/vocabularies/platform-types.html",
+                    "description": "For Platform Type definitions, see: https://vocab.nerc.ac.uk/collection/L06/current/",
                     "title": "Platform Type"
                 }
             },
@@ -5922,6 +6124,7 @@
                 "http://vocab.nerc.ac.uk/collection/L06/current/6D/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/3C/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/36/",
+                "http://vocab.nerc.ac.uk/collection/L06/current/38/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/18/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/30/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/61/",
@@ -5930,13 +6133,16 @@
                 "http://vocab.nerc.ac.uk/collection/L06/current/3A/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/41/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/72/",
+                "http://vocab.nerc.ac.uk/collection/L06/current/37/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/43/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/15/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/13/",
+                "http://vocab.nerc.ac.uk/collection/L06/current/22/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/6A/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/44/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/68/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/33/",
+                "http://vocab.nerc.ac.uk/collection/L06/current/34/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/19/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/11/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/12/",
@@ -5946,6 +6152,7 @@
                 "http://vocab.nerc.ac.uk/collection/L06/current/45/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/42/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/47/",
+                "http://vocab.nerc.ac.uk/collection/L06/current/10/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/14/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/71/",
                 "http://vocab.nerc.ac.uk/collection/L06/current/46/",
@@ -6138,6 +6345,44 @@
             "description": "",
             "title": "PropertyValue",
             "type": "object"
+        },
+        "PublicComment": {
+            "additionalProperties": false,
+            "description": "A public comment document associated with a consultation for this experiment.",
+            "properties": {
+                "comment_type": {
+                    "$ref": "#/$defs/PublicCommentType",
+                    "description": "The kind of consultation these comments came from.",
+                    "title": "Public Comment Type"
+                },
+                "description": {
+                    "description": "A narrative description of what this public comment contains.",
+                    "title": "Description",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "Link or DOI to access the public comment document.",
+                    "title": "URL",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "url",
+                "comment_type"
+            ],
+            "title": "PublicComment",
+            "type": "object"
+        },
+        "PublicCommentType": {
+            "description": "",
+            "enum": [
+                "permitting",
+                "non_mandated_consultation",
+                "informal_public_input",
+                "other"
+            ],
+            "title": "PublicCommentType",
+            "type": "string"
         },
         "QuantitativeQualitative": {
             "description": "Whether the socioeconomic data is quantitative or qualitative.",
@@ -6695,9 +6940,15 @@
                     "type": "string"
                 },
                 "public_comments": {
-                    "description": "File name(s) of public comment related documents. If possible, please provide public comments concatenated into a single pdf",
+                    "description": "Public comment documents, each with a link or DOI and an optional description.\nPlease group/concatenate all public comments associated with a specific consultation (e.g., for permitting, non-mandated consultations on a specific topic, or informal public input such as unsolicited comments and media attention) into a single document if possible, and link to it here.",
+                    "items": {
+                        "$ref": "#/$defs/PublicComment"
+                    },
                     "title": "Public Comments",
-                    "type": "string"
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "spatial_coverage": {
                     "$ref": "#/$defs/SpatialCoverage",
@@ -6851,7 +7102,7 @@
     },
     "$id": "https://schema.oaedata.org/OAEDataSchema",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "additionalProperties": true,
+    "additionalProperties": false,
     "description": "",
     "metamodel_version": "1.7.0",
     "properties": {
@@ -6891,5 +7142,5 @@
     },
     "title": "OAE Data Protocol - Technical Documentation",
     "type": "object",
-    "version": "0.2.0"
+    "version": "0.4.0"
 }

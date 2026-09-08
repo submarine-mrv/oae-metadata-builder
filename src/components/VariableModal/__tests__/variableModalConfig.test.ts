@@ -511,9 +511,12 @@ describe("ModelOutputVariable", () => {
       }))
       .filter((section) => section.fields.length > 0);
 
-  it("renders only Basic Information, with name, units and column name", () => {
+  it("renders only Basic Information, with standard name, name, units and column name", () => {
     expect(visibleSections("ModelOutputVariable", modelSchema)).toEqual([
-      { key: "basic", fields: ["long_name", "units", "dataset_variable_name"] },
+      {
+        key: "basic",
+        fields: ["standard_identifier", "long_name", "units", "dataset_variable_name"],
+      },
     ]);
   });
 

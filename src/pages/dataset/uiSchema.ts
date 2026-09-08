@@ -21,6 +21,7 @@ const datasetUiSchema = {
     "name",
     "data_accessibility",
     "data_access_link",
+    "data_access_date",
     "experiment_id",
     "description",
     "temporal_coverage",
@@ -46,10 +47,18 @@ const datasetUiSchema = {
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true,
+    "ui:valueNotice": {
+      open_access: "Open access datasets need either a data access link or a data access date.",
+    },
   },
   data_access_link: {
     ...halfWidthStyle,
     "ui:placeholder": "https://doi.org/10.25921/...",
+  },
+  data_access_date: {
+    ...halfWidthStyle,
+    "ui:placeholder": "YYYY-MM-DD",
+    "ui:descriptionModal": true,
   },
   description: textAreaWidget,
   // Project ID - hidden, auto-inferred from parent project
@@ -74,6 +83,8 @@ const datasetUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DatasetType,
+    // Description carries a markdown link, which a tooltip would show literally
+    "ui:descriptionModal": true,
   },
   // Hide dataset_type_custom - should render conditionally later
   dataset_type_custom: {
@@ -96,9 +107,14 @@ const datasetUiSchema = {
     },
     platform_type: {
       "ui:widget": "CustomSelectWidget",
+      "ui:viewAllLink": "http://vocab.nerc.ac.uk/collection/L06/current/",
+      // Description carries vocabulary URLs a hover tooltip won't let users copy
+      "ui:descriptionModal": true,
     },
     platform_id: {
       "ui:placeholder": "Unique identifier for the platform",
+      // Description carries vocabulary URLs a hover tooltip won't let users copy
+      "ui:descriptionModal": true,
     },
     owner: {
       "ui:placeholder": "Institution that owns the platform",

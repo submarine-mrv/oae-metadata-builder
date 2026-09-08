@@ -54,3 +54,6 @@ playwright-report/
 .roborev.toml
 
 .vscode
+
+# CF vocabulary raw fetches (joined artifacts live in src/data/cf/)
+/schemas/cf

@@ -1,5 +1,5 @@
-import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { ActionIcon, Anchor, Group, type MantineSpacing, Text, Tooltip } from "@mantine/core";
+import { IconExternalLink, IconInfoCircle } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
 import DescriptionModal from "./DescriptionModal";
@@ -11,6 +11,23 @@ interface FieldLabelProps {
   useModal?: boolean;
   order?: 4 | 5 | 6; // Title order
   fw?: number; // Font weight
+  /** Bottom margin. Set to 0 when the caller supplies its own label-row spacing. */
+  mb?: MantineSpacing;
+  /**
+   * Line height. A native Mantine input label uses the "md" line height
+   * (1.55) even at the "sm" font size; widgets that render a bare input pass
+   * "md" so this label is the same height and the control stays level with a
+   * text input beside it.
+   */
+  lh?: "sm" | "md";
+  /**
+   * Id for the label text, so a control rendered beside it can point at it
+   * with `aria-labelledby`. Custom widgets draw this label instead of Mantine's
+   * `label` prop, which would otherwise leave the input unnamed.
+   */
+  labelId?: string;
+  /** URL for a "view all" link beside the label, from `ui:viewAllLink`. */
+  viewAllLink?: string;
 }
 
 /**
@@ -24,13 +41,23 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
   useModal = false,
   order = 5,
   fw = 500,
+  mb = "xs",
+  lh,
+  labelId,
+  viewAllLink,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
 
-  // If no description, just render the label
-  if (!description) {
+  const titleNode = (
+    <Text size="sm" fw={fw} lh={lh} id={labelId}>
+      {label} {required && <span style={{ color: "red" }}>*</span>}
+    </Text>
+  );
+
+  // Nothing to hang off the label — render it on its own
+  if (!description && !viewAllLink) {
     return (
-      <Text size="sm" fw={fw} mb="xs">
+      <Text size="sm" fw={fw} lh={lh} id={labelId} mb={mb}>
         {label} {required && <span style={{ color: "red" }}>*</span>}
       </Text>
     );
@@ -38,36 +65,48 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
 
   return (
     <>
-      <Group gap={4} mb="xs">
-        <Text size="sm" fw={fw}>
-          {label} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-        {useModal ? (
-          <ActionIcon
-            variant="transparent"
-            size="xs"
-            color="gray"
-            onClick={() => setModalOpen(true)}
-            style={{ cursor: "pointer" }}
-          >
-            <IconInfoCircle size={14} />
-          </ActionIcon>
-        ) : (
-          <Tooltip
-            label={description}
-            position="top"
-            withArrow
-            multiline
-            maw={400}
-            style={{ wordWrap: "break-word" }}
-          >
-            <ActionIcon variant="transparent" size="xs" color="gray">
+      <Group gap={4} mb={mb} align="center">
+        {titleNode}
+        {description &&
+          (useModal ? (
+            <ActionIcon
+              variant="transparent"
+              size="xs"
+              color="gray"
+              onClick={() => setModalOpen(true)}
+              style={{ cursor: "pointer" }}
+            >
               <IconInfoCircle size={14} />
             </ActionIcon>
-          </Tooltip>
+          ) : (
+            <Tooltip
+              label={description}
+              position="top"
+              withArrow
+              multiline
+              maw={400}
+              style={{ wordWrap: "break-word" }}
+            >
+              <ActionIcon variant="transparent" size="xs" color="gray">
+                <IconInfoCircle size={14} />
+              </ActionIcon>
+            </Tooltip>
+          ))}
+        {viewAllLink && (
+          <Anchor
+            href={viewAllLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="sm"
+            ml="xs"
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}
+          >
+            view all
+            <IconExternalLink size={12} />
+          </Anchor>
         )}
       </Group>
-      {useModal && (
+      {useModal && description && (
         <DescriptionModal
           opened={modalOpen}
           onClose={() => setModalOpen(false)}
@@ -80,62 +119,11 @@ const FieldLabel: React.FC<FieldLabelProps> = ({
 };
 
 /**
- * Smaller version for inline field labels (not titles)
+ * Smaller version for inline field labels (not titles).
+ * Matches FieldLabel apart from the tighter bottom margin.
  */
-export const FieldLabelSmall: React.FC<Omit<FieldLabelProps, "order" | "fw">> = (props) => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const { label, description, required = false, useModal = false } = props;
-
-  // If no description, just render the label
-  if (!description) {
-    return (
-      <Text size="sm" fw={500}>
-        {label} {required && <span style={{ color: "red" }}>*</span>}
-      </Text>
-    );
-  }
-
-  return (
-    <>
-      <Group gap={4} mb={4}>
-        <Text size="sm" fw={500}>
-          {label} {required && <span style={{ color: "red" }}>*</span>}
-        </Text>
-        {useModal ? (
-          <ActionIcon
-            variant="transparent"
-            size="xs"
-            color="gray"
-            onClick={() => setModalOpen(true)}
-            style={{ cursor: "pointer" }}
-          >
-            <IconInfoCircle size={14} />
-          </ActionIcon>
-        ) : (
-          <Tooltip
-            label={description}
-            position="top"
-            withArrow
-            multiline
-            maw={400}
-            style={{ wordWrap: "break-word" }}
-          >
-            <ActionIcon variant="transparent" size="xs" color="gray">
-              <IconInfoCircle size={14} />
-            </ActionIcon>
-          </Tooltip>
-        )}
-      </Group>
-      {useModal && (
-        <DescriptionModal
-          opened={modalOpen}
-          onClose={() => setModalOpen(false)}
-          title={label}
-          description={description}
-        />
-      )}
-    </>
-  );
-};
+export const FieldLabelSmall: React.FC<Omit<FieldLabelProps, "order" | "fw">> = (props) => (
+  <FieldLabel {...props} mb={props.description ? 4 : 0} />
+);
 
 export default FieldLabel;

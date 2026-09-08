@@ -7,6 +7,11 @@
  * Add entries here for enum values that shouldn't follow the default snake_case to Title Case conversion
  */
 const ENUM_OVERRIDES: Record<string, string> = {
+  // PublicCommentType — LinkML drops permissible-value titles from the JSON
+  // Schema, so the protocol's sentence casing has to be restored here.
+  non_mandated_consultation: "Non-mandated consultation",
+  informal_public_input: "Informal public input",
+
   // Instrument type
   //     - CTD, DIC, CO2, TA, pH, Sea-Bird SeaFET
   // SamplingInstrumentType

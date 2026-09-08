@@ -2,6 +2,7 @@ import { Combobox, Group, Pill, PillsInput, Text, useCombobox } from "@mantine/c
 import type { WidgetProps } from "@rjsf/utils";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import React from "react";
+import FieldLabel from "./FieldLabel";
 
 type EnumOption = { value: string; label: string };
 const norm = (s: string) => (s || "").toLowerCase();
@@ -26,6 +27,8 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
   value,
   onChange,
   options = {},
+  schema,
+  uiSchema,
 }) => {
   const enumOptions: EnumOption[] =
     (options as any).enumOptions ??
@@ -84,14 +87,13 @@ const MultiSelectPillWidget: React.FC<WidgetProps> = ({
   return (
     <div id={id} style={{ maxWidth }}>
       {label && (
-        <Text size="sm" fw={500} mb="xs">
-          {label}{" "}
-          {required && (
-            <Text component="span" c="red">
-              *
-            </Text>
-          )}
-        </Text>
+        <FieldLabel
+          label={label}
+          description={schema?.description}
+          required={required}
+          useModal={uiSchema?.["ui:descriptionModal"] === true}
+          viewAllLink={uiSchema?.["ui:viewAllLink"] as string | undefined}
+        />
       )}
 
       <Combobox

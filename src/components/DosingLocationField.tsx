@@ -3,11 +3,31 @@ import type { FieldProps } from "@rjsf/utils";
 import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseBoundsString } from "@/utils/mapLayerUtils";
-import { adjustEastForAntimeridian } from "@/utils/spatialUtils";
+import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
+import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
+import {
+  addBoundingBox,
+  addLine,
+  fitBoundsWithAntimeridian,
+  hideLabelLayers,
+  lineBounds,
+  MARKER_COLOR,
+  parseBoundsString,
+  removeBoundingBox,
+  removeLine,
+} from "@/utils/mapLayerUtils";
+import { exposeMapForTests } from "@/utils/mapTestHooks";
 import DosingLocationMapModal from "./DosingLocationMapModal";
 
 type DosingMode = "point" | "line" | "box";
+
+// Layer namespaces shared with the modal, so both draw the same features.
+const BBOX_OPTS = { sourceId: "dosing-bbox" } as const;
+const LINE_OPTS = { sourceId: "dosing-line" } as const;
+
+// The modal rebuilds its map whenever geoData changes identity, so an empty
+// value has to be the same object on every render.
+const EMPTY_GEO = {} as const;
 
 // Infer mode from formData
 function inferMode(formData: any): DosingMode | null {
@@ -55,6 +75,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
   const [selectedMode, setSelectedMode] = useState<DosingMode | null>(inferMode(formData));
   const [showMapModal, setShowMapModal] = useState(false);
   const [miniMapLoaded, setMiniMapLoaded] = useState(false);
+  const { isLoaded: mapLibreLoaded } = useMapLibreLoader();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -131,21 +152,23 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
 
   // Initialize mini map preview
   const initializeMiniMap = useCallback(() => {
-    if (!mapRef.current || miniMapLoaded) return;
+    if (!mapRef.current || !window.maplibregl || miniMapLoaded) return;
 
     try {
       const map = new window.maplibregl.Map({
         container: mapRef.current,
-        style: "https://tiles.openfreemap.org/styles/positron",
-        center: [-123.0, 47.5],
-        zoom: 2,
+        style: MAP_TILE_STYLE,
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MINI_MAP_ZOOM,
         interactive: false,
         attributionControl: false,
       });
 
       mapInstanceRef.current = map;
+      exposeMapForTests("dosing-location-preview", mapRef.current, map);
 
       map.on("load", () => {
+        hideLabelLayers(map);
         setMiniMapLoaded(true);
       });
     } catch (error) {
@@ -153,41 +176,16 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
     }
   }, [miniMapLoaded]);
 
+  // Initialize the preview once MapLibre is loaded
   useEffect(() => {
-    // Always load the map preview
-    if (typeof window === "undefined" || miniMapLoaded) return;
+    if (!mapLibreLoaded || miniMapLoaded) return;
 
-    const loadAndInitialize = async () => {
-      // Load MapLibre if not already loaded
-      if (!window.maplibregl) {
-        // Load CSS
-        if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
-          const link = document.createElement("link");
-          link.rel = "stylesheet";
-          link.href = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.css";
-          document.head.appendChild(link);
-        }
-
-        // Load JS
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/maplibre-gl@4.5.2/dist/maplibre-gl.js";
-
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
+    requestAnimationFrame(() => {
+      if (mapRef.current && !mapInstanceRef.current) {
+        initializeMiniMap();
       }
-
-      // Wait for next tick to ensure DOM is ready
-      requestAnimationFrame(() => {
-        if (mapRef.current && !miniMapLoaded) {
-          initializeMiniMap();
-        }
-      });
-    };
-
-    loadAndInitialize();
-  }, [initializeMiniMap, miniMapLoaded]);
+    });
+  }, [mapLibreLoaded, miniMapLoaded, initializeMiniMap]);
 
   // Update mini map visualization when formData changes
   useEffect(() => {
@@ -199,22 +197,15 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
       markerRef.current.remove();
       markerRef.current = null;
     }
-    if (map.getSource("dosing-line")) {
-      if (map.getLayer("dosing-line")) map.removeLayer("dosing-line");
-      map.removeSource("dosing-line");
-    }
-    if (map.getSource("dosing-bbox")) {
-      if (map.getLayer("dosing-bbox-fill")) map.removeLayer("dosing-bbox-fill");
-      if (map.getLayer("dosing-bbox-outline")) map.removeLayer("dosing-bbox-outline");
-      map.removeSource("dosing-bbox");
-    }
+    removeLine(map, LINE_OPTS);
+    removeBoundingBox(map, BBOX_OPTS);
 
     // Add visualization based on mode
     if (selectedMode === "point") {
       const lat = formData?.geo?.latitude;
       const lon = formData?.geo?.longitude;
       if (lat !== undefined && lon !== undefined) {
-        const marker = new window.maplibregl.Marker({ color: "#228be6" })
+        const marker = new window.maplibregl.Marker({ color: MARKER_COLOR })
           .setLngLat([lon, lat])
           .addTo(map);
         markerRef.current = marker;
@@ -226,27 +217,10 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         const parts = line.trim().split(/\s+/).map(Number);
         if (parts.length === 4) {
           const [lat1, lon1, lat2, lon2] = parts;
-          map.addSource("dosing-line", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: [
-                  [lon1, lat1],
-                  [lon2, lat2],
-                ],
-              },
-            },
-          });
-          map.addLayer({
-            id: "dosing-line",
-            type: "line",
-            source: "dosing-line",
-            paint: { "line-color": "#228be6", "line-width": 3 },
-          });
-          const bounds = new window.maplibregl.LngLatBounds([lon1, lat1], [lon2, lat2]);
-          map.fitBounds(bounds, { padding: 20, duration: 0 });
+          // Same helpers as the modal, so a line across the antimeridian is
+          // drawn and framed the short way here too.
+          addLine(map, lat1, lon1, lat2, lon2, LINE_OPTS);
+          map.fitBounds(lineBounds(lat1, lon1, lat2, lon2), { padding: 20, duration: 0 });
         }
       }
     } else if (selectedMode === "box") {
@@ -255,44 +229,8 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         const bounds = parseBoundsString(box);
         if (bounds) {
           const { west, south, east, north } = bounds;
-          const renderEast = adjustEastForAntimeridian(west, east);
-          map.addSource("dosing-bbox", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [west, north],
-                    [renderEast, north],
-                    [renderEast, south],
-                    [west, south],
-                    [west, north],
-                  ],
-                ],
-              },
-            },
-          });
-          map.addLayer({
-            id: "dosing-bbox-fill",
-            type: "fill",
-            source: "dosing-bbox",
-            paint: { "fill-color": "#ff7800", "fill-opacity": 0.1 },
-          });
-          map.addLayer({
-            id: "dosing-bbox-outline",
-            type: "line",
-            source: "dosing-bbox",
-            paint: { "line-color": "#ff7800", "line-width": 2 },
-          });
-          map.fitBounds(
-            [
-              [west, south],
-              [renderEast, north],
-            ],
-            { padding: 20, duration: 0 },
-          );
+          addBoundingBox(map, west, south, east, north, BBOX_OPTS);
+          fitBoundsWithAntimeridian(map, west, south, east, north, { padding: 20, duration: 0 });
         }
       }
     }
@@ -367,6 +305,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         {!disabled && !readonly && (
           <Tooltip label="Edit location">
             <ActionIcon
+              aria-label="Edit location"
               variant="filled"
               size="md"
               style={{
@@ -398,7 +337,7 @@ const DosingLocationField: React.FC<FieldProps> = (props) => {
         <DosingLocationMapModal
           isOpen={showMapModal}
           onClose={() => setShowMapModal(false)}
-          geoData={formData?.geo || {}}
+          geoData={formData?.geo ?? EMPTY_GEO}
           fileLocation={formData?.dosing_location_file || ""}
           mode={selectedMode}
           onChange={handleMapDataChange}

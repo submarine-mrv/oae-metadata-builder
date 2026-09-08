@@ -21,6 +21,7 @@ const modelOutputUiSchema = {
     "name",
     "data_accessibility",
     "data_access_link",
+    "data_access_date",
     "experiment_id",
     "description",
     "dataset_type",
@@ -47,10 +48,18 @@ const modelOutputUiSchema = {
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true,
+    "ui:valueNotice": {
+      open_access: "Open access datasets need either a data access link or a data access date.",
+    },
   },
   data_access_link: {
     ...halfWidthStyle,
     "ui:placeholder": "https://doi.org/10.25921/...",
+  },
+  data_access_date: {
+    ...halfWidthStyle,
+    "ui:placeholder": "YYYY-MM-DD",
+    "ui:descriptionModal": true,
   },
   description: textAreaWidget,
   project_id: {
@@ -66,6 +75,8 @@ const modelOutputUiSchema = {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DatasetType,
+    // Description carries a markdown link, which a tooltip would show literally
+    "ui:descriptionModal": true,
   },
   dataset_type_custom: {
     "ui:widget": "hidden",

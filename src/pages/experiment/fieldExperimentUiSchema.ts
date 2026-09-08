@@ -20,6 +20,7 @@ const enumNames = generateEnumNames(schema, [
   "TracerForm",
   "HydrologicLocation",
   "DosingDeliveryType",
+  "PublicCommentType",
 ]);
 
 const fieldExperimentUiSchema = {
@@ -168,7 +169,28 @@ const fieldExperimentUiSchema = {
     },
   },
   public_comments: {
-    "ui:placeholder": "Filename(s) of public comments provided, separated by a comma",
+    "ui:options": {
+      addable: true,
+      orderable: false,
+      addItemText: "Add Public Comment",
+    },
+    items: {
+      "ui:style": nestedItemStyle,
+      "ui:options": {
+        gridCols: 2,
+      },
+      "ui:title": "",
+      "ui:order": ["url", "comment_type", "description"],
+      url: {
+        "ui:placeholder": "URL or DOI (e.g. https://...)",
+      },
+      // Narrative text wants the whole row, not the left half of the grid.
+      description: { ...textAreaWidget, "ui:descriptionModal": false, "ui:span": 12 },
+      comment_type: {
+        "ui:widget": "CustomSelectWidget",
+        "ui:enumNames": enumNames.PublicCommentType,
+      },
+    },
   },
   permits: {
     "ui:title": "Permits (if applicable)",
@@ -304,6 +326,7 @@ const fieldExperimentUiSchema = {
   dosing_delivery_type: {
     ...halfWidthStyle,
     "ui:widget": "CustomSelectWidget",
+    "ui:viewAllLink": "https://www.carbontosea.org/oae-data-protocol/1-0-0/#dosing-delivery-type",
     "ui:options": {
       enumNames: enumNames.DosingDeliveryType,
     },

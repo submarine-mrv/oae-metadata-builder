@@ -4,13 +4,16 @@ import { IconEdit, IconMap } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_MAP_CENTER, DEFAULT_MINI_MAP_ZOOM, MAP_TILE_STYLE } from "@/config/maps";
+import { MESSAGES } from "@/constants/messages";
 import { useMapLibreLoader } from "@/hooks/useMapLibreLoader";
 import {
   addBoundingBox,
   fitBoundsWithAntimeridian,
+  hideLabelLayers,
   parseBoundsString,
   removeBoundingBox,
 } from "@/utils/mapLayerUtils";
+import { exposeMapForTests } from "@/utils/mapTestHooks";
 import { validateSpatialBounds } from "@/utils/spatialUtils";
 import SpatialCoverageMapModal from "./SpatialCoverageMapModal";
 
@@ -37,6 +40,15 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
 
   // Check if there are RJSF validation errors
   const hasValidationErrors = rawErrors && rawErrors.length > 0;
+  // Show what actually failed. A required box and a malformed one are different
+  // problems, and a hard-coded "is required" mislabeled the second.
+  // transformFormErrors normalizes every required error to a generic string, so
+  // name the field again here where there is no label context in the sentence.
+  const errorMessage = hasValidationErrors
+    ? [...new Set(rawErrors)]
+        .map((m) => (m === "Field is required" ? MESSAGES.validation.spatialCoverage : m))
+        .join(". ")
+    : MESSAGES.validation.spatialCoverage;
   const [showMapModal, setShowMapModal] = useState(false);
   const [miniMapLoaded, setMiniMapLoaded] = useState(false);
 
@@ -74,8 +86,10 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
     });
 
     mapInstanceRef.current = map;
+    exposeMapForTests("spatial-coverage-preview", mapRef.current, map);
 
     map.on("load", () => {
+      hideLabelLayers(map);
       setMiniMapLoaded(true);
 
       // Add bounding box if we have coordinates
@@ -198,6 +212,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
           {!disabled && !readonly && (
             <Tooltip label="Edit location">
               <ActionIcon
+                aria-label="Edit location"
                 variant="filled"
                 size="md"
                 style={{
@@ -219,7 +234,7 @@ const SpatialCoverageField: React.FC<FieldProps> = (props) => {
         {/* Display validation errors or placeholder text */}
         {hasValidationErrors ? (
           <Text size="sm" c="red" mt={4}>
-            Spatial Coverage is required. Click the map to set bounding box
+            {errorMessage}. Click the map to set bounding box
           </Text>
         ) : (
           <Text size="xs" c="dimmed" mt={4} style={{ fontFamily: "monospace" }}>

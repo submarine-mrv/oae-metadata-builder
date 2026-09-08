@@ -1,21 +1,15 @@
-import { Page, Locator, expect } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { BasePage } from "./base-page";
 
 /**
  * Page object for the Project form page.
  */
 export class ProjectPage extends BasePage {
-  readonly spatialCoverageField: Locator;
   readonly spatialCoverageEditButton: Locator;
-  readonly spatialCoverageCoordinateDisplay: Locator;
 
   constructor(page: Page) {
     super(page);
-
-    // Spatial coverage field - the map preview area
-    this.spatialCoverageField = page.locator("text=Spatial coverage").locator("..").locator("..").locator("[style*='height: 300px']");
-    this.spatialCoverageEditButton = page.locator("[aria-label='Edit location']").first();
-    this.spatialCoverageCoordinateDisplay = page.locator("text=Spatial coverage").locator("..").locator("..").locator("text=/^-?\\d+\\.\\d+/");
+    this.spatialCoverageEditButton = page.getByRole("button", { name: "Edit location" });
   }
 
   /**
@@ -29,9 +23,7 @@ export class ProjectPage extends BasePage {
    * Click on the spatial coverage field to open the map modal
    */
   async openSpatialCoverageModal() {
-    // Find the map container by its content
-    const mapField = this.page.locator("text=Click to set spatial coverage").first();
-    await mapField.click();
+    await this.page.getByText("Click to set spatial coverage").click();
   }
 
   /**
@@ -39,7 +31,9 @@ export class ProjectPage extends BasePage {
    */
   async hasSpatialCoverageValue(): Promise<boolean> {
     // Look for coordinate text (SOSO format: "minLat minLon maxLat maxLon" like "36.8 -124.5 38.2 -121.9")
-    const coordText = this.page.locator("text=/^-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?$/");
+    const coordText = this.page.locator(
+      "text=/^-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?\\s+-?\\d+(\\.\\d+)?$/",
+    );
     return await coordText.isVisible();
   }
 

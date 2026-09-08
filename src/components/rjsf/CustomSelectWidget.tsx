@@ -1,5 +1,4 @@
-import { Anchor, Group, MultiSelect, Select, Text } from "@mantine/core";
-import { cleanupOptions } from "@rjsf/mantine/lib/utils.js";
+import { Alert, MultiSelect, Select } from "@mantine/core";
 import {
   ariaDescribedByIds,
   enumOptionsIndexForValue,
@@ -10,16 +9,9 @@ import {
   type StrictRJSFSchema,
   type WidgetProps,
 } from "@rjsf/utils";
-import { IconExternalLink } from "@tabler/icons-react";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { type FocusEvent, useCallback, useMemo } from "react";
-
-// Configuration for view all links by field title
-const VIEW_ALL_LINKS: Record<string, string> = {
-  "Sea Names": "http://vocab.nerc.ac.uk/collection/C16/current/",
-  "MCDR Pathway": "https://www.carbontosea.org/oae-data-protocol/1-0-0/#mcdr-pathways",
-  "Dosing Delivery Type":
-    "https://www.carbontosea.org/oae-data-protocol/1-0-0/#dosing-delivery-type",
-};
+import FieldLabel from "./FieldLabel";
 
 export default function CustomSelectWidget<
   T = any,
@@ -42,15 +34,20 @@ export default function CustomSelectWidget<
     onChange,
     onBlur,
     onFocus,
+    schema,
+    uiSchema,
   } = props;
 
   const { enumOptions, enumDisabled, emptyValue } = options;
-  const themeProps = cleanupOptions(options);
-  // Remove descriptionModal from themeProps as it's a custom UI option, not a Mantine prop
-  const { descriptionModal, ...mantineProps } = themeProps as typeof themeProps & {
-    descriptionModal?: boolean;
-  };
-  const viewAllLink = VIEW_ALL_LINKS[label || ""];
+  const description = schema?.description;
+  const useModal = uiSchema?.["ui:descriptionModal"] === true;
+  const viewAllLink = uiSchema?.["ui:viewAllLink"] as string | undefined;
+  // `ui:valueNotice` maps an enum value to a note shown beneath the select
+  // while that value is chosen. For rules a single field cannot express, such
+  // as "open access needs a link or a date", stated up front instead of as an
+  // error after the fact.
+  const valueNotice = uiSchema?.["ui:valueNotice"] as Record<string, string> | undefined;
+  const notice = !multiple && typeof value === "string" ? valueNotice?.[value] : undefined;
 
   const handleChange = useCallback(
     (nextValue: any) => {
@@ -98,22 +95,18 @@ export default function CustomSelectWidget<
   return (
     <div>
       {labelText && (
-        <Group gap="sm" align="center" mb="xs">
-          <Text size="sm" fw={500}>
-            {labelText} {required && <span style={{ color: "red" }}>*</span>}
-          </Text>
-          {viewAllLink && (
-            <Anchor
-              href={viewAllLink}
-              target="_blank"
-              size="sm"
-              style={{ display: "flex", alignItems: "center", gap: "4px" }}
-            >
-              view all
-              <IconExternalLink size={12} />
-            </Anchor>
-          )}
-        </Group>
+        <FieldLabel
+          label={String(labelText)}
+          description={description}
+          required={required}
+          useModal={useModal}
+          // Match a native Mantine input label: md line height plus its 3px
+          // bottom margin, so this control lines up with text inputs beside it.
+          mb={3}
+          lh="md"
+          labelId={`${id}-label`}
+          viewAllLink={viewAllLink}
+        />
       )}
 
       <Component
@@ -134,10 +127,15 @@ export default function CustomSelectWidget<
         error={rawErrors && rawErrors.length > 0 ? rawErrors.join("\n") : undefined}
         searchable
         clearable={!multiple}
-        {...mantineProps}
+        aria-labelledby={labelText ? `${id}-label` : undefined}
         aria-describedby={ariaDescribedByIds(id)}
         comboboxProps={{ withinPortal: false }}
       />
+      {notice && (
+        <Alert variant="light" color="blue" icon={<IconInfoCircle size={16} />} mt="xs" p="xs">
+          {notice}
+        </Alert>
+      )}
     </div>
   );
 }
