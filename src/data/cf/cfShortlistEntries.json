@@ -1,0 +1,82 @@
+[
+  {
+    "name": "fugacity_of_carbon_dioxide_in_sea_water",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/S5KQHZRB/",
+    "units": "Pa"
+  },
+  {
+    "name": "mole_concentration_of_dissolved_inorganic_carbon_in_sea_water",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CF14N27/",
+    "units": "mol m-3"
+  },
+  {
+    "name": "mole_fraction_of_carbon_dioxide_in_air",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CFV7N47/",
+    "units": "1"
+  },
+  {
+    "name": "mole_fraction_of_carbon_dioxide_in_dry_air",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/GAXBFKR9/",
+    "units": "1"
+  },
+  {
+    "name": "moles_of_dissolved_inorganic_carbon_per_unit_mass_in_sea_water",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/EM1D7XWJ/",
+    "units": "mol kg-1"
+  },
+  {
+    "name": "partial_pressure_of_carbon_dioxide_in_sea_water",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/JG8UUOE9/",
+    "units": "Pa"
+  },
+  {
+    "name": "sea_water_absolute_salinity",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/JIBGDIEJ/",
+    "units": "g kg-1"
+  },
+  {
+    "name": "sea_water_alkalinity_expressed_as_mole_equivalent",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CF14N55/",
+    "units": "mol m-3"
+  },
+  {
+    "name": "sea_water_alkalinity_per_unit_mass_expressed_as_mole_equivalent",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/TZPEWAT3/",
+    "units": "mol kg-1"
+  },
+  {
+    "name": "sea_water_ph_reported_on_total_scale",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CF14N56/",
+    "units": "1"
+  },
+  {
+    "name": "sea_water_potential_temperature",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CFSN0329/",
+    "units": "K"
+  },
+  {
+    "name": "sea_water_practical_salinity",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/IADIHDIJ/",
+    "units": "1"
+  },
+  {
+    "name": "sea_water_salinity",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CFSN0331/",
+    "units": "1e-3"
+  },
+  {
+    "name": "sea_water_temperature",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CFSN0335/",
+    "units": "K"
+  },
+  {
+    "name": "surface_downward_mole_flux_of_carbon_dioxide",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CFV15A21/",
+    "units": "mol m-2 s-1"
+  },
+  {
+    "name": "surface_partial_pressure_of_carbon_dioxide_in_sea_water",
+    "uri": "http://vocab.nerc.ac.uk/collection/P07/current/CFSN0244/",
+    "units": "Pa"
+  }
+]
