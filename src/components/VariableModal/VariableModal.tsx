@@ -20,6 +20,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { IconCategory, IconCheck, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CfEntry } from "@/data/cf/cfStandardNames";
 import type { DraftVariable } from "@/types/variable";
 import { parseVariable } from "@/utils/parseVariable";
 import {
@@ -30,10 +31,14 @@ import {
   type JSONSchema,
   resolveRef,
 } from "../schemaUtils";
+import { applyCfSelection, type CfPrefilled, clearCfSelectionOnTypeChange } from "./cfPrefill";
+import { getShortlistFor, getUnitSuggestions } from "./cfShortlists";
 import EnumWithOtherField from "./EnumWithOtherField";
 import FieldLabel from "./FieldLabel";
 import OptionalWithGateField from "./OptionalWithGateField";
 import SchemaField from "./SchemaField";
+import StandardIdentifierField from "./StandardIdentifierField";
+import UnitsField from "./UnitsField";
 import {
   getAccordionConfig,
   getPlaceholderOverride,
@@ -184,6 +189,10 @@ export default function VariableModal({
   // Track previous completion state to detect transitions (for auto-collapse)
   const wasTypeSelectionComplete = useRef(false);
 
+  // What the CF standard name picker last filled in. Anything the user has since
+  // edited no longer matches, which is how a later pick knows to leave it alone.
+  const cfPrefillRef = useRef<CfPrefilled>({});
+
   // Reset state when modal opens
   useEffect(() => {
     if (opened) {
@@ -204,6 +213,10 @@ export default function VariableModal({
           setGenesis((initialData.genesis as string)?.toLowerCase() || null);
           setSampling((initialData.sampling as string)?.toLowerCase() || null);
         }
+        // Nothing here was prefilled by this session's picker, so every stored value
+        // counts as user-owned and must survive a later CF selection.
+        cfPrefillRef.current = {};
+        setCfEntry(null);
         // If editing, start with variable-type collapsed and basic open
         setOpenSections(["basic"]);
         // Mark as already complete so auto-collapse doesn't re-trigger
@@ -213,6 +226,8 @@ export default function VariableModal({
         setVariableType(null);
         setGenesis(null);
         setSampling(null);
+        cfPrefillRef.current = {};
+        setCfEntry(null);
         setOpenSections(["variable-type"]);
         // Reset so auto-collapse will trigger when selections are made
         wasTypeSelectionComplete.current = false;
@@ -248,6 +263,57 @@ export default function VariableModal({
     if (!schema) return null;
     return resolveRef(schema, rootSchema);
   }, [schemaKey, rootSchema]);
+
+  // ---------------------------------------------------------------------------
+  // CF standard names
+  //
+  // pH, TA, DIC and CO2 are restricted to a curated shortlist; every other type
+  // searches the full CF table. Picking a name prefills the unit, the long name and
+  // (for TA/DIC) the concentration basis, but only where the user has not typed
+  // over the previous prefill. dataset_variable_name is never prefilled — it names
+  // a column in the user's own data file and only they know what it is called.
+  // ---------------------------------------------------------------------------
+  const cfShortlist = useMemo(
+    () => getShortlistFor(variableType, isModelOutput),
+    [variableType, isModelOutput],
+  );
+
+  const cfTypeLabel = useMemo(() => {
+    if (!variableType) return undefined;
+    if (isModelOutput) return MODEL_VARIABLE_TYPE_SHORT_LABELS[variableType];
+    return VARIABLE_TYPE_OPTIONS.find((o) => o.value === variableType)?.label;
+  }, [variableType, isModelOutput]);
+
+  // The picked entry, kept so the unit field can suggest its canonical unit. It
+  // cannot be re-derived from the stored term alone: for a type with no shortlist
+  // the entry lives in the lazily-loaded index the picker holds.
+  const [cfEntry, setCfEntry] = useState<CfEntry | null>(null);
+
+  const cfUnitSuggestions = useMemo(() => {
+    const term = (getNestedValue(formData, "standard_identifier") as { term?: string } | undefined)
+      ?.term;
+    if (!term) return [];
+    // cfEntry is whatever the picker resolved, including from the lazy index — which
+    // is the only way a stored full-table name gets unit suggestions after a reopen.
+    const entry = cfEntry?.name === term ? cfEntry : cfShortlist?.find((e) => e.name === term);
+    return getUnitSuggestions(entry);
+  }, [formData, cfShortlist, cfEntry]);
+
+  // Not a setFormData updater: these write cfPrefillRef, and React may call an
+  // updater more than once, which would apply the ref write twice and lose the
+  // rollback. Event handlers see current formData, so a plain value is enough.
+  const handleCfSelect = useCallback(
+    (entry: CfEntry | null) => {
+      const { data, prefilled } = applyCfSelection(formData, entry, cfPrefillRef.current, {
+        hasConcentrationBasis: variableSchema
+          ? fieldExistsInSchema("concentration_basis", variableSchema, rootSchema)
+          : false,
+      });
+      cfPrefillRef.current = prefilled;
+      setFormData(data);
+    },
+    [formData, variableSchema, rootSchema],
+  );
 
   // Filter accordions to only show sections with visible fields
   const visibleAccordions = useMemo(() => {
@@ -304,11 +370,21 @@ export default function VariableModal({
     const newSampling = behavior?.fixedSampling ?? null;
     setGenesis(newGenesis);
     setSampling(newSampling);
-    setFormData((prev) => ({
-      ...prev,
+    const next: Record<string, unknown> = {
+      ...formData,
       genesis: newGenesis || undefined,
       sampling: newSampling || undefined,
-    }));
+    };
+
+    // The standard name identifies the quantity, so picking a different type
+    // invalidates it along with whatever it prefilled. Re-picking the same type is
+    // not a change and must leave the selection alone.
+    const cleared =
+      value === variableType
+        ? { data: next, prefilled: cfPrefillRef.current }
+        : clearCfSelectionOnTypeChange(next, cfPrefillRef.current);
+    cfPrefillRef.current = cleared.prefilled;
+    setFormData(cleared.data);
   };
 
   const handleGenesisChange = (value: string | null) => {
@@ -578,6 +654,40 @@ export default function VariableModal({
                               </Grid.Col>,
                             ]);
                           }
+                        }
+
+                        if (field.inputType === "standard_identifier") {
+                          return [
+                            <Grid.Col key={field.path} span={field.span}>
+                              <StandardIdentifierField
+                                fieldPath={field.path}
+                                variableSchema={variableSchema}
+                                rootSchema={rootSchema}
+                                formData={formData}
+                                onSelect={handleCfSelect}
+                                onResolve={setCfEntry}
+                                shortlist={cfShortlist}
+                                typeLabel={cfTypeLabel}
+                              />
+                            </Grid.Col>,
+                          ];
+                        }
+
+                        if (field.inputType === "units_combobox") {
+                          return maybeAddSpacer([
+                            <Grid.Col key={field.path} span={field.span}>
+                              <UnitsField
+                                fieldPath={field.path}
+                                variableSchema={variableSchema}
+                                rootSchema={rootSchema}
+                                formData={formData}
+                                onChange={handleFormChange}
+                                suggestions={cfUnitSuggestions}
+                                descriptionModal={field.descriptionModal}
+                                placeholderText={effectivePlaceholder}
+                              />
+                            </Grid.Col>,
+                          ]);
                         }
 
                         if (field.inputType === "enum_with_other") {
