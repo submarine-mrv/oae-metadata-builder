@@ -4,8 +4,17 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 
 ## [Unreleased]
 
-Built against oae-data-protocol v0.3.0.
+Built against oae-data-protocol v0.4.0.
 
+- Datasets can record a data access date. Scheduled access requires one; open access needs either
+  it or a data access link, and the form says so on both fields rather than marking each required.
+  (#75)
+- Public comments are a list of entries, each with a link or DOI, a consultation type and an
+  optional description, instead of one comma-separated string. An existing value is kept as the
+  description of a single entry of type "Other", with its link left blank to fill in. (#75)
+- Platform type offers five more NERC L06 vocabulary options. (#75)
+- Fixed: `mcdr_forcing_description` was required for every model output dataset, not just
+  perturbation runs. (#75)
 - Dropdown fields now show the description tooltip that text fields already had. No dropdown on the
   project, experiment or dataset forms had one before. (#69)
 - Sediment variables no longer carry `sediment_sampling_method`, and QC researcher is a plain name

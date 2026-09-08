@@ -20,6 +20,7 @@ import CustomFieldTemplate from "@/components/rjsf/CustomFieldTemplate";
 import CustomSelectWidget from "@/components/rjsf/CustomSelectWidget";
 import CustomTextareaWidget from "@/components/rjsf/CustomTextareaWidget";
 import DateTimeWidget from "@/components/rjsf/DateTimeWidget";
+import DateWidget from "@/components/rjsf/DateWidget";
 import LinkedExperimentIdWidget from "@/components/rjsf/LinkedExperimentIdWidget";
 import ResponsiveObjectFieldTemplate from "@/components/rjsf/ResponsiveObjectFieldTemplate";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
@@ -165,12 +166,19 @@ export default function DatasetPage() {
   //    schema renders variables via VariablesField and omits their item schema)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
+      // Transform first. The data-access either/or rule is recognised by its
+      // per-branch "required" errors, so filtering those out beforehand would
+      // leave only the meaningless anyOf/if envelope on the dataset object.
+      let transformed = transformFormErrors(errors, activeSchema);
+
       // Hide required-field errors from inline display unless the user has
-      // explicitly clicked the badge to reveal the full error list.
-      const preFiltered = validation.showErrorList
-        ? errors
-        : errors.filter((e) => e.name !== "required");
-      let transformed = transformFormErrors(preFiltered);
+      // explicitly clicked the badge to reveal the full error list. The
+      // data-access either/or errors are among them: a notice under the
+      // accessibility select states the rule up front, and both fields go
+      // red only once the user asks for validation.
+      if (!validation.showErrorList) {
+        transformed = transformed.filter((e) => e.name !== "required");
+      }
       if (!hasExperiments) {
         transformed = transformed.filter(
           (e) =>
@@ -193,7 +201,7 @@ export default function DatasetPage() {
 
       return transformed;
     };
-  }, [hasExperiments, validation.showErrorList]);
+  }, [hasExperiments, validation.showErrorList, activeSchema]);
 
   useEffect(() => {
     setActiveTab("dataset");
@@ -283,6 +291,8 @@ export default function DatasetPage() {
               textarea: CustomTextareaWidget,
               LinkedExperimentIdWidget: LinkedExperimentIdWidget,
               DateTimeWidget: DateTimeWidget,
+              // RJSF picks `DateWidget` by name for `format: date`.
+              DateWidget: DateWidget,
             }}
             templates={{
               DescriptionFieldTemplate: NoDescription,
