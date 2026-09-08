@@ -1,4 +1,4 @@
-import { expect, type Download, type Page, test } from "@playwright/test";
+import { type Download, expect, type Page, test } from "@playwright/test";
 import * as fs from "fs";
 
 /**
@@ -146,8 +146,12 @@ test.describe("CF Standard Name", () => {
     await expect(page.getByLabel("Variable full name")).toBeVisible({ timeout: 3000 });
 
     const dropdown = await openPicker(page);
-    await expect(dropdown.getByRole("option", { name: /sea_water_absolute_salinity/ })).toBeVisible();
-    await expect(dropdown.getByRole("option", { name: /sea_water_practical_salinity/ })).toBeVisible();
+    await expect(
+      dropdown.getByRole("option", { name: /sea_water_absolute_salinity/ }),
+    ).toBeVisible();
+    await expect(
+      dropdown.getByRole("option", { name: /sea_water_practical_salinity/ }),
+    ).toBeVisible();
     await dropdown.getByRole("option", { name: /sea_water_absolute_salinity/ }).click();
 
     await expect(page.getByLabel("Variable full name")).toHaveValue("absolute salinity");
