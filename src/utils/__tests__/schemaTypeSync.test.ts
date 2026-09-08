@@ -104,4 +104,48 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
     const missing = classProperties("FieldDataset").filter((p) => !valid.has(p));
     expect(missing).toEqual([]);
   });
+
+  /**
+   * A dynamic enum whose vocabulary expansion fails upstream arrives here as an
+   * empty list, and every selector backed by it renders with no options — no
+   * error, just an unusable dropdown. `MassConcentrationUnit` shipped that way
+   * once when the QUDT expansion silently returned nothing.
+   */
+  it("has no empty enums in the bundled schema", () => {
+    const defs = (bundled as { $defs?: Record<string, Record<string, unknown>> }).$defs ?? {};
+    const empty = Object.entries(defs)
+      .filter(([, def]) => {
+        const values = (def.enum ?? def.oneOf) as unknown[] | undefined;
+        return Array.isArray(values) && values.length === 0;
+      })
+      .map(([name]) => name);
+
+    expect(empty).toEqual([]);
+  });
+
+  // The guard above only sees enums that exist. Losing the `enum` key outright
+  // is the other way the same expansion failure could surface.
+  it("still carries the mass concentration units", () => {
+    const def = (bundled as { $defs?: Record<string, { enum?: unknown[] }> }).$defs
+      ?.MassConcentrationUnit;
+    expect(def?.enum).toBeDefined();
+    expect(def?.enum?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  // RJSF turns a `then.anyOf` into an "Option 1 / Option 2" selector. The
+  // bundler rewrites those as "not both absent"; this guards the rewrite.
+  it("carries no then.anyOf rules RJSF would render as a selector", () => {
+    const defs = (bundled as { $defs?: Record<string, any> }).$defs ?? {};
+    const offenders: string[] = [];
+    for (const [name, def] of Object.entries(defs)) {
+      const rules = [...(def.if ? [def] : []), ...(def.allOf ?? [])];
+      for (const rule of rules) if (rule?.then?.anyOf) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
+    // The rewritten form: "not both absent", which RJSF neither renders as a
+    // selector nor resolves into `required`.
+    const rule = defs.FieldDataset.allOf.find((r: any) => r.then?.not?.properties);
+    expect(rule?.then.not.properties).toEqual({ data_access_link: false, data_access_date: false });
+    expect(defs.FieldDataset.allOf.some((r: any) => r.then?.then)).toBe(false);
+  });
 });

@@ -35,3 +35,59 @@ describe("parseVariable", () => {
     expectTypeOf(result.schema_class).not.toBeUnknown();
   });
 });
+
+describe("parseVariable — standard_identifier", () => {
+  const identifier = {
+    term: "sea_water_ph_reported_on_total_scale",
+    uri: "http://vocab.nerc.ac.uk/collection/P07/current/CF14N56/",
+  };
+
+  it("keeps a complete VocabularyItemReference intact", () => {
+    const result = parseVariable(
+      { schema_class: "DiscretePHVariable", standard_identifier: { ...identifier } },
+      root,
+    );
+
+    expect(result.standard_identifier).toEqual(identifier);
+  });
+
+  it("keeps a user-written description alongside it", () => {
+    const withDescription = { ...identifier, description: "pH on the total scale." };
+    const result = parseVariable(
+      { schema_class: "DiscretePHVariable", standard_identifier: withDescription },
+      root,
+    );
+
+    expect(result.standard_identifier).toEqual(withDescription);
+  });
+
+  it("drops an empty identifier object rather than exporting it", () => {
+    const result = parseVariable(
+      { schema_class: "DiscretePHVariable", standard_identifier: {} },
+      root,
+    );
+
+    expect(result).not.toHaveProperty("standard_identifier");
+  });
+
+  it("strips keys VocabularyItemReference does not define", () => {
+    const result = parseVariable(
+      {
+        schema_class: "DiscretePHVariable",
+        standard_identifier: { ...identifier, source: "cf-picker" },
+      },
+      root,
+    );
+
+    expect(result.standard_identifier).toEqual(identifier);
+  });
+
+  it("keeps it on a model output variable too", () => {
+    const result = parseVariable(
+      { schema_class: "ModelOutputVariable", standard_identifier: { ...identifier } },
+      root,
+    );
+
+    expect(result.standard_identifier).toEqual(identifier);
+  });
+});

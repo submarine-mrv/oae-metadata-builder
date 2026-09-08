@@ -4,8 +4,17 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 
 ## [Unreleased]
 
-Built against oae-data-protocol v0.3.0.
+Built against oae-data-protocol v0.4.0.
 
+- Datasets can record a data access date. Scheduled access requires one; open access needs either
+  it or a data access link, and the form says so on both fields rather than marking each required.
+  (#75)
+- Public comments are a list of entries, each with a link or DOI, a consultation type and an
+  optional description, instead of one comma-separated string. An existing value is kept as the
+  description of a single entry of type "Other", with its link left blank to fill in. (#75)
+- Platform type offers five more NERC L06 vocabulary options. (#75)
+- Fixed: `mcdr_forcing_description` was required for every model output dataset, not just
+  perturbation runs. (#75)
 - Dropdown fields now show the description tooltip that text fields already had. No dropdown on the
   project, experiment or dataset forms had one before. (#69)
 - Sediment variables no longer carry `sediment_sampling_method`, and QC researcher is a plain name
@@ -13,6 +22,16 @@ Built against oae-data-protocol v0.3.0.
   re-entered. (#69)
 - Platform type now points at the NERC L06 vocabulary, and dataset type links to the SeaBASS
   definitions list. (#69)
+- Variables can now carry a CF standard name. pH, TA, DIC, CO₂ and the model-output quantities
+  (air-sea CO₂ flux, salinity, temperature) open on a short suggested list, with a button to search
+  all 5,071 current CF names and one to go back. Selecting a name records it and its NERC NVS P07
+  URI in `standard_identifier`, and fills in the full name and — for TA and DIC — the
+  per-volume/per-mass basis, leaving anything you have already typed alone. "Other (no standard name
+  listed)" is always available and records nothing.
+- The unit field suggests units for the selected standard name — pH scales, the mol/mmol/umol/ueq
+  set on each denominator for TA and DIC — and still accepts anything you type. It no longer fills
+  the unit in for you, since the CF canonical unit is usually not the one people report.
+
 
 ## [0.2.0] — 2026-08-12
 

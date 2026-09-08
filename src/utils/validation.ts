@@ -3,6 +3,7 @@ import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import type { DraftDataset, DraftExperiment, DraftProject } from "@/types/forms";
 import { experimentCustomValidate, projectCustomValidate } from "./customValidators";
+import { transformFormErrors } from "./errorTransformer";
 import { getExperimentSchemaType } from "./experimentFields";
 import {
   getFieldDatasetSchema,
@@ -82,11 +83,14 @@ export function validateProject(projectData: DraftProject): ValidationResult {
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage, temporal ordering).
     const result = validator.validateFormData(projectData, schema, projectCustomValidate);
+    // Same transform the form shows, so the badge does not count an if/then
+    // wrapper the list never displays.
+    const errors = transformFormErrors(result.errors, schema);
 
     return {
-      isValid: result.errors.length === 0,
-      errors: result.errors,
-      errorCount: result.errors.length,
+      isValid: errors.length === 0,
+      errors,
+      errorCount: errors.length,
     };
   } catch (error) {
     console.error("Error validating project:", error);
@@ -109,11 +113,12 @@ export function validateExperiment(experimentData: DraftExperiment): ValidationR
     // Pass the same customValidate the form uses so badge counts include
     // cross-field rules (vertical coverage).
     const result = validator.validateFormData(experimentData, schema, experimentCustomValidate);
+    const errors = transformFormErrors(result.errors, schema);
 
     return {
-      isValid: result.errors.length === 0,
-      errors: result.errors,
-      errorCount: result.errors.length,
+      isValid: errors.length === 0,
+      errors,
+      errorCount: errors.length,
     };
   } catch (error) {
     console.error("Error validating experiment:", error);
@@ -193,7 +198,13 @@ export function validateDataset(
     const schema = getDatasetSchemaForData(datasetData);
     const result = validator.validateFormData(datasetData, schema);
 
-    let errors = result.errors.map((e) => relabelVariableError(e, datasetData));
+    // Run the same transform the form does, or the badge would count the four
+    // raw AJV errors behind the data-access either/or rule where the form shows
+    // two. Project and experiment thread their custom validators here for the
+    // same reason.
+    let errors = transformFormErrors(result.errors, schema).map((e) =>
+      relabelVariableError(e, datasetData),
+    );
 
     // Catch empty/missing experiment_id that JSON schema "required" may not flag.
     // Scenarios: propagation sets "" or undefined while property key still exists in object.
