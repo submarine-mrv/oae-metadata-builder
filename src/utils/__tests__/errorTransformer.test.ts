@@ -131,4 +131,155 @@ describe("transformFormErrors", () => {
     // Generic required errors get normalized to "Field is required"
     expect(result[2].message).toBe("Field is required");
   });
+
+  // The open-access rule is a LinkML any_of postcondition that the bundler
+  // rewrites as "not both absent"; AJV reports it as one `not` failure on the
+  // dataset object.
+  describe("data access either/or rule", () => {
+    // The dataset schema as the form sees it: the rule's field pair is read
+    // from `then.not.properties` at the error's schemaPath.
+    const datasetSchema = {
+      allOf: [
+        // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+        { if: {}, then: { required: ["data_access_date"] } },
+        {
+          if: {},
+          // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+          then: { not: { properties: { data_access_link: false, data_access_date: false } } },
+        },
+      ],
+    };
+
+    // Raw AJV output: one `not` failure on the object, plus the if-wrapper.
+    const anyOfErrors = (): RJSFValidationError[] =>
+      [
+        {
+          name: "not",
+          property: "",
+          message: "must NOT be valid",
+          params: {},
+          schemaPath: "#/allOf/1/then/not",
+        },
+        {
+          name: "if",
+          property: "",
+          message: 'must match "then" schema',
+          params: { failingKeyword: "then" },
+          schemaPath: "#/allOf/1/if",
+        },
+      ] as RJSFValidationError[];
+
+    it("fans the single raw error out to both fields", () => {
+      const result = transformFormErrors(anyOfErrors(), datasetSchema);
+      expect(result).toHaveLength(2);
+      expect(result.map((e) => e.property).sort()).toEqual([
+        ".data_access_date",
+        ".data_access_link",
+      ]);
+    });
+
+    it("gives both fields the either/or message as required-class errors", () => {
+      const result = transformFormErrors(anyOfErrors(), datasetSchema);
+      for (const e of result) {
+        expect(e.message).toBe(MESSAGES.validation.dataAccessEitherOr);
+        // Required-class, so the form hides it until Validate like the others.
+        expect(e.name).toBe("required");
+      }
+    });
+
+    it("is idempotent, so validateDataset and the form agree", () => {
+      const once = transformFormErrors(anyOfErrors(), datasetSchema);
+      const twice = transformFormErrors(once, datasetSchema);
+      expect(twice).toEqual(once);
+    });
+
+    it("keeps the scheduled-access required error and drops its if/then wrapper", () => {
+      const result = transformFormErrors([
+        {
+          name: "required",
+          property: "",
+          message: "must have required property 'data_access_date'",
+          params: { missingProperty: "data_access_date" },
+          schemaPath: "#/allOf/0/then/required",
+        },
+        {
+          name: "if",
+          property: "",
+          message: 'must match "then" schema',
+          params: { failingKeyword: "then" },
+          schemaPath: "#/allOf/0/if",
+        },
+      ] as RJSFValidationError[]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("required");
+      expect(result[0].message).toBe("Field is required");
+    });
+
+    it("drops the if/then wrapper for any conditional rule", () => {
+      const result = transformFormErrors([
+        {
+          name: "required",
+          property: "",
+          message: "must have required property 'alkalinity_feedstock_custom'",
+          params: { missingProperty: "alkalinity_feedstock_custom" },
+          schemaPath: "#/allOf/0/then/required",
+        },
+        {
+          name: "if",
+          property: "",
+          message: 'must match "then" schema',
+          params: { failingKeyword: "then" },
+          schemaPath: "#/allOf/0/if",
+        },
+      ] as RJSFValidationError[]);
+
+      expect(result.map((e) => e.name)).toEqual(["required"]);
+    });
+
+    it("fans an unrelated either/or rule out to its own fields with its own wording", () => {
+      const schema = {
+        properties: { a: { title: "Alpha" }, b: { title: "Beta" } },
+        // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+        allOf: [{ if: {}, then: { not: { properties: { a: false, b: false } } } }],
+      };
+      const result = transformFormErrors(
+        [
+          {
+            name: "not",
+            property: "",
+            message: "must NOT be valid",
+            params: {},
+            schemaPath: "#/allOf/0/then/not",
+          },
+        ] as RJSFValidationError[],
+        schema,
+      );
+      expect(result.map((e) => e.property).sort()).toEqual([".a", ".b"]);
+      for (const e of result) {
+        expect(e.message).toBe("Either Alpha or Beta must be provided.");
+        expect(e.message).not.toContain("data access");
+      }
+    });
+
+    it("leaves a not error alone when no schema is available to resolve it", () => {
+      const result = transformFormErrors(anyOfErrors());
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("not");
+    });
+
+    it("keeps an unrelated anyOf envelope when no data-access branch failed", () => {
+      const result = transformFormErrors([
+        {
+          name: "anyOf",
+          property: ".something_else",
+          message: "must match a schema in anyOf",
+          params: {},
+          schemaPath: "#/allOf/3/then/anyOf",
+        },
+      ] as RJSFValidationError[]);
+
+      expect(result).toHaveLength(1);
+    });
+  });
 });
