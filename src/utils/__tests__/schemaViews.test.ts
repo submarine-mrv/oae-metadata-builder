@@ -233,10 +233,25 @@ describe("Schema Views", () => {
       expect("else" in schema).toBe(false);
     });
 
-    it("preserves if/then on ModelOutputDataset (has conditionals)", () => {
+    // LinkML emits a bare if/then for one rule and an allOf at two or more, and
+    // Dataset's own rules are inherited — so assert the conditional survives the
+    // view rather than the shape it happens to arrive in.
+    it("preserves the simulation_type conditional on ModelOutputDataset", () => {
       const schema = getModelOutputDatasetSchema();
-      expect(schema.if).toBeDefined();
-      expect(schema.then).toBeDefined();
+      // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+      const rootBranch = schema.if ? [{ if: schema.if, then: schema.then }] : [];
+      const branches = [...rootBranch, ...((schema.allOf ?? []) as RJSFSchema[])];
+      const simulationType = branches.find(
+        (b) => (b.if as RJSFSchema)?.properties?.simulation_type,
+      );
+
+      expect(simulationType).toBeDefined();
+      // mcdr_forcing_description lives only inside the `then`, never at the root,
+      // or RJSF would render it unconditionally.
+      expect(
+        (simulationType?.then as RJSFSchema)?.properties?.mcdr_forcing_description,
+      ).toBeDefined();
+      expect(schema.properties?.mcdr_forcing_description).toBeUndefined();
     });
   });
 
