@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
 import path from "path";
+import { expect, test } from "./fixtures/test";
 
 /**
  * Regression test for the mcdr_forcing_description conditional field restore bug.
@@ -25,10 +25,7 @@ test.describe("Dataset Conditional Field Restore", () => {
     await page.waitForLoadState("networkidle");
 
     // 2. Import the fixture file
-    await page
-      .locator("button.mantine-Burger-burger, [aria-label='Menu']")
-      .first()
-      .click();
+    await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
@@ -68,26 +65,17 @@ test.describe("Dataset Conditional Field Restore", () => {
     await expect(properField.first()).toBeVisible({ timeout: 3000 });
 
     // The imported value should be present in the input/textarea
-    const fieldInput = page.locator(
-      '[id*="mcdr_forcing_description"]'
-    ).first();
+    const fieldInput = page.locator('[id*="mcdr_forcing_description"]').first();
     await expect(fieldInput).toBeVisible({ timeout: 3000 });
-    await expect(fieldInput).toHaveValue(
-      "CO2 removal forcing applied to surface layer"
-    );
+    await expect(fieldInput).toHaveValue("CO2 removal forcing applied to surface layer");
   });
 
-  test("mcdr_forcing_description persists after navigating away and back", async ({
-    page,
-  }) => {
+  test("mcdr_forcing_description persists after navigating away and back", async ({ page }) => {
     // 1. Import fixture
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
 
-    await page
-      .locator("button.mantine-Burger-burger, [aria-label='Menu']")
-      .first()
-      .click();
+    await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
@@ -133,13 +121,9 @@ test.describe("Dataset Conditional Field Restore", () => {
     const properField = page.locator("text=mCDR Forcing");
     await expect(properField.first()).toBeVisible({ timeout: 3000 });
 
-    const fieldInput = page.locator(
-      '[id*="mcdr_forcing_description"]'
-    ).first();
+    const fieldInput = page.locator('[id*="mcdr_forcing_description"]').first();
     await expect(fieldInput).toBeVisible({ timeout: 3000 });
-    await expect(fieldInput).toHaveValue(
-      "CO2 removal forcing applied to surface layer"
-    );
+    await expect(fieldInput).toHaveValue("CO2 removal forcing applied to surface layer");
   });
 
   test("conditional field survives slow isInitialLoad guard (race condition stress test)", async ({
@@ -159,10 +143,7 @@ test.describe("Dataset Conditional Field Restore", () => {
     await page.waitForLoadState("networkidle");
 
     // Import fixture
-    await page
-      .locator("button.mantine-Burger-burger, [aria-label='Menu']")
-      .first()
-      .click();
+    await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
@@ -220,12 +201,8 @@ test.describe("Dataset Conditional Field Restore", () => {
     const properField = page.locator("text=mCDR Forcing");
     await expect(properField.first()).toBeVisible({ timeout: 3000 });
 
-    const fieldInput = page.locator(
-      '[id*="mcdr_forcing_description"]'
-    ).first();
+    const fieldInput = page.locator('[id*="mcdr_forcing_description"]').first();
     await expect(fieldInput).toBeVisible({ timeout: 3000 });
-    await expect(fieldInput).toHaveValue(
-      "CO2 removal forcing applied to surface layer"
-    );
+    await expect(fieldInput).toHaveValue("CO2 removal forcing applied to surface layer");
   });
 });
