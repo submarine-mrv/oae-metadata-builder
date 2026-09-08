@@ -2,7 +2,7 @@
 
 Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the minor version.
 
-## [Unreleased]
+## [0.3.0] — 2026-09-08
 
 Built against oae-data-protocol v0.4.0.
 
@@ -27,10 +27,25 @@ Built against oae-data-protocol v0.4.0.
   all 5,071 current CF names and one to go back. Selecting a name records it and its NERC NVS P07
   URI in `standard_identifier`, and fills in the full name and — for TA and DIC — the
   per-volume/per-mass basis, leaving anything you have already typed alone. "Other (no standard name
-  listed)" is always available and records nothing.
-- The unit field suggests units for the selected standard name — pH scales, the mol/mmol/umol/ueq
-  set on each denominator for TA and DIC — and still accepts anything you type. It no longer fills
-  the unit in for you, since the CF canonical unit is usually not the one people report.
+  listed)" is always available and records nothing. (#72)
+- The unit field suggests units for the selected standard name — the total pH scale, the
+  mol/mmol/umol/ueq set on each denominator for TA and DIC — and still accepts anything you type.
+  It no longer fills the unit in for you, since the CF canonical unit is usually not the one people
+  report. (#72)
+- Drawing a bounding box or line on a map shows the shape as you draw it: two clicks, a drag, or on
+  a touch screen a tap or a drag. The box inputs sit in a compass layout, N above, W and E beside,
+  S below, and a box whose north edge is below its south edge is flagged and cannot be saved. Boxes
+  that cross the antimeridian draw and frame the short way round. The map preview opens on the
+  whole globe with no place names. (#73)
+- Validation errors inside nested sections, such as a previous or ongoing research entry, now land
+  on the field and read "Invalid date format" or "Field is required" rather than showing a raw
+  pattern. The compliance checker states that only NetCDF 3 files are supported. (#74)
+- Temporal coverage uses the same date picker as the data access date: clicking anywhere in the
+  field opens the calendar, malformed text is refused rather than accepted and flagged, and a stored
+  date that cannot be read is marked on its own field. (#76)
+- Date pickers can be cleared with an X and no longer colour weekends red. (#75)
+- Platform type and platform ID descriptions open in a modal instead of a hover tooltip, so the
+  vocabulary URLs in them can be copied. (#71)
 
 
 ## [0.2.0] — 2026-08-12
