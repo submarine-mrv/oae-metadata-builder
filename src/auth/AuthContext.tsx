@@ -32,17 +32,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let activeUserId: string | null = null;
 
     const publish = (
       session: AuthSession | null,
       profile: AuthProfile | null = null,
       event?: AuthEvent,
     ) => {
+      activeUserId = session?.user.id ?? null;
       updateAuthStore(session, profile, event);
       if (mounted) {
         setState((prev) => ({ ...authStore, client: authClient, setProfile: prev.setProfile }));
       }
       void router.invalidate();
+    };
+
+    const fetchProfileForSession = (session: AuthSession, event?: AuthEvent) => {
+      const targetUserId = session.user.id;
+      const userChanged = activeUserId !== targetUserId;
+      const existingProfile = authStore.user?.id === targetUserId ? authStore.profile : null;
+
+      publish(session, existingProfile, event);
+
+      if (!userChanged) {
+        return;
+      }
+
+      authClient
+        .getProfile()
+        .then((profile) => {
+          if (mounted && activeUserId === targetUserId) {
+            publish(session, profile, event);
+          }
+        })
+        .catch(() => {
+          if (mounted && activeUserId === targetUserId) {
+            publish(session, existingProfile, event);
+          }
+        });
     };
 
     void authClient
@@ -52,10 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           publish(null);
           return;
         }
-        return authClient
-          .getProfile()
-          .catch(() => null)
-          .then((profile) => publish(session, profile));
+        fetchProfileForSession(session);
       })
       .catch(() => publish(null));
 
@@ -64,11 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         publish(null, null, event);
         return;
       }
-      publish(session, null, event);
-      void authClient
-        .getProfile()
-        .catch(() => null)
-        .then((profile) => publish(session, profile));
+      fetchProfileForSession(session, event);
     });
 
     return () => {

@@ -5,18 +5,22 @@ import type { AuthErrorCode } from "@/auth/types";
 import { useAuth } from "@/auth/useAuth";
 import AuthShell from "./AuthShell";
 
-const ERROR_MESSAGES: Record<AuthErrorCode, string> = {
+type ErrorMessages = Partial<Record<AuthErrorCode, string>> & { unknown: string };
+
+const ERROR_MESSAGES: ErrorMessages = {
   weak_password:
     "Choose a stronger password. Must contain at least 8 characters, including a small letter, a capital letter, and a number",
   same_password: "New password must be different from your old password.",
   rate_limited: "Too many attempts. Please wait a moment and try again.",
   expired_link: "This reset link has expired. Request a new one.",
   network: "Network error. Check your connection and try again.",
-  invalid_credentials: "This reset link is no longer valid.",
-  email_not_confirmed: "This reset link is no longer valid.",
-  email_taken: "This reset link is no longer valid.",
+  reauthentication_needed: "This reset link is no longer valid. Request a new one.",
   unknown: "Something went wrong. Please try again.",
 };
+
+function getErrorMessage(code: AuthErrorCode): string {
+  return ERROR_MESSAGES[code] ?? ERROR_MESSAGES.unknown;
+}
 
 export default function ResetPasswordForm() {
   const { client } = useAuth();
@@ -38,7 +42,7 @@ export default function ResetPasswordForm() {
     const result = await client.updatePassword(password);
     setPending(false);
     if (result.error) {
-      setError(ERROR_MESSAGES[result.error.code]);
+      setError(getErrorMessage(result.error.code));
       return;
     }
     await client.signOut("global");
@@ -47,7 +51,7 @@ export default function ResetPasswordForm() {
 
   async function cancel() {
     setCancelling(true);
-    await client.signOut("global");
+    await client.signOut("local");
     await navigate({ to: "/auth/login", search: { error: undefined, returnTo: undefined } });
   }
 

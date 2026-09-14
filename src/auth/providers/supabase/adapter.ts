@@ -1,6 +1,6 @@
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { failedResult, mapAuthError } from "../../errors";
-import type { AuthClient, AuthEvent, AuthResult } from "../../types";
+import type { AuthClient, AuthEvent, AuthOtpType, AuthResult } from "../../types";
 import { supabase } from "./client";
 import { mapSession, mapUser } from "./mapUser";
 
@@ -60,7 +60,9 @@ export const supabaseAuthClient: AuthClient = {
 
   async signOut(scope = "local") {
     const { error } = await supabase.auth.signOut({ scope });
-    if (error) throw mapAuthError(error);
+    if (error && import.meta.env.DEV) {
+      console.warn("Supabase signOut completed locally with remote error:", error.message);
+    }
   },
 
   async deleteAccount() {
@@ -97,33 +99,35 @@ export const supabaseAuthClient: AuthClient = {
     return result(null, response.error);
   },
 
-  async exchangeCodeForSession(url) {
-    const response = await supabase.auth.exchangeCodeForSession(url);
-    // TODO: Dev code
-    if (response.error) {
-      console.error("Supabase exchangeCodeForSession failed:", {
-        code: response.error.code,
-        message: response.error.message,
-        status: response.error.status,
-      });
+  async verifyOtp(tokenHash: string, type: AuthOtpType) {
+    const response = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (!response.error && type === "email_change") {
+      const [{ data: sessionData, error: sessionError }, { data: userData, error: userError }] =
+        await Promise.all([supabase.auth.getSession(), supabase.auth.getUser()]);
+
+      if (!sessionError && !userError && sessionData.session && userData.user) {
+        return result({ ...sessionData.session, user: userData.user }, null);
+      }
     }
     return result(response.data.session, response.error);
   },
 
   async getProfile() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw mapAuthError({ message: "Not authenticated" });
     const { data, error } = await supabase
       .from("profiles")
-      .select("display_name, organization, orcid, avatar_url")
-      .single();
-    if (error) {
-      if (error.code === "PGRST116") return null;
-      throw mapAuthError(error);
-    }
+      .select("display_name, organization, orcid")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (error) throw mapAuthError(error);
+    if (!data) return null;
     return {
       displayName: data.display_name,
       organization: data.organization,
       orcid: data.orcid,
-      avatarUrl: data.avatar_url,
     };
   },
 
@@ -133,23 +137,21 @@ export const supabaseAuthClient: AuthClient = {
     } = await supabase.auth.getUser();
     if (!user) throw mapAuthError({ message: "Not authenticated" });
     const row = {
-      display_name: patch.displayName,
+      id: user.id,
+      display_name: patch.displayName || null,
       organization: patch.organization || null,
       orcid: patch.orcid || null,
-      avatar_url: patch.avatarUrl,
     };
     const { data, error } = await supabase
       .from("profiles")
-      .update(row)
-      .eq("id", user.id)
-      .select()
+      .upsert(row, { onConflict: "id" })
+      .select("display_name, organization, orcid")
       .single();
     if (error) throw mapAuthError(error);
     return {
       displayName: data.display_name,
       organization: data.organization,
       orcid: data.orcid,
-      avatarUrl: data.avatar_url,
     };
   },
 };

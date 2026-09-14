@@ -1,3 +1,18 @@
+export function buildAuthRedirectUrl({
+  type,
+  returnTo,
+  origin = window.location.origin,
+}: {
+  type: "signup" | "recovery" | "email_change";
+  returnTo: string;
+  origin?: string;
+}): string {
+  const url = new URL("/auth/callback", origin);
+  url.searchParams.set("type", type);
+  url.searchParams.set("returnTo", returnTo);
+  return url.toString();
+}
+
 export function safeReturnTo(value: string | null | undefined): string | null {
   if (!value?.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
 

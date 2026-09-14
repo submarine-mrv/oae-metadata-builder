@@ -10,7 +10,10 @@ import {
 } from "@mantine/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { getPasswordStrength } from "@/auth/passwordStrength";
+import { buildAuthRedirectUrl } from "@/auth/redirects";
 import { useAuth } from "@/auth/useAuth";
+import { setPendingVerificationEmail } from "@/auth/verification";
 import { trackEvent } from "@/utils/analytics";
 import AuthShell from "./AuthShell";
 
@@ -20,13 +23,7 @@ export default function SignUpForm() {
   const [form, setForm] = useState({ email: "", displayName: "", password: "", confirm: "" });
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const strength =
-    [
-      form.password.length >= 8,
-      /[a-z]/.test(form.password),
-      /[A-Z]/.test(form.password),
-      /\d/.test(form.password),
-    ].filter(Boolean).length * 25;
+  const strength = getPasswordStrength(form.password);
 
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,19 +41,22 @@ export default function SignUpForm() {
       email: form.email,
       password: form.password,
       displayName: form.displayName || undefined,
-      redirectTo: `${window.location.origin}/auth/callback?type=signup&returnTo=/overview`,
+      redirectTo: buildAuthRedirectUrl({ type: "signup", returnTo: "/overview" }),
     });
     setPending(false);
     if (result.error) {
       setError(
-        result.error.code === "rate_limited"
-          ? "Too many attempts. Please wait and try again."
-          : "We could not create that account. Check your details and try again.",
+        result.error.code === "email_taken"
+          ? "An account with this email address already exists. Log in instead."
+          : result.error.code === "rate_limited"
+            ? "Too many attempts. Please wait and try again."
+            : "We could not create that account. Check your details and try again.",
       );
       return;
     }
     trackEvent("auth_signup_completed");
-    await navigate({ to: "/auth/verify-email", search: { email: form.email } });
+    setPendingVerificationEmail(form.email);
+    await navigate({ to: "/auth/verify-email" });
   }
 
   return (
@@ -76,7 +76,7 @@ export default function SignUpForm() {
         <Stack>
           {error && <Alert color="red">{error}</Alert>}
           <TextInput
-            label="Display name"
+            label="Full name"
             autoComplete="name"
             value={form.displayName}
             onChange={(event) => setForm({ ...form, displayName: event.currentTarget.value })}

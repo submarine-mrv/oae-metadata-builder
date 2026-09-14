@@ -41,7 +41,6 @@ describe("MemoryAuthClient", () => {
       displayName: "Researcher",
       organization: null,
       orcid: null,
-      avatarUrl: null,
     });
   });
 
@@ -55,7 +54,6 @@ describe("MemoryAuthClient", () => {
       displayName: "Researcher",
       organization: "OAE",
       orcid: "0000-0000-0000-0000",
-      avatarUrl: null,
     });
   });
 

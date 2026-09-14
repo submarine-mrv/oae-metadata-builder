@@ -33,7 +33,7 @@ export class MemoryAuthClient implements AuthClient {
   }
 
   async signInWithPassword({ email }: { email: string; password: string }) {
-    return this.authenticate(email, false);
+    return this.authenticate(email, true);
   }
 
   async signInWithOtp() {
@@ -60,7 +60,10 @@ export class MemoryAuthClient implements AuthClient {
     return this.emptyResult();
   }
 
-  async updateEmail() {
+  async updateEmail(newEmail: string) {
+    if (this.session) {
+      this.session.user.email = newEmail;
+    }
     return this.emptyResult();
   }
 
@@ -68,7 +71,7 @@ export class MemoryAuthClient implements AuthClient {
     return this.emptyResult();
   }
 
-  async exchangeCodeForSession() {
+  async verifyOtp() {
     return this.emptyResult();
   }
 
@@ -81,7 +84,6 @@ export class MemoryAuthClient implements AuthClient {
       displayName: null,
       organization: null,
       orcid: null,
-      avatarUrl: null,
       ...this.profile,
       ...patch,
     };

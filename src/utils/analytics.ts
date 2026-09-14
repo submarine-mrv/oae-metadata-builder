@@ -40,9 +40,15 @@ function injectGtagScript(measurementId: string) {
 }
 
 function sendPageView() {
+  const pageUrl = new URL(window.location.href);
+  for (const key of ["email", "token_hash", "code", "error_code", "error_description", "message"]) {
+    pageUrl.searchParams.delete(key);
+  }
+  const sanitizedUrl = pageUrl.toString();
+
   window.gtag?.("event", "page_view", {
-    page_location: window.location.href,
-    page_path: `${window.location.pathname}${window.location.search}`,
+    page_location: sanitizedUrl,
+    page_path: `${pageUrl.pathname}${pageUrl.search}`,
     page_title: document.title,
   });
 }

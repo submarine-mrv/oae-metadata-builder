@@ -12,7 +12,7 @@ test.describe("authentication", () => {
   test("validates signup passwords and opens email verification", async ({ page }) => {
     await page.goto("/auth/sign-up");
 
-    await page.getByLabel("Display name").fill("Researcher");
+    await page.getByLabel("Full name").fill("Researcher");
     await page.getByLabel("Email").fill("researcher@example.com");
     await page.locator('input[autocomplete="new-password"]').nth(0).fill("Password1");
     await page.getByLabel("Confirm password").fill("Different1");
@@ -24,7 +24,7 @@ test.describe("authentication", () => {
     await page.getByLabel("Confirm password").fill("Password1");
     await page.getByRole("button", { name: "Create account" }).click();
 
-    await expect(page).toHaveURL(/\/auth\/verify-email\?email=researcher%40example\.com/);
+    await expect(page).toHaveURL(/\/auth\/verify-email$/);
     await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
     await expect(page.getByText(/researcher@example.com/)).toBeVisible();
   });
@@ -49,7 +49,7 @@ test.describe("authentication", () => {
     await page.getByRole("button", { name: "Menu" }).click();
     await page.getByRole("menuitem", { name: "Profile" }).click();
     await expect(page).toHaveURL(/\/profile$/);
-    await page.getByLabel("Display name").fill("Metadata researcher");
+    await page.getByLabel("Full name").fill("Metadata researcher");
     await page.getByRole("button", { name: "Save profile" }).click();
     await expect(page.getByText("Profile saved.")).toBeVisible();
 
@@ -71,6 +71,6 @@ test.describe("authentication", () => {
     await page.getByRole("button", { name: "Log in" }).click();
 
     await expect(page).toHaveURL(/\/profile$/);
-    await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
   });
 });

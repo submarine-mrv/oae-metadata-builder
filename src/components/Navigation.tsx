@@ -216,7 +216,7 @@ export default function Navigation() {
                     <Menu.Label>{user.email}</Menu.Label>
                     <Menu.Item
                       leftSection={<IconUser size={16} />}
-                      onClick={() => navigate({ to: "/profile" })}
+                      onClick={() => navigate({ to: "/profile", search: { error: undefined } })}
                     >
                       Profile
                     </Menu.Item>

@@ -1,16 +1,17 @@
 import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { COMMON_AUTH_ERROR_MESSAGES } from "@/auth/errors";
 import { safeReturnTo } from "@/auth/redirects";
 import type { AuthErrorCode } from "@/auth/types";
 import { useAuth } from "@/auth/useAuth";
+import { setPendingVerificationEmail } from "@/auth/verification";
 import { trackEvent } from "@/utils/analytics";
 import AuthShell from "./AuthShell";
 
 const LOGIN_ERROR_MESSAGES: Partial<Record<AuthErrorCode, string>> = {
+  ...COMMON_AUTH_ERROR_MESSAGES,
   email_not_confirmed: "Email is not confirmed.",
-  rate_limited: "Too many attempts. Please wait a moment and try again.",
-  network: "We could not reach the server. Check your connection and try again.",
   unknown: "We could not log you in right now. Please try again.",
 };
 
@@ -61,7 +62,10 @@ export default function LoginForm() {
               <Stack gap={4}>
                 <Text>{error}</Text>
                 {errorCode === "email_not_confirmed" && email && (
-                  <Anchor href={`/auth/verify-email?email=${encodeURIComponent(email)}`}>
+                  <Anchor
+                    href="/auth/verify-email"
+                    onClick={() => setPendingVerificationEmail(email)}
+                  >
                     Confirm email or resend verification
                   </Anchor>
                 )}

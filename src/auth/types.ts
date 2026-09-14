@@ -8,6 +8,8 @@ export type AuthEvent =
   | "USER_UPDATED"
   | "PASSWORD_RECOVERY";
 
+export type AuthOtpType = "signup" | "email" | "recovery" | "email_change";
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -26,7 +28,6 @@ export interface AuthProfile {
   displayName: string | null;
   organization: string | null;
   orcid: string | null;
-  avatarUrl: string | null;
 }
 
 export type AuthErrorCode =
@@ -35,6 +36,7 @@ export type AuthErrorCode =
   | "email_taken"
   | "weak_password"
   | "same_password"
+  | "reauthentication_needed"
   | "rate_limited"
   | "expired_link"
   | "network"
@@ -66,7 +68,7 @@ export interface AuthClient {
   updatePassword(newPassword: string): Promise<AuthResult>;
   updateEmail(newEmail: string, redirectTo: string): Promise<AuthResult>;
   resendVerification(email: string, redirectTo: string): Promise<AuthResult>;
-  exchangeCodeForSession(url: string): Promise<AuthResult>;
+  verifyOtp(tokenHash: string, type: AuthOtpType): Promise<AuthResult>;
   getProfile(): Promise<AuthProfile | null>;
   updateProfile(patch: Partial<AuthProfile>): Promise<AuthProfile>;
   deleteAccount(): Promise<AuthResult>;
