@@ -1,0 +1,158 @@
+import type { DatasetExperimentLinking } from "@/hooks/useImportPreview";
+import type {
+  DatasetLinkingMetadata,
+  DraftDataset,
+  DraftExperiment,
+  DraftProject,
+} from "@/types/forms";
+import type { ProjectState } from "@/workspace/types";
+import { cleanFormData } from "./formDataCleanup";
+
+export interface ImportSelection {
+  project: DraftProject | null;
+  experiments: DraftExperiment[];
+  datasets: Array<{ formData: DraftDataset; experimentLinking?: DatasetExperimentLinking }>;
+}
+
+/**
+ * Merge an import selection into a project. Experiments replace an existing
+ * one with the same experiment_id; datasets are always added. Pure, so the
+ * in-place import and "import as a new project" share it.
+ */
+export function applyImport(prev: ProjectState, selection: ImportSelection): ProjectState {
+  const { project: projectData, experiments, datasets } = selection;
+  // Normalize incoming data at the boundary — see importAllData
+  // for the rationale.
+  const cleanedProjectData = projectData ? (cleanFormData(projectData) as DraftProject) : null;
+
+  // Handle project - simply replace if provided
+  const newProjectData = cleanedProjectData
+    ? { ...prev.projectData, ...cleanedProjectData }
+    : prev.projectData;
+
+  // Handle experiments - replace matching or add new
+  // Track mapping from import key (e.g., "experiment-0") to internal ID for cross-import linking
+  const importKeyToInternalId: Record<string, number> = {};
+  const newExperiments = [...prev.experiments];
+  let nextExpId = prev.nextExperimentId;
+
+  experiments.forEach((rawExpData, index) => {
+    const expData = cleanFormData(rawExpData) as DraftExperiment;
+    const expId = expData.experiment_id as string | undefined;
+    const expName = (expData.name as string) || expId;
+    const importKey = `experiment-${index}`;
+
+    // Find existing experiment by experiment_id or name
+    const existingIndex = expId
+      ? newExperiments.findIndex((e) => e.formData.experiment_id === expId || e.name === expId)
+      : -1;
+
+    if (existingIndex >= 0) {
+      // Replace existing experiment
+      newExperiments[existingIndex] = {
+        ...newExperiments[existingIndex],
+        formData: expData,
+        name: expName || newExperiments[existingIndex].name,
+        experiment_types: expData.experiment_types,
+        updatedAt: Date.now(),
+      };
+      // Map import key to existing internal ID
+      importKeyToInternalId[importKey] = newExperiments[existingIndex].id;
+    } else {
+      // Add as new experiment
+      const newInternalId = nextExpId;
+      newExperiments.push({
+        id: newInternalId,
+        name: expName || `Experiment ${newInternalId}`,
+        formData: expData,
+        experiment_types: expData.experiment_types,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      // Map import key to new internal ID
+      importKeyToInternalId[importKey] = newInternalId;
+      nextExpId++;
+    }
+  });
+
+  // Handle datasets - replace matching or add new
+  const newDatasets = [...prev.datasets];
+  let nextDsId = prev.nextDatasetId;
+
+  for (const { formData: rawDsData, experimentLinking } of datasets) {
+    // Normalize incoming dataset data at the boundary.
+    const dsData = cleanFormData(rawDsData) as DraftDataset;
+    const dsName = dsData.name as string | undefined;
+
+    // Resolve experiment linking to internal ID
+    let linkedExperimentInternalId: number | null = null;
+
+    if (experimentLinking) {
+      if (experimentLinking.mode === "use-file") {
+        // Use the resolved match from the preview
+        const resolved = experimentLinking.resolvedMatch;
+        if (resolved?.type === "existing" && resolved.internalId !== undefined) {
+          linkedExperimentInternalId = resolved.internalId;
+        } else if (resolved?.type === "importing" && resolved.importKey) {
+          // Cross-import linking: map import key to the newly-assigned internal ID
+          linkedExperimentInternalId = importKeyToInternalId[resolved.importKey] ?? null;
+        }
+      } else if (experimentLinking.mode === "explicit") {
+        if (experimentLinking.explicitExperimentInternalId !== undefined) {
+          // Explicitly linking to existing experiment
+          linkedExperimentInternalId = experimentLinking.explicitExperimentInternalId;
+        } else if (experimentLinking.explicitImportKey) {
+          // Explicitly linking to importing experiment
+          linkedExperimentInternalId =
+            importKeyToInternalId[experimentLinking.explicitImportKey] ?? null;
+        }
+      }
+    }
+
+    // Find the linked experiment to get its experiment_id for the formData
+    let experimentIdToSet: string | undefined;
+    if (linkedExperimentInternalId !== null) {
+      const linkedExp = newExperiments.find((e) => e.id === linkedExperimentInternalId);
+      experimentIdToSet = linkedExp?.formData.experiment_id as string | undefined;
+    }
+
+    // Update formData with resolved experiment_id if linking is set
+    const finalFormData: DraftDataset =
+      linkedExperimentInternalId !== null && experimentIdToSet
+        ? { ...dsData, experiment_id: experimentIdToSet }
+        : dsData;
+
+    // Build linking metadata for the dataset
+    const datasetLinking: DatasetLinkingMetadata = {
+      linkedExperimentInternalId,
+    };
+
+    // Always add datasets as new (no name-based override — unlike experiments
+    // which have unique experiment_id, datasets can share names)
+    newDatasets.push({
+      id: nextDsId,
+      name: dsName || `Dataset ${nextDsId}`,
+      formData: finalFormData,
+      linking: datasetLinking,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    nextDsId++;
+  }
+
+  // Set hasProject if importing project data with content
+  const hasProject = projectData
+    ? Object.values(newProjectData).some((v) =>
+        typeof v === "string" ? v.trim() !== "" : v !== undefined && v !== null,
+      )
+    : prev.hasProject;
+
+  return {
+    hasProject,
+    projectData: newProjectData,
+    experiments: newExperiments,
+    datasets: newDatasets,
+    nextExperimentId: nextExpId,
+    nextDatasetId: nextDsId,
+  };
+}
