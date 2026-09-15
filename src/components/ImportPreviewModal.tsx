@@ -4,6 +4,7 @@ import {
   Checkbox,
   Group,
   Modal,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -34,6 +35,8 @@ interface ImportPreviewModalProps {
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
   duplicateExperimentIdError: string | null;
   onImport: () => void;
+  importMode: "new" | "merge";
+  onImportModeChange: (mode: "new" | "merge") => void;
 }
 
 /**
@@ -61,11 +64,13 @@ export default function ImportPreviewModal({
   getExperimentLinkOptions,
   duplicateExperimentIdError,
   onImport,
+  importMode,
+  onImportModeChange,
 }: ImportPreviewModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
-  const hasBlockingError = duplicateExperimentIdError !== null;
+  const hasBlockingError = importMode === "merge" && duplicateExperimentIdError !== null;
 
   // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
@@ -286,14 +291,25 @@ export default function ImportPreviewModal({
         )}
 
         {/* Action buttons */}
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={onImport} disabled={noneSelected || hasBlockingError}>
-            Import {selectedCount} item{selectedCount !== 1 ? "s" : ""}
-          </Button>
-        </Group>
+        <Stack gap="sm">
+          <SegmentedControl
+            fullWidth
+            value={importMode}
+            onChange={(value) => onImportModeChange(value as "new" | "merge")}
+            data={[
+              { value: "new", label: "Add as a new project" },
+              { value: "merge", label: "Merge into current project" },
+            ]}
+          />
+          <Group justify="flex-end" gap="sm">
+            <Button variant="default" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={onImport} disabled={noneSelected || hasBlockingError}>
+              Import {selectedCount} item{selectedCount !== 1 ? "s" : ""}
+            </Button>
+          </Group>
+        </Stack>
       </Stack>
     </Modal>
   );

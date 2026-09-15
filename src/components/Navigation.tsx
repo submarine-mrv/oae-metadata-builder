@@ -18,7 +18,7 @@ import {
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import DownloadModal from "@/components/DownloadModal";
 import ImportPreviewModal from "@/components/ImportPreviewModal";
 import ProjectSwitcher from "@/components/ProjectSwitcher";
@@ -27,10 +27,13 @@ import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportPreview } from "@/hooks/useImportPreview";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function Navigation() {
   const { state, setActiveTab, importSelectedData, toggleJsonPreview } = useAppState();
   const navigate = useNavigate();
+  const { importAsNewProject } = useWorkspace();
+  const [importMode, setImportMode] = useState<"new" | "merge">("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { showModal, sections, openModal, closeModal, handleDownload, handleSectionToggle } =
@@ -92,18 +95,20 @@ export default function Navigation() {
 
   const handleImport = () => {
     const selected = importPreview.getSelectedItems();
-    // Extract just the formData for experiments (they don't have linking config in import)
-    const experimentFormData = selected.experiments;
-    // Pass datasets with their linking configuration
-    importSelectedData(selected.project, experimentFormData, selected.datasets);
+    if (importMode === "new") {
+      importAsNewProject(selected);
+      navigate({ to: "/overview" });
+    } else {
+      importSelectedData(selected.project, selected.experiments, selected.datasets);
+    }
     // On confirm, not on file selection: the preview can still be cancelled.
     trackEvent("metadata_import", {
       project: selected.project ? 1 : 0,
-      experiments: experimentFormData.length,
+      experiments: selected.experiments.length,
       datasets: selected.datasets.length,
+      mode: importMode,
     });
     importPreview.closePreview();
-    navigate({ to: "/overview" });
   };
 
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -293,6 +298,8 @@ export default function Navigation() {
         getExperimentLinkOptions={importPreview.getExperimentLinkOptions}
         duplicateExperimentIdError={importPreview.state.duplicateExperimentIdError}
         onImport={handleImport}
+        importMode={importMode}
+        onImportModeChange={setImportMode}
       />
     </>
   );
