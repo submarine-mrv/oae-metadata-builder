@@ -44,7 +44,7 @@ describe("WorkspaceProvider", () => {
     const next = {
       ...emptyProjectState(),
       hasProject: true,
-      projectData: { project_id: "", name: "Named" },
+      projectData: { project_id: "", research_project: "Named" },
     };
 
     act(() => result.current.updateActiveProject(next));
@@ -54,7 +54,9 @@ describe("WorkspaceProvider", () => {
     act(() => {
       vi.advanceTimersByTime(2000);
     });
-    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.name).toBe("Named");
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project).toBe(
+      "Named",
+    );
   });
 
   it("imports a selection as a new active project, dropping links to existing experiments", () => {

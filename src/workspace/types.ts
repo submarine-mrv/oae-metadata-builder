@@ -25,9 +25,9 @@ export interface Workspace {
 
 export const UNNAMED_PROJECT = "Unnamed Project";
 
-/** The Research Project name, or a placeholder. Never stored. */
+/** The Research Project field, or a placeholder. Never stored. */
 export function projectDisplayName(state: ProjectState): string {
-  return state.projectData.name?.trim() || UNNAMED_PROJECT;
+  return state.projectData.research_project?.trim() || UNNAMED_PROJECT;
 }
 
 export function emptyProjectState(): ProjectState {

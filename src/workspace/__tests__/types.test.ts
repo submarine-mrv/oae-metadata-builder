@@ -5,14 +5,17 @@ describe("projectDisplayName", () => {
   it("falls back to Unnamed Project when there is no name", () => {
     expect(projectDisplayName(emptyProjectState())).toBe(UNNAMED_PROJECT);
     expect(
-      projectDisplayName({ ...emptyProjectState(), projectData: { project_id: "", name: "   " } }),
+      projectDisplayName({
+        ...emptyProjectState(),
+        projectData: { project_id: "", research_project: "   " },
+      }),
     ).toBe(UNNAMED_PROJECT);
   });
 
   it("uses the trimmed Research Project name", () => {
     const state = {
       ...emptyProjectState(),
-      projectData: { project_id: "", name: "  Kiel trial " },
+      projectData: { project_id: "", research_project: "  Kiel trial " },
     };
     expect(projectDisplayName(state)).toBe("Kiel trial");
   });
