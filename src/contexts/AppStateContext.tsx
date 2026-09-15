@@ -19,11 +19,9 @@ export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
 
-import type { JSONSchema } from "@/components/schemaUtils";
 import { cleanFormData } from "@/utils/formDataCleanup";
-import { migrateFormData } from "@/utils/migrations";
-import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
-import { getBaseSchema } from "@/utils/schemaViews";
+import { parseProjectState } from "@/utils/parseProjectState";
+import type { ProjectState } from "@/workspace/types";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -151,14 +149,7 @@ interface AppStateContextType {
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
   // Session persistence
-  restoreFullState: (saved: {
-    hasProject: boolean;
-    projectData: DraftProject;
-    experiments: ExperimentState[];
-    datasets: DatasetState[];
-    nextExperimentId: number;
-    nextDatasetId: number;
-  }) => void;
+  restoreFullState: (saved: ProjectState) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -879,50 +870,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Restore full state from session persistence (preserves IDs and linking)
-  const restoreFullState = useCallback(
-    (saved: {
-      hasProject: boolean;
-      projectData: DraftProject;
-      experiments: ExperimentState[];
-      datasets: DatasetState[];
-      nextExperimentId: number;
-      nextDatasetId: number;
-    }) => {
-      // Parse restored data at the boundary — a session may have been saved
-      // before the current invariants existed, or under an older app version.
-      // parseExperiment/parseDataset re-establish model exclusivity,
-      // type-scoped fields, and clean variables; migrate handles the legacy
-      // bounding box format (W S E N → S W N E).
-      const cleanedExperiments = saved.experiments.map((exp) => {
-        const formData = parseExperiment(migrateFormData(exp.formData));
-        return {
-          ...exp,
-          formData,
-          // Re-derive the duplicated top-level copy from the parsed formData —
-          // a legacy session may carry a stale value (e.g. ["model",
-          // "intervention"]) that the parse just normalized.
-          experiment_types: formData.experiment_types,
-        };
-      });
-      const cleanedDatasets = saved.datasets.map((ds) => ({
-        ...ds,
-        formData: parseDataset(
-          migrateFormData(ds.formData),
-          getBaseSchema() as unknown as JSONSchema,
-        ),
-      }));
-      setState((prev) => ({
-        ...prev,
-        hasProject: saved.hasProject,
-        projectData: parseProject(migrateFormData(saved.projectData)),
-        experiments: cleanedExperiments,
-        datasets: cleanedDatasets,
-        nextExperimentId: saved.nextExperimentId,
-        nextDatasetId: saved.nextDatasetId,
-      }));
-    },
-    [],
-  );
+  const restoreFullState = useCallback((saved: ProjectState) => {
+    setState((prev) => ({ ...prev, ...parseProjectState(saved) }));
+  }, []);
 
   const value: AppStateContextType = {
     state,
