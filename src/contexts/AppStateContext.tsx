@@ -1,5 +1,5 @@
 import type React from "react";
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type {
   AppFormState,
   DatasetLinkingMetadata,
@@ -21,7 +21,7 @@ export type AppState = AppFormState;
 import { applyImport, type ImportSelection } from "@/utils/applyImport";
 import { cleanFormData } from "@/utils/formDataCleanup";
 import { parseProjectState } from "@/utils/parseProjectState";
-import type { ProjectState } from "@/workspace/types";
+import { emptyProjectState, type ProjectState } from "@/workspace/types";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -151,20 +151,60 @@ interface AppStateContextType {
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
-export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>({
-    hasProject: false,
-    projectData: { project_id: "" },
-    experiments: [],
-    datasets: [],
-    activeTab: "overview",
-    activeExperimentId: null,
-    activeDatasetId: null,
-    nextExperimentId: 1,
-    nextDatasetId: 1,
-    triggerValidation: false,
-    showJsonPreview: false,
-  });
+interface AppStateProviderProps {
+  children: React.ReactNode;
+  /** Persisted project to edit. Parsed at the boundary like a restored session. */
+  initialState?: ProjectState;
+  /** Fired after any change to the persisted subset of state. */
+  onChange?: (state: ProjectState) => void;
+}
+
+const UI_INITIAL_STATE = {
+  activeTab: "overview" as const,
+  activeExperimentId: null,
+  activeDatasetId: null,
+  triggerValidation: false,
+  showJsonPreview: false,
+};
+
+function persistedSubset(state: AppState): ProjectState {
+  return {
+    hasProject: state.hasProject,
+    projectData: state.projectData,
+    experiments: state.experiments,
+    datasets: state.datasets,
+    nextExperimentId: state.nextExperimentId,
+    nextDatasetId: state.nextDatasetId,
+  };
+}
+
+function sameProjectState(a: ProjectState, b: ProjectState): boolean {
+  return (
+    a.hasProject === b.hasProject &&
+    a.projectData === b.projectData &&
+    a.experiments === b.experiments &&
+    a.datasets === b.datasets &&
+    a.nextExperimentId === b.nextExperimentId &&
+    a.nextDatasetId === b.nextDatasetId
+  );
+}
+
+export function AppStateProvider({ children, initialState, onChange }: AppStateProviderProps) {
+  const [state, setState] = useState<AppState>(() => ({
+    ...UI_INITIAL_STATE,
+    ...(initialState ? parseProjectState(initialState) : emptyProjectState()),
+  }));
+
+  // Report persisted changes to the owner without re-subscribing on every render.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const lastReported = useRef(persistedSubset(state));
+  useEffect(() => {
+    const current = persistedSubset(state);
+    if (sameProjectState(current, lastReported.current)) return;
+    lastReported.current = current;
+    onChangeRef.current?.(current);
+  }, [state]);
 
   const createProject = useCallback(() => {
     setState((prev) => ({
