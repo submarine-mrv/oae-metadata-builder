@@ -67,7 +67,7 @@ function remove(key: string) {
 /** Wraps a legacy saved session as a project record, or null if it isn't one. */
 export function migrateLegacySession(raw: unknown): ProjectRecord | null {
   if (!isRecord(raw) || typeof raw.savedAt !== "number" || !isProjectState(raw)) return null;
-  const { savedAt, ...state } = raw as ProjectState & { savedAt: number };
+  const { savedAt, ...state } = raw as unknown as ProjectState & { savedAt: number };
   return newProjectRecord(state, savedAt);
 }
 
