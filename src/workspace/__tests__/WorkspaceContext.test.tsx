@@ -59,6 +59,18 @@ describe("WorkspaceProvider", () => {
     );
   });
 
+  it("flushes an unsaved change when the page is hidden", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+
+    act(() => result.current.switchProject(result.current.createProject()));
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(2);
+  });
+
   it("imports a selection as a new active project, dropping links to existing experiments", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
     act(() => {

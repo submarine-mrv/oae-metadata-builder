@@ -77,15 +77,31 @@ export function WorkspaceProvider({
 }) {
   const [workspace, setWorkspace] = useState<Workspace>(() => store.load() ?? emptyWorkspace());
 
+  // Debounced save, with a flush on unload so a reload right after a change keeps it.
   const isFirstSave = useRef(true);
+  const unsaved = useRef<Workspace | null>(null);
   useEffect(() => {
     if (isFirstSave.current) {
       isFirstSave.current = false;
       return;
     }
-    const timer = setTimeout(() => store.save(workspace), SAVE_DEBOUNCE_MS);
+    unsaved.current = workspace;
+    const timer = setTimeout(() => {
+      store.save(workspace);
+      unsaved.current = null;
+    }, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [workspace, store]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (!unsaved.current) return;
+      store.save(unsaved.current);
+      unsaved.current = null;
+    };
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, [store]);
 
   // Reads workspace from the closure so the new id can be returned synchronously.
   const createProject = useCallback(() => {
