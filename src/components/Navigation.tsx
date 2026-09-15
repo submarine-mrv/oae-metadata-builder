@@ -7,7 +7,6 @@ import {
   Menu,
   SegmentedControl,
   Switch,
-  Text,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
@@ -22,6 +21,7 @@ import type React from "react";
 import { useRef } from "react";
 import DownloadModal from "@/components/DownloadModal";
 import ImportPreviewModal from "@/components/ImportPreviewModal";
+import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportPreview } from "@/hooks/useImportPreview";
@@ -130,19 +130,18 @@ export default function Navigation() {
             gap: "1rem",
           }}
         >
-          {/* Logo and title - left aligned, links to Overview */}
-          <Link
-            to="/overview"
-            onClick={() => setActiveTab("overview")}
-            style={{ textDecoration: "none" }}
-          >
-            <Group gap="sm">
-              <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
-              <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
-                OAE Metadata Builder
-              </Text>
-            </Group>
-          </Link>
+          {/* Brand mark + active project. The product name lives in the mark's title and the About page. */}
+          <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+            <Link
+              to="/overview"
+              onClick={() => setActiveTab("overview")}
+              title="OAE Metadata Builder"
+              style={{ display: "flex", textDecoration: "none" }}
+            >
+              <Image src="/cts-logo.png" alt="OAE Metadata Builder" h={32} w="auto" />
+            </Link>
+            <ProjectSwitcher />
+          </Group>
 
           {/* Navigation tabs - centered (desktop only) */}
           {!isMobile && (
