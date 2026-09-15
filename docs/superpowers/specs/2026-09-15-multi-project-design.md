@@ -34,7 +34,7 @@ Migration: on first load with no workspace, if the legacy `oae-metadata-builder-
 
 `src/workspace/WorkspaceContext.tsx` provides `WorkspaceProvider` and `useWorkspace()`:
 
-- `projects: ProjectSummary[]` (id, name, organization, experimentCount, datasetCount, updatedAt), newest first.
+- `projects: ProjectSummary[]` (id, name, experimentCount, datasetCount, updatedAt, isActive), newest first.
 - `activeProjectId`, `activeProject: ProjectRecord`.
 - `createProject(): string` — new record with `hasProject: true` and empty `projectData`, made active.
 - `switchProject(id)`.
@@ -52,7 +52,7 @@ Retired: `SessionManager`, `SessionRestoreModal`, `useSessionPersistence`. Nothi
 
 **Header.** Logo mark, then the active project's name as a dropdown (`Unnamed Project ▾` until named), then the section tabs, then actions. The "OAE Metadata Builder" text leaves the header (it stays in the mark's tooltip, the About page and the document title). The dropdown lists projects with the active one checked, then "New project" (creates one and navigates to `/project`) and "All projects…" (navigates to `/projects`). Shown on every page, logged in or not.
 
-**`/projects` page.** Heading "Projects". A card grid: name, organization, experiment and dataset counts, "Edited …" relative time, an "Active" badge on the current project. Clicking a card switches to it and navigates to `/overview`. Each card has a delete icon that opens a confirm modal naming the project and its counts. A "New project" button matches the dropdown's.
+**`/projects` page.** Heading "Projects". A card grid: name, experiment and dataset counts, "Edited …" relative time, an "Active" badge on the current project. Clicking a card switches to it and navigates to `/overview`. Each card has a delete icon that opens a confirm modal naming the project and its counts. A "New project" button matches the dropdown's.
 
 **Overview.** Unchanged. Its "Create Project" card still creates project metadata inside the active project.
 
