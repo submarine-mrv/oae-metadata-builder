@@ -14,33 +14,61 @@ describe("WorkspaceProvider", () => {
     vi.useFakeTimers();
   });
 
-  it("starts with one unnamed active project when storage is empty", () => {
+  it("starts with no projects and no active project when storage is empty", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
-    expect(result.current.projects).toHaveLength(1);
-    expect(result.current.projects[0].name).toBe("Unnamed Project");
-    expect(result.current.projects[0].isActive).toBe(true);
+    expect(result.current.projects).toHaveLength(0);
+    expect(result.current.activeProjectId).toBeNull();
+    expect(result.current.activeProject).toBeNull();
   });
 
   it("creates, switches, and deletes projects", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
-    const first = result.current.activeProjectId;
 
-    let created = "";
+    let first = "";
+    let second = "";
     act(() => {
-      created = result.current.createProject();
+      first = result.current.createProject();
     });
-    expect(result.current.activeProjectId).toBe(created);
+    act(() => {
+      second = result.current.createProject();
+    });
+    expect(result.current.activeProjectId).toBe(second);
 
     act(() => result.current.switchProject(first));
     expect(result.current.activeProjectId).toBe(first);
 
     act(() => result.current.deleteProject(first));
-    expect(result.current.activeProjectId).toBe(created);
+    expect(result.current.activeProjectId).toBe(second);
     expect(result.current.projects).toHaveLength(1);
+  });
+
+  it("deleting the last project leaves no active project", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    let id = "";
+    act(() => {
+      id = result.current.createProject();
+    });
+    act(() => result.current.deleteProject(id));
+    expect(result.current.projects).toHaveLength(0);
+    expect(result.current.activeProject).toBeNull();
+  });
+
+  it("ignores updateActiveProject when there is no active project", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    act(() =>
+      result.current.updateActiveProject({
+        ...emptyProjectState(),
+        projectData: { project_id: "", research_project: "Ghost" },
+      }),
+    );
+    expect(result.current.projects).toHaveLength(0);
   });
 
   it("updates the active project's state and saves after the debounce", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
+    act(() => {
+      result.current.createProject();
+    });
     const next = {
       ...emptyProjectState(),
       hasProject: true,
@@ -68,7 +96,7 @@ describe("WorkspaceProvider", () => {
     act(() => {
       window.dispatchEvent(new Event("pagehide"));
     });
-    expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(2);
+    expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(1);
   });
 
   it("imports a selection as a new active project, dropping links to existing experiments", () => {
@@ -86,8 +114,9 @@ describe("WorkspaceProvider", () => {
       });
     });
     const active = result.current.activeProject;
-    expect(active.state.projectData.name).toBe("Imported");
-    expect(active.state.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
-    expect(result.current.projects).toHaveLength(2);
+    expect(active).not.toBeNull();
+    expect(active?.state.projectData.name).toBe("Imported");
+    expect(active?.state.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
+    expect(result.current.projects).toHaveLength(1);
   });
 });

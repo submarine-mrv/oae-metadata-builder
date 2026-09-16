@@ -40,8 +40,8 @@ export interface ProjectSummary {
 }
 
 interface WorkspaceContextValue {
-  activeProjectId: string;
-  activeProject: ProjectRecord;
+  activeProjectId: string | null;
+  activeProject: ProjectRecord | null;
   /** Newest first. */
   projects: ProjectSummary[];
   createProject: () => string;
@@ -122,7 +122,10 @@ export function WorkspaceProvider({
   }, []);
 
   const updateActiveProject = useCallback(
-    (state: ProjectState) => setWorkspace((ws) => updateIn(ws, ws.activeProjectId, state)),
+    (state: ProjectState) =>
+      setWorkspace((ws) =>
+        ws.activeProjectId === null ? ws : updateIn(ws, ws.activeProjectId, state),
+      ),
     [],
   );
 
@@ -136,10 +139,10 @@ export function WorkspaceProvider({
         experimentCount: p.state.experiments.length,
         datasetCount: p.state.datasets.length,
         updatedAt: p.updatedAt,
-        isActive: p.id === active.id,
+        isActive: p.id === active?.id,
       }));
     return {
-      activeProjectId: active.id,
+      activeProjectId: active?.id ?? null,
       activeProject: active,
       projects,
       createProject,
