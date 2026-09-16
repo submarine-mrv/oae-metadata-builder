@@ -35,8 +35,7 @@ export default function WelcomePage() {
             .
           </Text>
           <Text>
-            The metadata builder is currently in beta testing with a planned Spring 2026 launch. If
-            you have questions or concerns, please contact{" "}
+            If you have questions or concerns, please contact{" "}
             <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
           </Text>
           <Text>

@@ -124,8 +124,8 @@ export default function Navigation() {
             />
           )}
 
-          {/* Actions - right aligned */}
-          <Group gap="xs" justify="flex-end">
+          {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
+          <Group gap="xs" justify="flex-end" style={{ gridColumn: isMobile ? 2 : 3 }}>
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>
