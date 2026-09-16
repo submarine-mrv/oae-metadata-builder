@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DraftExperiment } from "@/types/forms";
+import type { ProjectState } from "@/workspace/types";
 import { AppStateProvider, type ExperimentData, useAppState } from "../AppStateContext";
 
 describe("AppStateContext", () => {
@@ -1707,50 +1708,50 @@ describe("AppStateContext", () => {
     });
   });
 
-  describe("restoreFullState", () => {
+  describe("initialState parsing", () => {
     it("normalizes legacy invariant violations and re-derives the top-level experiment_types copy", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
+      const fixture: ProjectState = {
+        hasProject: true,
+        projectData: { project_id: "proj-1" },
+        experiments: [
+          {
+            id: 1,
+            name: "Legacy",
+            // Saved before model exclusivity was enforced at boundaries:
+            // both the formData and the duplicated top-level copy are stale.
+            formData: {
+              experiment_id: "exp-legacy",
+              experiment_types: ["model", "intervention"],
+              dosing_description: "should be dropped",
+            } as unknown as DraftExperiment,
+            experiment_types: [
+              "model",
+              "intervention",
+            ] as unknown as DraftExperiment["experiment_types"],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        datasets: [
+          {
+            id: 1,
+            name: "Legacy model output",
+            formData: {
+              dataset_type: "model_output",
+              variables: [{ schema_class: "DiscretePHVariable" }],
+            } as unknown as import("@/types/forms").DraftDataset,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        nextExperimentId: 2,
+        nextDatasetId: 2,
+      };
 
-      act(() => {
-        result.current.restoreFullState({
-          hasProject: true,
-          projectData: { project_id: "proj-1" },
-          experiments: [
-            {
-              id: 1,
-              name: "Legacy",
-              // Saved before model exclusivity was enforced at boundaries:
-              // both the formData and the duplicated top-level copy are stale.
-              formData: {
-                experiment_id: "exp-legacy",
-                experiment_types: ["model", "intervention"],
-                dosing_description: "should be dropped",
-              } as unknown as DraftExperiment,
-              experiment_types: [
-                "model",
-                "intervention",
-              ] as unknown as DraftExperiment["experiment_types"],
-              createdAt: 1,
-              updatedAt: 1,
-            },
-          ],
-          datasets: [
-            {
-              id: 1,
-              name: "Legacy model output",
-              formData: {
-                dataset_type: "model_output",
-                variables: [{ schema_class: "DiscretePHVariable" }],
-              } as unknown as import("@/types/forms").DraftDataset,
-              createdAt: 1,
-              updatedAt: 1,
-            },
-          ],
-          nextExperimentId: 2,
-          nextDatasetId: 2,
-        });
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: ({ children }) => (
+          <AppStateProvider initialState={fixture}>{children}</AppStateProvider>
+        ),
       });
 
       const exp = result.current.state.experiments[0];

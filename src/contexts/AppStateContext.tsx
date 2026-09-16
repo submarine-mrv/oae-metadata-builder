@@ -145,8 +145,6 @@ interface AppStateContextType {
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
-  // Session persistence
-  restoreFullState: (saved: ProjectState) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -766,11 +764,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     }));
   }, []);
 
-  // Restore full state from session persistence (preserves IDs and linking)
-  const restoreFullState = useCallback((saved: ProjectState) => {
-    setState((prev) => ({ ...prev, ...parseProjectState(saved) }));
-  }, []);
-
   const value: AppStateContextType = {
     state,
     createProject,
@@ -805,9 +798,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     getDataset,
     // ID Linking methods
     updateDatasetLinking,
-    // Validation status
-    // Session persistence
-    restoreFullState,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
