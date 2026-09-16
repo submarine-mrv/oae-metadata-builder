@@ -184,9 +184,18 @@ export default function OverviewPage() {
     <AppLayout>
       <Container size="lg" py="xl">
         <Stack gap="xl">
-          {/* Header */}
+          {/* Header: the project name once there is more than one project to be in */}
           <div>
-            <Title order={1}>OAE Metadata Builder – Overview</Title>
+            {projects.length > 1 ? (
+              <>
+                <Title order={1} lineClamp={1}>
+                  {projectDisplayName(state)}
+                </Title>
+                <Text c="dimmed">Overview</Text>
+              </>
+            ) : (
+              <Title order={1}>OAE Metadata Builder – Overview</Title>
+            )}
           </div>
 
           {/* Project Section — only when created */}
