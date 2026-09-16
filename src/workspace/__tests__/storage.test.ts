@@ -22,6 +22,19 @@ describe("localStorageWorkspaceStore", () => {
     expect(localStorageWorkspaceStore.load()).toEqual(ws);
   });
 
+  it("round-trips an empty workspace", () => {
+    const ws: Workspace = { version: 1, activeProjectId: null, projects: [] };
+    localStorageWorkspaceStore.save(ws);
+    expect(localStorageWorkspaceStore.load()).toEqual(ws);
+  });
+
+  it("rejects a null active id when projects exist", () => {
+    const ws = workspaceFixture();
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, activeProjectId: null }));
+    expect(localStorageWorkspaceStore.load()).toBeNull();
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+  });
+
   it("drops malformed data instead of throwing", () => {
     localStorage.setItem(WORKSPACE_KEY, '{"version":1,"projects":"nope"}');
     expect(localStorageWorkspaceStore.load()).toBeNull();

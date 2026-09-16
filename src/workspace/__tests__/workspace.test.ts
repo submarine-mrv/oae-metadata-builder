@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyProjectState, newProjectRecord, type Workspace } from "../types";
 import {
+  activeProject,
   addProject,
   createProject,
   deleteProject,
@@ -16,11 +17,10 @@ function twoProjects(): Workspace {
 }
 
 describe("emptyWorkspace", () => {
-  it("starts with one unnamed, active project", () => {
+  it("has no projects and no active project", () => {
     const ws = emptyWorkspace();
-    expect(ws.projects).toHaveLength(1);
-    expect(ws.activeProjectId).toBe(ws.projects[0].id);
-    expect(ws.projects[0].state.hasProject).toBe(false);
+    expect(ws.projects).toHaveLength(0);
+    expect(ws.activeProjectId).toBeNull();
   });
 });
 
@@ -46,23 +46,21 @@ describe("switchProject", () => {
 describe("deleteProject", () => {
   it("removes the project and keeps the active one when it was not deleted", () => {
     const ws = twoProjects();
-    const result = deleteProject(ws, ws.projects[1].id, 400);
+    const result = deleteProject(ws, ws.projects[1].id);
     expect(result.projects).toHaveLength(1);
     expect(result.activeProjectId).toBe(ws.projects[0].id);
   });
 
   it("activates the most recently edited remaining project when the active one is deleted", () => {
     const ws = twoProjects();
-    const result = deleteProject(ws, ws.projects[0].id, 400);
+    const result = deleteProject(ws, ws.projects[0].id);
     expect(result.activeProjectId).toBe(ws.projects[1].id);
   });
 
-  it("creates a fresh unnamed project when the last one is deleted", () => {
-    const ws = emptyWorkspace();
-    const result = deleteProject(ws, ws.projects[0].id, 400);
-    expect(result.projects).toHaveLength(1);
-    expect(result.projects[0].id).not.toBe(ws.projects[0].id);
-    expect(result.activeProjectId).toBe(result.projects[0].id);
+  it("returns the empty workspace when the last project is deleted", () => {
+    const only = newProjectRecord(undefined, 100);
+    const ws: Workspace = { version: 1, activeProjectId: only.id, projects: [only] };
+    expect(deleteProject(ws, only.id)).toEqual(emptyWorkspace());
   });
 });
 
@@ -89,5 +87,14 @@ describe("addProject", () => {
     const result = addProject(ws, record);
     expect(result.projects).toContain(record);
     expect(result.activeProjectId).toBe(record.id);
+  });
+});
+
+describe("activeProject", () => {
+  it("returns the active record, falls back to the first, and is null when empty", () => {
+    const ws = twoProjects();
+    expect(activeProject(ws)?.id).toBe(ws.projects[0].id);
+    expect(activeProject({ ...ws, activeProjectId: "missing" })?.id).toBe(ws.projects[0].id);
+    expect(activeProject(emptyWorkspace())).toBeNull();
   });
 });

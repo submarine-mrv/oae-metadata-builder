@@ -19,7 +19,8 @@ export interface ProjectRecord {
 
 export interface Workspace {
   version: 1;
-  activeProjectId: string;
+  /** Null only when `projects` is empty. */
+  activeProjectId: string | null;
   projects: ProjectRecord[];
 }
 

@@ -38,13 +38,11 @@ function isProjectRecord(value: unknown): value is ProjectRecord {
 
 export function isWorkspace(value: unknown): value is Workspace {
   if (!isRecord(value)) return false;
-  return (
-    value.version === 1 &&
-    typeof value.activeProjectId === "string" &&
-    Array.isArray(value.projects) &&
-    value.projects.length > 0 &&
-    value.projects.every(isProjectRecord)
-  );
+  if (value.version !== 1 || !Array.isArray(value.projects)) return false;
+  if (!value.projects.every(isProjectRecord)) return false;
+  return value.projects.length === 0
+    ? value.activeProjectId === null
+    : typeof value.activeProjectId === "string";
 }
 
 function readJson(key: string): unknown {

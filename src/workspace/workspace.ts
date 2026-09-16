@@ -6,9 +6,8 @@ import {
   type Workspace,
 } from "./types";
 
-export function emptyWorkspace(now: number = Date.now()): Workspace {
-  const project = newProjectRecord(undefined, now);
-  return { version: 1, activeProjectId: project.id, projects: [project] };
+export function emptyWorkspace(): Workspace {
+  return { version: 1, activeProjectId: null, projects: [] };
 }
 
 export function addProject(workspace: Workspace, record: ProjectRecord): Workspace {
@@ -29,15 +28,11 @@ export function switchProject(workspace: Workspace, id: string): Workspace {
   return { ...workspace, activeProjectId: id };
 }
 
-export function deleteProject(
-  workspace: Workspace,
-  id: string,
-  now: number = Date.now(),
-): Workspace {
+export function deleteProject(workspace: Workspace, id: string): Workspace {
   const projects = workspace.projects.filter((p) => p.id !== id);
   if (projects.length === workspace.projects.length) return workspace;
 
-  if (projects.length === 0) return emptyWorkspace(now);
+  if (projects.length === 0) return emptyWorkspace();
 
   if (workspace.activeProjectId !== id) return { ...workspace, projects };
 
@@ -59,8 +54,10 @@ export function updateProject(
   return { ...workspace, projects };
 }
 
-export function activeProject(workspace: Workspace): ProjectRecord {
+export function activeProject(workspace: Workspace): ProjectRecord | null {
   return (
-    workspace.projects.find((p) => p.id === workspace.activeProjectId) ?? workspace.projects[0]
+    workspace.projects.find((p) => p.id === workspace.activeProjectId) ??
+    workspace.projects[0] ??
+    null
   );
 }
