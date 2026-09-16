@@ -37,6 +37,8 @@ interface ImportPreviewModalProps {
   onImport: () => void;
   importMode: "new" | "merge";
   onImportModeChange: (mode: "new" | "merge") => void;
+  /** False when there is no current project to merge into; the mode control is hidden. */
+  canMerge: boolean;
 }
 
 /**
@@ -66,11 +68,13 @@ export default function ImportPreviewModal({
   onImport,
   importMode,
   onImportModeChange,
+  canMerge,
 }: ImportPreviewModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
-  const hasBlockingError = importMode === "merge" && duplicateExperimentIdError !== null;
+  const hasBlockingError =
+    canMerge && importMode === "merge" && duplicateExperimentIdError !== null;
 
   // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
@@ -292,15 +296,17 @@ export default function ImportPreviewModal({
 
         {/* Action buttons */}
         <Stack gap="sm">
-          <SegmentedControl
-            fullWidth
-            value={importMode}
-            onChange={(value) => onImportModeChange(value as "new" | "merge")}
-            data={[
-              { value: "new", label: "Add as a new project" },
-              { value: "merge", label: "Merge into current project" },
-            ]}
-          />
+          {canMerge && (
+            <SegmentedControl
+              fullWidth
+              value={importMode}
+              onChange={(value) => onImportModeChange(value as "new" | "merge")}
+              data={[
+                { value: "new", label: "Add as a new project" },
+                { value: "merge", label: "Merge into current project" },
+              ]}
+            />
+          )}
           <Group justify="flex-end" gap="sm">
             <Button variant="default" onClick={onClose}>
               Cancel
