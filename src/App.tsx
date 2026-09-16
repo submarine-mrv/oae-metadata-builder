@@ -1,5 +1,7 @@
 import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { RouterProvider } from "@tanstack/react-router";
+import { AuthProvider } from "@/auth/AuthContext";
 import { AppStateProvider } from "@/contexts/AppStateContext";
 import { theme } from "@/theme";
 import { emptyProjectState } from "@/workspace/types";
@@ -27,9 +29,12 @@ function ActiveProjectSession() {
 export default function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="light">
-      <WorkspaceProvider>
-        <ActiveProjectSession />
-      </WorkspaceProvider>
+      <Notifications />
+      <AuthProvider>
+        <WorkspaceProvider>
+          <ActiveProjectSession />
+        </WorkspaceProvider>
+      </AuthProvider>
     </MantineProvider>
   );
 }

@@ -7,6 +7,10 @@ import { useWorkspace, WorkspaceProvider } from "@/workspace/WorkspaceContext";
 import WelcomePage from "../WelcomePage";
 
 const navigate = vi.fn();
+vi.mock("@/auth/useAuth", () => ({
+  useAuth: () => ({ client: { signOut: vi.fn() }, user: null, isAuthenticated: false }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
   useLocation: ({ select }: { select?: (s: { pathname: string }) => unknown }) =>

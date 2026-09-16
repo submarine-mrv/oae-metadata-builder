@@ -35,14 +35,22 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
         "useExhaustiveDependencies": "warn",
         "noUnusedImports": "error",
         "noUnusedVariables": "warn"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@supabase/supabase-js": "Supabase imports belong in src/auth/providers/supabase."
+            }
+          }
+        }
       },
       "suspicious": {
         "noExplicitAny": "warn",
@@ -62,5 +70,17 @@
       "semicolons": "always",
       "trailingCommas": "all"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/auth/providers/supabase/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    }
+  ]
 }

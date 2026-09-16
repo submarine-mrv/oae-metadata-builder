@@ -6,6 +6,10 @@ import { AppStateProvider, useAppState } from "@/contexts/AppStateContext";
 import { WorkspaceProvider } from "@/workspace/WorkspaceContext";
 import AppLayout from "../AppLayout";
 
+vi.mock("@/auth/useAuth", () => ({
+  useAuth: () => ({ client: { signOut: vi.fn() }, user: null, isAuthenticated: false }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: ({ select }: { select?: (s: { pathname: string }) => unknown }) =>
