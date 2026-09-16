@@ -108,6 +108,25 @@ describe("analytics with a measurement ID", () => {
     });
   });
 
+  it("removes auth and PII query parameters from page views", () => {
+    window.history.pushState(
+      {},
+      "",
+      "/auth/callback?email=person%40example.com&token_hash=secret&returnTo=%2Foverview",
+    );
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+
+    const pageView = gtagCalls().find(([, name]) => name === "page_view");
+    expect(pageView?.[2]).toMatchObject({
+      page_path: "/auth/callback?returnTo=%2Foverview",
+      page_location: `${window.location.origin}/auth/callback?returnTo=%2Foverview`,
+    });
+  });
+
   it("omits the params argument for events with no parameters", () => {
     const { router } = fakeRouter();
     initAnalytics(router);
