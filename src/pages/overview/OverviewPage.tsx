@@ -28,6 +28,7 @@ import type React from "react";
 import { useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useAppState } from "@/contexts/AppStateContext";
+import { projectDisplayName } from "@/workspace/types";
 
 export default function OverviewPage() {
   const {
@@ -242,7 +243,7 @@ export default function OverviewPage() {
                       <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                       <div style={{ minWidth: 0 }}>
                         <Group gap={6} wrap="nowrap" align="center">
-                          <Text fw={600}>Project Metadata</Text>
+                          <Text fw={600}>{projectDisplayName(state)}</Text>
                           {projectStatus.isValid && (
                             <IconCircleCheck
                               size={18}

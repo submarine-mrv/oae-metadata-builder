@@ -7,6 +7,7 @@ import {
   Menu,
   SegmentedControl,
   Switch,
+  Text,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
@@ -135,15 +136,25 @@ export default function Navigation() {
             gap: "1rem",
           }}
         >
-          {/* Brand mark + active project. The product name lives in the mark's title and the About page. */}
-          <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+          {/* Brand, then the active project as a breadcrumb */}
+          <Group gap="sm" wrap="nowrap" pr="lg" style={{ minWidth: 0 }}>
             <Link
               to="/overview"
               onClick={() => setActiveTab("overview")}
-              title="OAE Metadata Builder"
-              style={{ display: "flex", textDecoration: "none" }}
+              style={{ textDecoration: "none", flexShrink: 0 }}
             >
-              <Image src="/cts-logo.png" alt="OAE Metadata Builder" h={32} w="auto" />
+              <Group gap="sm" wrap="nowrap">
+                <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w={36} decoding="sync" />
+                <Text
+                  fw={500}
+                  size="md"
+                  c="hadal.9"
+                  ff="var(--font-display)"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  OAE Metadata Builder
+                </Text>
+              </Group>
             </Link>
             <ProjectSwitcher />
           </Group>

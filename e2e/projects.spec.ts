@@ -7,16 +7,18 @@ test.describe("Multiple projects", () => {
   }) => {
     await page.goto("/overview");
     const switcher = page.getByRole("button", { name: /Current project:/ });
-    await waitForRoute(switcher);
-    await expect(switcher).toHaveText("Unnamed Project");
+    // No project yet: the brand reads as before and only the projects menu chevron shows.
+    await waitForRoute(page.getByRole("button", { name: "Projects" }));
+    await expect(page.getByRole("link", { name: "OAE Metadata Builder" })).toBeVisible();
+    await expect(switcher).toHaveCount(0);
 
-    // Naming the project updates the header as you type.
+    // One project: still no crumb, whatever it's called.
     await createFromOverview(page, "Project");
     await page.getByLabel(/Research Project/).fill("Kiel trial");
-    await expect(switcher).toHaveText("Kiel trial");
+    await expect(switcher).toHaveCount(0);
 
-    // A second project from the menu starts unnamed on the project form.
-    await switcher.click();
+    // A second project from the menu starts unnamed on the project form, and the crumb appears.
+    await page.getByRole("button", { name: "Projects" }).click();
     await page.getByRole("menuitem", { name: "New project" }).click();
     await expect(page).toHaveURL(/\/project$/);
     await expect(switcher).toHaveText("Unnamed Project");
@@ -40,5 +42,7 @@ test.describe("Multiple projects", () => {
     await page.getByRole("button", { name: "Delete Unnamed Project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(1);
+    // Back to one project: the crumb goes away again.
+    await expect(switcher).toHaveCount(0);
   });
 });

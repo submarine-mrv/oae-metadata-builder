@@ -1,11 +1,15 @@
-import { Button, Menu, Text } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Text } from "@mantine/core";
 import { IconCheck, IconChevronDown, IconFolders, IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAppState } from "@/contexts/AppStateContext";
 import { projectDisplayName } from "@/workspace/types";
 import { useWorkspace } from "@/workspace/WorkspaceContext";
 
-/** The active project's name as the header title, with a menu to change it. */
+/**
+ * The active project after the brand name, as a breadcrumb: "OAE Metadata Builder / Kiel trial ▾".
+ * With a single project there is nothing to be in by mistake, so only a chevron shows and the
+ * header reads as it always has. The crumb appears once a second project exists.
+ */
 export default function ProjectSwitcher() {
   const { projects, activeProjectId, createProject, switchProject } = useWorkspace();
   const { state } = useAppState();
@@ -27,17 +31,36 @@ export default function ProjectSwitcher() {
   return (
     <Menu shadow="md" width={320} position="bottom-start">
       <Menu.Target>
-        <Button
-          variant="subtle"
-          color="hadal"
-          size="compact-lg"
-          ff="var(--font-display)"
-          rightSection={<IconChevronDown size={16} />}
-          aria-label={`Current project: ${activeName}`}
-          styles={{ label: { maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" } }}
-        >
-          {activeName}
-        </Button>
+        {projects.length > 1 ? (
+          <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+            <Text c="dimmed" size="md" aria-hidden style={{ flexShrink: 0 }}>
+              /
+            </Text>
+            <Button
+              variant="subtle"
+              color="hadal"
+              size="compact-md"
+              px={6}
+              rightSection={<IconChevronDown size={14} />}
+              aria-label={`Current project: ${activeName}`}
+            >
+              {/* Ellipsis needs a block box; the button label itself is a flex row. */}
+              <Text
+                component="span"
+                size="sm"
+                fw={500}
+                truncate
+                style={{ display: "block", maxWidth: 200 }}
+              >
+                {activeName}
+              </Text>
+            </Button>
+          </Group>
+        ) : (
+          <ActionIcon variant="subtle" color="hadal" size="md" aria-label="Projects">
+            <IconChevronDown size={16} />
+          </ActionIcon>
+        )}
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Label>Projects</Menu.Label>
@@ -45,6 +68,7 @@ export default function ProjectSwitcher() {
           <Menu.Item
             key={project.id}
             onClick={() => handleSwitch(project.id)}
+            styles={{ itemLabel: { minWidth: 0 } }}
             leftSection={
               project.isActive ? (
                 <IconCheck size={16} />
