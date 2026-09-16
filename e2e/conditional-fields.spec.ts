@@ -1,4 +1,5 @@
 import * as path from "path";
+import { createFromOverview } from "./fixtures/app";
 import { ExperimentPage } from "./fixtures/experiment-page";
 import { expect, test } from "./fixtures/test";
 
@@ -8,13 +9,7 @@ test.describe("Conditional Dropdown Fields", () => {
   test.beforeEach(async ({ page }) => {
     experimentPage = new ExperimentPage(page);
 
-    // Navigate to overview and create an experiment
-    await page.goto("/overview");
-    await page.waitForLoadState("networkidle");
-
-    // Create a new experiment
-    await page.getByRole("button", { name: /Create.*Experiment/i }).click();
-    await page.waitForURL("**/experiment");
+    await createFromOverview(page, "Experiment");
     await page.waitForLoadState("networkidle");
 
     // Select "Intervention" experiment type to get alkalinity feedstock fields
@@ -180,7 +175,7 @@ test.describe("Import preserves conditional field values", () => {
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixturePath);
     await page.waitForTimeout(1000);
@@ -225,7 +220,7 @@ test.describe("Import preserves conditional field values", () => {
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixturePath);
     await page.waitForTimeout(1000);

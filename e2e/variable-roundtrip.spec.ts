@@ -1,6 +1,7 @@
 import type { Download, Page } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
+import { createFromOverview } from "./fixtures/app";
 import { expect, test } from "./fixtures/test";
 
 /**
@@ -221,12 +222,7 @@ test.describe("Variable Round-Trip", () => {
     // Increase timeout for this comprehensive test
     test.setTimeout(120_000);
 
-    // Navigate to overview and create a dataset
-    await page.goto("/overview");
-    await page.waitForLoadState("networkidle");
-
-    await page.getByRole("button", { name: /Create.*Dataset/i }).click();
-    await page.waitForURL("**/dataset");
+    await createFromOverview(page, "Dataset");
     await page.waitForLoadState("networkidle");
 
     // Create each variable combo
@@ -295,7 +291,7 @@ test.describe("Variable Round-Trip", () => {
 
     // Set up file chooser listener before clicking import
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(tempFile);
     await page.waitForTimeout(1000);
