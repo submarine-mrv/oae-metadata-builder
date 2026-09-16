@@ -92,7 +92,6 @@ function propagateExperimentIdToDatasets(
 interface AppStateContextType {
   state: AppState;
   createProject: () => void;
-  deleteProject: () => void;
   updateProjectData: (data: DraftProject) => void;
   addExperiment: (name?: string) => number;
   updateExperiment: (
@@ -209,22 +208,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
       ...prev,
       hasProject: true,
     }));
-  }, []);
-
-  const deleteProject = useCallback(() => {
-    setState((prev) => {
-      // Clear project_id from linked experiments and datasets
-      const newExperiments = propagateProjectIdToExperiments(prev.experiments, "");
-      const newDatasets = propagateProjectIdToDatasets(prev.datasets, "");
-
-      return {
-        ...prev,
-        hasProject: false,
-        projectData: {},
-        experiments: newExperiments,
-        datasets: newDatasets,
-      };
-    });
   }, []);
 
   const updateProjectData = useCallback((data: DraftProject) => {
@@ -767,7 +750,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
   const value: AppStateContextType = {
     state,
     createProject,
-    deleteProject,
     updateProjectData,
     addExperiment,
     updateExperiment,

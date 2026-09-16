@@ -22,17 +22,18 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useAppState } from "@/contexts/AppStateContext";
+import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
 import { projectDisplayName } from "@/workspace/types";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function OverviewPage() {
   const {
     state,
     setActiveTab,
     createProject,
-    deleteProject,
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
@@ -45,6 +46,9 @@ export default function OverviewPage() {
     deleteDataset,
     duplicateDataset,
   } = useAppState();
+  const { projects, activeProjectId, deleteProject: deleteWorkspaceProject } = useWorkspace();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const activeSummary = projects.find((p) => p.id === activeProjectId) ?? null;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,13 +66,12 @@ export default function OverviewPage() {
 
   const handleDeleteProject = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      confirm(
-        "Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets.",
-      )
-    ) {
-      deleteProject();
-    }
+    setConfirmingDelete(true);
+  };
+
+  const confirmDeleteProject = () => {
+    if (activeProjectId) deleteWorkspaceProject(activeProjectId);
+    setConfirmingDelete(false);
   };
 
   const handleCreateExperiment = () => {
@@ -236,6 +239,7 @@ export default function OverviewPage() {
                       size="xs"
                       style={{ flexShrink: 0 }}
                       onClick={handleDeleteProject}
+                      aria-label="Delete project"
                     >
                       <IconTrash size={16} />
                     </Button>
@@ -577,6 +581,11 @@ export default function OverviewPage() {
           )}
         </Stack>
       </Container>
+      <DeleteProjectModal
+        project={confirmingDelete ? activeSummary : null}
+        onConfirm={confirmDeleteProject}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </AppLayout>
   );
 }
