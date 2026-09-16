@@ -24,9 +24,11 @@ import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportFlow } from "@/hooks/useImportFlow";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function Navigation() {
   const { state, setActiveTab, toggleJsonPreview } = useAppState();
+  const hasProjects = useWorkspace().projects.length > 0;
   const navigate = useNavigate();
   const importFlow = useImportFlow();
 
@@ -81,27 +83,30 @@ export default function Navigation() {
           <Group gap="sm" wrap="nowrap" pr="lg" style={{ minWidth: 0 }}>
             <Link
               to="/overview"
+              aria-label="OAE Metadata Builder"
               onClick={() => setActiveTab("overview")}
               style={{ textDecoration: "none", flexShrink: 0 }}
             >
               <Group gap="sm" wrap="nowrap">
                 <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w={36} decoding="sync" />
-                <Text
-                  fw={500}
-                  size="md"
-                  c="hadal.9"
-                  ff="var(--font-display)"
-                  style={{ whiteSpace: "nowrap" }}
-                >
-                  OAE Metadata Builder
-                </Text>
+                {!isMobile && (
+                  <Text
+                    fw={500}
+                    size="md"
+                    c="hadal.9"
+                    ff="var(--font-display)"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    OAE Metadata Builder
+                  </Text>
+                )}
               </Group>
             </Link>
-            <ProjectSwitcher />
+            {hasProjects && <ProjectSwitcher />}
           </Group>
 
           {/* Navigation tabs - centered (desktop only) */}
-          {!isMobile && (
+          {!isMobile && hasProjects && (
             <SegmentedControl
               style={{
                 backgroundColor: "var(--brand-sunlight)",
@@ -131,13 +136,15 @@ export default function Navigation() {
                 >
                   Import
                 </Button>
-                <Button
-                  variant="outline"
-                  leftSection={<IconDownload size={16} />}
-                  onClick={openModal}
-                >
-                  Export
-                </Button>
+                {hasProjects && (
+                  <Button
+                    variant="outline"
+                    leftSection={<IconDownload size={16} />}
+                    onClick={openModal}
+                  >
+                    Export
+                  </Button>
+                )}
               </>
             )}
 
@@ -158,9 +165,11 @@ export default function Navigation() {
                     >
                       Import
                     </Menu.Item>
-                    <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
-                      Export
-                    </Menu.Item>
+                    {hasProjects && (
+                      <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
+                        Export
+                      </Menu.Item>
+                    )}
                     <Menu.Divider />
                   </>
                 )}
@@ -202,7 +211,7 @@ export default function Navigation() {
         </Box>
 
         {/* Bottom row: SegmentedControl full-width (mobile only) */}
-        {isMobile && (
+        {isMobile && hasProjects && (
           <SegmentedControl
             style={{
               backgroundColor: "var(--brand-sunlight)",

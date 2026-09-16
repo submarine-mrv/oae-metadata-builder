@@ -1,7 +1,5 @@
 import {
   ActionIcon,
-  Alert,
-  Anchor,
   Badge,
   Button,
   Card,
@@ -14,7 +12,6 @@ import {
   Title,
 } from "@mantine/core";
 import {
-  IconAlertTriangle,
   IconCircleCheck,
   IconCopy,
   IconDatabase,
@@ -23,7 +20,7 @@ import {
   IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
@@ -188,39 +185,6 @@ export default function OverviewPage() {
           <div>
             <Title order={1}>OAE Metadata Builder – Overview</Title>
           </div>
-
-          {/* Beta notice */}
-          <Alert
-            variant="light"
-            color="progressBlue"
-            icon={<IconAlertTriangle size={20} />}
-            title="Welcome to the OAE Metadata Builder"
-          >
-            <Text size="sm">
-              The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
-              (OAE) projects, experiments, and datasets in compliance with the{" "}
-              <Anchor
-                href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                OAE Data Management Protocol
-              </Anchor>
-              .
-            </Text>
-            <Text size="sm" mt="xs">
-              The metadata builder is currently in beta testing with a planned Spring 2026 launch.
-              If you have questions or concerns, please contact{" "}
-              <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
-            </Text>
-            <Text size="sm" mt="xs">
-              For more information, visit the{" "}
-              <Anchor component={Link} to="/about">
-                About page
-              </Anchor>
-              .
-            </Text>
-          </Alert>
 
           {/* Project Section — only when created */}
           {state.hasProject && (
