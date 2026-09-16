@@ -2,6 +2,8 @@
 
 Branch `feat/multi-project` off `dev`. Gives the metadata builder a list of projects the user can switch between, persisted locally, with a shape a later cloud-sync PR can pick up without reworking state.
 
+Superseded in part by `2026-09-15-first-run-design.md`: the workspace may be empty, the overview gains a welcome screen, and the overview's delete action removes the whole project.
+
 ## Model
 
 A project is what the whole app state is today: one OAEProject plus its experiments and datasets. The user has several and works in one at a time. Switching swaps the entire builder.
