@@ -1,9 +1,10 @@
-import { Button, Container, Group, Modal, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Button, Card, Container, Group, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { type ProjectSummary, useWorkspace } from "@/workspace/WorkspaceContext";
+import DeleteProjectModal from "./DeleteProjectModal";
 import ProjectCard from "./ProjectCard";
 
 export default function ProjectsPage() {
@@ -36,43 +37,43 @@ export default function ProjectsPage() {
               New project
             </Button>
           </Group>
-          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-            {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onOpen={() => openProject(project.id)}
-                onDelete={() => setPendingDelete(project)}
-              />
-            ))}
-          </SimpleGrid>
+          {projects.length === 0 ? (
+            <Card
+              withBorder
+              padding="xl"
+              radius="md"
+              style={{ borderStyle: "dashed", borderWidth: 2, maxWidth: 420 }}
+            >
+              <Stack align="center" gap="sm">
+                <Text fw={500}>No projects yet</Text>
+                <Text size="sm" c="dimmed" ta="center">
+                  A project holds its metadata, experiments and datasets.
+                </Text>
+                <Button leftSection={<IconPlus size={16} />} onClick={newProject}>
+                  Create project
+                </Button>
+              </Stack>
+            </Card>
+          ) : (
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onOpen={() => openProject(project.id)}
+                  onDelete={() => setPendingDelete(project)}
+                />
+              ))}
+            </SimpleGrid>
+          )}
         </Stack>
       </Container>
 
-      <Modal
-        opened={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        title="Delete project"
-      >
-        {pendingDelete && (
-          <Stack>
-            <Text size="sm">
-              Delete <strong>{pendingDelete.name}</strong> and its {pendingDelete.experimentCount}{" "}
-              experiment{pendingDelete.experimentCount === 1 ? "" : "s"} and{" "}
-              {pendingDelete.datasetCount} dataset{pendingDelete.datasetCount === 1 ? "" : "s"}?
-              This cannot be undone.
-            </Text>
-            <Group justify="flex-end">
-              <Button variant="default" onClick={() => setPendingDelete(null)}>
-                Cancel
-              </Button>
-              <Button color="red" onClick={confirmDelete}>
-                Delete project
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+      <DeleteProjectModal
+        project={pendingDelete}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </AppLayout>
   );
 }
