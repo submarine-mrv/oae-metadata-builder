@@ -12,7 +12,7 @@ test.describe("Multiple projects", () => {
     // Empty workspace: welcome screen, brand-only header.
     await waitForRoute(firstProject);
     await expect(page.getByRole("link", { name: "OAE Metadata Builder" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Projects" })).toHaveCount(0);
+    await expect(switcher).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
     await expect(page.getByRole("radio", { name: "Experiments" })).toHaveCount(0);
     await expect(page).toHaveTitle("OAE Metadata Builder");
@@ -21,16 +21,16 @@ test.describe("Multiple projects", () => {
     await page.goto("/experiment");
     await expect(page).toHaveURL(/\/overview$/);
 
-    // First project lands on the form; naming it updates the tab title. One project: no crumb.
+    // First project lands on the form; the crumb and tab title follow the name as it's typed.
     await firstProject.click();
     await expect(page).toHaveURL(/\/project$/);
+    await expect(switcher).toHaveText("Unnamed Project");
     await page.getByLabel(/Research Project/).fill("Kiel trial");
     await expect(page).toHaveTitle("Kiel trial · OAE Metadata Builder");
-    await expect(switcher).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Projects" })).toBeVisible();
+    await expect(switcher).toHaveText("Kiel trial");
 
-    // A second project from the menu starts unnamed on the project form, and the crumb appears.
-    await page.getByRole("button", { name: "Projects" }).click();
+    // A second project from the menu starts unnamed on the project form.
+    await switcher.click();
     await page.getByRole("menuitem", { name: "New project" }).click();
     await expect(page).toHaveURL(/\/project$/);
     await expect(switcher).toHaveText("Unnamed Project");
@@ -50,12 +50,12 @@ test.describe("Multiple projects", () => {
     await waitForRoute(switcher);
     await expect(switcher).toHaveText("Kiel trial");
 
-    // Delete the unnamed one from the list; back to one project, crumb gone.
+    // Delete the unnamed one from the list; the crumb still names the remaining project.
     await page.goto("/projects");
     await page.getByRole("button", { name: "Delete Unnamed Project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(1);
-    await expect(switcher).toHaveCount(0);
+    await expect(switcher).toHaveText("Kiel trial");
 
     // Delete the last one: the list empties and nothing comes back.
     await page.getByRole("button", { name: "Delete Kiel trial" }).click();

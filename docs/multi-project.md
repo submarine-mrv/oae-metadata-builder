@@ -18,7 +18,7 @@ One localStorage key, `oae-metadata-builder-workspace`, holds the whole `Workspa
 
 ## Names and ids
 
-The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project"; nothing stores it. It appears in the header crumb once there are two or more projects, in the tab title once the project is named, and as the overview heading with two or more projects. Ids are `crypto.randomUUID()`; `updatedAt` changes whenever a project's state changes.
+The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project"; nothing stores it. It appears in the header crumb whenever a project exists, in the tab title once the project is named, and as the overview heading with two or more projects. Ids are `crypto.randomUUID()`; `updatedAt` changes whenever a project's state changes.
 
 ## Import
 
