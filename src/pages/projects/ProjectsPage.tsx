@@ -1,4 +1,4 @@
-import { Button, Card, Container, Group, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Button, Container, Group, SimpleGrid, Stack, Title } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -37,35 +37,16 @@ export default function ProjectsPage() {
               New project
             </Button>
           </Group>
-          {projects.length === 0 ? (
-            <Card
-              withBorder
-              padding="xl"
-              radius="md"
-              style={{ borderStyle: "dashed", borderWidth: 2, maxWidth: 420 }}
-            >
-              <Stack align="center" gap="sm">
-                <Text fw={500}>No projects yet</Text>
-                <Text size="sm" c="dimmed" ta="center">
-                  A project holds its metadata, experiments and datasets.
-                </Text>
-                <Button leftSection={<IconPlus size={16} />} onClick={newProject}>
-                  Create project
-                </Button>
-              </Stack>
-            </Card>
-          ) : (
-            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-              {projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onOpen={() => openProject(project.id)}
-                  onDelete={() => setPendingDelete(project)}
-                />
-              ))}
-            </SimpleGrid>
-          )}
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+            {projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onOpen={() => openProject(project.id)}
+                onDelete={() => setPendingDelete(project)}
+              />
+            ))}
+          </SimpleGrid>
         </Stack>
       </Container>
 

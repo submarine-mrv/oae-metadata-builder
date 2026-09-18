@@ -46,22 +46,21 @@ describe("ProjectsPage", () => {
     navigate.mockClear();
   });
 
-  it("shows an empty state whose button creates a project", () => {
+  it("lists projects and the New project button goes to the form", () => {
     renderPage();
-    expect(screen.getByText("No projects yet")).toBeInTheDocument();
-    act(() => screen.getByRole("button", { name: "Create project" }).click());
+    act(() => screen.getByText("seed").click());
+    expect(screen.getByRole("button", { name: "Open Unnamed Project" })).toBeInTheDocument();
+    act(() => screen.getByRole("button", { name: "New project" }).click());
     expect(navigate).toHaveBeenCalledWith({ to: "/project" });
   });
 
-  it("returns to the empty state after the last project is deleted", async () => {
+  it("deleting the last project removes its card", async () => {
     renderPage();
     act(() => screen.getByText("seed").click());
-    expect(screen.queryByText("No projects yet")).toBeNull();
-
     act(() => screen.getByRole("button", { name: "Delete Unnamed Project" }).click());
     // Mantine's Modal mounts its content after a transition frame.
     const dialog = await screen.findByRole("dialog");
     act(() => within(dialog).getByRole("button", { name: "Delete project" }).click());
-    expect(screen.getByText("No projects yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Open / })).toBeNull();
   });
 });

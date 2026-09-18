@@ -36,7 +36,7 @@ Route behaviour when the workspace is empty:
 |---|---|
 | `/overview` | Renders `WelcomePage` instead of `OverviewPage` |
 | `/project`, `/experiment`, `/dataset` | `RequireProject` wrapper redirects to `/overview` |
-| `/projects` | Renders its empty state |
+| `/projects` | `RequireProject` wrapper redirects to `/overview` |
 | `/about`, `/how-to`, `/checker` | Unchanged |
 
 `RequireProject` lives in `src/workspace/RequireProject.tsx` and renders `<Navigate to="/overview" />` when `projects.length === 0`, otherwise its children.
@@ -79,7 +79,7 @@ Brand mark and text only. Hidden: the project switcher, the section tabs, and Ex
 
 ## Projects page when empty
 
-The heading and "New project" button stay. The card grid is replaced by one dashed card reading "No projects yet" with a "Create project" button that behaves like "New project". Deleting the last project from this page stays on the page and shows this card.
+There is no empty state. The route is wrapped in `RequireProject`, so with zero projects, including the moment the last one is deleted from the list, the user lands on the welcome screen. (Revised 2026-09-18; the first version kept a "No projects yet" card here.)
 
 ## Deleting a project from the overview
 
@@ -105,8 +105,8 @@ Unit:
 E2E, `e2e/projects.spec.ts`:
 1. First load shows the welcome screen; no section tabs, no Export, no switcher.
 2. "Create your first project" lands on `/project`; naming it updates the header and tab title.
-3. Deleting the last project from `/projects` shows the "No projects yet" card and does not recreate anything.
-4. "Create project" from that card lands on `/project`.
+3. Deleting the last project from `/projects` lands on the welcome screen and does not recreate anything.
+4. "Create your first project" on the welcome screen lands on `/project`.
 5. From the overview, the project card's trash deletes the project and shows the welcome screen.
 
 `createFromOverview` in `e2e/fixtures/app.ts` becomes: if the welcome screen is showing, create the first project, then go to `/overview` and click the requested "Create …" card. The four specs with their own copy of that flow (`cf-standard-name`, `conditional-fields`, `variable-roundtrip`, `dosing-location`) call the helper instead. `dataset-conditional-restore` imports a fixture from the header menu, which still works from the welcome screen.

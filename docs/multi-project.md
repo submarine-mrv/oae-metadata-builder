@@ -4,7 +4,7 @@ A project is one `ProjectState`: project metadata plus its experiments and datas
 
 ## Empty workspace
 
-Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null` and `AppStateProvider` mounts with a blank state whose changes go nowhere. `/overview` renders `WelcomePage` (`src/pages/welcome/`), whose actions are "Create your first project" and "Import from file". The `/project`, `/experiment` and `/dataset` routes are wrapped in `RequireProject` (`src/workspace/RequireProject.tsx`), which redirects to `/overview`. The header shows the brand, Import and the menu only; `/projects` shows an empty-state card.
+Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null` and `AppStateProvider` mounts with a blank state whose changes go nowhere. `/overview` renders `WelcomePage` (`src/pages/welcome/`), whose actions are "Create your first project" and "Import from file". The `/project`, `/experiment`, `/dataset` and `/projects` routes are wrapped in `RequireProject` (`src/workspace/RequireProject.tsx`), which redirects to `/overview`, so deleting the last project from the list lands on the welcome screen. The header shows the brand, Import and the menu only.
 
 Creating a project, from anywhere, lands on `/project`.
 

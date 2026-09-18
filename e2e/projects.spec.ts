@@ -57,14 +57,15 @@ test.describe("Multiple projects", () => {
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(1);
     await expect(switcher).toHaveText("Kiel trial");
 
-    // Delete the last one: the list empties and nothing comes back.
+    // Delete the last one: the list is gone and the welcome screen is back.
     await page.getByRole("button", { name: "Delete Kiel trial" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
-    await expect(page.getByText("No projects yet")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/overview$/);
+    await expect(firstProject).toBeVisible();
+    await expect(switcher).toHaveCount(0);
 
-    // Create from the empty state, then delete from the overview card to reach the welcome screen.
-    await page.getByRole("button", { name: "Create project" }).click();
+    // A project can also be deleted from its overview card.
+    await firstProject.click();
     await expect(page).toHaveURL(/\/project$/);
     await page.goto("/overview");
     await page.getByRole("button", { name: "Delete project" }).click();
