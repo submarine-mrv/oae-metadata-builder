@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import ExperimentPage from "@/pages/experiment/ExperimentPage";
+import ProjectsPage from "@/pages/projects/ProjectsPage";
 import RequireProject from "@/workspace/RequireProject";
 
-export const Route = createFileRoute("/experiment")({
+export const Route = createFileRoute("/projects")({
   component: () => (
     <RequireProject>
-      <ExperimentPage />
+      <ProjectsPage />
     </RequireProject>
   ),
 });

@@ -1,7 +1,5 @@
 import {
   ActionIcon,
-  Alert,
-  Anchor,
   Badge,
   Button,
   Card,
@@ -14,7 +12,6 @@ import {
   Title,
 } from "@mantine/core";
 import {
-  IconAlertTriangle,
   IconCircleCheck,
   IconCopy,
   IconDatabase,
@@ -23,18 +20,20 @@ import {
   IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useAppState } from "@/contexts/AppStateContext";
+import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
+import { projectDisplayName } from "@/workspace/types";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function OverviewPage() {
   const {
     state,
     setActiveTab,
     createProject,
-    deleteProject,
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
@@ -47,6 +46,9 @@ export default function OverviewPage() {
     deleteDataset,
     duplicateDataset,
   } = useAppState();
+  const { projects, activeProjectId, deleteProject: deleteWorkspaceProject } = useWorkspace();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const activeSummary = projects.find((p) => p.id === activeProjectId) ?? null;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,13 +66,12 @@ export default function OverviewPage() {
 
   const handleDeleteProject = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      confirm(
-        "Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets.",
-      )
-    ) {
-      deleteProject();
-    }
+    setConfirmingDelete(true);
+  };
+
+  const confirmDeleteProject = () => {
+    if (activeProjectId) deleteWorkspaceProject(activeProjectId);
+    setConfirmingDelete(false);
   };
 
   const handleCreateExperiment = () => {
@@ -183,43 +184,19 @@ export default function OverviewPage() {
     <AppLayout>
       <Container size="lg" py="xl">
         <Stack gap="xl">
-          {/* Header */}
+          {/* Header: the project name once there is more than one project to be in */}
           <div>
-            <Title order={1}>OAE Metadata Builder – Overview</Title>
+            {projects.length > 1 ? (
+              <>
+                <Title order={1} lineClamp={1}>
+                  {projectDisplayName(state)}
+                </Title>
+                <Text c="dimmed">Overview</Text>
+              </>
+            ) : (
+              <Title order={1}>OAE Metadata Builder – Overview</Title>
+            )}
           </div>
-
-          {/* Beta notice */}
-          <Alert
-            variant="light"
-            color="progressBlue"
-            icon={<IconAlertTriangle size={20} />}
-            title="Welcome to the OAE Metadata Builder"
-          >
-            <Text size="sm">
-              The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
-              (OAE) projects, experiments, and datasets in compliance with the{" "}
-              <Anchor
-                href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                OAE Data Management Protocol
-              </Anchor>
-              .
-            </Text>
-            <Text size="sm" mt="xs">
-              The metadata builder is currently in beta testing with a planned Spring 2026 launch.
-              If you have questions or concerns, please contact{" "}
-              <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
-            </Text>
-            <Text size="sm" mt="xs">
-              For more information, visit the{" "}
-              <Anchor component={Link} to="/about">
-                About page
-              </Anchor>
-              .
-            </Text>
-          </Alert>
 
           {/* Project Section — only when created */}
           {state.hasProject && (
@@ -242,7 +219,7 @@ export default function OverviewPage() {
                       <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                       <div style={{ minWidth: 0 }}>
                         <Group gap={6} wrap="nowrap" align="center">
-                          <Text fw={600}>Project Metadata</Text>
+                          <Text fw={600}>{projectDisplayName(state)}</Text>
                           {projectStatus.isValid && (
                             <IconCircleCheck
                               size={18}
@@ -271,6 +248,7 @@ export default function OverviewPage() {
                       size="xs"
                       style={{ flexShrink: 0 }}
                       onClick={handleDeleteProject}
+                      aria-label="Delete project"
                     >
                       <IconTrash size={16} />
                     </Button>
@@ -612,6 +590,11 @@ export default function OverviewPage() {
           )}
         </Stack>
       </Container>
+      <DeleteProjectModal
+        project={confirmingDelete ? activeSummary : null}
+        onConfirm={confirmDeleteProject}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </AppLayout>
   );
 }

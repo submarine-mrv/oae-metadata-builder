@@ -20,22 +20,22 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import type React from "react";
-import { useRef } from "react";
 import { useAuth } from "@/auth/useAuth";
 import DownloadModal from "@/components/DownloadModal";
-import ImportPreviewModal from "@/components/ImportPreviewModal";
+import ImportFlow from "@/components/ImportFlow";
+import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
-import { useImportPreview } from "@/hooks/useImportPreview";
+import { useImportFlow } from "@/hooks/useImportFlow";
 import { trackEvent } from "@/utils/analytics";
-import { importMetadata } from "@/utils/exportImport";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function Navigation() {
   const { client, user } = useAuth();
-  const { state, setActiveTab, importSelectedData, toggleJsonPreview } = useAppState();
+  const { state, setActiveTab, toggleJsonPreview } = useAppState();
+  const hasProjects = useWorkspace().projects.length > 0;
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFlow = useImportFlow();
 
   const { showModal, sections, openModal, closeModal, handleDownload, handleSectionToggle } =
     useDownloadModal({
@@ -44,12 +44,6 @@ export default function Navigation() {
       datasets: state.datasets,
       defaultSelection: "all",
     });
-
-  const importPreview = useImportPreview({
-    currentProjectData: state.projectData,
-    currentExperiments: state.experiments,
-    currentDatasets: state.datasets,
-  });
 
   const handleNavigation = (value: string) => {
     const paths = {
@@ -64,50 +58,6 @@ export default function Navigation() {
       setActiveTab(tab);
     }
     navigate({ to: paths[value as keyof typeof paths] });
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const { projectData, experiments, datasets } = await importMetadata(file);
-
-      // Extract form data from experiment/dataset states
-      const experimentFormData = experiments.map((exp) => exp.formData);
-      const datasetFormData = datasets.map((ds) => ds.formData);
-
-      // Open preview modal instead of auto-importing
-      importPreview.openPreview(file.name, projectData, experimentFormData, datasetFormData);
-
-      // Reset file input
-      e.target.value = "";
-    } catch (error) {
-      console.error("Import failed:", error);
-      alert(
-        `Failed to import metadata: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-  };
-
-  const handleImport = () => {
-    const selected = importPreview.getSelectedItems();
-    // Extract just the formData for experiments (they don't have linking config in import)
-    const experimentFormData = selected.experiments;
-    // Pass datasets with their linking configuration
-    importSelectedData(selected.project, experimentFormData, selected.datasets);
-    // On confirm, not on file selection: the preview can still be cancelled.
-    trackEvent("metadata_import", {
-      project: selected.project ? 1 : 0,
-      experiments: experimentFormData.length,
-      datasets: selected.datasets.length,
-    });
-    importPreview.closePreview();
-    navigate({ to: "/overview" });
   };
 
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -140,22 +90,34 @@ export default function Navigation() {
             gap: "1rem",
           }}
         >
-          {/* Logo and title - left aligned, links to Overview */}
-          <Link
-            to="/overview"
-            onClick={() => setActiveTab("overview")}
-            style={{ textDecoration: "none" }}
-          >
-            <Group gap="sm">
-              <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
-              <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
-                OAE Metadata Builder
-              </Text>
-            </Group>
-          </Link>
+          {/* Brand, then the active project as a breadcrumb */}
+          <Group gap="sm" wrap="nowrap" pr="lg" style={{ minWidth: 0 }}>
+            <Link
+              to="/overview"
+              aria-label="OAE Metadata Builder"
+              onClick={() => setActiveTab("overview")}
+              style={{ textDecoration: "none", flexShrink: 0 }}
+            >
+              <Group gap="sm" wrap="nowrap">
+                <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w={36} decoding="sync" />
+                {!isMobile && (
+                  <Text
+                    fw={500}
+                    size="md"
+                    c="hadal.9"
+                    ff="var(--font-display)"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    OAE Metadata Builder
+                  </Text>
+                )}
+              </Group>
+            </Link>
+            {hasProjects && <ProjectSwitcher />}
+          </Group>
 
           {/* Navigation tabs - centered (desktop only) */}
-          {!isMobile && (
+          {!isMobile && hasProjects && (
             <SegmentedControl
               style={{
                 backgroundColor: "var(--brand-sunlight)",
@@ -173,35 +135,29 @@ export default function Navigation() {
             />
           )}
 
-          {/* Actions - right aligned */}
-          <Group gap="xs" justify="flex-end">
+          {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
+          <Group gap="xs" justify="flex-end" style={{ gridColumn: isMobile ? 2 : 3 }}>
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>
                 <Button
                   variant="light"
                   leftSection={<IconFileImport size={16} />}
-                  onClick={handleImportClick}
+                  onClick={importFlow.openFilePicker}
                 >
                   Import
                 </Button>
-                <Button
-                  variant="outline"
-                  leftSection={<IconDownload size={16} />}
-                  onClick={openModal}
-                >
-                  Export
-                </Button>
+                {hasProjects && (
+                  <Button
+                    variant="outline"
+                    leftSection={<IconDownload size={16} />}
+                    onClick={openModal}
+                  >
+                    Export
+                  </Button>
+                )}
               </>
             )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
 
             <Menu shadow="md" width={200}>
               <Menu.Target>
@@ -246,13 +202,15 @@ export default function Navigation() {
                   <>
                     <Menu.Item
                       leftSection={<IconFileImport size={16} />}
-                      onClick={handleImportClick}
+                      onClick={importFlow.openFilePicker}
                     >
                       Import
                     </Menu.Item>
-                    <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
-                      Export
-                    </Menu.Item>
+                    {hasProjects && (
+                      <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
+                        Export
+                      </Menu.Item>
+                    )}
                     <Menu.Divider />
                   </>
                 )}
@@ -294,7 +252,7 @@ export default function Navigation() {
         </Box>
 
         {/* Bottom row: SegmentedControl full-width (mobile only) */}
-        {isMobile && (
+        {isMobile && hasProjects && (
           <SegmentedControl
             style={{
               backgroundColor: "var(--brand-sunlight)",
@@ -324,17 +282,7 @@ export default function Navigation() {
         onSectionToggle={handleSectionToggle}
       />
 
-      <ImportPreviewModal
-        opened={importPreview.state.isOpen}
-        onClose={importPreview.closePreview}
-        filename={importPreview.state.filename}
-        items={importPreview.state.items}
-        onToggleItem={importPreview.toggleItem}
-        onSetDatasetLinking={importPreview.setDatasetExperimentLinking}
-        getExperimentLinkOptions={importPreview.getExperimentLinkOptions}
-        duplicateExperimentIdError={importPreview.state.duplicateExperimentIdError}
-        onImport={handleImport}
-      />
+      <ImportFlow flow={importFlow} />
     </>
   );
 }

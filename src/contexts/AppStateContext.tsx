@@ -1,6 +1,5 @@
 import type React from "react";
-import { createContext, useCallback, useContext, useState } from "react";
-import type { DatasetExperimentLinking } from "@/hooks/useImportPreview";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type {
   AppFormState,
   DatasetLinkingMetadata,
@@ -19,11 +18,10 @@ export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
 
-import type { JSONSchema } from "@/components/schemaUtils";
+import { applyImport, type ImportSelection } from "@/utils/applyImport";
 import { cleanFormData } from "@/utils/formDataCleanup";
-import { migrateFormData } from "@/utils/migrations";
-import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
-import { getBaseSchema } from "@/utils/schemaViews";
+import { parseProjectState } from "@/utils/parseProjectState";
+import { emptyProjectState, type ProjectState } from "@/workspace/types";
 
 // =============================================================================
 // ID Propagation Helpers
@@ -94,7 +92,6 @@ function propagateExperimentIdToDatasets(
 interface AppStateContextType {
   state: AppState;
   createProject: () => void;
-  deleteProject: () => void;
   updateProjectData: (data: DraftProject) => void;
   addExperiment: (name?: string) => number;
   updateExperiment: (
@@ -131,10 +128,7 @@ interface AppStateContextType {
   importSelectedData: (
     projectData: DraftProject | null,
     experiments: DraftExperiment[],
-    datasets: Array<{
-      formData: DraftDataset;
-      experimentLinking?: DatasetExperimentLinking;
-    }>,
+    datasets: ImportSelection["datasets"],
   ) => void;
   setTriggerValidation: (trigger: boolean) => void;
   setShowJsonPreview: (show: boolean) => void;
@@ -150,55 +144,70 @@ interface AppStateContextType {
   getDataset: (id: number) => DatasetData | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
-  // Session persistence
-  restoreFullState: (saved: {
-    hasProject: boolean;
-    projectData: DraftProject;
-    experiments: ExperimentState[];
-    datasets: DatasetState[];
-    nextExperimentId: number;
-    nextDatasetId: number;
-  }) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
-export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>({
-    hasProject: false,
-    projectData: { project_id: "" },
-    experiments: [],
-    datasets: [],
-    activeTab: "overview",
-    activeExperimentId: null,
-    activeDatasetId: null,
-    nextExperimentId: 1,
-    nextDatasetId: 1,
-    triggerValidation: false,
-    showJsonPreview: false,
-  });
+interface AppStateProviderProps {
+  children: React.ReactNode;
+  /** Persisted project to edit. Parsed at the boundary like a restored session. */
+  initialState?: ProjectState;
+  /** Fired after any change to the persisted subset of state. */
+  onChange?: (state: ProjectState) => void;
+}
+
+const UI_INITIAL_STATE = {
+  activeTab: "overview" as const,
+  activeExperimentId: null,
+  activeDatasetId: null,
+  triggerValidation: false,
+  showJsonPreview: false,
+};
+
+function persistedSubset(state: AppState): ProjectState {
+  return {
+    hasProject: state.hasProject,
+    projectData: state.projectData,
+    experiments: state.experiments,
+    datasets: state.datasets,
+    nextExperimentId: state.nextExperimentId,
+    nextDatasetId: state.nextDatasetId,
+  };
+}
+
+function sameProjectState(a: ProjectState, b: ProjectState): boolean {
+  return (
+    a.hasProject === b.hasProject &&
+    a.projectData === b.projectData &&
+    a.experiments === b.experiments &&
+    a.datasets === b.datasets &&
+    a.nextExperimentId === b.nextExperimentId &&
+    a.nextDatasetId === b.nextDatasetId
+  );
+}
+
+export function AppStateProvider({ children, initialState, onChange }: AppStateProviderProps) {
+  const [state, setState] = useState<AppState>(() => ({
+    ...UI_INITIAL_STATE,
+    ...(initialState ? parseProjectState(initialState) : emptyProjectState()),
+  }));
+
+  // Report persisted changes to the owner without re-subscribing on every render.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const lastReported = useRef(persistedSubset(state));
+  useEffect(() => {
+    const current = persistedSubset(state);
+    if (sameProjectState(current, lastReported.current)) return;
+    lastReported.current = current;
+    onChangeRef.current?.(current);
+  }, [state]);
 
   const createProject = useCallback(() => {
     setState((prev) => ({
       ...prev,
       hasProject: true,
     }));
-  }, []);
-
-  const deleteProject = useCallback(() => {
-    setState((prev) => {
-      // Clear project_id from linked experiments and datasets
-      const newExperiments = propagateProjectIdToExperiments(prev.experiments, "");
-      const newDatasets = propagateProjectIdToDatasets(prev.datasets, "");
-
-      return {
-        ...prev,
-        hasProject: false,
-        projectData: {},
-        experiments: newExperiments,
-        datasets: newDatasets,
-      };
-    });
   }, []);
 
   const updateProjectData = useCallback((data: DraftProject) => {
@@ -706,153 +715,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     (
       projectData: DraftProject | null,
       experiments: DraftExperiment[],
-      datasets: Array<{
-        formData: DraftDataset;
-        experimentLinking?: DatasetExperimentLinking;
-      }>,
+      datasets: ImportSelection["datasets"],
     ) => {
-      setState((prev) => {
-        // Normalize incoming data at the boundary — see importAllData
-        // for the rationale.
-        const cleanedProjectData = projectData
-          ? (cleanFormData(projectData) as DraftProject)
-          : null;
-
-        // Handle project - simply replace if provided
-        const newProjectData = cleanedProjectData
-          ? { ...prev.projectData, ...cleanedProjectData }
-          : prev.projectData;
-
-        // Handle experiments - replace matching or add new
-        // Track mapping from import key (e.g., "experiment-0") to internal ID for cross-import linking
-        const importKeyToInternalId: Record<string, number> = {};
-        const newExperiments = [...prev.experiments];
-        let nextExpId = prev.nextExperimentId;
-
-        experiments.forEach((rawExpData, index) => {
-          const expData = cleanFormData(rawExpData) as DraftExperiment;
-          const expId = expData.experiment_id as string | undefined;
-          const expName = (expData.name as string) || expId;
-          const importKey = `experiment-${index}`;
-
-          // Find existing experiment by experiment_id or name
-          const existingIndex = expId
-            ? newExperiments.findIndex(
-                (e) => e.formData.experiment_id === expId || e.name === expId,
-              )
-            : -1;
-
-          if (existingIndex >= 0) {
-            // Replace existing experiment
-            newExperiments[existingIndex] = {
-              ...newExperiments[existingIndex],
-              formData: expData,
-              name: expName || newExperiments[existingIndex].name,
-              experiment_types: expData.experiment_types,
-              updatedAt: Date.now(),
-            };
-            // Map import key to existing internal ID
-            importKeyToInternalId[importKey] = newExperiments[existingIndex].id;
-          } else {
-            // Add as new experiment
-            const newInternalId = nextExpId;
-            newExperiments.push({
-              id: newInternalId,
-              name: expName || `Experiment ${newInternalId}`,
-              formData: expData,
-              experiment_types: expData.experiment_types,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            });
-            // Map import key to new internal ID
-            importKeyToInternalId[importKey] = newInternalId;
-            nextExpId++;
-          }
-        });
-
-        // Handle datasets - replace matching or add new
-        const newDatasets = [...prev.datasets];
-        let nextDsId = prev.nextDatasetId;
-
-        for (const { formData: rawDsData, experimentLinking } of datasets) {
-          // Normalize incoming dataset data at the boundary.
-          const dsData = cleanFormData(rawDsData) as DraftDataset;
-          const dsName = dsData.name as string | undefined;
-
-          // Resolve experiment linking to internal ID
-          let linkedExperimentInternalId: number | null = null;
-
-          if (experimentLinking) {
-            if (experimentLinking.mode === "use-file") {
-              // Use the resolved match from the preview
-              const resolved = experimentLinking.resolvedMatch;
-              if (resolved?.type === "existing" && resolved.internalId !== undefined) {
-                linkedExperimentInternalId = resolved.internalId;
-              } else if (resolved?.type === "importing" && resolved.importKey) {
-                // Cross-import linking: map import key to the newly-assigned internal ID
-                linkedExperimentInternalId = importKeyToInternalId[resolved.importKey] ?? null;
-              }
-            } else if (experimentLinking.mode === "explicit") {
-              if (experimentLinking.explicitExperimentInternalId !== undefined) {
-                // Explicitly linking to existing experiment
-                linkedExperimentInternalId = experimentLinking.explicitExperimentInternalId;
-              } else if (experimentLinking.explicitImportKey) {
-                // Explicitly linking to importing experiment
-                linkedExperimentInternalId =
-                  importKeyToInternalId[experimentLinking.explicitImportKey] ?? null;
-              }
-            }
-          }
-
-          // Find the linked experiment to get its experiment_id for the formData
-          let experimentIdToSet: string | undefined;
-          if (linkedExperimentInternalId !== null) {
-            const linkedExp = newExperiments.find((e) => e.id === linkedExperimentInternalId);
-            experimentIdToSet = linkedExp?.formData.experiment_id as string | undefined;
-          }
-
-          // Update formData with resolved experiment_id if linking is set
-          const finalFormData: DraftDataset =
-            linkedExperimentInternalId !== null && experimentIdToSet
-              ? { ...dsData, experiment_id: experimentIdToSet }
-              : dsData;
-
-          // Build linking metadata for the dataset
-          const datasetLinking: DatasetLinkingMetadata = {
-            linkedExperimentInternalId,
-          };
-
-          // Always add datasets as new (no name-based override — unlike experiments
-          // which have unique experiment_id, datasets can share names)
-          newDatasets.push({
-            id: nextDsId,
-            name: dsName || `Dataset ${nextDsId}`,
-            formData: finalFormData,
-            linking: datasetLinking,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          });
-          nextDsId++;
-        }
-
-        // Set hasProject if importing project data with content
-        const hasProject = projectData
-          ? Object.values(newProjectData).some((v) =>
-              typeof v === "string" ? v.trim() !== "" : v !== undefined && v !== null,
-            )
-          : prev.hasProject;
-
-        return {
-          ...prev,
-          hasProject,
-          projectData: newProjectData,
-          experiments: newExperiments,
-          datasets: newDatasets,
-          nextExperimentId: nextExpId,
-          nextDatasetId: nextDsId,
-          activeTab: "overview" as const,
-        };
-      });
+      setState((prev) => ({
+        ...prev,
+        ...applyImport(prev, { project: projectData, experiments, datasets }),
+        activeTab: "overview" as const,
+      }));
     },
     [],
   );
@@ -878,56 +747,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  // Restore full state from session persistence (preserves IDs and linking)
-  const restoreFullState = useCallback(
-    (saved: {
-      hasProject: boolean;
-      projectData: DraftProject;
-      experiments: ExperimentState[];
-      datasets: DatasetState[];
-      nextExperimentId: number;
-      nextDatasetId: number;
-    }) => {
-      // Parse restored data at the boundary — a session may have been saved
-      // before the current invariants existed, or under an older app version.
-      // parseExperiment/parseDataset re-establish model exclusivity,
-      // type-scoped fields, and clean variables; migrate handles the legacy
-      // bounding box format (W S E N → S W N E).
-      const cleanedExperiments = saved.experiments.map((exp) => {
-        const formData = parseExperiment(migrateFormData(exp.formData));
-        return {
-          ...exp,
-          formData,
-          // Re-derive the duplicated top-level copy from the parsed formData —
-          // a legacy session may carry a stale value (e.g. ["model",
-          // "intervention"]) that the parse just normalized.
-          experiment_types: formData.experiment_types,
-        };
-      });
-      const cleanedDatasets = saved.datasets.map((ds) => ({
-        ...ds,
-        formData: parseDataset(
-          migrateFormData(ds.formData),
-          getBaseSchema() as unknown as JSONSchema,
-        ),
-      }));
-      setState((prev) => ({
-        ...prev,
-        hasProject: saved.hasProject,
-        projectData: parseProject(migrateFormData(saved.projectData)),
-        experiments: cleanedExperiments,
-        datasets: cleanedDatasets,
-        nextExperimentId: saved.nextExperimentId,
-        nextDatasetId: saved.nextDatasetId,
-      }));
-    },
-    [],
-  );
-
   const value: AppStateContextType = {
     state,
     createProject,
-    deleteProject,
     updateProjectData,
     addExperiment,
     updateExperiment,
@@ -958,9 +780,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     getDataset,
     // ID Linking methods
     updateDatasetLinking,
-    // Validation status
-    // Session persistence
-    restoreFullState,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

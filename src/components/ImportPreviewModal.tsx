@@ -4,6 +4,7 @@ import {
   Checkbox,
   Group,
   Modal,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -34,6 +35,10 @@ interface ImportPreviewModalProps {
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
   duplicateExperimentIdError: string | null;
   onImport: () => void;
+  importMode: "new" | "merge";
+  onImportModeChange: (mode: "new" | "merge") => void;
+  /** False when there is no current project to merge into; the mode control is hidden. */
+  canMerge: boolean;
 }
 
 /**
@@ -61,11 +66,16 @@ export default function ImportPreviewModal({
   getExperimentLinkOptions,
   duplicateExperimentIdError,
   onImport,
+  importMode,
+  onImportModeChange,
+  canMerge,
 }: ImportPreviewModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
-  const hasBlockingError = duplicateExperimentIdError !== null;
+  // Overwrite warnings only mean something when merging into the current project.
+  const merging = canMerge && importMode === "merge";
+  const hasBlockingError = merging && duplicateExperimentIdError !== null;
 
   // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
@@ -123,7 +133,7 @@ export default function ImportPreviewModal({
    * Render a warning icon with tooltip for override conflicts
    */
   const renderWarningIcon = (item: ImportItem, tooltipText: string): React.ReactNode => {
-    if (item.conflict !== "override") {
+    if (!merging || item.conflict !== "override") {
       return null;
     }
     return (
@@ -210,15 +220,27 @@ export default function ImportPreviewModal({
       fullScreen={isMobile ?? false}
     >
       <Stack gap="md">
+        {canMerge && (
+          <SegmentedControl
+            fullWidth
+            value={importMode}
+            onChange={(value) => onImportModeChange(value as "new" | "merge")}
+            data={[
+              { value: "new", label: "Add as a new project" },
+              { value: "merge", label: "Merge into current project" },
+            ]}
+          />
+        )}
+
         {/* Success message with summary */}
-        {!duplicateExperimentIdError && summaryParts.length > 0 && (
+        {!hasBlockingError && summaryParts.length > 0 && (
           <Alert icon={<IconCheck size={18} />} color="teal" variant="light">
             <Text size="sm">OAE metadata file was loaded successfully.</Text>
           </Alert>
         )}
 
-        {/* Duplicate experiment_id error */}
-        {duplicateExperimentIdError && (
+        {/* Duplicate experiment_id error, only relevant when merging */}
+        {hasBlockingError && (
           <Alert icon={<IconAlertTriangle size={18} />} color="red" variant="light">
             <Text size="sm">{duplicateExperimentIdError}</Text>
           </Alert>
