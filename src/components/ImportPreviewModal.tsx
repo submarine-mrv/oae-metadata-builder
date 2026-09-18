@@ -73,8 +73,9 @@ export default function ImportPreviewModal({
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
-  const hasBlockingError =
-    canMerge && importMode === "merge" && duplicateExperimentIdError !== null;
+  // Overwrite warnings only mean something when merging into the current project.
+  const merging = canMerge && importMode === "merge";
+  const hasBlockingError = merging && duplicateExperimentIdError !== null;
 
   // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
@@ -132,7 +133,7 @@ export default function ImportPreviewModal({
    * Render a warning icon with tooltip for override conflicts
    */
   const renderWarningIcon = (item: ImportItem, tooltipText: string): React.ReactNode => {
-    if (item.conflict !== "override") {
+    if (!merging || item.conflict !== "override") {
       return null;
     }
     return (
@@ -219,15 +220,27 @@ export default function ImportPreviewModal({
       fullScreen={isMobile ?? false}
     >
       <Stack gap="md">
+        {canMerge && (
+          <SegmentedControl
+            fullWidth
+            value={importMode}
+            onChange={(value) => onImportModeChange(value as "new" | "merge")}
+            data={[
+              { value: "new", label: "Add as a new project" },
+              { value: "merge", label: "Merge into current project" },
+            ]}
+          />
+        )}
+
         {/* Success message with summary */}
-        {!duplicateExperimentIdError && summaryParts.length > 0 && (
+        {!hasBlockingError && summaryParts.length > 0 && (
           <Alert icon={<IconCheck size={18} />} color="teal" variant="light">
             <Text size="sm">OAE metadata file was loaded successfully.</Text>
           </Alert>
         )}
 
-        {/* Duplicate experiment_id error */}
-        {duplicateExperimentIdError && (
+        {/* Duplicate experiment_id error, only relevant when merging */}
+        {hasBlockingError && (
           <Alert icon={<IconAlertTriangle size={18} />} color="red" variant="light">
             <Text size="sm">{duplicateExperimentIdError}</Text>
           </Alert>
@@ -295,27 +308,14 @@ export default function ImportPreviewModal({
         )}
 
         {/* Action buttons */}
-        <Stack gap="sm">
-          {canMerge && (
-            <SegmentedControl
-              fullWidth
-              value={importMode}
-              onChange={(value) => onImportModeChange(value as "new" | "merge")}
-              data={[
-                { value: "new", label: "Add as a new project" },
-                { value: "merge", label: "Merge into current project" },
-              ]}
-            />
-          )}
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={onImport} disabled={noneSelected || hasBlockingError}>
-              Import {selectedCount} item{selectedCount !== 1 ? "s" : ""}
-            </Button>
-          </Group>
-        </Stack>
+        <Group justify="flex-end" gap="sm">
+          <Button variant="default" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={onImport} disabled={noneSelected || hasBlockingError}>
+            Import {selectedCount} item{selectedCount !== 1 ? "s" : ""}
+          </Button>
+        </Group>
       </Stack>
     </Modal>
   );
