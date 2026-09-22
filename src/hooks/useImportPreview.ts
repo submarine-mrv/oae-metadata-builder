@@ -274,6 +274,33 @@ function analyze(
 }
 
 /**
+ * Rewrite a dataset's import-key link to the compacted key of the selected
+ * experiments. A link to a deselected experiment is dropped.
+ */
+function remapLinking(
+  linking: DatasetExperimentLinking | undefined,
+  keyMap: Map<string, string>,
+): DatasetExperimentLinking | undefined {
+  if (!linking) return linking;
+  const importKey =
+    linking.mode === "explicit"
+      ? linking.explicitImportKey
+      : linking.resolvedMatch?.type === "importing"
+        ? linking.resolvedMatch.importKey
+        : undefined;
+  if (importKey === undefined) return linking;
+  const mapped = keyMap.get(importKey);
+  if (!mapped) return undefined;
+  return {
+    ...linking,
+    ...(linking.explicitImportKey !== undefined && { explicitImportKey: mapped }),
+    ...(linking.resolvedMatch?.type === "importing" && {
+      resolvedMatch: { ...linking.resolvedMatch, importKey: mapped },
+    }),
+  };
+}
+
+/**
  * Hook for managing import preview state.
  * Analyzes imported data against a baseline project to detect conflicts.
  */
@@ -533,14 +560,17 @@ export function useImportPreview(): UseImportPreviewReturn {
     const selectedItems = state.items.filter((item) => item.selected);
 
     const project = selectedItems.find((item) => item.type === "project");
-    const experiments = selectedItems
-      .filter((item) => item.type === "experiment")
-      .map((item) => item.data as DraftExperiment);
+    const selectedExperiments = selectedItems.filter((item) => item.type === "experiment");
+    const experiments = selectedExperiments.map((item) => item.data as DraftExperiment);
+    // applyImport keys experiments by position in this list, not in the file.
+    const keyMap = new Map(
+      selectedExperiments.map((item, index) => [item.key, `experiment-${index}`]),
+    );
     const datasets = selectedItems
       .filter((item) => item.type === "dataset")
       .map((item) => ({
         formData: item.data as DraftDataset,
-        experimentLinking: item.experimentLinking,
+        experimentLinking: remapLinking(item.experimentLinking, keyMap),
       }));
 
     return {

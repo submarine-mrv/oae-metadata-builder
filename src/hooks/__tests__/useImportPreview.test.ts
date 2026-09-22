@@ -1,6 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { DatasetRecord, DraftDataset, DraftExperiment, ExperimentRecord } from "@/types/forms";
+import { applyImport } from "@/utils/applyImport";
+import { emptyProjectState } from "@/workspace/types";
 import { EMPTY_BASELINE, useImportPreview } from "../useImportPreview";
 
 // Helper to create test experiments
@@ -395,6 +397,77 @@ describe("useImportPreview", () => {
       expect(selected.datasets[0].formData.name).toBe("Dataset 1");
       expect(selected.datasets[0].experimentLinking?.mode).toBe("use-file");
       expect(selected.datasets[0].experimentLinking?.resolvedMatch?.type).toBe("existing");
+    });
+
+    const threeExperiments = [
+      { experiment_id: "E0", name: "Zero" },
+      { experiment_id: "E1", name: "One" },
+      { experiment_id: "E2", name: "Two" },
+    ] as DraftExperiment[];
+
+    it("keeps a dataset linked to its experiment when an earlier one is deselected", () => {
+      const { result } = renderHook(() => useImportPreview());
+      act(() => {
+        result.current.openPreview(
+          "test.json",
+          {},
+          threeExperiments,
+          [{ name: "DS", experiment_id: "E1" } as DraftDataset],
+          EMPTY_BASELINE,
+        );
+      });
+      act(() => result.current.toggleItem("experiment-0"));
+
+      const applied = applyImport(emptyProjectState(), result.current.getSelectedItems());
+      const e1 = applied.experiments.find((e) => e.formData.experiment_id === "E1");
+      expect(applied.experiments).toHaveLength(2);
+      expect(applied.datasets[0].linking?.linkedExperimentInternalId).toBe(e1?.id);
+      expect(applied.datasets[0].formData.experiment_id).toBe("E1");
+    });
+
+    it("remaps an explicit link to an importing experiment", () => {
+      const { result } = renderHook(() => useImportPreview());
+      act(() => {
+        result.current.openPreview(
+          "test.json",
+          {},
+          threeExperiments,
+          [{ name: "DS" } as DraftDataset],
+          EMPTY_BASELINE,
+        );
+      });
+      act(() =>
+        result.current.setDatasetExperimentLinking(
+          "dataset-0",
+          "explicit",
+          undefined,
+          "experiment-2",
+        ),
+      );
+      act(() => result.current.toggleItem("experiment-0"));
+
+      const applied = applyImport(emptyProjectState(), result.current.getSelectedItems());
+      expect(applied.datasets[0].formData.experiment_id).toBe("E2");
+    });
+
+    it("drops the link to a deselected experiment", () => {
+      const { result } = renderHook(() => useImportPreview());
+      act(() => {
+        result.current.openPreview(
+          "test.json",
+          {},
+          threeExperiments,
+          [{ name: "DS", experiment_id: "E1" } as DraftDataset],
+          EMPTY_BASELINE,
+        );
+      });
+      act(() => result.current.toggleItem("experiment-1"));
+
+      const selected = result.current.getSelectedItems();
+      expect(selected.datasets[0].experimentLinking).toBeUndefined();
+      const applied = applyImport(emptyProjectState(), selected);
+      expect(applied.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
+      expect(applied.datasets[0].formData.experiment_id).toBe("E1");
     });
   });
 
