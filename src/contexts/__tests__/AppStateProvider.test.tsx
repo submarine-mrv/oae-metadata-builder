@@ -33,7 +33,7 @@ describe("AppStateProvider", () => {
       projectData: { project_id: "P1" },
       experiments: [],
     });
-    expect(onChange.mock.calls[0][0]).not.toHaveProperty("activeTab");
+    expect(onChange.mock.calls[0][0]).not.toHaveProperty("showJsonPreview");
   });
 
   it("does not call onChange for UI-only changes", () => {
@@ -43,7 +43,7 @@ describe("AppStateProvider", () => {
         <AppStateProvider onChange={onChange}>{children}</AppStateProvider>
       ),
     });
-    act(() => result.current.setActiveTab("project"));
+    act(() => result.current.toggleJsonPreview());
     expect(onChange).not.toHaveBeenCalled();
   });
 });

@@ -32,7 +32,7 @@ import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function Navigation() {
   const { client, user } = useAuth();
-  const { state, setActiveTab, toggleJsonPreview } = useAppState();
+  const { state, toggleJsonPreview } = useAppState();
   const hasProjects = useWorkspace().projects.length > 0;
   const navigate = useNavigate();
   const importFlow = useImportFlow();
@@ -53,10 +53,6 @@ export default function Navigation() {
       dataset: "/dataset",
       "how-to": "/how-to",
     } as const;
-    if (value !== "how-to") {
-      const tab = value as "overview" | "project" | "experiment" | "dataset";
-      setActiveTab(tab);
-    }
     navigate({ to: paths[value as keyof typeof paths] });
   };
 
@@ -97,7 +93,6 @@ export default function Navigation() {
             <Link
               to="/overview"
               aria-label="OAE Metadata Builder"
-              onClick={() => setActiveTab("overview")}
               style={{ textDecoration: "none", flexShrink: 0 }}
             >
               <Group gap="sm" wrap="nowrap">

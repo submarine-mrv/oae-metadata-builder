@@ -170,7 +170,6 @@ export interface AppFormState {
   projectData: DraftProject;
   experiments: ExperimentState[];
   datasets: DatasetState[];
-  activeTab: "overview" | "project" | "experiment" | "dataset";
   activeExperimentId: number | null;
   activeDatasetId: number | null;
   nextExperimentId: number;

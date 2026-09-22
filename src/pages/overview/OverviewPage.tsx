@@ -22,7 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useAppState } from "@/contexts/AppStateContext";
 import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
@@ -32,7 +32,6 @@ import { useWorkspace } from "@/workspace/WorkspaceContext";
 export default function OverviewPage() {
   const {
     state,
-    setActiveTab,
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
@@ -49,10 +48,6 @@ export default function OverviewPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const activeSummary = projects.find((p) => p.id === activeProjectId) ?? null;
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setActiveTab("overview");
-  }, [setActiveTab]);
 
   const projectStatus = getProjectStatus();
   const projectCompletion = projectStatus.percentage;
@@ -71,18 +66,15 @@ export default function OverviewPage() {
     // addExperiment will auto-generate "Experiment N" if no name provided
     const id = addExperiment();
     setActiveExperiment(id);
-    setActiveTab("experiment");
     navigate({ to: "/experiment" });
   };
 
   const handleEditProject = () => {
-    setActiveTab("project");
     navigate({ to: "/project" });
   };
 
   const handleEditExperiment = (id: number) => {
     setActiveExperiment(id);
-    setActiveTab("experiment");
     navigate({ to: "/experiment" });
   };
 
@@ -101,13 +93,11 @@ export default function OverviewPage() {
   const handleCreateDataset = () => {
     const id = addDataset();
     setActiveDataset(id);
-    setActiveTab("dataset");
     navigate({ to: "/dataset" });
   };
 
   const handleEditDataset = (id: number) => {
     setActiveDataset(id);
-    setActiveTab("dataset");
     navigate({ to: "/dataset" });
   };
 

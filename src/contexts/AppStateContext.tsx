@@ -108,7 +108,6 @@ interface AppStateContextType {
   deleteExperiment: (id: number) => void;
   /** Duplicate an experiment, appending " (Copy)" to its name. Returns the new ID. */
   duplicateExperiment: (id: number) => number;
-  setActiveTab: (tab: "overview" | "project" | "experiment" | "dataset") => void;
   setActiveExperiment: (id: number | null) => void;
   getExperiment: (id: number) => ExperimentData | undefined;
   getProjectCompletionPercentage: () => number;
@@ -151,7 +150,6 @@ interface AppStateProviderProps {
 }
 
 const UI_INITIAL_STATE = {
-  activeTab: "overview" as const,
   activeExperimentId: null,
   activeDatasetId: null,
   triggerValidation: false,
@@ -384,13 +382,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     });
 
     return idRef.current;
-  }, []);
-
-  const setActiveTab = useCallback((tab: "overview" | "project" | "experiment" | "dataset") => {
-    setState((prev) => ({
-      ...prev,
-      activeTab: tab,
-    }));
   }, []);
 
   const setActiveExperiment = useCallback((id: number | null) => {
@@ -658,7 +649,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
       setState((prev) => ({
         ...prev,
         ...applyImport(prev, { project: projectData, experiments, datasets }),
-        activeTab: "overview" as const,
       }));
     },
     [],
@@ -693,7 +683,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     replaceExperimentFormData,
     deleteExperiment,
     duplicateExperiment,
-    setActiveTab,
     setActiveExperiment,
     getExperiment,
     getProjectCompletionPercentage,

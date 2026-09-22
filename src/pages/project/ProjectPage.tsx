@@ -4,7 +4,7 @@ import type { DescriptionFieldProps } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
@@ -43,7 +43,7 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab } = useAppState();
+  const { state, updateProjectData } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
   // Source of truth for badge counts: run AJV via validateProject, memoized
@@ -74,10 +74,6 @@ export default function ProjectPage() {
       return transformFormErrors(filtered, schema);
     };
   }, [validation.showErrorList]);
-
-  useEffect(() => {
-    setActiveTab("project");
-  }, [setActiveTab]);
 
   return (
     <AppLayout noScroll>

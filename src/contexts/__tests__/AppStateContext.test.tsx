@@ -26,7 +26,6 @@ describe("AppStateContext", () => {
         projectData: { project_id: "" },
         experiments: [],
         datasets: [],
-        activeTab: "overview",
         activeExperimentId: null,
         activeDatasetId: null,
         nextExperimentId: 1,
@@ -549,28 +548,6 @@ describe("AppStateContext", () => {
 
       expect(result.current.state.experiments).toHaveLength(beforeLength);
       expect(result.current.state.nextExperimentId).toBe(nextIdBefore);
-    });
-  });
-
-  describe("setActiveTab", () => {
-    it("should set active tab", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      expect(result.current.state.activeTab).toBe("overview");
-
-      act(() => {
-        result.current.setActiveTab("project");
-      });
-
-      expect(result.current.state.activeTab).toBe("project");
-
-      act(() => {
-        result.current.setActiveTab("experiment");
-      });
-
-      expect(result.current.state.activeTab).toBe("experiment");
     });
   });
 
