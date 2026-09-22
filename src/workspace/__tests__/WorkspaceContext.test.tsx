@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { localStorageWorkspaceStore, WORKSPACE_KEY } from "../storage";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { localStorageWorkspaceStore } from "../storage";
 import { emptyProjectState } from "../types";
 import { useWorkspace, WorkspaceProvider } from "../WorkspaceContext";
 
@@ -12,6 +12,15 @@ describe("WorkspaceProvider", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const named = (research_project: string) => ({
+    ...emptyProjectState(),
+    projectData: { project_id: "", research_project },
   });
 
   it("starts with no projects and no active project when storage is empty", () => {
@@ -53,30 +62,60 @@ describe("WorkspaceProvider", () => {
     expect(result.current.activeProject).toBeNull();
   });
 
-  it("ignores updateActiveProject when there is no active project", () => {
-    const { result } = renderHook(() => useWorkspace(), { wrapper });
-    act(() =>
-      result.current.updateActiveProject({
-        ...emptyProjectState(),
-        projectData: { project_id: "", research_project: "Ghost" },
-      }),
-    );
-    expect(result.current.projects).toHaveLength(0);
-  });
-
-  it("updates the active project's state and saves after the debounce", () => {
+  it("ignores updateProject for an unknown id", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
     act(() => {
       result.current.createProject();
     });
-    const next = {
-      ...emptyProjectState(),
-      projectData: { project_id: "", research_project: "Named" },
-    };
+    const before = result.current.activeProject;
+    act(() => result.current.updateProject("missing", named("Ghost")));
+    expect(result.current.projects).toHaveLength(1);
+    expect(result.current.activeProject).toBe(before);
+  });
 
-    act(() => result.current.updateActiveProject(next));
+  it("applies an edit to the project that made it, even after a switch", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    let a = "";
+    let b = "";
+    act(() => {
+      a = result.current.createProject();
+    });
+    act(() => {
+      b = result.current.createProject();
+    });
+    act(() => result.current.switchProject(b));
+    act(() => result.current.updateProject(a, named("Edited A")));
+
+    const byId = (id: string) => result.current.projects.find((p) => p.id === id);
+    expect(byId(a)?.name).toBe("Edited A");
+    expect(byId(b)?.name).not.toBe("Edited A");
+    expect(result.current.activeProjectId).toBe(b);
+  });
+
+  it("saves create and delete immediately", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    let id = "";
+    act(() => {
+      id = result.current.createProject();
+    });
+    expect(localStorageWorkspaceStore.load()?.projects.map((p) => p.id)).toEqual([id]);
+
+    act(() => result.current.deleteProject(id));
+    expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(0);
+  });
+
+  it("updates a project's state and saves after the debounce", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    let id = "";
+    act(() => {
+      id = result.current.createProject();
+    });
+
+    act(() => result.current.updateProject(id, named("Named")));
     expect(result.current.projects[0].name).toBe("Named");
-    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+    expect(
+      localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project,
+    ).toBeUndefined();
 
     act(() => {
       vi.advanceTimersByTime(2000);
@@ -86,16 +125,42 @@ describe("WorkspaceProvider", () => {
     );
   });
 
-  it("flushes an unsaved change when the page is hidden", () => {
+  it("flushes an unsaved edit on pagehide", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
-
-    act(() => result.current.switchProject(result.current.createProject()));
-    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+    let id = "";
+    act(() => {
+      id = result.current.createProject();
+    });
+    act(() => result.current.updateProject(id, named("Flushed")));
 
     act(() => {
       window.dispatchEvent(new Event("pagehide"));
     });
-    expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(1);
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project).toBe(
+      "Flushed",
+    );
+  });
+
+  it("flushes an unsaved edit when the page becomes hidden", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    let id = "";
+    act(() => {
+      id = result.current.createProject();
+    });
+    act(() => result.current.updateProject(id, named("Hidden")));
+
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    try {
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+    } finally {
+      // Removes the own property so the prototype getter applies again.
+      delete (document as { visibilityState?: unknown }).visibilityState;
+    }
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project).toBe(
+      "Hidden",
+    );
   });
 
   it("drops a link to an experiment that isn't in the new project", () => {

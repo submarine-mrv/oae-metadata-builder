@@ -47,7 +47,7 @@ interface WorkspaceContextValue {
   switchProject: (id: string) => void;
   deleteProject: (id: string) => void;
   importAsNewProject: (selection: ImportSelection) => string;
-  updateActiveProject: (state: ProjectState) => void;
+  updateProject: (id: string, state: ProjectState) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -61,55 +61,76 @@ export function WorkspaceProvider({
 }) {
   const [workspace, setWorkspace] = useState<Workspace>(() => store.load() ?? emptyWorkspace());
 
-  // Debounced save, with a flush on unload so a reload right after a change keeps it.
-  const isFirstSave = useRef(true);
+  // Edits save after a 2 s debounce; structural changes (create, delete, switch, import)
+  // save at once. Pending edits are flushed when the page is hidden or unloaded.
+  const synced = useRef(workspace);
   const unsaved = useRef<Workspace | null>(null);
+  const saveNow = useRef(false);
+
+  const persist = useCallback(
+    (ws: Workspace) => {
+      store.save(ws);
+      synced.current = ws;
+      unsaved.current = null;
+    },
+    [store],
+  );
+
   useEffect(() => {
-    if (isFirstSave.current) {
-      isFirstSave.current = false;
+    if (workspace === synced.current) return;
+    if (saveNow.current) {
+      saveNow.current = false;
+      persist(workspace);
       return;
     }
     unsaved.current = workspace;
-    const timer = setTimeout(() => {
-      store.save(workspace);
-      unsaved.current = null;
-    }, SAVE_DEBOUNCE_MS);
+    const timer = setTimeout(() => persist(workspace), SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [workspace, store]);
+  }, [workspace, persist]);
 
   useEffect(() => {
     const flush = () => {
-      if (!unsaved.current) return;
-      store.save(unsaved.current);
-      unsaved.current = null;
+      if (unsaved.current) persist(unsaved.current);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
     };
     window.addEventListener("pagehide", flush);
-    return () => window.removeEventListener("pagehide", flush);
-  }, [store]);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [persist]);
 
-  // Reads workspace from the closure so the new id can be returned synchronously.
   const createProject = useCallback(() => {
     const record = newProjectRecord();
-    setWorkspace(addProject(workspace, record));
-    return record.id;
-  }, [workspace]);
-
-  const switchProject = useCallback((id: string) => setWorkspace((ws) => switchIn(ws, id)), []);
-
-  const deleteProject = useCallback((id: string) => setWorkspace((ws) => deleteIn(ws, id)), []);
-
-  const importAsNewProject = useCallback((selection: ImportSelection) => {
-    const state = applyImport(emptyProjectState(), selection);
-    const record = newProjectRecord(state);
+    saveNow.current = true;
     setWorkspace((ws) => addProject(ws, record));
     return record.id;
   }, []);
 
-  const updateActiveProject = useCallback(
-    (state: ProjectState) =>
-      setWorkspace((ws) =>
-        ws.activeProjectId === null ? ws : updateIn(ws, ws.activeProjectId, state),
-      ),
+  const switchProject = useCallback((id: string) => {
+    saveNow.current = true;
+    setWorkspace((ws) => switchIn(ws, id));
+  }, []);
+
+  const deleteProject = useCallback((id: string) => {
+    saveNow.current = true;
+    setWorkspace((ws) => deleteIn(ws, id));
+  }, []);
+
+  const importAsNewProject = useCallback((selection: ImportSelection) => {
+    const state = applyImport(emptyProjectState(), selection);
+    const record = newProjectRecord(state);
+    saveNow.current = true;
+    setWorkspace((ws) => addProject(ws, record));
+    return record.id;
+  }, []);
+
+  /** Writes to the project the edit came from; unknown ids are ignored. */
+  const updateProject = useCallback(
+    (id: string, state: ProjectState) => setWorkspace((ws) => updateIn(ws, id, state)),
     [],
   );
 
@@ -133,16 +154,9 @@ export function WorkspaceProvider({
       switchProject,
       deleteProject,
       importAsNewProject,
-      updateActiveProject,
+      updateProject,
     };
-  }, [
-    workspace,
-    createProject,
-    switchProject,
-    deleteProject,
-    importAsNewProject,
-    updateActiveProject,
-  ]);
+  }, [workspace, createProject, switchProject, deleteProject, importAsNewProject, updateProject]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

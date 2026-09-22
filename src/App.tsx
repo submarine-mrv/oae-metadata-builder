@@ -1,25 +1,33 @@
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { RouterProvider } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { AuthProvider } from "@/auth/AuthContext";
 import { AppStateProvider } from "@/contexts/AppStateContext";
 import { theme } from "@/theme";
-import { emptyProjectState } from "@/workspace/types";
+import { emptyProjectState, type ProjectState } from "@/workspace/types";
 import { useWorkspace, WorkspaceProvider } from "@/workspace/WorkspaceContext";
 import { router } from "./router";
 
 /**
  * One editing session per active project; switching remounts it with that project's state.
- * With no project the session is blank and its changes go nowhere; the welcome screen is
- * the only thing that renders inside it.
+ * Edits are bound to the project that made them. With no project the session is blank and
+ * its edits go nowhere.
  */
 function ActiveProjectSession() {
-  const { activeProjectId, activeProject, updateActiveProject } = useWorkspace();
+  const { activeProject, updateProject } = useWorkspace();
+  const id = activeProject?.id ?? null;
+  const onChange = useCallback(
+    (state: ProjectState) => {
+      if (id) updateProject(id, state);
+    },
+    [id, updateProject],
+  );
   return (
     <AppStateProvider
-      key={activeProjectId ?? "empty"}
+      key={id ?? "empty"}
       initialState={activeProject?.state ?? emptyProjectState()}
-      onChange={activeProject ? updateActiveProject : undefined}
+      onChange={id ? onChange : undefined}
     >
       <RouterProvider router={router} />
     </AppStateProvider>
