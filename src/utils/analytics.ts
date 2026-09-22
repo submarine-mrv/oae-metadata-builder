@@ -2,7 +2,8 @@
  * Google Analytics 4 integration.
  *
  * No-op unless VITE_GA_MEASUREMENT_ID is set, so local dev and tests never reach
- * Google. Only page paths and counts are sent, never form field values.
+ * Google. Only page paths, route labels and counts are sent, never form field
+ * values or the project name.
  */
 
 import type { AnyRouter } from "@tanstack/react-router";
@@ -68,11 +69,14 @@ function sendPageView() {
     pageUrl.searchParams.delete(key);
   }
   const sanitizedUrl = pageUrl.toString();
+  const pageTitle = pageTitleFor(pageUrl.pathname);
 
+  // Later custom events inherit this instead of document.title.
+  window.gtag?.("set", { page_title: pageTitle });
   window.gtag?.("event", "page_view", {
     page_location: sanitizedUrl,
     page_path: `${pageUrl.pathname}${pageUrl.search}`,
-    page_title: pageTitleFor(pageUrl.pathname),
+    page_title: pageTitle,
   });
 }
 
@@ -98,6 +102,8 @@ export function initAnalytics(router: AnyRouter) {
   window.gtag?.("js", new Date());
   // gtag's automatic page view would fire on "/" before its redirect to /overview.
   window.gtag?.("config", measurementId, { send_page_view: false });
+  // GA defaults page_title to document.title, which holds the project name.
+  window.gtag?.("set", { page_title: pageTitleFor(window.location.pathname) });
 
   // onResolved also fires for the initial route, so this covers page load.
   router.subscribe("onResolved", sendPageView);

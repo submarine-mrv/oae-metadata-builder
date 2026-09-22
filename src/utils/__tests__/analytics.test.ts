@@ -134,6 +134,36 @@ describe("analytics with a measurement ID", () => {
     expect(pageView?.[2]).toMatchObject({ page_title: "Overview" });
   });
 
+  it("sets a route label as page_title at init so events never fall back to document.title", () => {
+    document.title = "Kiel trial · OAE Metadata Builder";
+    window.history.pushState({}, "", "/project");
+    const { router } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(gtagCalls()).toContainEqual(["set", { page_title: "Project" }]);
+  });
+
+  it("sets the route label before a page view so later events carry it", () => {
+    document.title = "Kiel trial · OAE Metadata Builder";
+    window.history.pushState({}, "", "/experiment");
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+    trackEvent("metadata_export", { datasets: 1 });
+
+    const calls = gtagCalls();
+    const lastSet = calls.map(([command]) => command).lastIndexOf("set");
+    const pageView = calls.findIndex(([, name]) => name === "page_view");
+    const exportEvent = calls.findIndex(([, name]) => name === "metadata_export");
+    expect(calls[lastSet]).toEqual(["set", { page_title: "Experiments" }]);
+    expect(lastSet).toBeLessThan(pageView);
+    expect(lastSet).toBeLessThan(exportEvent);
+    expect(JSON.stringify(calls)).not.toContain("Kiel trial");
+  });
+
   it("removes auth and PII query parameters from page views", () => {
     window.history.pushState(
       {},

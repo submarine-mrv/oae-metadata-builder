@@ -61,7 +61,7 @@ The display name is the Research Project field (`projectData.research_project`),
 
 `DocumentTitle` sets the tab title on every route: "Kiel trial · OAE Metadata Builder" once the project is named, "OAE Metadata Builder" otherwise.
 
-Analytics (`src/utils/analytics.ts`) sends a fixed `page_title` per route, such as "Overview" or "Projects". It never sends the project name.
+Analytics (`src/utils/analytics.ts`) sends a fixed `page_title` per route, such as "Overview" or "Projects". GA would otherwise take `page_title` from `document.title` for every event, so it sets the route label with `gtag("set")` at init and before each page view, and custom events such as `metadata_export` inherit it. It never sends the project name.
 
 ## Import
 
