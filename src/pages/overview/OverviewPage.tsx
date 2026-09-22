@@ -318,17 +318,18 @@ export default function OverviewPage() {
                           </Group>
                         </Group>
 
-                        {experiment.experiment_types && experiment.experiment_types.length > 0 && (
-                          <Group gap="xs">
-                            {experiment.experiment_types.map((t: string) => (
-                              <Badge variant="light" size="sm" key={t}>
-                                {t
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                              </Badge>
-                            ))}
-                          </Group>
-                        )}
+                        {experiment.formData.experiment_types &&
+                          experiment.formData.experiment_types.length > 0 && (
+                            <Group gap="xs">
+                              {experiment.formData.experiment_types.map((t: string) => (
+                                <Badge variant="light" size="sm" key={t}>
+                                  {t
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                </Badge>
+                              ))}
+                            </Group>
+                          )}
 
                         <Stack gap="xs">
                           <Group justify="space-between">

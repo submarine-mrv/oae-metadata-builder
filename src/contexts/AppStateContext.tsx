@@ -3,18 +3,14 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type {
   AppFormState,
   DatasetLinkingMetadata,
-  DatasetState,
+  DatasetRecord,
   DraftDataset,
   DraftExperiment,
   DraftProject,
-  ExperimentState,
+  ExperimentRecord,
 } from "@/types/forms";
 import { computeCompletion } from "@/utils/completionCalculator";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
-
-// Re-export types for backward compatibility
-export type ExperimentData = ExperimentState;
-export type DatasetData = DatasetState;
 
 export type AppState = AppFormState;
 
@@ -32,9 +28,9 @@ import { emptyProjectState, type ProjectState } from "@/workspace/types";
  * project_id is always auto-synced from the project — no opt-out.
  */
 function propagateProjectIdToExperiments(
-  experiments: ExperimentState[],
+  experiments: ExperimentRecord[],
   projectId: string | undefined,
-): ExperimentState[] {
+): ExperimentRecord[] {
   return experiments.map((exp) => ({
     ...exp,
     formData: {
@@ -50,9 +46,9 @@ function propagateProjectIdToExperiments(
  * project_id is always auto-synced from the project — no opt-out.
  */
 function propagateProjectIdToDatasets(
-  datasets: DatasetState[],
+  datasets: DatasetRecord[],
   projectId: string | undefined,
-): DatasetState[] {
+): DatasetRecord[] {
   return datasets.map((ds) => ({
     ...ds,
     formData: {
@@ -68,10 +64,10 @@ function propagateProjectIdToDatasets(
  * Only updates datasets where linking.linkedExperimentInternalId matches.
  */
 function propagateExperimentIdToDatasets(
-  datasets: DatasetState[],
+  datasets: DatasetRecord[],
   experimentInternalId: number,
   experimentId: string | undefined,
-): DatasetState[] {
+): DatasetRecord[] {
   return datasets.map((ds) => {
     // Only update if this dataset is linked to this specific experiment
     if (ds.linking?.linkedExperimentInternalId !== experimentInternalId) {
@@ -93,10 +89,7 @@ interface AppStateContextType {
   state: AppState;
   updateProjectData: (data: DraftProject) => void;
   addExperiment: (name?: string) => number;
-  updateExperiment: (
-    id: number,
-    data: Partial<DraftExperiment> & { name?: string; experiment_types?: string[] },
-  ) => void;
+  updateExperiment: (id: number, data: Partial<DraftExperiment> & { name?: string }) => void;
   /**
    * Full replacement of an experiment's formData. Use this from the
    * experiment form page where the incoming payload is authoritative —
@@ -109,7 +102,7 @@ interface AppStateContextType {
   /** Duplicate an experiment, appending " (Copy)" to its name. Returns the new ID. */
   duplicateExperiment: (id: number) => number;
   setActiveExperiment: (id: number | null) => void;
-  getExperiment: (id: number) => ExperimentData | undefined;
+  getExperiment: (id: number) => ExperimentRecord | undefined;
   getProjectCompletionPercentage: () => number;
   getExperimentCompletionPercentage: (id: number) => number;
   getDatasetCompletionPercentage: (id: number) => number;
@@ -134,7 +127,7 @@ interface AppStateContextType {
   /** Duplicate a dataset, appending " (Copy)" to its name. Returns the new ID. */
   duplicateDataset: (id: number) => number;
   setActiveDataset: (id: number | null) => void;
-  getDataset: (id: number) => DatasetData | undefined;
+  getDataset: (id: number) => DatasetRecord | undefined;
   // ID Linking methods
   updateDatasetLinking: (id: number, linking: Partial<DatasetLinkingMetadata>) => void;
 }
@@ -228,7 +221,7 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
       idRef.current = id;
       const defaultName = name || `Experiment ${id}`;
 
-      const newExperiment: ExperimentData = {
+      const newExperiment: ExperimentRecord = {
         id,
         name: defaultName,
         formData: {
@@ -250,10 +243,7 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
   }, []);
 
   const updateExperiment = useCallback(
-    (
-      id: number,
-      data: Partial<DraftExperiment> & { name?: string; experiment_types?: string[] },
-    ) => {
+    (id: number, data: Partial<DraftExperiment> & { name?: string }) => {
       setState((prev) => {
         // Find the existing experiment to check for experiment_id changes
         const existingExp = prev.experiments.find((exp) => exp.id === id);
@@ -266,12 +256,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
             ? {
                 ...exp,
                 formData: cleanFormData({ ...exp.formData, ...data }) as DraftExperiment,
-                // Use key-presence semantics: cleanFormData strips empty
-                // arrays so `data.experiment_types` may be undefined when
-                // the user explicitly cleared all types. Falling back via
-                // `||` would silently retain the old value.
-                experiment_types:
-                  "experiment_types" in data ? data.experiment_types : exp.experiment_types,
                 name: data.name || exp.name,
                 updatedAt: Date.now(),
               }
@@ -315,9 +299,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
           ? {
               ...exp,
               formData: cleaned as DraftExperiment,
-              // Derive top-level experiment_types from the cleaned
-              // formData so a cleared array actually takes effect.
-              experiment_types: cleaned.experiment_types,
               name: (cleaned.name as string) || exp.name,
               updatedAt: Date.now(),
             }
@@ -358,7 +339,7 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
       idRef.current = newId;
       const newName = `${original.name} (Copy)`;
 
-      const duplicate: ExperimentData = {
+      const duplicate: ExperimentRecord = {
         ...structuredClone(original),
         id: newId,
         name: newName,
@@ -466,7 +447,7 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
       idRef.current = id;
       const defaultName = name || `Dataset ${id}`;
 
-      const newDataset: DatasetData = {
+      const newDataset: DatasetRecord = {
         id,
         name: defaultName,
         formData: {
@@ -547,7 +528,7 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
 
       // structuredClone deep-copies formData and linking metadata so the
       // copy stays linked to the same experiment without sharing references.
-      const duplicate: DatasetData = {
+      const duplicate: DatasetRecord = {
         ...structuredClone(original),
         id: newId,
         name: newName,

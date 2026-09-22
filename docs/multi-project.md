@@ -2,6 +2,14 @@
 
 A project is one `ProjectState`: project metadata plus its experiments and datasets. `WorkspaceProvider` (`src/workspace/WorkspaceContext.tsx`) holds the list, the active id, and persistence; `AppStateProvider` edits one project at a time and is remounted with `key={activeProjectId}` when the active project changes, so UI-only state resets on switch.
 
+## Types
+
+| Layer | Types | Holds |
+|---|---|---|
+| Schema content | `DraftProject`, `DraftExperiment`, `DraftDataset` | Exported metadata; output of the `parse*` functions |
+| Entity records | `ExperimentRecord`, `DatasetRecord` | Internal id, display name, timestamps, linking, and `formData` holding a `Draft*` |
+| Project | `ProjectRecord`, whose `state` is a `ProjectState` | `projectData`, the records and the id counters; the unit that is saved |
+
 ## Empty workspace
 
 Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null` and `AppStateProvider` mounts with a blank state whose changes go nowhere. `/overview` renders `WelcomePage` (`src/pages/welcome/`), whose actions are "Create your first project" and "Import from file". The `/project`, `/experiment`, `/dataset` and `/projects` routes are wrapped in `RequireProject` (`src/workspace/RequireProject.tsx`), which redirects to `/overview`, so deleting the last project from the list lands on the welcome screen. The header shows the brand, Import and the menu only.

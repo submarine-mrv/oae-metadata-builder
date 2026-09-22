@@ -1,10 +1,10 @@
-import type { DatasetState, DraftProject, ExperimentState } from "@/types/forms";
+import type { DatasetRecord, DraftProject, ExperimentRecord } from "@/types/forms";
 
 /** Everything one project owns. Same shape the single-session autosave used. */
 export interface ProjectState {
   projectData: DraftProject;
-  experiments: ExperimentState[];
-  datasets: DatasetState[];
+  experiments: ExperimentRecord[];
+  datasets: DatasetRecord[];
   nextExperimentId: number;
   nextDatasetId: number;
 }

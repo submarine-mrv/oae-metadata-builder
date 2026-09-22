@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { DraftExperiment } from "@/types/forms";
+import type { DraftExperiment, ExperimentRecord } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
 import { AppStateProvider, useAppState } from "../AppStateContext";
 
@@ -207,7 +207,7 @@ describe("AppStateContext", () => {
       });
     });
 
-    it("should update experiment_types from formData", () => {
+    it("should set and clear experiment_types in formData", () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider,
       });
@@ -224,8 +224,13 @@ describe("AppStateContext", () => {
         });
       });
 
-      const experiment = result.current.state.experiments.find((e) => e.id === experimentId);
-      expect(experiment?.experiment_types).toEqual(["intervention"]);
+      const experiment = () => result.current.state.experiments.find((e) => e.id === experimentId);
+      expect(experiment()?.formData.experiment_types).toEqual(["intervention"]);
+
+      act(() => {
+        result.current.updateExperiment(experimentId!, { experiment_types: [] });
+      });
+      expect(experiment()?.formData.experiment_types).toBeUndefined();
     });
 
     it("should update name from formData if provided", () => {
@@ -477,10 +482,10 @@ describe("AppStateContext", () => {
       const copy = result.current.state.experiments[1];
 
       expect(copy.formData.description).toBe("A description");
-      expect(copy.experiment_types).toEqual(["intervention"]);
+      expect(copy.formData.experiment_types).toEqual(["intervention"]);
       // Mutating the copy must not affect the original (no shared refs).
       expect(copy.formData).not.toBe(original.formData);
-      expect(copy.experiment_types).not.toBe(original.experiment_types);
+      expect(copy.formData.experiment_types).not.toBe(original.formData.experiment_types);
     });
 
     it("should clear the user-set experiment_id on the copy", () => {
@@ -1426,27 +1431,24 @@ describe("AppStateContext", () => {
   });
 
   describe("initialState parsing", () => {
-    it("normalizes legacy invariant violations and re-derives the top-level experiment_types copy", () => {
+    it("normalizes legacy invariant violations and drops the top-level experiment_types copy", () => {
       const fixture: ProjectState = {
         projectData: { project_id: "proj-1" },
         experiments: [
           {
             id: 1,
             name: "Legacy",
-            // Saved before model exclusivity was enforced at boundaries:
-            // both the formData and the duplicated top-level copy are stale.
+            // Saved before model exclusivity was enforced at boundaries, and
+            // while records still carried a top-level experiment_types copy.
             formData: {
               experiment_id: "exp-legacy",
               experiment_types: ["model", "intervention"],
               dosing_description: "should be dropped",
             } as unknown as DraftExperiment,
-            experiment_types: [
-              "model",
-              "intervention",
-            ] as unknown as DraftExperiment["experiment_types"],
+            experiment_types: ["model", "intervention"],
             createdAt: 1,
             updatedAt: 1,
-          },
+          } as ExperimentRecord,
         ],
         datasets: [
           {
@@ -1472,9 +1474,7 @@ describe("AppStateContext", () => {
 
       const exp = result.current.state.experiments[0];
       expect(exp.formData.experiment_types).toEqual(["model"]);
-      // The duplicated top-level copy must match the parsed formData,
-      // not the stale saved value.
-      expect(exp.experiment_types).toEqual(["model"]);
+      expect(exp).not.toHaveProperty("experiment_types");
       expect(exp.formData.dosing_description).toBeUndefined();
 
       const ds = result.current.state.datasets[0];

@@ -1,8 +1,8 @@
 import type { JSONSchema } from "@/components/schemaUtils";
 import type {
-  DatasetState,
+  DatasetRecord,
   DraftProject,
-  ExperimentState,
+  ExperimentRecord,
   ExportContainer,
   ImportResult,
 } from "@/types/forms";
@@ -42,8 +42,8 @@ export interface ExportOptions {
  */
 export function exportMetadata(
   projectData: DraftProject,
-  experiments: ExperimentState[],
-  datasets: DatasetState[],
+  experiments: ExperimentRecord[],
+  datasets: DatasetRecord[],
   options?: ExportOptions,
 ): void {
   // Determine which sections to include (default to all)
@@ -134,8 +134,8 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         const { experiments: _, ...rawProjectData } = migrateFormData(projectDataRaw);
         const projectData = parseProject(rawProjectData);
 
-        // Convert experiment data to ExperimentState format
-        const experiments: ExperimentState[] = experimentsData.map(
+        // Convert experiment data to ExperimentRecords
+        const experiments: ExperimentRecord[] = experimentsData.map(
           (raw: unknown, index: number) => {
             const expData = parseExperiment(migrateFormData(asImportRecord(raw)));
             return {
@@ -145,15 +145,14 @@ export async function importMetadata(file: File): Promise<ImportResult> {
                 (expData.experiment_id as string) ||
                 `Experiment ${index + 1}`,
               formData: expData,
-              experiment_types: expData.experiment_types,
               createdAt: Date.now(),
               updatedAt: Date.now(),
             };
           },
         );
 
-        // Convert dataset data to DatasetState format
-        const datasets: DatasetState[] = datasetsData.map((raw: unknown, index: number) => {
+        // Convert dataset data to DatasetRecords
+        const datasets: DatasetRecord[] = datasetsData.map((raw: unknown, index: number) => {
           const dsData = parseDataset(
             migrateFormData(asImportRecord(raw)),
             getBaseSchema() as JSONSchema,

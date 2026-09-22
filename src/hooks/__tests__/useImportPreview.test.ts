@@ -1,10 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { DatasetState, DraftDataset, DraftExperiment, ExperimentState } from "@/types/forms";
+import type { DatasetRecord, DraftDataset, DraftExperiment, ExperimentRecord } from "@/types/forms";
 import { EMPTY_BASELINE, useImportPreview } from "../useImportPreview";
 
 // Helper to create test experiments
-function createExperiment(id: number, experimentId: string, name: string): ExperimentState {
+function createExperiment(id: number, experimentId: string, name: string): ExperimentRecord {
   return {
     id,
     name,
@@ -15,7 +15,7 @@ function createExperiment(id: number, experimentId: string, name: string): Exper
 }
 
 // Helper to create test datasets
-function _createDataset(id: number, name: string): DatasetState {
+function _createDataset(id: number, name: string): DatasetRecord {
   return {
     id,
     name,

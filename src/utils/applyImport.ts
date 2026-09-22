@@ -52,7 +52,6 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
         ...newExperiments[existingIndex],
         formData: expData,
         name: expName || newExperiments[existingIndex].name,
-        experiment_types: expData.experiment_types,
         updatedAt: Date.now(),
       };
       // Map import key to existing internal ID
@@ -64,7 +63,6 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
         id: newInternalId,
         name: expName || `Experiment ${newInternalId}`,
         formData: expData,
-        experiment_types: expData.experiment_types,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });

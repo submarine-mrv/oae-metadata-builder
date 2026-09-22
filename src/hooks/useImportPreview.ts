@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { DraftDataset, DraftExperiment, DraftProject, ExperimentState } from "@/types/forms";
+import type { DraftDataset, DraftExperiment, DraftProject, ExperimentRecord } from "@/types/forms";
 
 export type ImportItemType = "project" | "experiment" | "dataset";
 
@@ -70,7 +70,7 @@ interface ImportPreviewState {
 /** The project an import is resolved against: the current one, or an empty one. */
 export interface ImportBaseline {
   projectData: DraftProject;
-  experiments: ExperimentState[];
+  experiments: ExperimentRecord[];
 }
 
 export const EMPTY_BASELINE: ImportBaseline = { projectData: {}, experiments: [] };
@@ -129,7 +129,7 @@ interface UseImportPreviewReturn {
  */
 function resolveExperimentLink(
   datasetExperimentId: string | undefined,
-  existingExperiments: ExperimentState[],
+  existingExperiments: ExperimentRecord[],
   importingExperiments: Array<{ key: string; data: DraftExperiment }>,
 ): ResolvedExperimentLink {
   if (!datasetExperimentId) {

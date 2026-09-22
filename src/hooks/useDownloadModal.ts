@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import type { DownloadSection } from "@/components/DownloadModal";
-import type { DatasetState, DraftProject, ExperimentState } from "@/types/forms";
+import type { DatasetRecord, DraftProject, ExperimentRecord } from "@/types/forms";
 import { exportMetadata } from "@/utils/exportImport";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
 
@@ -8,8 +8,8 @@ export type DefaultSelection = "all" | "project" | "experiment" | "dataset";
 
 interface UseDownloadModalProps {
   projectData: DraftProject;
-  experiments: ExperimentState[];
-  datasets: DatasetState[];
+  experiments: ExperimentRecord[];
+  datasets: DatasetRecord[];
   defaultSelection?: DefaultSelection;
 }
 

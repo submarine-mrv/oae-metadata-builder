@@ -1,4 +1,5 @@
 import type { JSONSchema } from "@/components/schemaUtils";
+import type { ExperimentRecord } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
 import { migrateFormData } from "./migrations";
 import { parseDataset, parseExperiment, parseProject } from "./parseEntity";
@@ -12,13 +13,11 @@ import { getBaseSchema } from "./schemaViews";
  */
 export function parseProjectState(saved: ProjectState): ProjectState {
   const experiments = saved.experiments.map((exp) => {
-    const formData = parseExperiment(migrateFormData(exp.formData));
-    return {
-      ...exp,
-      formData,
-      // A legacy session may carry a stale top-level copy that the parse just normalized.
-      experiment_types: formData.experiment_types,
+    // Older saves carry a top-level copy of formData.experiment_types.
+    const { experiment_types: _, ...record } = exp as ExperimentRecord & {
+      experiment_types?: unknown;
     };
+    return { ...record, formData: parseExperiment(migrateFormData(exp.formData)) };
   });
   const datasets = saved.datasets.map((ds) => ({
     ...ds,
