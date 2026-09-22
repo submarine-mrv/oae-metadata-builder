@@ -5,6 +5,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import { EMPTY_BASELINE, type ImportBaseline, useImportPreview } from "@/hooks/useImportPreview";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
+import { projectDisplayName } from "@/workspace/types";
 import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export type ImportMode = "new" | "merge";
@@ -91,6 +92,7 @@ export function useImportFlow() {
         preview.rebase(baselineFor(canMerge ? m : "new"));
       },
       canMerge,
+      currentProjectName: projectDisplayName(state),
     },
   };
 }

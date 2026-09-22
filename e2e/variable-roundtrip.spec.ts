@@ -273,7 +273,7 @@ test.describe("Variable Round-Trip", () => {
     const tempFile = path.join(downloadPath! + ".reimport.json");
     fs.writeFileSync(tempFile, JSON.stringify(exportedJson));
 
-    // The import defaults to "Add as a new project", so it starts from an empty project.
+    // The import defaults to "A new project", so it starts from an empty project.
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
 

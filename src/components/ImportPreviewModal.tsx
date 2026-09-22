@@ -4,7 +4,6 @@ import {
   Checkbox,
   Group,
   Modal,
-  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -12,8 +11,9 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconAlertTriangle, IconCheck, IconFileImport } from "@tabler/icons-react";
+import { IconAlertTriangle, IconFileImport } from "@tabler/icons-react";
 import type React from "react";
+import ImportModeControl from "@/components/ImportModeControl";
 import type {
   DatasetExperimentLinking,
   ExperimentLinkOption,
@@ -39,6 +39,8 @@ interface ImportPreviewModalProps {
   onImportModeChange: (mode: "new" | "merge") => void;
   /** False when there is no current project to merge into; the mode control is hidden. */
   canMerge: boolean;
+  /** Shown as the merge target. */
+  currentProjectName: string;
 }
 
 /**
@@ -69,6 +71,7 @@ export default function ImportPreviewModal({
   importMode,
   onImportModeChange,
   canMerge,
+  currentProjectName,
 }: ImportPreviewModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
@@ -80,20 +83,6 @@ export default function ImportPreviewModal({
   const projectItems = items.filter((item) => item.type === "project");
   const experimentItems = items.filter((item) => item.type === "experiment");
   const datasetItems = items.filter((item) => item.type === "dataset");
-
-  // Build summary text
-  const summaryParts: string[] = [];
-  if (projectItems.length > 0) {
-    summaryParts.push("project metadata");
-  }
-  if (experimentItems.length > 0) {
-    summaryParts.push(
-      `${experimentItems.length} experiment${experimentItems.length !== 1 ? "s" : ""}`,
-    );
-  }
-  if (datasetItems.length > 0) {
-    summaryParts.push(`${datasetItems.length} dataset${datasetItems.length !== 1 ? "s" : ""}`);
-  }
 
   /**
    * Parse the select value and call the linking handler
@@ -220,22 +209,11 @@ export default function ImportPreviewModal({
     >
       <Stack gap="md">
         {canMerge && (
-          <SegmentedControl
-            fullWidth
+          <ImportModeControl
             value={importMode}
-            onChange={(value) => onImportModeChange(value as "new" | "merge")}
-            data={[
-              { value: "new", label: "Add as a new project" },
-              { value: "merge", label: "Merge into current project" },
-            ]}
+            onChange={onImportModeChange}
+            currentProjectName={currentProjectName}
           />
-        )}
-
-        {/* Success message with summary */}
-        {!hasBlockingError && summaryParts.length > 0 && (
-          <Alert icon={<IconCheck size={18} />} color="teal" variant="light">
-            <Text size="sm">OAE metadata file was loaded successfully.</Text>
-          </Alert>
         )}
 
         {/* Duplicate experiment_id error blocks import */}

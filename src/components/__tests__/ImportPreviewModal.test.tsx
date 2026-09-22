@@ -35,6 +35,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof ImportPreviewMod
         importMode="merge"
         onImportModeChange={vi.fn()}
         canMerge
+        currentProjectName="Kiel trial"
         {...props}
       />
     </MantineProvider>,
@@ -52,7 +53,8 @@ describe("ImportPreviewModal", () => {
     });
     expect(await screen.findByText(error)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Import 2 items/ })).toBeDisabled();
-    expect(screen.getByText("Merge into current project")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Kiel trial/ })).toBeInTheDocument();
+    expect(screen.queryByText(/loaded successfully/)).not.toBeInTheDocument();
   });
 
   it("shows overwrite icons only for override conflicts", async () => {
@@ -72,7 +74,6 @@ describe("ImportPreviewModal", () => {
   it("hides the mode control when there is nothing to merge into", async () => {
     renderModal({ canMerge: false, importMode: "new" });
     expect(await screen.findByRole("button", { name: /Import 1 item/ })).toBeEnabled();
-    expect(screen.queryByText("Merge into current project")).not.toBeInTheDocument();
-    expect(screen.queryByText("Add as a new project")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 });
