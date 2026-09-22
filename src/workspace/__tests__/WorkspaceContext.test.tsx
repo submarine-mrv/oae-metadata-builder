@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { localStorageWorkspaceStore } from "../storage";
-import { emptyProjectState } from "../types";
+import { localStorageWorkspaceStore, WORKSPACE_KEY } from "../storage";
+import { emptyProjectState, newProjectRecord, type ProjectState, UNNAMED_PROJECT } from "../types";
 import { useWorkspace, WorkspaceProvider } from "../WorkspaceContext";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -28,6 +28,20 @@ describe("WorkspaceProvider", () => {
     expect(result.current.projects).toHaveLength(0);
     expect(result.current.activeProjectId).toBeNull();
     expect(result.current.activeProject).toBeNull();
+  });
+
+  it("summarises a project whose name isn't text", () => {
+    const state = {
+      ...emptyProjectState(),
+      projectData: { project_id: "", research_project: ["WCOA"] },
+    } as unknown as ProjectState;
+    const project = newProjectRecord(state, 100);
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ version: 1, activeProjectId: project.id, projects: [project] }),
+    );
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    expect(result.current.projects.map((p) => p.name)).toEqual([UNNAMED_PROJECT]);
   });
 
   it("creates, switches, and deletes projects", () => {

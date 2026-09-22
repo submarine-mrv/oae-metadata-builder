@@ -57,7 +57,7 @@ Two open tabs overwrite each other. Each tab saves its own copy of the workspace
 
 ## Names, ids and titles
 
-The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project". Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
+The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project" when it is empty or not text. Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
 
 `DocumentTitle` sets the tab title on every route: "Kiel trial · OAE Metadata Builder" once the project is named, "OAE Metadata Builder" otherwise.
 

@@ -3,6 +3,7 @@ import {
   documentTitle,
   emptyProjectState,
   newProjectRecord,
+  type ProjectState,
   projectDisplayName,
   UNNAMED_PROJECT,
 } from "../types";
@@ -24,6 +25,16 @@ describe("projectDisplayName", () => {
       projectData: { project_id: "", research_project: "  Kiel trial " },
     };
     expect(projectDisplayName(state)).toBe("Kiel trial");
+  });
+
+  it("treats a non-text name as unnamed", () => {
+    for (const research_project of [["WCOA"], 42]) {
+      const state = {
+        ...emptyProjectState(),
+        projectData: { project_id: "", research_project },
+      } as unknown as ProjectState;
+      expect(projectDisplayName(state)).toBe(UNNAMED_PROJECT);
+    }
   });
 });
 

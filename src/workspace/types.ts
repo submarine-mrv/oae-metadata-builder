@@ -27,7 +27,9 @@ export const UNNAMED_PROJECT = "Unnamed Project";
 
 /** The Research Project field, or a placeholder. Never stored. */
 export function projectDisplayName(state: ProjectState): string {
-  return state.projectData.research_project?.trim() || UNNAMED_PROJECT;
+  // Imported JSON isn't type-checked, so the field may not be a string.
+  const rp: unknown = state.projectData.research_project;
+  return typeof rp === "string" ? rp.trim() || UNNAMED_PROJECT : UNNAMED_PROJECT;
 }
 
 const APP_TITLE = "OAE Metadata Builder";
