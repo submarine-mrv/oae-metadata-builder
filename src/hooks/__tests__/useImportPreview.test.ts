@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { DatasetState, DraftDataset, DraftExperiment, ExperimentState } from "@/types/forms";
-import { useImportPreview } from "../useImportPreview";
+import { EMPTY_BASELINE, useImportPreview } from "../useImportPreview";
 
 // Helper to create test experiments
 function createExperiment(id: number, experimentId: string, name: string): ExperimentState {
@@ -28,13 +28,7 @@ function _createDataset(id: number, name: string): DatasetState {
 describe("useImportPreview", () => {
   describe("duplicate experiment_id validation", () => {
     it("sets error when import file has duplicate experiment_ids", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -45,6 +39,7 @@ describe("useImportPreview", () => {
             { name: "Experiment 2", experiment_id: "EXP-001" } as DraftExperiment, // duplicate
           ],
           [],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -52,13 +47,7 @@ describe("useImportPreview", () => {
     });
 
     it("does not set error when experiment_ids are unique", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -69,6 +58,7 @@ describe("useImportPreview", () => {
             { name: "Experiment 2", experiment_id: "EXP-002" } as DraftExperiment,
           ],
           [],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -76,13 +66,7 @@ describe("useImportPreview", () => {
     });
 
     it("ignores empty experiment_ids when checking for duplicates", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -93,6 +77,7 @@ describe("useImportPreview", () => {
             { name: "Experiment 2", experiment_id: "" } as DraftExperiment, // both empty - should be ok
           ],
           [],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -107,13 +92,7 @@ describe("useImportPreview", () => {
         createExperiment(2, "EXP-002", "Existing Experiment 2"),
       ];
 
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments,
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       // Import a dataset with experiment_id matching existing experiment
       act(() => {
@@ -122,6 +101,7 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: currentExperiments },
         );
       });
 
@@ -135,13 +115,7 @@ describe("useImportPreview", () => {
     });
 
     it("resolves to importing experiment when experiment_id matches importing experiment", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       // Import both an experiment and a dataset that references it
       act(() => {
@@ -155,6 +129,7 @@ describe("useImportPreview", () => {
             } as DraftExperiment,
           ],
           [{ name: "Dataset 1", experiment_id: "EXP-NEW" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -165,13 +140,7 @@ describe("useImportPreview", () => {
     });
 
     it("resolves to none when experiment_id has no match", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       // Import a dataset with experiment_id that doesn't match anything
       act(() => {
@@ -185,6 +154,7 @@ describe("useImportPreview", () => {
               experiment_id: "EXP-NONEXISTENT",
             } as DraftDataset,
           ],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -193,13 +163,7 @@ describe("useImportPreview", () => {
     });
 
     it("resolves to none when no experiment_id in file", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       // Import a dataset without experiment_id
       act(() => {
@@ -208,6 +172,7 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -220,13 +185,7 @@ describe("useImportPreview", () => {
     it("switches dataset to explicit linking with existing experiment", () => {
       const currentExperiments = [createExperiment(1, "EXP-001", "Existing Experiment 1")];
 
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments,
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -234,6 +193,7 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: currentExperiments },
         );
       });
 
@@ -257,13 +217,7 @@ describe("useImportPreview", () => {
     });
 
     it("switches dataset to explicit linking with importing experiment", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -276,6 +230,7 @@ describe("useImportPreview", () => {
             } as DraftExperiment,
           ],
           [{ name: "Dataset 1" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -296,13 +251,7 @@ describe("useImportPreview", () => {
     });
 
     it("switches back to use-file mode", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -310,6 +259,10 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
+          {
+            projectData: { project_id: "PROJ-001" },
+            experiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+          },
         );
       });
 
@@ -331,13 +284,7 @@ describe("useImportPreview", () => {
 
   describe("getExperimentLinkOptions", () => {
     it("shows file experiment_id as first option for a dataset", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -345,6 +292,7 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1", experiment_id: "EXP-123" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -360,13 +308,7 @@ describe("useImportPreview", () => {
         createExperiment(2, "EXP-002", "Experiment Two"),
       ];
 
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments,
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -374,6 +316,7 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: currentExperiments },
         );
       });
 
@@ -387,13 +330,7 @@ describe("useImportPreview", () => {
     });
 
     it("shows '(no experiment)' when dataset has no experiment_id", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -401,6 +338,7 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -410,13 +348,7 @@ describe("useImportPreview", () => {
     });
 
     it("includes importing experiments when they are selected", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -429,6 +361,7 @@ describe("useImportPreview", () => {
             } as DraftExperiment,
           ],
           [{ name: "Dataset 1" } as DraftDataset],
+          { projectData: { project_id: "PROJ-001" }, experiments: [] },
         );
       });
 
@@ -442,13 +375,7 @@ describe("useImportPreview", () => {
 
   describe("getSelectedItems", () => {
     it("returns datasets with their linking configuration", () => {
-      const { result } = renderHook(() =>
-        useImportPreview({
-          currentProjectData: { project_id: "PROJ-001" },
-          currentExperiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
-          currentDatasets: [],
-        }),
-      );
+      const { result } = renderHook(() => useImportPreview());
 
       act(() => {
         result.current.openPreview(
@@ -456,6 +383,10 @@ describe("useImportPreview", () => {
           { project_id: "PROJ-001" },
           [],
           [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
+          {
+            projectData: { project_id: "PROJ-001" },
+            experiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+          },
         );
       });
 
@@ -464,6 +395,55 @@ describe("useImportPreview", () => {
       expect(selected.datasets[0].formData.name).toBe("Dataset 1");
       expect(selected.datasets[0].experimentLinking?.mode).toBe("use-file");
       expect(selected.datasets[0].experimentLinking?.resolvedMatch?.type).toBe("existing");
+    });
+  });
+
+  describe("rebase", () => {
+    const current = {
+      projectData: { project_id: "PROJ-001" },
+      experiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+    };
+
+    function openWithEmptyBaseline() {
+      const { result } = renderHook(() => useImportPreview());
+      act(() => {
+        result.current.openPreview(
+          "test.json",
+          { project_id: "PROJ-001" },
+          [{ name: "Imported Experiment", experiment_id: "EXP-001" } as DraftExperiment],
+          [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
+          EMPTY_BASELINE,
+        );
+      });
+      return result;
+    }
+
+    it("re-resolves links and conflicts against the new baseline and back", () => {
+      const result = openWithEmptyBaseline();
+      const item = (key: string) => result.current.state.items.find((i) => i.key === key);
+
+      expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.type).toBe("importing");
+      expect(item("experiment-0")?.conflict).toBe("add-new");
+
+      act(() => result.current.rebase(current));
+      expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.type).toBe("existing");
+      expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.internalId).toBe(1);
+      expect(item("experiment-0")?.conflict).toBe("override");
+      expect(item("project-0")?.conflict).toBe("override");
+
+      act(() => result.current.rebase(EMPTY_BASELINE));
+      expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.type).toBe("importing");
+      expect(item("experiment-0")?.conflict).toBe("add-new");
+      expect(item("project-0")?.conflict).toBe("add-new");
+    });
+
+    it("keeps an unticked item unticked", () => {
+      const result = openWithEmptyBaseline();
+      act(() => result.current.toggleItem("experiment-0"));
+      act(() => result.current.rebase(current));
+
+      const selected = result.current.state.items.filter((i) => i.selected).map((i) => i.key);
+      expect(selected).toEqual(["project-0", "dataset-0"]);
     });
   });
 });

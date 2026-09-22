@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { useAppState } from "@/contexts/AppStateContext";
-import { useImportPreview } from "@/hooks/useImportPreview";
+import { EMPTY_BASELINE, type ImportBaseline, useImportPreview } from "@/hooks/useImportPreview";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
 import { useWorkspace } from "@/workspace/WorkspaceContext";
@@ -20,12 +20,15 @@ export function useImportFlow() {
   const canMerge = projects.length > 0;
   const [mode, setMode] = useState<ImportMode>("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const effectiveMode: ImportMode = canMerge ? mode : "new";
 
-  const preview = useImportPreview({
-    currentProjectData: state.projectData,
-    currentExperiments: state.experiments,
-    currentDatasets: state.datasets,
-  });
+  const preview = useImportPreview();
+
+  // A new project starts empty, so nothing in the file can clash with or link to the current one.
+  const baselineFor = (m: ImportMode): ImportBaseline =>
+    m === "merge"
+      ? { projectData: state.projectData, experiments: state.experiments }
+      : EMPTY_BASELINE;
 
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 
@@ -39,6 +42,7 @@ export function useImportFlow() {
         projectData,
         experiments.map((exp) => exp.formData),
         datasets.map((ds) => ds.formData),
+        baselineFor(effectiveMode),
       );
       e.target.value = "";
     } catch (error) {
@@ -48,8 +52,6 @@ export function useImportFlow() {
       );
     }
   };
-
-  const effectiveMode: ImportMode = canMerge ? mode : "new";
 
   const onImport = () => {
     if (preview.state.duplicateExperimentIdError !== null) return;
@@ -84,7 +86,10 @@ export function useImportFlow() {
       duplicateExperimentIdError: preview.state.duplicateExperimentIdError,
       onImport,
       importMode: effectiveMode,
-      onImportModeChange: setMode,
+      onImportModeChange: (m: ImportMode) => {
+        setMode(m);
+        preview.rebase(baselineFor(canMerge ? m : "new"));
+      },
       canMerge,
     },
   };

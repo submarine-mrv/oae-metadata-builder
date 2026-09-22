@@ -52,21 +52,6 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-/** Links into the current project don't survive a move to a fresh one. */
-function withoutExistingLinks(selection: ImportSelection): ImportSelection {
-  return {
-    ...selection,
-    datasets: selection.datasets.map((dataset) => {
-      const link = dataset.experimentLinking;
-      const targetsExisting =
-        link?.mode === "explicit"
-          ? link.explicitExperimentInternalId !== undefined
-          : link?.resolvedMatch?.type === "existing";
-      return targetsExisting ? { formData: dataset.formData } : dataset;
-    }),
-  };
-}
-
 export function WorkspaceProvider({
   children,
   store = localStorageWorkspaceStore,
@@ -114,7 +99,7 @@ export function WorkspaceProvider({
   const deleteProject = useCallback((id: string) => setWorkspace((ws) => deleteIn(ws, id)), []);
 
   const importAsNewProject = useCallback((selection: ImportSelection) => {
-    const state = applyImport(emptyProjectState(), withoutExistingLinks(selection));
+    const state = applyImport(emptyProjectState(), selection);
     const record = newProjectRecord(state);
     setWorkspace((ws) => addProject(ws, record));
     return record.id;

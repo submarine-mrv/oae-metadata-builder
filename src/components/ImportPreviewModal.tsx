@@ -73,8 +73,6 @@ export default function ImportPreviewModal({
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
-  // Overwrite warnings only mean something when merging into the current project.
-  const merging = canMerge && importMode === "merge";
   // Duplicate ids would collapse experiments in either mode.
   const hasBlockingError = duplicateExperimentIdError !== null;
 
@@ -134,7 +132,7 @@ export default function ImportPreviewModal({
    * Render a warning icon with tooltip for override conflicts
    */
   const renderWarningIcon = (item: ImportItem, tooltipText: string): React.ReactNode => {
-    if (!merging || item.conflict !== "override") {
+    if (item.conflict !== "override") {
       return null;
     }
     return (

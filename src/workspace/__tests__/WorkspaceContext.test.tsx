@@ -98,7 +98,7 @@ describe("WorkspaceProvider", () => {
     expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(1);
   });
 
-  it("imports a selection as a new active project, dropping links to existing experiments", () => {
+  it("drops a link to an experiment that isn't in the new project", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
     act(() => {
       result.current.importAsNewProject({

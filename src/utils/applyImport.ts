@@ -16,15 +16,15 @@ export interface ImportSelection {
 
 /**
  * Merge an import selection into a project. Experiments replace an existing
- * one with the same experiment_id; datasets are always added. Pure, so the
- * in-place import and "import as a new project" share it.
+ * one with the same experiment_id; datasets are always added. Shared by the
+ * in-place import and "import as a new project"; stamps records with Date.now().
  */
 export function applyImport(prev: ProjectState, selection: ImportSelection): ProjectState {
   const { project: projectData, experiments, datasets } = selection;
   // Imported JSON may carry nulls and empty arrays that the edit path strips.
   const cleanedProjectData = projectData ? (cleanFormData(projectData) as DraftProject) : null;
 
-  // Handle project - simply replace if provided
+  // Project: imported fields merge over the existing ones
   const newProjectData = cleanedProjectData
     ? { ...prev.projectData, ...cleanedProjectData }
     : prev.projectData;
@@ -74,7 +74,7 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     }
   });
 
-  // Handle datasets - replace matching or add new
+  // Datasets: always added
   const newDatasets = [...prev.datasets];
   let nextDsId = prev.nextDatasetId;
 
@@ -106,6 +106,14 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
             importKeyToInternalId[experimentLinking.explicitImportKey] ?? null;
         }
       }
+    }
+
+    // A link resolved against another project points at nothing here.
+    if (
+      linkedExperimentInternalId !== null &&
+      !newExperiments.some((e) => e.id === linkedExperimentInternalId)
+    ) {
+      linkedExperimentInternalId = null;
     }
 
     // Find the linked experiment to get its experiment_id for the formData

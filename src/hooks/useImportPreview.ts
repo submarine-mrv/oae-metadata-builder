@@ -1,11 +1,5 @@
 import { useCallback, useState } from "react";
-import type {
-  DatasetState,
-  DraftDataset,
-  DraftExperiment,
-  DraftProject,
-  ExperimentState,
-} from "@/types/forms";
+import type { DraftDataset, DraftExperiment, DraftProject, ExperimentState } from "@/types/forms";
 
 export type ImportItemType = "project" | "experiment" | "dataset";
 
@@ -69,16 +63,17 @@ interface ImportPreviewState {
   filename: string;
   /** Error if duplicate experiment_ids found in import file */
   duplicateExperimentIdError: string | null;
+  /** The project the file is compared against */
+  baseline: ImportBaseline;
 }
 
-interface UseImportPreviewOptions {
-  /** Current project data in session */
-  currentProjectData: DraftProject;
-  /** Current experiments in session */
-  currentExperiments: ExperimentState[];
-  /** Current datasets in session */
-  currentDatasets: DatasetState[];
+/** The project an import is resolved against: the current one, or an empty one. */
+export interface ImportBaseline {
+  projectData: DraftProject;
+  experiments: ExperimentState[];
 }
+
+export const EMPTY_BASELINE: ImportBaseline = { projectData: {}, experiments: [] };
 
 /** Options for experiment linking dropdown */
 export interface ExperimentLinkOption {
@@ -97,7 +92,10 @@ interface UseImportPreviewReturn {
     projectData: DraftProject,
     experiments: DraftExperiment[],
     datasets: DraftDataset[],
+    baseline: ImportBaseline,
   ) => void;
+  /** Re-analyze the open file against another baseline, keeping selections */
+  rebase: (baseline: ImportBaseline) => void;
   /** Close the preview */
   closePreview: () => void;
   /** Toggle selection of an item */
@@ -168,20 +166,124 @@ function resolveExperimentLink(
   return { type: "none" };
 }
 
+/** Build preview items for a file, compared against the baseline project. */
+function analyze(
+  projectData: DraftProject,
+  experiments: DraftExperiment[],
+  datasets: DraftDataset[],
+  baseline: ImportBaseline,
+): { items: ImportItem[]; duplicateExperimentIdError: string | null } {
+  const items: ImportItem[] = [];
+
+  // Check for duplicate experiment_ids in the import file
+  const experimentIds = experiments
+    .map((exp) => exp.experiment_id as string)
+    .filter((id) => id && id.trim() !== "");
+  const duplicateIds = experimentIds.filter((id, index) => experimentIds.indexOf(id) !== index);
+  const uniqueDuplicates = [...new Set(duplicateIds)];
+  const duplicateExperimentIdError =
+    uniqueDuplicates.length > 0
+      ? `Cannot import: multiple experiments have the same experiment_id (${uniqueDuplicates.join(", ")})`
+      : null;
+
+  // Add project item
+  const hasExistingProject = Boolean(baseline.projectData?.project_id);
+  const importProjectId = projectData?.project_id;
+
+  if (projectData && Object.keys(projectData).length > 0) {
+    items.push({
+      key: "project-0",
+      type: "project",
+      id: importProjectId || null,
+      name: importProjectId || "Project",
+      data: projectData,
+      selected: true,
+      conflict: hasExistingProject ? "override" : "add-new",
+      conflictReason: hasExistingProject
+        ? "Replace existing project metadata"
+        : "Will set project metadata",
+    });
+  }
+
+  // Add experiment items
+  experiments.forEach((exp, index) => {
+    const expId = (exp.experiment_id as string) || (exp.name as string) || null;
+    const expName = (exp.name as string) || expId || `Experiment ${index + 1}`;
+
+    // Check for conflict with existing experiments
+    const existingExp = expId
+      ? baseline.experiments.find((e) => e.formData.experiment_id === expId || e.name === expId)
+      : null;
+
+    const hasConflict = Boolean(existingExp);
+    const isEmptyId = !expId;
+
+    items.push({
+      key: `experiment-${index}`,
+      type: "experiment",
+      id: expId,
+      name: expName,
+      data: exp,
+      selected: true,
+      conflict: isEmptyId ? "add-new" : hasConflict ? "override" : "add-new",
+      conflictReason: isEmptyId
+        ? "Add as new experiment"
+        : hasConflict
+          ? `Replace existing experiment: "${existingExp?.name}"`
+          : "Add as new experiment",
+    });
+  });
+
+  // Prepare importing experiments for cross-import resolution
+  const importingExperiments = experiments.map((exp, index) => ({
+    key: `experiment-${index}`,
+    data: exp,
+  }));
+
+  // Add dataset items with experiment linking
+  // Datasets are always added as new (no name-based override — unlike experiments
+  // which have unique experiment_id, datasets can share names)
+  datasets.forEach((ds, index) => {
+    const dsName = (ds.name as string) || `Dataset ${index + 1}`;
+    const dsExperimentId = ds.experiment_id as string | undefined;
+
+    // Resolve experiment link for this dataset
+    const resolvedMatch = resolveExperimentLink(
+      dsExperimentId,
+      baseline.experiments,
+      importingExperiments,
+    );
+
+    items.push({
+      key: `dataset-${index}`,
+      type: "dataset",
+      id: dsName,
+      name: dsName,
+      data: ds,
+      selected: true,
+      conflict: "add-new",
+      conflictReason: "Add as new dataset",
+      experimentLinking: {
+        mode: "use-file",
+        resolvedMatch,
+      },
+    });
+  });
+
+  return { items, duplicateExperimentIdError };
+}
+
 /**
  * Hook for managing import preview state.
- * Analyzes imported data against current session to detect conflicts.
+ * Analyzes imported data against a baseline project to detect conflicts.
  */
-export function useImportPreview({
-  currentProjectData,
-  currentExperiments,
-  currentDatasets,
-}: UseImportPreviewOptions): UseImportPreviewReturn {
+export function useImportPreview(): UseImportPreviewReturn {
   const [state, setState] = useState<ImportPreviewState>({
     isOpen: false,
     items: [],
     filename: "",
     duplicateExperimentIdError: null,
+    baseline: EMPTY_BASELINE,
   });
 
   const openPreview = useCallback(
@@ -190,113 +292,47 @@ export function useImportPreview({
       projectData: DraftProject,
       experiments: DraftExperiment[],
       datasets: DraftDataset[],
+      baseline: ImportBaseline,
     ) => {
-      const items: ImportItem[] = [];
-
-      // Check for duplicate experiment_ids in the import file
-      const experimentIds = experiments
-        .map((exp) => exp.experiment_id as string)
-        .filter((id) => id && id.trim() !== "");
-      const duplicateIds = experimentIds.filter((id, index) => experimentIds.indexOf(id) !== index);
-      const uniqueDuplicates = [...new Set(duplicateIds)];
-      const duplicateExperimentIdError =
-        uniqueDuplicates.length > 0
-          ? `Cannot import: multiple experiments have the same experiment_id (${uniqueDuplicates.join(", ")})`
-          : null;
-
-      // Add project item
-      const hasExistingProject = Boolean(currentProjectData?.project_id);
-      const importProjectId = projectData?.project_id;
-
-      if (projectData && Object.keys(projectData).length > 0) {
-        items.push({
-          key: "project-0",
-          type: "project",
-          id: importProjectId || null,
-          name: importProjectId || "Project",
-          data: projectData,
-          selected: true,
-          conflict: hasExistingProject ? "override" : "add-new",
-          conflictReason: hasExistingProject
-            ? "Replace existing project metadata"
-            : "Will set project metadata",
-        });
-      }
-
-      // Add experiment items
-      experiments.forEach((exp, index) => {
-        const expId = (exp.experiment_id as string) || (exp.name as string) || null;
-        const expName = (exp.name as string) || expId || `Experiment ${index + 1}`;
-
-        // Check for conflict with existing experiments
-        const existingExp = expId
-          ? currentExperiments.find((e) => e.formData.experiment_id === expId || e.name === expId)
-          : null;
-
-        const hasConflict = Boolean(existingExp);
-        const isEmptyId = !expId;
-
-        items.push({
-          key: `experiment-${index}`,
-          type: "experiment",
-          id: expId,
-          name: expName,
-          data: exp,
-          selected: true,
-          conflict: isEmptyId ? "add-new" : hasConflict ? "override" : "add-new",
-          conflictReason: isEmptyId
-            ? "Add as new experiment"
-            : hasConflict
-              ? `Replace existing experiment: "${existingExp?.name}"`
-              : "Add as new experiment",
-        });
-      });
-
-      // Prepare importing experiments for cross-import resolution
-      const importingExperiments = experiments.map((exp, index) => ({
-        key: `experiment-${index}`,
-        data: exp,
-      }));
-
-      // Add dataset items with experiment linking
-      // Datasets are always added as new (no name-based override — unlike experiments
-      // which have unique experiment_id, datasets can share names)
-      datasets.forEach((ds, index) => {
-        const dsName = (ds.name as string) || `Dataset ${index + 1}`;
-        const dsExperimentId = ds.experiment_id as string | undefined;
-
-        // Resolve experiment link for this dataset
-        const resolvedMatch = resolveExperimentLink(
-          dsExperimentId,
-          currentExperiments,
-          importingExperiments,
-        );
-
-        items.push({
-          key: `dataset-${index}`,
-          type: "dataset",
-          id: dsName,
-          name: dsName,
-          data: ds,
-          selected: true,
-          conflict: "add-new",
-          conflictReason: "Add as new dataset",
-          experimentLinking: {
-            mode: "use-file",
-            resolvedMatch,
-          },
-        });
-      });
-
       setState({
         isOpen: true,
-        items,
         filename,
-        duplicateExperimentIdError,
+        baseline,
+        ...analyze(projectData, experiments, datasets, baseline),
       });
     },
-    [currentProjectData, currentExperiments, currentDatasets],
+    [],
   );
+
+  const rebase = useCallback((baseline: ImportBaseline) => {
+    setState((prev) => {
+      const byType = (type: ImportItemType) => prev.items.filter((i) => i.type === type);
+      const projectData = (byType("project")[0]?.data ?? {}) as DraftProject;
+      const experiments = byType("experiment").map((i) => i.data as DraftExperiment);
+      const datasets = byType("dataset").map((i) => i.data as DraftDataset);
+      const fresh = analyze(projectData, experiments, datasets, baseline);
+      const previous = new Map(prev.items.map((i) => [i.key, i]));
+      const items = fresh.items.map((item) => {
+        const old = previous.get(item.key);
+        if (!old) return item;
+        // An explicit link to an importing experiment holds in either baseline.
+        const keepLink =
+          old.experimentLinking?.mode === "explicit" &&
+          old.experimentLinking.explicitImportKey !== undefined;
+        return {
+          ...item,
+          selected: old.selected,
+          experimentLinking: keepLink ? old.experimentLinking : item.experimentLinking,
+        };
+      });
+      return {
+        ...prev,
+        baseline,
+        items,
+        duplicateExperimentIdError: fresh.duplicateExperimentIdError,
+      };
+    });
+  }, []);
 
   const closePreview = useCallback(() => {
     setState((prev) => ({ ...prev, isOpen: false }));
@@ -357,12 +393,12 @@ export function useImportPreview({
 
             resolvedMatch = resolveExperimentLink(
               dsExperimentId,
-              currentExperiments,
+              prev.baseline.experiments,
               importingExperiments,
             );
           } else if (explicitExperimentInternalId !== undefined) {
             // Linking to existing experiment
-            const existingExp = currentExperiments.find(
+            const existingExp = prev.baseline.experiments.find(
               (e) => e.id === explicitExperimentInternalId,
             );
             resolvedMatch = existingExp
@@ -403,7 +439,7 @@ export function useImportPreview({
         }),
       }));
     },
-    [currentExperiments],
+    [],
   );
 
   /**
@@ -424,7 +460,7 @@ export function useImportPreview({
       // Build the first option: the file's experiment_id
       if (fileExperimentId && fileExperimentId.trim() !== "") {
         // Check if there's a matching experiment (existing or importing)
-        const existingMatch = currentExperiments.find(
+        const existingMatch = state.baseline.experiments.find(
           (exp) => exp.formData.experiment_id === fileExperimentId,
         );
         const importingMatch = state.items.find(
@@ -457,7 +493,7 @@ export function useImportPreview({
       }
 
       // Add remaining existing experiments (excluding any that match the file's experiment_id)
-      currentExperiments.forEach((exp) => {
+      state.baseline.experiments.forEach((exp) => {
         const expId = exp.formData.experiment_id as string;
         // Skip if this matches the file's experiment_id (already shown as first option)
         if (fileExperimentId && expId === fileExperimentId) {
@@ -490,7 +526,7 @@ export function useImportPreview({
 
       return options;
     },
-    [currentExperiments, state.items],
+    [state.baseline, state.items],
   );
 
   const getSelectedItems = useCallback(() => {
@@ -517,6 +553,7 @@ export function useImportPreview({
   return {
     state,
     openPreview,
+    rebase,
     closePreview,
     toggleItem,
     selectAll,
