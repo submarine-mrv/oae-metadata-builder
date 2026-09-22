@@ -1,5 +1,7 @@
 # First run and the empty workspace
 
+> Records the design as proposed on 2026-09-15. Current behaviour: [docs/multi-project.md](../../multi-project.md).
+
 Follow-up to `2026-09-15-multi-project-design.md`, on `feat/multi-project`. Makes zero projects a legal state, replaces the auto-created "Unnamed Project" with a welcome screen, and fixes the loop where deleting the last project on `/projects` recreated it in place. Also carries three small header and overview changes agreed in the same review.
 
 ## Decisions

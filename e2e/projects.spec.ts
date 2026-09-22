@@ -9,7 +9,7 @@ test.describe("Multiple projects", () => {
     const switcher = page.getByRole("button", { name: /Current project:/ });
     const firstProject = page.getByRole("button", { name: "Create your first project" });
 
-    // Empty workspace: welcome screen, brand-only header.
+    // Empty workspace: welcome screen; no switcher, Export or tabs.
     await waitForRoute(firstProject);
     await expect(page.getByRole("link", { name: "OAE Metadata Builder" })).toBeVisible();
     await expect(switcher).toHaveCount(0);

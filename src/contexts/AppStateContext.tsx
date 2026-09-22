@@ -110,7 +110,7 @@ interface AppStateContextType {
   getProjectStatus: () => { percentage: number; isValid: boolean; isEmpty: boolean };
   getExperimentStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
   getDatasetStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
-  /** Import selected data, merging with existing (replaces matching items, adds new ones) */
+  /** Merge an import selection into the open project. */
   importSelectedData: (
     projectData: DraftProject | null,
     experiments: DraftExperiment[],
@@ -136,7 +136,7 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 
 interface AppStateProviderProps {
   children: React.ReactNode;
-  /** Persisted project to edit. Parsed at the boundary like a restored session. */
+  /** Saved project to edit. Parsed at the boundary on mount. */
   initialState?: ProjectState;
   /** Fired after any change to the persisted subset of state. */
   onChange?: (state: ProjectState) => void;
@@ -616,11 +616,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     [],
   );
 
-  // Import selected data, merging with existing session
-  // - Project: replaces existing project data if provided
-  // - Experiments: replaces matching experiment_id, or adds new if no match/empty id
-  // - Datasets: replaces matching name, or adds new if no match/empty name
-  //   - Also applies experiment linking configuration
   const importSelectedData = useCallback(
     (
       projectData: DraftProject | null,

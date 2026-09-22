@@ -1,6 +1,6 @@
 import type { DatasetRecord, DraftProject, ExperimentRecord } from "@/types/forms";
 
-/** Everything one project owns. Same shape the single-session autosave used. */
+/** Everything one project owns. The legacy single-session autosave stored this plus `savedAt`. */
 export interface ProjectState {
   projectData: DraftProject;
   experiments: ExperimentRecord[];

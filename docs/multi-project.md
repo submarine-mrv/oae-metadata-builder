@@ -1,8 +1,12 @@
 # Multiple projects
 
-A project is one `ProjectState`: project metadata plus its experiments and datasets. `WorkspaceProvider` (`src/workspace/WorkspaceContext.tsx`) holds the list, the active id, and persistence; `AppStateProvider` edits one project at a time and is remounted with `key={activeProjectId}` when the active project changes, so UI-only state resets on switch.
+## Model
 
-## Types
+A workspace holds a list of projects and the id of the active one. A project is one `ProjectState`: project metadata plus its experiments and datasets.
+
+`WorkspaceProvider` (`src/workspace/WorkspaceContext.tsx`) owns the list, the active id and persistence. `AppStateProvider` (`src/contexts/AppStateContext.tsx`) edits the open project. `ActiveProjectSession` in `src/App.tsx` mounts it with `key={activeProjectId}`, so switching projects remounts it and resets UI-only state such as the active experiment. Each edit goes back to the project that made it through `updateProject(id, state)`; an unknown id is ignored.
+
+The pure transitions (add, switch, delete, update) live in `src/workspace/workspace.ts`.
 
 | Layer | Types | Holds |
 |---|---|---|
@@ -10,28 +14,65 @@ A project is one `ProjectState`: project metadata plus its experiments and datas
 | Entity records | `ExperimentRecord`, `DatasetRecord` | Internal id, display name, timestamps, linking, and `formData` holding a `Draft*` |
 | Project | `ProjectRecord`, whose `state` is a `ProjectState` | `projectData`, the records and the id counters; the unit that is saved |
 
-## Empty workspace
+## Empty workspace and routing
 
-Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null` and `AppStateProvider` mounts with a blank state whose changes go nowhere. `/overview` renders `WelcomePage` (`src/pages/welcome/`), whose actions are "Create your first project" and "Import from file". The `/project`, `/experiment`, `/dataset` and `/projects` routes are wrapped in `RequireProject` (`src/workspace/RequireProject.tsx`), which redirects to `/overview`, so deleting the last project from the list lands on the welcome screen. The header shows the brand, Import and the menu only.
+Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null`, and `AppStateProvider` mounts with a blank state whose edits go nowhere.
+
+`/overview` renders `WelcomePage` (`src/pages/welcome/`) with two actions: "Create your first project" and "Import from file". `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment`, `/dataset` and `/projects`. With no projects it redirects to `/overview` with `replace`, so Back doesn't return to the empty route.
 
 Creating a project, from anywhere, lands on `/project`.
 
+## Header and /projects
+
+While the workspace is empty, the header shows the brand, Import and the menu. Once a project exists it adds the project crumb, the section tabs and Export.
+
+The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`): "OAE Metadata Builder / Kiel trial ▾". Its menu lists every project with a check on the active one, then "New project" and "All projects…". Picking a project switches to it and opens `/overview`.
+
+`/projects` (`src/pages/projects/`) shows one card per project, newest edit first, with experiment and dataset counts, the time of the last edit and an "Active" badge on the open one. A card opens its project on `/overview`. "New project" creates one.
+
+The overview's H1 is always the project name, with "Overview" beneath it. The project card there is headed "Project Metadata".
+
 ## Deleting
 
-A project is deleted as a whole, from the `/projects` card or the overview's project card, through `DeleteProjectModal`. Deleting the active project activates the most recently edited remaining one; deleting the last returns to the empty workspace. There is no in-project "clear metadata" action.
+You delete a whole project, from its `/projects` card or the overview's project card. `DeleteProjectModal` confirms first and names the experiment and dataset counts. Deleting the active project activates the most recently edited one left. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place.
 
 ## Persistence
 
-One localStorage key, `oae-metadata-builder-workspace`, holds the whole `Workspace` (`src/workspace/types.ts`). Saves are debounced 2 s and flushed on `pagehide`. On first load, a pre-workspace `oae-metadata-builder-session` entry is migrated into the first project and removed. `WorkspaceStore` (`src/workspace/storage.ts`) is the interface a cloud implementation replaces.
+One localStorage key, `oae-metadata-builder-workspace`, holds the whole `Workspace` (`src/workspace/types.ts`). `WorkspaceStore` (`src/workspace/storage.ts`) is the interface a cloud store would replace.
 
-## Names and ids
+Edits save after a 2 s debounce. Create, delete, switch and import save at once. A pending edit is flushed on `pagehide` and when the page becomes hidden. Saved projects don't expire.
 
-The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project"; nothing stores it. It appears in the header crumb whenever a project exists, in the tab title once the project is named, and as the overview heading with two or more projects. Ids are `crypto.randomUUID()`; `updatedAt` changes whenever a project's state changes.
+Loading keeps whatever it can read:
+
+- A project record that fails validation is dropped and the rest load. The raw data is first copied to `oae-metadata-builder-workspace-backup-<timestamp>`.
+- A missing or dangling active id is repaired to the most recently edited project.
+- Data that won't parse, or has an unknown `version`, is backed up under the same prefix and the app starts empty.
+- A pre-workspace `oae-metadata-builder-session` entry becomes the first project. The old key is removed only after the new workspace is written.
+
+Backups are never deleted. If storage is full the backup can fail. The unreadable data then stays in place until the next save overwrites it.
+
+## Known limitation
+
+Two open tabs overwrite each other. Each tab saves its own copy of the workspace, so a project created in one tab disappears when the other saves. The fix is planned with the move of builder state to Jotai.
+
+## Names, ids and titles
+
+The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project". Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
+
+`DocumentTitle` sets the tab title on every route: "Kiel trial · OAE Metadata Builder" once the project is named, "OAE Metadata Builder" otherwise.
+
+Analytics (`src/utils/analytics.ts`) sends a fixed `page_title` per route, such as "Overview" or "Projects". It never sends the project name.
 
 ## Import
 
-`useImportFlow` (`src/hooks/useImportFlow.ts`) owns the file picker, preview and confirm; `ImportFlow` renders its input and modal. The header and the welcome screen both use it. "Merge into current project" is offered only when a project exists.
+`useImportFlow` (`src/hooks/useImportFlow.ts`) owns the file picker, preview and confirm. `ImportFlow` renders its input and modal. The header and the welcome screen both use it.
 
-## Shared pure functions
+The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project exists.
 
-`parseProjectState` (`src/utils/parseProjectState.ts`) parses and migrates a persisted project at the boundary. `applyImport` (`src/utils/applyImport.ts`) merges an import selection into a project; both the in-place import and "Add as a new project" use it. Links to experiments in the current project are dropped when importing as a new project.
+`useImportPreview` compares the file against a baseline. A new project resolves against an empty baseline, so nothing conflicts and datasets link only to experiments in the file. Merge resolves against the current project: imported project fields override existing ones, an experiment with a matching `experiment_id` is replaced, and datasets are always added. Switching mode re-analyzes the file with `rebase`, keeping ticked items and links to experiments in the file.
+
+A file with duplicate experiment ids is blocked in both modes.
+
+`applyImport` (`src/utils/applyImport.ts`) builds the result for both modes. It drops a dataset link whose experiment isn't in the result.
+
+`parseProjectState` (`src/utils/parseProjectState.ts`) parses and migrates a saved project when `AppStateProvider` loads it.

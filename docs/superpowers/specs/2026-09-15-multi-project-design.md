@@ -1,8 +1,8 @@
 # Multi-project support (local, no login)
 
-Branch `feat/multi-project` off `dev`. Gives the metadata builder a list of projects the user can switch between, persisted locally, with a shape a later cloud-sync PR can pick up without reworking state.
+> Records the design as proposed on 2026-09-15. Current behaviour: [docs/multi-project.md](../../multi-project.md).
 
-Superseded in part by `2026-09-15-first-run-design.md`: the workspace may be empty, the overview gains a welcome screen, and the overview's delete action removes the whole project.
+Branch `feat/multi-project` off `dev`. Gives the metadata builder a list of projects the user can switch between, persisted locally, with a shape a later cloud-sync PR can pick up without reworking state.
 
 ## Model
 
