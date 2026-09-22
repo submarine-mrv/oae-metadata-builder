@@ -17,6 +17,38 @@ describe("AppStateProvider", () => {
     expect(result.current.state.projectData.research_project).toBe("Seeded");
   });
 
+  it("selects the first experiment and dataset of the initial state", () => {
+    const record = (id: number) => ({
+      id,
+      name: `R${id}`,
+      formData: {},
+      createdAt: 0,
+      updatedAt: 0,
+    });
+    const initial = {
+      ...emptyProjectState(),
+      experiments: [record(3), record(4)],
+      datasets: [record(7)],
+      nextExperimentId: 5,
+      nextDatasetId: 8,
+    };
+    const { result } = renderHook(() => useAppState(), {
+      wrapper: ({ children }) => (
+        <AppStateProvider initialState={initial}>{children}</AppStateProvider>
+      ),
+    });
+    expect(result.current.state.activeExperimentId).toBe(3);
+    expect(result.current.state.activeDatasetId).toBe(7);
+  });
+
+  it("selects nothing when the initial state has no experiments or datasets", () => {
+    const { result } = renderHook(() => useAppState(), {
+      wrapper: ({ children }) => <AppStateProvider>{children}</AppStateProvider>,
+    });
+    expect(result.current.state.activeExperimentId).toBeNull();
+    expect(result.current.state.activeDatasetId).toBeNull();
+  });
+
   it("calls onChange with the persisted subset after a change, not on mount", () => {
     const onChange = vi.fn();
     const { result } = renderHook(() => useAppState(), {

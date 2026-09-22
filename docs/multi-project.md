@@ -4,7 +4,7 @@
 
 A workspace holds a list of projects and the id of the active one. A project is one `ProjectState`: project metadata plus its experiments and datasets.
 
-`WorkspaceProvider` (`src/workspace/WorkspaceContext.tsx`) owns the list, the active id and persistence. `AppStateProvider` (`src/contexts/AppStateContext.tsx`) edits the open project. `ActiveProjectSession` in `src/App.tsx` mounts it with `key={activeProjectId}`, so switching projects remounts it and resets UI-only state such as the active experiment. Each edit goes back to the project that made it through `updateProject(id, state)`; an unknown id is ignored.
+`WorkspaceProvider` (`src/workspace/WorkspaceContext.tsx`) owns the list, the active id and persistence. `AppStateProvider` (`src/contexts/AppStateContext.tsx`) edits the open project. `ActiveProjectSession` in `src/App.tsx` mounts it with `key={activeProjectId}`, so switching projects remounts it and resets UI-only state. A project opens with its first experiment and first dataset selected. Each edit goes back to the project that made it through `updateProject(id, state)`; an unknown id is ignored.
 
 The pure transitions (add, switch, delete, update) live in `src/workspace/workspace.ts`.
 

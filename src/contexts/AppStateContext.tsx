@@ -172,10 +172,15 @@ function sameProjectState(a: ProjectState, b: ProjectState): boolean {
 }
 
 export function AppStateProvider({ children, initialState, onChange }: AppStateProviderProps) {
-  const [state, setState] = useState<AppState>(() => ({
-    ...UI_INITIAL_STATE,
-    ...(initialState ? parseProjectState(initialState) : emptyProjectState()),
-  }));
+  const [state, setState] = useState<AppState>(() => {
+    const project = initialState ? parseProjectState(initialState) : emptyProjectState();
+    return {
+      ...UI_INITIAL_STATE,
+      ...project,
+      activeExperimentId: project.experiments[0]?.id ?? null,
+      activeDatasetId: project.datasets[0]?.id ?? null,
+    };
+  });
 
   // Report persisted changes to the owner without re-subscribing on every render.
   const onChangeRef = useRef(onChange);
