@@ -55,7 +55,6 @@ export interface DraftProject extends FormDataRecord {
   project_id?: string;
   /** Rendered as "Research Project"; doubles as the project's display name. */
   research_project?: string;
-  name?: string;
   description?: string;
   // ... other known fields can be added as needed
 }
