@@ -52,6 +52,7 @@ export function useImportFlow() {
   const effectiveMode: ImportMode = canMerge ? mode : "new";
 
   const onImport = () => {
+    if (preview.state.duplicateExperimentIdError !== null) return;
     const selected = preview.getSelectedItems();
     if (effectiveMode === "new") {
       importAsNewProject(selected);

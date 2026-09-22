@@ -75,7 +75,8 @@ export default function ImportPreviewModal({
   const noneSelected = selectedCount === 0;
   // Overwrite warnings only mean something when merging into the current project.
   const merging = canMerge && importMode === "merge";
-  const hasBlockingError = merging && duplicateExperimentIdError !== null;
+  // Duplicate ids would collapse experiments in either mode.
+  const hasBlockingError = duplicateExperimentIdError !== null;
 
   // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
@@ -239,7 +240,7 @@ export default function ImportPreviewModal({
           </Alert>
         )}
 
-        {/* Duplicate experiment_id error, only relevant when merging */}
+        {/* Duplicate experiment_id error blocks import */}
         {hasBlockingError && (
           <Alert icon={<IconAlertTriangle size={18} />} color="red" variant="light">
             <Text size="sm">{duplicateExperimentIdError}</Text>
