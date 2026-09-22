@@ -21,8 +21,15 @@ export function deleteProject(workspace: Workspace, id: string): Workspace {
 
   if (workspace.activeProjectId !== id) return { ...workspace, projects };
 
-  const mostRecent = projects.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
-  return { ...workspace, activeProjectId: mostRecent.id, projects };
+  return { ...workspace, activeProjectId: mostRecent(projects)?.id ?? null, projects };
+}
+
+/** The most recently edited project, or null when there are none. */
+export function mostRecent(projects: ProjectRecord[]): ProjectRecord | null {
+  return projects.reduce<ProjectRecord | null>(
+    (latest, p) => (latest === null || p.updatedAt > latest.updatedAt ? p : latest),
+    null,
+  );
 }
 
 export function updateProject(

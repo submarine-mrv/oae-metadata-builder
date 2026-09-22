@@ -1,5 +1,10 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { LEGACY_SESSION_KEY, localStorageWorkspaceStore, WORKSPACE_KEY } from "../storage";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  BACKUP_KEY_PREFIX,
+  LEGACY_SESSION_KEY,
+  localStorageWorkspaceStore,
+  WORKSPACE_KEY,
+} from "../storage";
 import { emptyProjectState, newProjectRecord, type Workspace } from "../types";
 
 function workspaceFixture(): Workspace {
@@ -7,9 +12,34 @@ function workspaceFixture(): Workspace {
   return { version: 1, activeProjectId: project.id, projects: [project] };
 }
 
+function twoProjectFixture(): Workspace {
+  const older = newProjectRecord(emptyProjectState(), 100);
+  const newer = newProjectRecord(emptyProjectState(), 200);
+  return { version: 1, activeProjectId: older.id, projects: [older, newer] };
+}
+
+const LEGACY_SESSION = JSON.stringify({
+  savedAt: 1234,
+  projectData: { project_id: "P1", name: "Old project" },
+  experiments: [],
+  datasets: [],
+  nextExperimentId: 3,
+  nextDatasetId: 2,
+});
+
+function backups(): string[] {
+  return Object.keys(localStorage)
+    .filter((key) => key.startsWith(BACKUP_KEY_PREFIX))
+    .map((key) => localStorage.getItem(key) as string);
+}
+
 describe("localStorageWorkspaceStore", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("returns null when nothing is stored", () => {
@@ -38,17 +68,79 @@ describe("localStorageWorkspaceStore", () => {
     expect(localStorageWorkspaceStore.load()?.projects[0].id).toBe(ws.projects[0].id);
   });
 
-  it("rejects a null active id when projects exist", () => {
-    const ws = workspaceFixture();
+  it("repairs a null active id to the most recently edited project", () => {
+    const ws = twoProjectFixture();
     localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, activeProjectId: null }));
-    expect(localStorageWorkspaceStore.load()).toBeNull();
-    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+    const loaded = localStorageWorkspaceStore.load();
+    expect(loaded?.projects).toHaveLength(2);
+    expect(loaded?.activeProjectId).toBe(ws.projects[1].id);
   });
 
-  it("drops malformed data instead of throwing", () => {
+  it("repairs a dangling active id and saves the repair", () => {
+    const ws = twoProjectFixture();
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, activeProjectId: "gone" }));
+    const loaded = localStorageWorkspaceStore.load();
+    expect(loaded?.activeProjectId).toBe(ws.projects[1].id);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string).activeProjectId).toBe(
+      ws.projects[1].id,
+    );
+    expect(backups()).toHaveLength(0);
+  });
+
+  it("drops an unreadable record, keeps the rest, and backs up the original", () => {
+    const ws = twoProjectFixture();
+    const raw = JSON.stringify({ ...ws, projects: [...ws.projects, { id: "bad" }] });
+    localStorage.setItem(WORKSPACE_KEY, raw);
+
+    const loaded = localStorageWorkspaceStore.load();
+    expect(loaded?.projects.map((p) => p.id)).toEqual(ws.projects.map((p) => p.id));
+    expect(loaded?.activeProjectId).toBe(ws.activeProjectId);
+    expect(backups()).toEqual([raw]);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string).projects).toHaveLength(2);
+  });
+
+  it("drops a record with a null experiment instead of crashing", () => {
+    const ws = twoProjectFixture();
+    const broken = { ...ws.projects[1], state: { ...ws.projects[1].state, experiments: [null] } };
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ ...ws, projects: [ws.projects[0], broken] }),
+    );
+    const loaded = localStorageWorkspaceStore.load();
+    expect(loaded?.projects.map((p) => p.id)).toEqual([ws.projects[0].id]);
+    expect(backups()).toHaveLength(1);
+  });
+
+  it("backs up malformed JSON and returns null", () => {
+    localStorage.setItem(WORKSPACE_KEY, "{not json");
+    expect(localStorageWorkspaceStore.load()).toBeNull();
+    expect(backups()).toEqual(["{not json"]);
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+    // A second load finds nothing to back up.
+    localStorageWorkspaceStore.load();
+    expect(backups()).toHaveLength(1);
+  });
+
+  it("backs up a workspace with an unknown version", () => {
+    const raw = JSON.stringify({ ...workspaceFixture(), version: 2 });
+    localStorage.setItem(WORKSPACE_KEY, raw);
+    expect(localStorageWorkspaceStore.load()).toBeNull();
+    expect(backups()).toEqual([raw]);
+  });
+
+  it("backs up an envelope without a projects array", () => {
     localStorage.setItem(WORKSPACE_KEY, '{"version":1,"projects":"nope"}');
     expect(localStorageWorkspaceStore.load()).toBeNull();
-    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+    expect(backups()).toEqual(['{"version":1,"projects":"nope"}']);
+  });
+
+  it("keeps unreadable data in place when the backup can't be written", () => {
+    localStorage.setItem(WORKSPACE_KEY, "{not json");
+    vi.spyOn(Object.getPrototypeOf(localStorage), "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    expect(localStorageWorkspaceStore.load()).toBeNull();
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe("{not json");
   });
 
   it("migrates a legacy single session into the first project and removes the old key", () => {
@@ -74,6 +166,24 @@ describe("localStorageWorkspaceStore", () => {
     expect(ws?.activeProjectId).toBe(ws?.projects[0].id);
     expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBeNull();
     expect(localStorage.getItem(WORKSPACE_KEY)).not.toBeNull();
+  });
+
+  it("keeps the legacy session when the migrated workspace can't be saved", () => {
+    localStorage.setItem(LEGACY_SESSION_KEY, LEGACY_SESSION);
+    vi.spyOn(Object.getPrototypeOf(localStorage), "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    expect(localStorageWorkspaceStore.load()?.projects).toHaveLength(1);
+    expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBe(LEGACY_SESSION);
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+  });
+
+  it("ignores and keeps a leftover legacy session when a workspace exists", () => {
+    const ws = workspaceFixture();
+    localStorageWorkspaceStore.save(ws);
+    localStorage.setItem(LEGACY_SESSION_KEY, LEGACY_SESSION);
+    expect(localStorageWorkspaceStore.load()).toEqual(ws);
+    expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBe(LEGACY_SESSION);
   });
 
   it("ignores a malformed legacy session", () => {
