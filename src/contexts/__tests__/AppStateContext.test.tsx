@@ -1311,8 +1311,8 @@ describe("AppStateContext", () => {
 
       const dataset = result.current.state.datasets.find((d) => d.name === "Dataset 1");
       expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
-      // Original experiment_id should be preserved
-      expect(dataset?.formData.experiment_id).toBe("EXP-ORPHAN");
+      // An unlinked dataset has no experiment_id
+      expect(dataset?.formData).not.toHaveProperty("experiment_id");
     });
 
     it("should propagate experiment_id to linked datasets when experiment_id is set", () => {
@@ -1400,7 +1400,7 @@ describe("AppStateContext", () => {
       expect(dataset?.formData.experiment_id).toBeUndefined();
     });
 
-    it("should not overwrite experiment_id when linking resolves to none", () => {
+    it("should remove experiment_id when linking resolves to none", () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider,
       });
@@ -1425,8 +1425,8 @@ describe("AppStateContext", () => {
 
       const dataset = result.current.state.datasets.find((d) => d.name === "Dataset 1");
       expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
-      // Original experiment_id from file should be preserved
-      expect(dataset?.formData.experiment_id).toBe("EXP-UNMATCHED");
+      // The file's experiment_id is not kept
+      expect(dataset?.formData).not.toHaveProperty("experiment_id");
     });
   });
 

@@ -73,6 +73,8 @@ The preview offers two modes: "Add as a new project" and "Merge into current pro
 
 A file with duplicate experiment ids is blocked in both modes.
 
-`applyImport` (`src/utils/applyImport.ts`) builds the result for both modes. It drops a dataset link whose experiment isn't in the result. `getSelectedItems` renumbers dataset links to match the ticked experiments. A dataset linked to an unticked experiment imports unlinked and keeps the file's `experiment_id`.
+`applyImport` (`src/utils/applyImport.ts`) builds the result for both modes. It drops a dataset link whose experiment isn't in the result. `getSelectedItems` renumbers dataset links to match the ticked experiments. A dataset linked to an unticked experiment imports unlinked.
+
+The app owns `project_id` and `experiment_id` on imported records, so `applyImport` ignores the file's values. Every experiment and dataset gets the resulting project's `project_id`, and a dataset has an `experiment_id` only when it is linked to an experiment in that project.
 
 `parseProjectState` (`src/utils/parseProjectState.ts`) parses and migrates a saved project when `AppStateProvider` loads it.

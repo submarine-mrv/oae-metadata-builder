@@ -467,7 +467,7 @@ describe("useImportPreview", () => {
       expect(selected.datasets[0].experimentLinking).toBeUndefined();
       const applied = applyImport(emptyProjectState(), selected);
       expect(applied.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
-      expect(applied.datasets[0].formData.experiment_id).toBe("E1");
+      expect(applied.datasets[0].formData).not.toHaveProperty("experiment_id");
     });
   });
 

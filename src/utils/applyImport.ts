@@ -7,6 +7,7 @@ import type {
 } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
 import { cleanFormData } from "./formDataCleanup";
+import { propagateProjectIdToDatasets, propagateProjectIdToExperiments } from "./idPropagation";
 
 export interface ImportSelection {
   project: DraftProject | null;
@@ -121,11 +122,12 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
       experimentIdToSet = linkedExp?.formData.experiment_id as string | undefined;
     }
 
-    // Update formData with resolved experiment_id if linking is set
+    // experiment_id comes from the linked experiment; an unlinked dataset has none.
+    const { experiment_id: _fileExperimentId, ...dsWithoutExperimentId } = dsData;
     const finalFormData: DraftDataset =
       linkedExperimentInternalId !== null && experimentIdToSet
         ? { ...dsData, experiment_id: experimentIdToSet }
-        : dsData;
+        : dsWithoutExperimentId;
 
     // Build linking metadata for the dataset
     const datasetLinking: DatasetLinkingMetadata = {
@@ -145,10 +147,12 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     nextDsId++;
   }
 
+  // project_id and experiment_id are owned by the target project, never taken from the file.
+  const projectId = newProjectData.project_id as string | undefined;
   return {
     projectData: newProjectData,
-    experiments: newExperiments,
-    datasets: newDatasets,
+    experiments: propagateProjectIdToExperiments(newExperiments, projectId),
+    datasets: propagateProjectIdToDatasets(newDatasets, projectId),
     nextExperimentId: nextExpId,
     nextDatasetId: nextDsId,
   };

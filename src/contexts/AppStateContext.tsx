@@ -16,48 +16,16 @@ export type AppState = AppFormState;
 
 import { applyImport, type ImportSelection } from "@/utils/applyImport";
 import { cleanFormData } from "@/utils/formDataCleanup";
+import {
+  propagateProjectIdToDatasets,
+  propagateProjectIdToExperiments,
+} from "@/utils/idPropagation";
 import { parseProjectState } from "@/utils/parseProjectState";
 import { emptyProjectState, type ProjectState } from "@/workspace/types";
 
 // =============================================================================
 // ID Propagation Helpers
 // =============================================================================
-
-/**
- * Propagate project_id to all experiments unconditionally.
- * project_id is always auto-synced from the project — no opt-out.
- */
-function propagateProjectIdToExperiments(
-  experiments: ExperimentRecord[],
-  projectId: string | undefined,
-): ExperimentRecord[] {
-  return experiments.map((exp) => ({
-    ...exp,
-    formData: {
-      ...exp.formData,
-      project_id: projectId || "",
-    },
-    updatedAt: Date.now(),
-  }));
-}
-
-/**
- * Propagate project_id to all datasets unconditionally.
- * project_id is always auto-synced from the project — no opt-out.
- */
-function propagateProjectIdToDatasets(
-  datasets: DatasetRecord[],
-  projectId: string | undefined,
-): DatasetRecord[] {
-  return datasets.map((ds) => ({
-    ...ds,
-    formData: {
-      ...ds.formData,
-      project_id: projectId || "",
-    },
-    updatedAt: Date.now(),
-  }));
-}
 
 /**
  * Propagate experiment_id to all datasets linked to the given experiment.
