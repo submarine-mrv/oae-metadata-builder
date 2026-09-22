@@ -6,7 +6,6 @@ import Ajv2019 from "ajv/dist/2019";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import EmptyEntityPage from "@/components/EmptyEntityPage";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -79,15 +78,6 @@ export default function ProjectPage() {
   useEffect(() => {
     setActiveTab("project");
   }, [setActiveTab]);
-
-  if (!state.hasProject) {
-    return (
-      <EmptyEntityPage
-        title="No Project Created"
-        description="Please create a project from the Overview page."
-      />
-    );
-  }
 
   return (
     <AppLayout noScroll>

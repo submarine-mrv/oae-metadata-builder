@@ -18,14 +18,11 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 function Namer() {
-  const { createProject, updateProjectData } = useAppState();
+  const { updateProjectData } = useAppState();
   return (
     <button
       type="button"
-      onClick={() => {
-        createProject();
-        updateProjectData({ project_id: "", research_project: "Kiel trial" });
-      }}
+      onClick={() => updateProjectData({ project_id: "", research_project: "Kiel trial" })}
     >
       name
     </button>

@@ -6,7 +6,6 @@ import { parseProjectState } from "../parseProjectState";
 describe("parseProjectState", () => {
   it("returns an equivalent state for an empty project", () => {
     const parsed = parseProjectState(emptyProjectState());
-    expect(parsed.hasProject).toBe(false);
     expect(parsed.experiments).toEqual([]);
     expect(parsed.datasets).toEqual([]);
     expect(parsed.nextExperimentId).toBe(1);

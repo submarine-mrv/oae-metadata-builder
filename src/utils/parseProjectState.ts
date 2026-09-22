@@ -25,7 +25,6 @@ export function parseProjectState(saved: ProjectState): ProjectState {
     formData: parseDataset(migrateFormData(ds.formData), getBaseSchema() as unknown as JSONSchema),
   }));
   return {
-    hasProject: saved.hasProject,
     projectData: parseProject(migrateFormData(saved.projectData)),
     experiments,
     datasets,

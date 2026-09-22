@@ -33,7 +33,6 @@ export default function OverviewPage() {
   const {
     state,
     setActiveTab,
-    createProject,
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
@@ -57,12 +56,6 @@ export default function OverviewPage() {
 
   const projectStatus = getProjectStatus();
   const projectCompletion = projectStatus.percentage;
-
-  const handleCreateProject = () => {
-    createProject();
-    setActiveTab("project");
-    navigate({ to: "/project" });
-  };
 
   const handleDeleteProject = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -158,13 +151,6 @@ export default function OverviewPage() {
     label: string;
     onClick: () => void;
   }> = [];
-  if (!state.hasProject)
-    uncreatedEntities.push({
-      key: "project",
-      icon: IconFolder,
-      label: "Project",
-      onClick: handleCreateProject,
-    });
   if (state.experiments.length === 0)
     uncreatedEntities.push({
       key: "experiment",
@@ -184,94 +170,84 @@ export default function OverviewPage() {
     <AppLayout>
       <Container size="lg" py="xl">
         <Stack gap="xl">
-          {/* Header: the project name once there is more than one project to be in */}
           <div>
-            {projects.length > 1 ? (
-              <>
-                <Title order={1} lineClamp={1}>
-                  {projectDisplayName(state)}
-                </Title>
-                <Text c="dimmed">Overview</Text>
-              </>
-            ) : (
-              <Title order={1}>OAE Metadata Builder – Overview</Title>
-            )}
+            <Title order={1} lineClamp={1}>
+              {projectDisplayName(state)}
+            </Title>
+            <Text c="dimmed">Overview</Text>
           </div>
 
-          {/* Project Section — only when created */}
-          {state.hasProject && (
-            <div>
-              <Group justify="space-between" mb="md">
-                <Title order={2}>Project</Title>
-              </Group>
+          <div>
+            <Group justify="space-between" mb="md">
+              <Title order={2}>Project Metadata</Title>
+            </Group>
 
-              <Card
-                shadow="sm"
-                padding="lg"
-                radius="md"
-                withBorder
-                style={{ cursor: "pointer" }}
-                onClick={handleEditProject}
-              >
-                <Stack gap="sm">
-                  <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
-                      <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
-                      <div style={{ minWidth: 0 }}>
-                        <Group gap={6} wrap="nowrap" align="center">
-                          <Text fw={600}>{projectDisplayName(state)}</Text>
-                          {projectStatus.isValid && (
-                            <IconCircleCheck
-                              size={18}
-                              color="var(--mantine-color-green-6)"
-                              aria-label="Validation passed"
-                              style={{ flexShrink: 0 }}
-                            />
-                          )}
-                        </Group>
-                        <Text
-                          size="sm"
-                          c="dimmed"
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {state.projectData?.project_id || "No project ID set"}
-                        </Text>
-                      </div>
-                    </Group>
-                    <Button
-                      variant="subtle"
-                      color="red"
-                      size="xs"
-                      style={{ flexShrink: 0 }}
-                      onClick={handleDeleteProject}
-                      aria-label="Delete project"
-                    >
-                      <IconTrash size={16} />
-                    </Button>
+            <Card
+              shadow="sm"
+              padding="lg"
+              radius="md"
+              withBorder
+              style={{ cursor: "pointer" }}
+              onClick={handleEditProject}
+            >
+              <Stack gap="sm">
+                <Group justify="space-between" wrap="nowrap" align="flex-start">
+                  <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
+                    <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <Group gap={6} wrap="nowrap" align="center">
+                        <Text fw={600}>{projectDisplayName(state)}</Text>
+                        {projectStatus.isValid && (
+                          <IconCircleCheck
+                            size={18}
+                            color="var(--mantine-color-green-6)"
+                            aria-label="Validation passed"
+                            style={{ flexShrink: 0 }}
+                          />
+                        )}
+                      </Group>
+                      <Text
+                        size="sm"
+                        c="dimmed"
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {state.projectData?.project_id || "No project ID set"}
+                      </Text>
+                    </div>
                   </Group>
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="xs"
+                    style={{ flexShrink: 0 }}
+                    onClick={handleDeleteProject}
+                    aria-label="Delete project"
+                  >
+                    <IconTrash size={16} />
+                  </Button>
+                </Group>
 
-                  <Stack gap="xs">
-                    <Group justify="space-between">
-                      <Text size="xs">Progress</Text>
-                      <Badge size="xs" color={getCompletionColor(projectCompletion)}>
-                        {projectCompletion}%
-                      </Badge>
-                    </Group>
-                    <Progress
-                      value={projectCompletion}
-                      size="md"
-                      radius="md"
-                      color={getCompletionColor(projectCompletion)}
-                    />
-                  </Stack>
+                <Stack gap="xs">
+                  <Group justify="space-between">
+                    <Text size="xs">Progress</Text>
+                    <Badge size="xs" color={getCompletionColor(projectCompletion)}>
+                      {projectCompletion}%
+                    </Badge>
+                  </Group>
+                  <Progress
+                    value={projectCompletion}
+                    size="md"
+                    radius="md"
+                    color={getCompletionColor(projectCompletion)}
+                  />
                 </Stack>
-              </Card>
-            </div>
-          )}
+              </Stack>
+            </Card>
+          </div>
 
           {/* Experiments Section — only when experiments exist */}
           {state.experiments.length > 0 && (
@@ -531,13 +507,7 @@ export default function OverviewPage() {
           {/* Compact create cards for uncreated entities */}
           {uncreatedEntities.length > 0 && (
             <SimpleGrid
-              cols={
-                uncreatedEntities.length === 1
-                  ? { base: 1 }
-                  : uncreatedEntities.length === 2
-                    ? { base: 1, xs: 2 }
-                    : { base: 1, xs: 2, sm: 3 }
-              }
+              cols={uncreatedEntities.length === 1 ? { base: 1 } : { base: 1, xs: 2 }}
               spacing="md"
               {...(uncreatedEntities.length === 1 ? { maw: 300 } : {})}
             >

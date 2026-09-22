@@ -3,7 +3,6 @@ import { emptyProjectState, newProjectRecord, type Workspace } from "../types";
 import {
   activeProject,
   addProject,
-  createProject,
   deleteProject,
   emptyWorkspace,
   switchProject,
@@ -21,16 +20,6 @@ describe("emptyWorkspace", () => {
     const ws = emptyWorkspace();
     expect(ws.projects).toHaveLength(0);
     expect(ws.activeProjectId).toBeNull();
-  });
-});
-
-describe("createProject", () => {
-  it("adds a project with hasProject set and makes it active", () => {
-    const ws = twoProjects();
-    const { workspace, id } = createProject(ws, 300);
-    expect(workspace.projects).toHaveLength(3);
-    expect(workspace.activeProjectId).toBe(id);
-    expect(workspace.projects.find((p) => p.id === id)?.state.hasProject).toBe(true);
   });
 });
 
@@ -67,7 +56,7 @@ describe("deleteProject", () => {
 describe("updateProject", () => {
   it("replaces the state and bumps updatedAt only for that project", () => {
     const ws = twoProjects();
-    const next = { ...emptyProjectState(), hasProject: true };
+    const next = { ...emptyProjectState(), nextExperimentId: 2 };
     const result = updateProject(ws, ws.projects[0].id, next, 500);
     expect(result.projects[0].state).toBe(next);
     expect(result.projects[0].updatedAt).toBe(500);

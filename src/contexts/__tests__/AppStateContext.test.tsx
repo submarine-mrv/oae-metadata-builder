@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DraftExperiment } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
-import { AppStateProvider, type ExperimentData, useAppState } from "../AppStateContext";
+import { AppStateProvider, useAppState } from "../AppStateContext";
 
 describe("AppStateContext", () => {
   describe("Provider and Hook", () => {
@@ -23,7 +23,6 @@ describe("AppStateContext", () => {
       });
 
       expect(result.current.state).toEqual({
-        hasProject: false,
         projectData: { project_id: "" },
         experiments: [],
         datasets: [],
@@ -76,22 +75,6 @@ describe("AppStateContext", () => {
       expect(result.current.state.experiments[0].formData.project_id).toBe("new-project");
       // Experiment name and other properties should remain unchanged
       expect(result.current.state.experiments[0].name).toBe("Test Experiment");
-    });
-  });
-
-  describe("createProject", () => {
-    it("should set hasProject to true", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-
-      act(() => {
-        result.current.createProject();
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
     });
   });
 
@@ -964,195 +947,6 @@ describe("AppStateContext", () => {
     });
   });
 
-  describe("importAllData", () => {
-    it("should import project data and experiments", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      const importedProjectData = {
-        project_id: "imported-project",
-        description: "Imported description",
-      };
-
-      const importedExperiments: ExperimentData[] = [
-        {
-          id: 1, // This ID will be reassigned
-          name: "Imported Exp 1",
-          formData: { experiment_id: "exp-001" },
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
-
-      act(() => {
-        result.current.importAllData(importedProjectData, importedExperiments, []);
-      });
-
-      expect(result.current.state.projectData).toEqual(importedProjectData);
-      expect(result.current.state.experiments).toHaveLength(1);
-      expect(result.current.state.experiments[0].name).toBe("Imported Exp 1");
-    });
-
-    it("should reassign experiment IDs to avoid conflicts", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      // Add an existing experiment first
-      act(() => {
-        result.current.addExperiment("Existing");
-      });
-
-      const nextIdBeforeImport = result.current.state.nextExperimentId;
-
-      const importedExperiments: ExperimentData[] = [
-        {
-          id: 1, // Original ID from imported file
-          name: "Imported 1",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: 2, // Original ID from imported file
-          name: "Imported 2",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
-
-      act(() => {
-        result.current.importAllData({}, importedExperiments, []);
-      });
-
-      // IDs should be reassigned starting from nextExperimentId
-      expect(result.current.state.experiments[0].id).toBe(nextIdBeforeImport);
-      expect(result.current.state.experiments[1].id).toBe(nextIdBeforeImport + 1);
-    });
-
-    it("should update nextExperimentId after import", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      const importedExperiments: ExperimentData[] = [
-        {
-          id: 1,
-          name: "Exp 1",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: 2,
-          name: "Exp 2",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
-
-      act(() => {
-        result.current.importAllData({}, importedExperiments, []);
-      });
-
-      // nextExperimentId should be 1 (initial) + 2 (imported) = 3
-      expect(result.current.state.nextExperimentId).toBe(3);
-    });
-
-    it("should reset activeExperimentId to null", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      act(() => {
-        result.current.addExperiment("Test");
-      });
-
-      // Should have active experiment
-      expect(result.current.state.activeExperimentId).not.toBeNull();
-
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      // Should be reset to null
-      expect(result.current.state.activeExperimentId).toBeNull();
-    });
-
-    it("should reset activeTab to overview", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      act(() => {
-        result.current.setActiveTab("project");
-      });
-
-      expect(result.current.state.activeTab).toBe("project");
-
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      expect(result.current.state.activeTab).toBe("overview");
-    });
-
-    it("should set hasProject to true when importing project with content", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-
-      act(() => {
-        result.current.importAllData({ project_id: "imported-project" }, [], []);
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
-    });
-
-    it("should set hasProject to false when importing empty project", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      // First create a project
-      act(() => {
-        result.current.createProject();
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
-
-      // Import with empty project data
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-    });
-
-    it("should reset triggerValidation to false", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      act(() => {
-        result.current.setTriggerValidation(true);
-      });
-
-      expect(result.current.state.triggerValidation).toBe(true);
-
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      expect(result.current.state.triggerValidation).toBe(false);
-    });
-  });
-
   describe("setTriggerValidation", () => {
     it("should set triggerValidation flag to true", () => {
       const { result } = renderHook(() => useAppState(), {
@@ -1657,7 +1451,6 @@ describe("AppStateContext", () => {
   describe("initialState parsing", () => {
     it("normalizes legacy invariant violations and re-derives the top-level experiment_types copy", () => {
       const fixture: ProjectState = {
-        hasProject: true,
         projectData: { project_id: "proj-1" },
         experiments: [
           {

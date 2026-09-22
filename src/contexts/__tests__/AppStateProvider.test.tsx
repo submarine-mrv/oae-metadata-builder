@@ -7,7 +7,6 @@ describe("AppStateProvider", () => {
   it("starts from initialState", () => {
     const initial = {
       ...emptyProjectState(),
-      hasProject: true,
       projectData: { project_id: "P1", name: "Seeded" },
     };
     const { result } = renderHook(() => useAppState(), {
@@ -15,7 +14,6 @@ describe("AppStateProvider", () => {
         <AppStateProvider initialState={initial}>{children}</AppStateProvider>
       ),
     });
-    expect(result.current.state.hasProject).toBe(true);
     expect(result.current.state.projectData.name).toBe("Seeded");
   });
 
@@ -28,10 +26,13 @@ describe("AppStateProvider", () => {
     });
     expect(onChange).not.toHaveBeenCalled();
 
-    act(() => result.current.createProject());
+    act(() => result.current.updateProjectData({ project_id: "P1" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange.mock.calls[0][0]).toMatchObject({ hasProject: true, experiments: [] });
+    expect(onChange.mock.calls[0][0]).toMatchObject({
+      projectData: { project_id: "P1" },
+      experiments: [],
+    });
     expect(onChange.mock.calls[0][0]).not.toHaveProperty("activeTab");
   });
 

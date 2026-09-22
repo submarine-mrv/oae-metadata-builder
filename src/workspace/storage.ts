@@ -17,7 +17,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function isProjectState(value: unknown): value is ProjectState {
   if (!isRecord(value)) return false;
   return (
-    typeof value.hasProject === "boolean" &&
     isRecord(value.projectData) &&
     Array.isArray(value.experiments) &&
     Array.isArray(value.datasets) &&
@@ -62,10 +61,13 @@ function remove(key: string) {
   }
 }
 
+type LegacySession = ProjectState & { savedAt: number; hasProject?: boolean };
+
 /** Wraps a legacy saved session as a project record, or null if it isn't one. */
 export function migrateLegacySession(raw: unknown): ProjectRecord | null {
   if (!isRecord(raw) || typeof raw.savedAt !== "number" || !isProjectState(raw)) return null;
-  const { savedAt, ...state } = raw as unknown as ProjectState & { savedAt: number };
+  // hasProject is a retired field.
+  const { savedAt, hasProject: _, ...state } = raw as unknown as LegacySession;
   return newProjectRecord(state, savedAt);
 }
 

@@ -1,10 +1,4 @@
-import {
-  emptyProjectState,
-  newProjectRecord,
-  type ProjectRecord,
-  type ProjectState,
-  type Workspace,
-} from "./types";
+import type { ProjectRecord, ProjectState, Workspace } from "./types";
 
 export function emptyWorkspace(): Workspace {
   return { version: 1, activeProjectId: null, projects: [] };
@@ -12,15 +6,6 @@ export function emptyWorkspace(): Workspace {
 
 export function addProject(workspace: Workspace, record: ProjectRecord): Workspace {
   return { ...workspace, activeProjectId: record.id, projects: [...workspace.projects, record] };
-}
-
-/** A new project ready for the project form, made active. */
-export function createProject(
-  workspace: Workspace,
-  now: number = Date.now(),
-): { workspace: Workspace; id: string } {
-  const record = newProjectRecord({ ...emptyProjectState(), hasProject: true }, now);
-  return { workspace: addProject(workspace, record), id: record.id };
 }
 
 export function switchProject(workspace: Workspace, id: string): Workspace {

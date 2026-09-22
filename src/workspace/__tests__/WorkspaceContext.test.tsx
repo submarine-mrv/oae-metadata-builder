@@ -71,7 +71,6 @@ describe("WorkspaceProvider", () => {
     });
     const next = {
       ...emptyProjectState(),
-      hasProject: true,
       projectData: { project_id: "", research_project: "Named" },
     };
 

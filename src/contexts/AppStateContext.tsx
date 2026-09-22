@@ -91,7 +91,6 @@ function propagateExperimentIdToDatasets(
 
 interface AppStateContextType {
   state: AppState;
-  createProject: () => void;
   updateProjectData: (data: DraftProject) => void;
   addExperiment: (name?: string) => number;
   updateExperiment: (
@@ -119,11 +118,6 @@ interface AppStateContextType {
   getProjectStatus: () => { percentage: number; isValid: boolean; isEmpty: boolean };
   getExperimentStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
   getDatasetStatus: (id: number) => { percentage: number; isValid: boolean; isEmpty: boolean };
-  importAllData: (
-    projectData: DraftProject,
-    experiments: ExperimentData[],
-    datasets: DatasetData[],
-  ) => void;
   /** Import selected data, merging with existing (replaces matching items, adds new ones) */
   importSelectedData: (
     projectData: DraftProject | null,
@@ -164,26 +158,26 @@ const UI_INITIAL_STATE = {
   showJsonPreview: false,
 };
 
+const PROJECT_STATE_KEYS = [
+  "projectData",
+  "experiments",
+  "datasets",
+  "nextExperimentId",
+  "nextDatasetId",
+] as const satisfies readonly (keyof ProjectState)[];
+
+// Fails to compile if ProjectState gains a key missing from PROJECT_STATE_KEYS.
+type _AllKeysListed = AssertNever<Exclude<keyof ProjectState, (typeof PROJECT_STATE_KEYS)[number]>>;
+type AssertNever<T extends never> = T;
+
 function persistedSubset(state: AppState): ProjectState {
-  return {
-    hasProject: state.hasProject,
-    projectData: state.projectData,
-    experiments: state.experiments,
-    datasets: state.datasets,
-    nextExperimentId: state.nextExperimentId,
-    nextDatasetId: state.nextDatasetId,
-  };
+  const subset = {} as Record<keyof ProjectState, unknown>;
+  for (const key of PROJECT_STATE_KEYS) subset[key] = state[key];
+  return subset as ProjectState;
 }
 
 function sameProjectState(a: ProjectState, b: ProjectState): boolean {
-  return (
-    a.hasProject === b.hasProject &&
-    a.projectData === b.projectData &&
-    a.experiments === b.experiments &&
-    a.datasets === b.datasets &&
-    a.nextExperimentId === b.nextExperimentId &&
-    a.nextDatasetId === b.nextDatasetId
-  );
+  return PROJECT_STATE_KEYS.every((key) => a[key] === b[key]);
 }
 
 export function AppStateProvider({ children, initialState, onChange }: AppStateProviderProps) {
@@ -202,13 +196,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     lastReported.current = current;
     onChangeRef.current?.(current);
   }, [state]);
-
-  const createProject = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      hasProject: true,
-    }));
-  }, []);
 
   const updateProjectData = useCallback((data: DraftProject) => {
     setState((prev) => {
@@ -657,55 +644,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     [],
   );
 
-  // Import all data (project + experiments + datasets) from imported file
-  const importAllData = useCallback(
-    (projectData: DraftProject, experiments: ExperimentData[], datasets: DatasetData[] = []) => {
-      // Normalize incoming data at the boundary. Imported JSON may contain
-      // nulls for optional fields, empty arrays for cleared lists, etc. —
-      // all of which the edit path already strips via cleanFormData. We
-      // apply the same normalization here so form state in memory always
-      // satisfies the same invariant regardless of whether it came from
-      // a user edit or an imported file.
-      const cleanedProjectData = cleanFormData(projectData);
-
-      // Reassign experiment IDs to avoid conflicts
-      const nextExpId = state.nextExperimentId;
-      const experimentsWithNewIds = experiments.map((exp, index) => ({
-        ...exp,
-        id: nextExpId + index,
-        formData: cleanFormData(exp.formData) as DraftExperiment,
-      }));
-
-      // Reassign dataset IDs to avoid conflicts
-      const nextDsId = state.nextDatasetId;
-      const datasetsWithNewIds = datasets.map((ds, index) => ({
-        ...ds,
-        id: nextDsId + index,
-        formData: cleanFormData(ds.formData) as DraftDataset,
-      }));
-
-      // Project has content if it has any keys with non-empty values
-      const hasProjectData = Object.values(cleanedProjectData).some((v) =>
-        typeof v === "string" ? v.trim() !== "" : v !== undefined && v !== null,
-      );
-
-      setState((prev) => ({
-        hasProject: hasProjectData,
-        projectData: cleanedProjectData,
-        experiments: experimentsWithNewIds,
-        datasets: datasetsWithNewIds,
-        activeTab: "overview",
-        activeExperimentId: null,
-        activeDatasetId: null,
-        nextExperimentId: nextExpId + experiments.length,
-        nextDatasetId: nextDsId + datasets.length,
-        triggerValidation: false,
-        showJsonPreview: prev.showJsonPreview,
-      }));
-    },
-    [state.nextExperimentId, state.nextDatasetId],
-  );
-
   // Import selected data, merging with existing session
   // - Project: replaces existing project data if provided
   // - Experiments: replaces matching experiment_id, or adds new if no match/empty id
@@ -749,7 +687,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
 
   const value: AppStateContextType = {
     state,
-    createProject,
     updateProjectData,
     addExperiment,
     updateExperiment,
@@ -765,7 +702,6 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     getProjectStatus,
     getExperimentStatus,
     getDatasetStatus,
-    importAllData,
     importSelectedData,
     setTriggerValidation,
     setShowJsonPreview,

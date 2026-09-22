@@ -20,7 +20,6 @@ import {
 } from "./types";
 import {
   addProject,
-  createProject as createIn,
   deleteProject as deleteIn,
   emptyWorkspace,
   activeProject as findActive,
@@ -105,9 +104,9 @@ export function WorkspaceProvider({
 
   // Reads workspace from the closure so the new id can be returned synchronously.
   const createProject = useCallback(() => {
-    const { workspace: next, id } = createIn(workspace);
-    setWorkspace(next);
-    return id;
+    const record = newProjectRecord();
+    setWorkspace(addProject(workspace, record));
+    return record.id;
   }, [workspace]);
 
   const switchProject = useCallback((id: string) => setWorkspace((ws) => switchIn(ws, id)), []);

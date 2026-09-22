@@ -3,7 +3,7 @@ import { LEGACY_SESSION_KEY, localStorageWorkspaceStore, WORKSPACE_KEY } from ".
 import { emptyProjectState, newProjectRecord, type Workspace } from "../types";
 
 function workspaceFixture(): Workspace {
-  const project = newProjectRecord({ ...emptyProjectState(), hasProject: true }, 100);
+  const project = newProjectRecord(emptyProjectState(), 100);
   return { version: 1, activeProjectId: project.id, projects: [project] };
 }
 
@@ -26,6 +26,16 @@ describe("localStorageWorkspaceStore", () => {
     const ws: Workspace = { version: 1, activeProjectId: null, projects: [] };
     localStorageWorkspaceStore.save(ws);
     expect(localStorageWorkspaceStore.load()).toEqual(ws);
+  });
+
+  it("loads a record saved with hasProject", () => {
+    const ws = workspaceFixture();
+    const saved = {
+      ...ws,
+      projects: ws.projects.map((p) => ({ ...p, state: { ...p.state, hasProject: true } })),
+    };
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify(saved));
+    expect(localStorageWorkspaceStore.load()?.projects[0].id).toBe(ws.projects[0].id);
   });
 
   it("rejects a null active id when projects exist", () => {
@@ -59,6 +69,7 @@ describe("localStorageWorkspaceStore", () => {
     expect(ws).not.toBeNull();
     expect(ws?.projects).toHaveLength(1);
     expect(ws?.projects[0].state.projectData.name).toBe("Old project");
+    expect(ws?.projects[0].state).not.toHaveProperty("hasProject");
     expect(ws?.projects[0].createdAt).toBe(1234);
     expect(ws?.activeProjectId).toBe(ws?.projects[0].id);
     expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBeNull();

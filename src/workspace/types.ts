@@ -2,7 +2,6 @@ import type { DatasetState, DraftProject, ExperimentState } from "@/types/forms"
 
 /** Everything one project owns. Same shape the single-session autosave used. */
 export interface ProjectState {
-  hasProject: boolean;
   projectData: DraftProject;
   experiments: ExperimentState[];
   datasets: DatasetState[];
@@ -33,7 +32,6 @@ export function projectDisplayName(state: ProjectState): string {
 
 export function emptyProjectState(): ProjectState {
   return {
-    hasProject: false,
     projectData: { project_id: "" },
     experiments: [],
     datasets: [],

@@ -18,7 +18,6 @@ describe("applyImport", () => {
       ],
     });
 
-    expect(result.hasProject).toBe(true);
     expect(result.projectData.name).toBe("Imported");
     expect(result.experiments).toHaveLength(1);
     expect(result.experiments[0].id).toBe(1);
@@ -41,6 +40,5 @@ describe("applyImport", () => {
     });
     expect(result.experiments).toHaveLength(1);
     expect(result.experiments[0].name).toBe("New");
-    expect(result.hasProject).toBe(false);
   });
 });

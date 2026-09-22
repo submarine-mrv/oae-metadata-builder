@@ -167,7 +167,6 @@ export interface DatasetState {
  * Main application state
  */
 export interface AppFormState {
-  hasProject: boolean;
   projectData: DraftProject;
   experiments: ExperimentState[];
   datasets: DatasetState[];

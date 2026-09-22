@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAppState } from "@/contexts/AppStateContext";
 import { projectDisplayName, UNNAMED_PROJECT } from "@/workspace/types";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,10 +24,10 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
   useDocumentTitle(
     name === UNNAMED_PROJECT ? "OAE Metadata Builder" : `${name} · OAE Metadata Builder`,
   );
-  const hasContent = state.hasProject || state.experiments.length > 0 || state.datasets.length > 0;
+  const projectOpen = useWorkspace().activeProjectId !== null;
 
   useEffect(() => {
-    if (!hasContent) return;
+    if (!projectOpen) return;
 
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -34,7 +35,7 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
 
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [hasContent]);
+  }, [projectOpen]);
 
   return (
     <div

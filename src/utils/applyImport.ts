@@ -21,8 +21,7 @@ export interface ImportSelection {
  */
 export function applyImport(prev: ProjectState, selection: ImportSelection): ProjectState {
   const { project: projectData, experiments, datasets } = selection;
-  // Normalize incoming data at the boundary — see importAllData
-  // for the rationale.
+  // Imported JSON may carry nulls and empty arrays that the edit path strips.
   const cleanedProjectData = projectData ? (cleanFormData(projectData) as DraftProject) : null;
 
   // Handle project - simply replace if provided
@@ -140,15 +139,7 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     nextDsId++;
   }
 
-  // Set hasProject if importing project data with content
-  const hasProject = projectData
-    ? Object.values(newProjectData).some((v) =>
-        typeof v === "string" ? v.trim() !== "" : v !== undefined && v !== null,
-      )
-    : prev.hasProject;
-
   return {
-    hasProject,
     projectData: newProjectData,
     experiments: newExperiments,
     datasets: newDatasets,
