@@ -5,7 +5,7 @@ import { applyImport } from "../applyImport";
 describe("applyImport", () => {
   it("adds experiments and datasets to an empty project and links by import key", () => {
     const result = applyImport(emptyProjectState(), {
-      project: { project_id: "P1", name: "Imported" },
+      project: { project_id: "P1", research_project: "Imported" },
       experiments: [{ experiment_id: "E1", name: "First" }],
       datasets: [
         {
@@ -18,7 +18,7 @@ describe("applyImport", () => {
       ],
     });
 
-    expect(result.projectData.name).toBe("Imported");
+    expect(result.projectData.research_project).toBe("Imported");
     expect(result.experiments).toHaveLength(1);
     expect(result.experiments[0].id).toBe(1);
     expect(result.nextExperimentId).toBe(2);

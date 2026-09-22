@@ -7,14 +7,14 @@ describe("AppStateProvider", () => {
   it("starts from initialState", () => {
     const initial = {
       ...emptyProjectState(),
-      projectData: { project_id: "P1", name: "Seeded" },
+      projectData: { project_id: "P1", research_project: "Seeded" },
     };
     const { result } = renderHook(() => useAppState(), {
       wrapper: ({ children }) => (
         <AppStateProvider initialState={initial}>{children}</AppStateProvider>
       ),
     });
-    expect(result.current.state.projectData.name).toBe("Seeded");
+    expect(result.current.state.projectData.research_project).toBe("Seeded");
   });
 
   it("calls onChange with the persisted subset after a change, not on mount", () => {

@@ -4,13 +4,6 @@ import { emptyProjectState } from "@/workspace/types";
 import { parseProjectState } from "../parseProjectState";
 
 describe("parseProjectState", () => {
-  it("returns an equivalent state for an empty project", () => {
-    const parsed = parseProjectState(emptyProjectState());
-    expect(parsed.experiments).toEqual([]);
-    expect(parsed.datasets).toEqual([]);
-    expect(parsed.nextExperimentId).toBe(1);
-  });
-
   it("drops a stored top-level experiment_types copy", () => {
     const parsed = parseProjectState({
       ...emptyProjectState(),

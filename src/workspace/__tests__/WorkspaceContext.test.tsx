@@ -167,7 +167,7 @@ describe("WorkspaceProvider", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
     act(() => {
       result.current.importAsNewProject({
-        project: { project_id: "P2", name: "Imported" },
+        project: { project_id: "P2", research_project: "Imported" },
         experiments: [],
         datasets: [
           {
@@ -179,7 +179,7 @@ describe("WorkspaceProvider", () => {
     });
     const active = result.current.activeProject;
     expect(active).not.toBeNull();
-    expect(active?.state.projectData.name).toBe("Imported");
+    expect(active?.state.projectData.research_project).toBe("Imported");
     expect(active?.state.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
     expect(result.current.projects).toHaveLength(1);
   });

@@ -269,21 +269,13 @@ test.describe("Variable Round-Trip", () => {
       expect(exported.dataset_variable_name).toBe(`test_var_${i}`);
     }
 
-    // Now re-import the file into a fresh session
+    // Now re-import the file as a new project
     const tempFile = path.join(downloadPath! + ".reimport.json");
     fs.writeFileSync(tempFile, JSON.stringify(exportedJson));
 
-    // Clear session and navigate fresh
-    await page.evaluate(() => sessionStorage.clear());
+    // The import defaults to "Add as a new project", so it starts from an empty project.
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
-
-    // Dismiss session restore modal if it appears
-    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
-    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startFresh.click();
-      await page.waitForTimeout(300);
-    }
 
     // Open hamburger menu and trigger import
     await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();

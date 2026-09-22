@@ -21,6 +21,8 @@ export default defineConfig({
         "src/pages/**/*.{ts,tsx}",
         "src/contexts/**/*.{ts,tsx}",
         "src/components/**/*.{ts,tsx}",
+        "src/workspace/**/*.{ts,tsx}",
+        "src/hooks/useImportFlow.ts",
         "scripts/**/*.mjs",
       ],
       exclude: [

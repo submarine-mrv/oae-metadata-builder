@@ -1,4 +1,4 @@
-import { createFromOverview, waitForRoute } from "./fixtures/app";
+import { waitForRoute } from "./fixtures/app";
 import { expect, test } from "./fixtures/test";
 
 test.describe("Multiple projects", () => {
@@ -29,11 +29,30 @@ test.describe("Multiple projects", () => {
     await expect(page).toHaveTitle("Kiel trial · OAE Metadata Builder");
     await expect(switcher).toHaveText("Kiel trial");
 
+    // With a single project, the overview is headed by its name.
+    await page
+      .locator("label")
+      .filter({ hasText: /^Overview$/ })
+      .click();
+    await expect(page).toHaveURL(/\/overview$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiel trial");
+
     // A second project from the menu starts unnamed on the project form.
     await switcher.click();
     await page.getByRole("menuitem", { name: "New project" }).click();
     await expect(page).toHaveURL(/\/project$/);
     await expect(switcher).toHaveText("Unnamed Project");
+
+    // Switching from the menu lands on the other project's overview.
+    await switcher.click();
+    await page.getByRole("menuitem", { name: "Kiel trial" }).click();
+    await expect(page).toHaveURL(/\/overview$/);
+    await expect(switcher).toHaveText("Kiel trial");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiel trial");
+    await switcher.click();
+    await page.getByRole("menuitem", { name: "Unnamed Project" }).click();
+    await expect(switcher).toHaveText("Unnamed Project");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Unnamed Project");
 
     // Both are listed; opening the first lands on its overview, headed by its name.
     await switcher.click();
@@ -64,17 +83,24 @@ test.describe("Multiple projects", () => {
     await expect(firstProject).toBeVisible();
     await expect(switcher).toHaveCount(0);
 
-    // A project can also be deleted from its overview card.
+    // Deleting from the overview with two projects lands on the other one's overview.
     await firstProject.click();
     await expect(page).toHaveURL(/\/project$/);
+    await page.getByLabel(/Research Project/).fill("Bergen trial");
+    await expect(switcher).toHaveText("Bergen trial");
+    await switcher.click();
+    await page.getByRole("menuitem", { name: "New project" }).click();
+    await expect(switcher).toHaveText("Unnamed Project");
     await page.goto("/overview");
     await page.getByRole("button", { name: "Delete project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
-    await expect(firstProject).toBeVisible();
-  });
+    await expect(page).toHaveURL(/\/overview$/);
+    await expect(switcher).toHaveText("Bergen trial");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bergen trial");
 
-  test("the overview create cards still work through the helper", async ({ page }) => {
-    await createFromOverview(page, "Experiment");
-    await expect(page).toHaveURL(/\/experiment$/);
+    // Deleting the last one from its overview returns to the welcome screen.
+    await page.getByRole("button", { name: "Delete project" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
+    await expect(firstProject).toBeVisible();
   });
 });

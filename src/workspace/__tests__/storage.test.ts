@@ -20,7 +20,7 @@ function twoProjectFixture(): Workspace {
 
 const LEGACY_SESSION = JSON.stringify({
   savedAt: 1234,
-  projectData: { project_id: "P1", name: "Old project" },
+  projectData: { project_id: "P1", research_project: "Old project" },
   experiments: [],
   datasets: [],
   nextExperimentId: 3,
@@ -149,7 +149,7 @@ describe("localStorageWorkspaceStore", () => {
       JSON.stringify({
         savedAt: 1234,
         hasProject: true,
-        projectData: { project_id: "P1", name: "Old project" },
+        projectData: { project_id: "P1", research_project: "Old project" },
         experiments: [],
         datasets: [],
         nextExperimentId: 3,
@@ -160,7 +160,7 @@ describe("localStorageWorkspaceStore", () => {
     const ws = localStorageWorkspaceStore.load();
     expect(ws).not.toBeNull();
     expect(ws?.projects).toHaveLength(1);
-    expect(ws?.projects[0].state.projectData.name).toBe("Old project");
+    expect(ws?.projects[0].state.projectData.research_project).toBe("Old project");
     expect(ws?.projects[0].state).not.toHaveProperty("hasProject");
     expect(ws?.projects[0].createdAt).toBe(1234);
     expect(ws?.activeProjectId).toBe(ws?.projects[0].id);

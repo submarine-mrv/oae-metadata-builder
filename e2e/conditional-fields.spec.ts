@@ -163,13 +163,6 @@ test.describe("Import preserves conditional field values", () => {
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
 
-    // Dismiss session restore modal if it appears
-    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
-    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startFresh.click();
-      await page.waitForTimeout(300);
-    }
-
     // Open hamburger menu and trigger import
     await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);
@@ -209,12 +202,6 @@ test.describe("Import preserves conditional field values", () => {
     // Import the fixture file
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
-
-    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
-    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startFresh.click();
-      await page.waitForTimeout(300);
-    }
 
     await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);

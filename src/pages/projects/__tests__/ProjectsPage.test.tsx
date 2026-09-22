@@ -19,11 +19,29 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 function Seed() {
-  const { createProject } = useWorkspace();
+  const { createProject, importAsNewProject, projects } = useWorkspace();
+  const seedTwo = () => {
+    importAsNewProject({
+      project: { research_project: "Old trial" },
+      experiments: [{ experiment_id: "E1" }, { experiment_id: "E2" }],
+      datasets: [{ formData: { name: "DS" } }],
+    });
+    importAsNewProject({
+      project: { research_project: "Current trial" },
+      experiments: [],
+      datasets: [],
+    });
+  };
   return (
-    <button type="button" onClick={() => createProject()}>
-      seed
-    </button>
+    <>
+      <button type="button" onClick={() => createProject()}>
+        seed
+      </button>
+      <button type="button" onClick={seedTwo}>
+        seed two
+      </button>
+      <span data-testid="active">{projects.find((p) => p.isActive)?.name}</span>
+    </>
   );
 }
 
@@ -54,13 +72,19 @@ describe("ProjectsPage", () => {
     expect(navigate).toHaveBeenCalledWith({ to: "/project" });
   });
 
-  it("deleting the last project removes its card", async () => {
+  it("deleting a non-active project keeps the active one", async () => {
     renderPage();
-    act(() => screen.getByText("seed").click());
-    act(() => screen.getByRole("button", { name: "Delete Unnamed Project" }).click());
+    act(() => screen.getByText("seed two").click());
+    expect(screen.getByTestId("active")).toHaveTextContent("Current trial");
+
+    act(() => screen.getByRole("button", { name: "Delete Old trial" }).click());
     // Mantine's Modal mounts its content after a transition frame.
     const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Delete Old trial and its 2 experiments and 1 dataset?");
     act(() => within(dialog).getByRole("button", { name: "Delete project" }).click());
-    expect(screen.queryByRole("button", { name: /^Open / })).toBeNull();
+
+    expect(screen.queryByRole("button", { name: "Open Old trial" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Open Current trial" })).toBeInTheDocument();
+    expect(screen.getByTestId("active")).toHaveTextContent("Current trial");
   });
 });
