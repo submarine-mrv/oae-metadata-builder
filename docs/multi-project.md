@@ -67,7 +67,7 @@ Analytics (`src/utils/analytics.ts`) sends a fixed `page_title` per route, such 
 
 `useImportFlow` (`src/hooks/useImportFlow.ts`) owns the file picker, preview and confirm. `ImportFlow` renders its input and modal. The header and the welcome screen both use it.
 
-The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project exists.
+The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project exists. Both modes open `/overview` after importing, since an open experiment or dataset page would keep showing its pre-import form data.
 
 `useImportPreview` compares the file against a baseline. A new project resolves against an empty baseline, so nothing conflicts and datasets link only to experiments in the file. Merge resolves against the current project: imported project fields override existing ones, an experiment with a matching `experiment_id` is replaced, and datasets are always added. Switching mode re-analyzes the file with `rebase`, keeping ticked items and links to experiments in the file.
 

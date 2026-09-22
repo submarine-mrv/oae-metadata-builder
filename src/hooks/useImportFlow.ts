@@ -59,10 +59,11 @@ export function useImportFlow() {
     const selected = preview.getSelectedItems();
     if (effectiveMode === "new") {
       importAsNewProject(selected);
-      navigate({ to: "/overview" });
     } else {
       importSelectedData(selected.project, selected.experiments, selected.datasets);
     }
+    // Entity pages hold local form data that a merge would leave stale.
+    navigate({ to: "/overview" });
     // On confirm, not on file selection: the preview can still be cancelled.
     trackEvent("metadata_import", {
       project: selected.project ? 1 : 0,

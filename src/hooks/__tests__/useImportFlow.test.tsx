@@ -55,7 +55,7 @@ describe("useImportFlow", () => {
     expect(result.current.flow.previewProps.opened).toBe(false);
   });
 
-  it("with a project, merge mode imports into the current session", async () => {
+  it("with a project, merge mode imports into the current session and opens the overview", async () => {
     const { result } = renderHook(useAll, { wrapper });
     act(() => {
       result.current.ws.createProject();
@@ -67,7 +67,7 @@ describe("useImportFlow", () => {
     act(() => result.current.flow.previewProps.onImport());
     expect(result.current.ws.projects).toHaveLength(1);
     expect(result.current.app.state.projectData.research_project).toBe("Imported");
-    expect(navigate).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith({ to: "/overview" });
   });
 
   it("links a re-imported dataset to its imported experiment in new mode", async () => {
