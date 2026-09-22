@@ -43,7 +43,7 @@ export default function ProjectCard({ project, onOpen, onDelete }: ProjectCardPr
               {project.name}
             </Text>
           </UnstyledButton>
-          <Group gap={4} wrap="nowrap">
+          <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
             {project.isActive && (
               <Badge size="xs" variant="light" color="coral">
                 Active
