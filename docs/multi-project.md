@@ -24,7 +24,7 @@ Creating a project, from anywhere, lands on `/project`.
 
 ## Header and /projects
 
-While the workspace is empty, the header shows the brand, Import and the menu. Once a project exists it adds the project crumb, the section tabs and Export.
+While the workspace is empty, the header shows the brand, Import and the menu. Once a project exists it adds the project crumb, the section tabs and Export. From 1280px the tabs sit centred in the top row. Below that they move to a full-width second row so the crumb keeps its width, and at 768px and below the brand text is hidden and Import and Export move into the menu.
 
 The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`): "OAE Metadata Builder / Kiel trial ▾". Its menu lists every project with a check on the active one, then "New project" and "All projects…". Picking a project switches to it and opens `/overview`.
 

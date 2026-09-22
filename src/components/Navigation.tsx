@@ -30,6 +30,13 @@ import { useImportFlow } from "@/hooks/useImportFlow";
 import { trackEvent } from "@/utils/analytics";
 import { useWorkspace } from "@/workspace/WorkspaceContext";
 
+const TABS = [
+  { value: "overview", label: "Overview" },
+  { value: "project", label: "Project" },
+  { value: "experiment", label: "Experiments" },
+  { value: "dataset", label: "Datasets" },
+];
+
 export default function Navigation() {
   const { client, user } = useAuth();
   const { state, toggleJsonPreview } = useAppState();
@@ -69,6 +76,10 @@ export default function Navigation() {
   const isMobile = useMediaQuery("(max-width: 768px)", undefined, {
     getInitialValueInEffect: false,
   });
+  // Narrower than this, centred tabs squeeze the crumb to a few letters.
+  const isCompact = useMediaQuery("(max-width: 1279px)", undefined, {
+    getInitialValueInEffect: false,
+  });
 
   const handleSignOut = async () => {
     await client.signOut();
@@ -79,11 +90,13 @@ export default function Navigation() {
   return (
     <>
       <Box px="lg" py="sm">
-        {/* Top row: logo + actions (+ menu on mobile) */}
+        {/* Top row: brand + crumb, tabs (wide screens only), actions */}
         <Box
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr auto" : "1fr auto 1fr",
+            gridTemplateColumns: isCompact
+              ? "minmax(0, 1fr) auto"
+              : "minmax(0, 1fr) auto minmax(0, 1fr)",
             alignItems: "center",
             gap: "1rem",
           }}
@@ -113,27 +126,22 @@ export default function Navigation() {
             {hasProjects && <ProjectSwitcher />}
           </Group>
 
-          {/* Navigation tabs - centered (desktop only) */}
-          {!isMobile && hasProjects && (
+          {/* Navigation tabs, centred */}
+          {!isCompact && hasProjects && (
             <SegmentedControl
               style={{
                 backgroundColor: "var(--brand-sunlight)",
               }}
               value={currentTab}
               onChange={handleNavigation}
-              data={[
-                { value: "overview", label: "Overview" },
-                { value: "project", label: "Project" },
-                { value: "experiment", label: "Experiments" },
-                { value: "dataset", label: "Datasets" },
-              ]}
+              data={TABS}
               size="md"
               radius="md"
             />
           )}
 
           {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
-          <Group gap="xs" justify="flex-end" style={{ gridColumn: isMobile ? 2 : 3 }}>
+          <Group gap="xs" justify="flex-end" style={{ gridColumn: isCompact ? 2 : 3 }}>
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>
@@ -248,8 +256,8 @@ export default function Navigation() {
           </Group>
         </Box>
 
-        {/* Bottom row: SegmentedControl full-width (mobile only) */}
-        {isMobile && hasProjects && (
+        {/* Tabs on their own full-width row when the top row is too narrow */}
+        {isCompact && hasProjects && (
           <SegmentedControl
             style={{
               backgroundColor: "var(--brand-sunlight)",
@@ -257,13 +265,8 @@ export default function Navigation() {
             }}
             value={currentTab}
             onChange={handleNavigation}
-            data={[
-              { value: "overview", label: "Overview" },
-              { value: "project", label: "Project" },
-              { value: "experiment", label: "Experiments" },
-              { value: "dataset", label: "Datasets" },
-            ]}
-            size="xs"
+            data={TABS}
+            size={isMobile ? "xs" : "sm"}
             radius="md"
             fullWidth
           />
