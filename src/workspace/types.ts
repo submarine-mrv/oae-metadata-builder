@@ -30,6 +30,14 @@ export function projectDisplayName(state: ProjectState): string {
   return state.projectData.research_project?.trim() || UNNAMED_PROJECT;
 }
 
+const APP_TITLE = "OAE Metadata Builder";
+
+/** Browser tab title: the product name, led by the project name once it has one. */
+export function documentTitle(state: ProjectState): string {
+  const name = projectDisplayName(state);
+  return name === UNNAMED_PROJECT ? APP_TITLE : `${name} · ${APP_TITLE}`;
+}
+
 export function emptyProjectState(): ProjectState {
   return {
     projectData: { project_id: "" },

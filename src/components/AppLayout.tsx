@@ -1,9 +1,6 @@
-import { useDocumentTitle } from "@mantine/hooks";
 import type React from "react";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import { useAppState } from "@/contexts/AppStateContext";
-import { projectDisplayName, UNNAMED_PROJECT } from "@/workspace/types";
 import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 interface AppLayoutProps {
@@ -19,11 +16,6 @@ interface AppLayoutProps {
  * - Prevents body scroll to eliminate jitter during hydration
  */
 export default function AppLayout({ children, noScroll = false }: AppLayoutProps) {
-  const { state } = useAppState();
-  const name = projectDisplayName(state);
-  useDocumentTitle(
-    name === UNNAMED_PROJECT ? "OAE Metadata Builder" : `${name} · OAE Metadata Builder`,
-  );
   const projectOpen = useWorkspace().activeProjectId !== null;
 
   useEffect(() => {

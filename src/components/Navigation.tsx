@@ -70,7 +70,9 @@ export default function Navigation() {
   };
   const currentTab = pathToTab[pathname] ?? "";
 
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery("(max-width: 768px)", undefined, {
+    getInitialValueInEffect: false,
+  });
 
   const handleSignOut = async () => {
     await client.signOut();

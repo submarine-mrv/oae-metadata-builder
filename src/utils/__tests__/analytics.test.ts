@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { initAnalytics, trackEvent } from "@/utils/analytics";
+import { initAnalytics, pageTitleFor, trackEvent } from "@/utils/analytics";
 
 const MEASUREMENT_ID = "G-TEST12345";
 const SCRIPT_SELECTOR = "#ga4-gtag";
@@ -23,6 +23,19 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe("pageTitleFor", () => {
+  it("maps routes to fixed labels", () => {
+    expect(pageTitleFor("/overview")).toBe("Overview");
+    expect(pageTitleFor("/experiment")).toBe("Experiments");
+    expect(pageTitleFor("/auth/login")).toBe("Log in");
+    expect(pageTitleFor("/profile")).toBe("Profile");
+  });
+
+  it("falls back to the pathname for unknown routes", () => {
+    expect(pageTitleFor("/nope")).toBe("/nope");
+  });
 });
 
 describe("analytics with no measurement ID", () => {
@@ -106,6 +119,19 @@ describe("analytics with a measurement ID", () => {
       page_path: `${window.location.pathname}${window.location.search}`,
       page_location: window.location.href,
     });
+  });
+
+  it("sends the route label as page_title, never document.title", () => {
+    document.title = "Kiel trial · OAE Metadata Builder";
+    window.history.pushState({}, "", "/overview");
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+
+    const pageView = gtagCalls().find(([, name]) => name === "page_view");
+    expect(pageView?.[2]).toMatchObject({ page_title: "Overview" });
   });
 
   it("removes auth and PII query parameters from page views", () => {

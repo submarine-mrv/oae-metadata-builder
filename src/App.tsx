@@ -3,6 +3,7 @@ import { Notifications } from "@mantine/notifications";
 import { RouterProvider } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { AuthProvider } from "@/auth/AuthContext";
+import DocumentTitle from "@/components/DocumentTitle";
 import { AppStateProvider } from "@/contexts/AppStateContext";
 import { theme } from "@/theme";
 import { emptyProjectState, type ProjectState } from "@/workspace/types";
@@ -29,6 +30,7 @@ function ActiveProjectSession() {
       initialState={activeProject?.state ?? emptyProjectState()}
       onChange={id ? onChange : undefined}
     >
+      <DocumentTitle />
       <RouterProvider router={router} />
     </AppStateProvider>
   );

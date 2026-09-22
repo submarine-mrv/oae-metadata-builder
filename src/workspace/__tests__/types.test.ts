@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { emptyProjectState, newProjectRecord, projectDisplayName, UNNAMED_PROJECT } from "../types";
+import {
+  documentTitle,
+  emptyProjectState,
+  newProjectRecord,
+  projectDisplayName,
+  UNNAMED_PROJECT,
+} from "../types";
 
 describe("projectDisplayName", () => {
   it("falls back to Unnamed Project when there is no name", () => {
@@ -18,6 +24,20 @@ describe("projectDisplayName", () => {
       projectData: { project_id: "", research_project: "  Kiel trial " },
     };
     expect(projectDisplayName(state)).toBe("Kiel trial");
+  });
+});
+
+describe("documentTitle", () => {
+  it("is the product name for an unnamed project", () => {
+    expect(documentTitle(emptyProjectState())).toBe("OAE Metadata Builder");
+  });
+
+  it("leads with the project name once it has one", () => {
+    const state = {
+      ...emptyProjectState(),
+      projectData: { project_id: "", research_project: "Kiel trial" },
+    };
+    expect(documentTitle(state)).toBe("Kiel trial · OAE Metadata Builder");
   });
 });
 

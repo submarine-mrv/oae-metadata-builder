@@ -28,12 +28,13 @@ export default function ProjectSwitcher() {
   };
 
   return (
-    <Menu shadow="md" width={320} position="bottom-start">
-      <Menu.Target>
-        <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-          <Text c="dimmed" size="md" aria-hidden style={{ flexShrink: 0 }}>
-            /
-          </Text>
+    <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+      <Text c="dimmed" size="md" aria-hidden style={{ flexShrink: 0 }}>
+        /
+      </Text>
+      <Menu shadow="md" width={320} position="bottom-start">
+        {/* Mantine puts aria-expanded and focus return on the Target's direct child. */}
+        <Menu.Target>
           <Button
             variant="subtle"
             color="hadal"
@@ -53,39 +54,40 @@ export default function ProjectSwitcher() {
               {activeName}
             </Text>
           </Button>
-        </Group>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Label>Projects</Menu.Label>
-        {projects.map((project) => (
-          <Menu.Item
-            key={project.id}
-            onClick={() => handleSwitch(project.id)}
-            styles={{ itemLabel: { minWidth: 0 } }}
-            leftSection={
-              project.isActive ? (
-                <IconCheck size={16} />
-              ) : (
-                <span style={{ display: "inline-block", width: 16 }} />
-              )
-            }
-          >
-            <Text size="sm" truncate>
-              {project.id === activeProjectId ? activeName : project.name}
-            </Text>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>Projects</Menu.Label>
+          {projects.map((project) => (
+            <Menu.Item
+              key={project.id}
+              onClick={() => handleSwitch(project.id)}
+              aria-current={project.isActive ? "true" : undefined}
+              styles={{ itemLabel: { minWidth: 0 } }}
+              leftSection={
+                project.isActive ? (
+                  <IconCheck size={16} />
+                ) : (
+                  <span style={{ display: "inline-block", width: 16 }} />
+                )
+              }
+            >
+              <Text size="sm" truncate>
+                {project.id === activeProjectId ? activeName : project.name}
+              </Text>
+            </Menu.Item>
+          ))}
+          <Menu.Divider />
+          <Menu.Item leftSection={<IconPlus size={16} />} onClick={handleNew}>
+            New project
           </Menu.Item>
-        ))}
-        <Menu.Divider />
-        <Menu.Item leftSection={<IconPlus size={16} />} onClick={handleNew}>
-          New project
-        </Menu.Item>
-        <Menu.Item
-          leftSection={<IconFolders size={16} />}
-          onClick={() => navigate({ to: "/projects" })}
-        >
-          All projects…
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+          <Menu.Item
+            leftSection={<IconFolders size={16} />}
+            onClick={() => navigate({ to: "/projects" })}
+          >
+            All projects…
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+    </Group>
   );
 }

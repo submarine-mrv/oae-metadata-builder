@@ -39,6 +39,29 @@ function injectGtagScript(measurementId: string) {
   document.head.appendChild(script);
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  "/overview": "Overview",
+  "/project": "Project",
+  "/experiment": "Experiments",
+  "/dataset": "Datasets",
+  "/projects": "Projects",
+  "/about": "About",
+  "/how-to": "How-to",
+  "/checker": "Checker",
+  "/profile": "Profile",
+  "/auth/login": "Log in",
+  "/auth/sign-up": "Sign up",
+  "/auth/forgot-password": "Forgot password",
+  "/auth/reset-password": "Reset password",
+  "/auth/verify-email": "Verify email",
+  "/auth/callback": "Auth callback",
+};
+
+/** Fixed label per route; document.title carries the user's project name. */
+export function pageTitleFor(pathname: string): string {
+  return PAGE_TITLES[pathname] ?? pathname;
+}
+
 function sendPageView() {
   const pageUrl = new URL(window.location.href);
   for (const key of ["email", "token_hash", "code", "error_code", "error_description", "message"]) {
@@ -49,7 +72,7 @@ function sendPageView() {
   window.gtag?.("event", "page_view", {
     page_location: sanitizedUrl,
     page_path: `${pageUrl.pathname}${pageUrl.search}`,
-    page_title: document.title,
+    page_title: pageTitleFor(pageUrl.pathname),
   });
 }
 

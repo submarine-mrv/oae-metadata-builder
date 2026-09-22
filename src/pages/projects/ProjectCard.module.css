@@ -1,0 +1,23 @@
+/* Stretched link: the name button's overlay makes the whole card clickable. */
+.open {
+  min-width: 0;
+  text-align: left;
+}
+
+.open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.open:focus-visible {
+  outline: none;
+}
+
+.open:focus-visible::after {
+  /* Inset, since the Card clips overflow. */
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+  border-radius: var(--mantine-radius-md);
+}
