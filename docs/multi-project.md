@@ -49,7 +49,7 @@ Loading keeps whatever it can read:
 - Data that won't parse, or has an unknown `version`, is backed up under the same prefix and the app starts empty.
 - A pre-workspace `oae-metadata-builder-session` entry becomes the first project. The old key is removed only after the new workspace is written.
 
-Backups are never deleted. If storage is full the backup can fail. The unreadable data then stays in place until the next save overwrites it.
+Backups are never deleted. If storage is full the backup can fail. Dropped project records are then quarantined: every save writes them back after the readable projects, and each load retries the backup, clearing the quarantine once it succeeds. An unreadable envelope stays in place until the next save overwrites it.
 
 ## Known limitation
 

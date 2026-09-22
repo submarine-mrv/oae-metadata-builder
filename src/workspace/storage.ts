@@ -82,6 +82,9 @@ function backup(raw: string): boolean {
   return write(`${BACKUP_KEY_PREFIX}${Date.now()}`, raw);
 }
 
+/** Unreadable project records whose backup failed; saves keep them so they aren't lost. */
+let quarantined: unknown[] = [];
+
 /**
  * Keeps every readable project and repairs the active id. Null when the
  * envelope itself can't be read.
@@ -97,9 +100,11 @@ function readWorkspace(raw: string): Workspace | null {
     : (mostRecent(projects)?.id ?? null);
   const workspace: Workspace = { version: 1, activeProjectId, projects };
 
+  const backedUp = dropped && backup(raw);
+  quarantined = dropped && !backedUp ? stored.projects.filter((p) => !isProjectRecord(p)) : [];
   const repaired = dropped || activeProjectId !== stored.activeProjectId;
   // Overwrite only once any dropped records are backed up.
-  if (repaired && (!dropped || backup(raw))) write(WORKSPACE_KEY, JSON.stringify(workspace));
+  if (repaired && (!dropped || backedUp)) write(WORKSPACE_KEY, JSON.stringify(workspace));
   return workspace;
 }
 
@@ -116,6 +121,7 @@ function migrateLegacySession(raw: unknown): ProjectRecord | null {
 export const localStorageWorkspaceStore: WorkspaceStore = {
   load() {
     // Never discard saved user data: drop only what can't be read, and back it up first.
+    quarantined = [];
     const raw = read(WORKSPACE_KEY);
     if (raw) {
       const workspace = readWorkspace(raw);
@@ -134,6 +140,9 @@ export const localStorageWorkspaceStore: WorkspaceStore = {
   },
 
   save(workspace) {
-    write(WORKSPACE_KEY, JSON.stringify(workspace));
+    const stored = quarantined.length
+      ? { ...workspace, projects: [...workspace.projects, ...quarantined] }
+      : workspace;
+    write(WORKSPACE_KEY, JSON.stringify(stored));
   },
 };

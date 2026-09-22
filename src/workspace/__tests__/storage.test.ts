@@ -99,6 +99,38 @@ describe("localStorageWorkspaceStore", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string).projects).toHaveLength(2);
   });
 
+  it("keeps an unreadable record in saves until its backup succeeds", () => {
+    const ws = twoProjectFixture();
+    const bad = { id: "bad" };
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, projects: [...ws.projects, bad] }));
+    const proto = Object.getPrototypeOf(localStorage) as Storage;
+    const realSetItem = proto.setItem;
+    const setItem = vi.spyOn(proto, "setItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key.startsWith(BACKUP_KEY_PREFIX)) throw new Error("QuotaExceededError");
+      realSetItem.call(this, key, value);
+    });
+
+    const loaded = localStorageWorkspaceStore.load() as Workspace;
+    expect(backups()).toHaveLength(0);
+    localStorageWorkspaceStore.save({ ...loaded, projects: loaded.projects.slice(0, 1) });
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string).projects).toEqual([
+      JSON.parse(JSON.stringify(ws.projects[0])),
+      bad,
+    ]);
+
+    setItem.mockRestore();
+    const reloaded = localStorageWorkspaceStore.load() as Workspace;
+    expect(backups()).toHaveLength(1);
+    expect(JSON.parse(backups()[0]).projects).toContainEqual(bad);
+    localStorageWorkspaceStore.save(reloaded);
+    const saved = JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string);
+    expect(saved.projects.map((p: { id: string }) => p.id)).toEqual([ws.projects[0].id]);
+  });
+
   it("drops a record with a null experiment instead of crashing", () => {
     const ws = twoProjectFixture();
     const broken = { ...ws.projects[1], state: { ...ws.projects[1].state, experiments: [null] } };
