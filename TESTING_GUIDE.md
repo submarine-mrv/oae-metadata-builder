@@ -13,7 +13,7 @@ npm run test:ui
 npm run test:coverage
 
 # Run specific test file
-npm test -- src/contexts/__tests__/AppStateContext.test.tsx
+npm test -- src/state/__tests__/actions.test.ts
 
 # Run in watch mode (for development)
 npm test -- --watch
@@ -25,13 +25,11 @@ npm test -- --watch
 
 ### Passing Tests (77 tests)
 
-1. **AppStateContext** (`src/contexts/__tests__/AppStateContext.test.tsx`) - 42 tests
-   - Project data management
-   - Experiment CRUD operations
-   - State synchronization
-   - Auto-incrementing IDs
-   - Completion calculations
-   - Import/export
+1. **State** (`src/state/__tests__/`)
+   - Project reducers and action atoms: CRUD, id propagation, import
+   - Atoms: active project, selection, narrow reads
+   - Persistence: debounced and immediate saves, flush on hide
+   - Narrow reads and render counts (`narrowAtoms.test.tsx`)
 
 2. **Validation** (`src/utils/__tests__/validation.test.ts`) - 14 tests
    - Required field validation
@@ -85,22 +83,19 @@ const config = {
 
 ### For State Management
 
+State lives in Jotai atoms (`src/state/`). Test pure updates in `projectReducers.test.ts`. Test actions and atoms against a store: `store.set(action, ...args)`, then `store.get(atom)`. Render components inside `StoreWrapper` / `makeWrapper` from `src/state/testing.tsx`. `createTestStore(seed?)` hydrates a store from a workspace, and `workspaceWithProject()` builds one with an active project.
+
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { AppStateProvider, useAppState } from '../AppStateContext';
+import { updateProjectDataAtom } from '@/state/actions';
+import { projectDataAtom } from '@/state/atoms';
+import { createTestStore, workspaceWithProject } from '@/state/testing';
 
 describe('MyFeature', () => {
-  it('should update state correctly', () => {
-    const { result } = renderHook(() => useAppState(), {
-      wrapper: AppStateProvider
-    });
-
-    act(() => {
-      result.current.updateProjectData({ project_id: 'test' });
-    });
-
-    expect(result.current.state.projectData.project_id).toBe('test');
+  it('updates the project data', () => {
+    const store = createTestStore(workspaceWithProject());
+    store.set(updateProjectDataAtom, { project_id: 'test' });
+    expect(store.get(projectDataAtom).project_id).toBe('test');
   });
 });
 ```
@@ -167,7 +162,7 @@ resolve: {
 
 ### Run single test file
 ```bash
-npm test -- src/contexts/__tests__/AppStateContext.test.tsx
+npm test -- src/state/__tests__/actions.test.ts
 ```
 
 ### Run single test by name

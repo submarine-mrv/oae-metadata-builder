@@ -21,15 +21,13 @@ This project follows a **pragmatic, high-value testing approach** rather than ai
 
 ### Unit Tests (77 tests)
 
-#### State Management (`src/contexts/__tests__/AppStateContext.test.tsx` - 42 tests)
-- ✅ Project data management
-- ✅ Experiment CRUD operations
-- ✅ State synchronization (activeTab, activeExperiment, etc.)
-- ✅ Auto-incrementing IDs
-- ✅ Completion percentage calculations
-- ✅ Import/export state management
+#### State Management (`src/state/__tests__/`)
+- ✅ Project reducers and action atoms (CRUD, id propagation, import)
+- ✅ Atoms for the active project and selection
+- ✅ Persistence: debounced and immediate saves
+- ✅ Narrow reads and render counts
 
-**Rationale**: The AppStateContext is the backbone of the application. All features depend on it working correctly, so comprehensive testing here prevents cascading failures.
+**Rationale**: The Jotai atoms in `src/state/` are the backbone of the application. All features depend on it working correctly, so comprehensive testing here prevents cascading failures.
 
 #### Validation Logic (`src/utils/__tests__/validation.test.ts` - 14 tests)
 - ✅ Required field validation
@@ -83,7 +81,7 @@ We intentionally do NOT unit test complex React components because:
 
 ### Always Add Tests For:
 1. **New validation rules** - Add to `validation.test.ts`
-2. **New state management features** - Add to `AppStateContext.test.tsx`
+2. **New state management features** - Add to `src/state/__tests__/`, using `createTestStore` and `StoreWrapper` from `src/state/testing.tsx`
 3. **New conditional logic** - Add to `schemaViews.test.ts`
 4. **Bug fixes** - Write a failing test first, then fix the bug
 
@@ -114,7 +112,7 @@ npm test
 npm run test:coverage
 
 # Run specific test file
-npm test -- src/contexts/__tests__/AppStateContext.test.tsx
+npm test -- src/state/__tests__/actions.test.ts
 ```
 
 ## CI/CD Integration
