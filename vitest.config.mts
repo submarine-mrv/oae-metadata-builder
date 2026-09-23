@@ -19,7 +19,7 @@ export default defineConfig({
       include: [
         "src/utils/**/*.{ts,tsx}",
         "src/pages/**/*.{ts,tsx}",
-        "src/contexts/**/*.{ts,tsx}",
+        "src/state/**/*.{ts,tsx}",
         "src/components/**/*.{ts,tsx}",
         "src/workspace/**/*.{ts,tsx}",
         "src/hooks/useImportFlow.ts",

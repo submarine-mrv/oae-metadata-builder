@@ -3,6 +3,7 @@ import Form from "@rjsf/mantine";
 import type { DescriptionFieldProps } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
+import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
 import { useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
@@ -25,8 +26,9 @@ import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
 import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
-import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { updateProjectDataAtom } from "@/state/actions";
+import { projectDataAtom } from "@/state/atoms";
 import { projectCustomValidate } from "@/utils/customValidators";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
@@ -43,18 +45,19 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
-  const { state, updateProjectData } = useAppState();
+  const projectData = useAtomValue(projectDataAtom);
+  const updateProjectData = useSetAtom(updateProjectDataAtom);
   const [schema] = useState<any>(() => getProjectSchema());
 
   // Source of truth for badge counts: run AJV via validateProject, memoized
   // on form data. Filter by err.name to split missing-required from others.
-  const validationResult = useMemo(() => validateProject(state.projectData), [state.projectData]);
+  const validationResult = useMemo(() => validateProject(projectData), [projectData]);
   const missingRequired = useMemo(
     () => validationResult.errors.filter((e) => e.name === "required").length,
     [validationResult],
   );
   const otherErrors = validationResult.errors.length - missingRequired;
-  const isEmpty = useMemo(() => isFormEmpty(state.projectData), [state.projectData]);
+  const isEmpty = useMemo(() => isFormEmpty(projectData), [projectData]);
 
   const validation = useFormValidation({
     missingRequired,
@@ -104,7 +107,7 @@ export default function ProjectPage() {
             ref={validation.formRef}
             schema={schema}
             uiSchema={uiSchema}
-            formData={state.projectData}
+            formData={projectData}
             onChange={(e) => {
               updateProjectData(e.formData);
             }}
@@ -154,7 +157,7 @@ export default function ProjectPage() {
         </Container>
       </div>
 
-      <JsonPreviewSidebar data={state.projectData} />
+      <JsonPreviewSidebar data={projectData} />
     </AppLayout>
   );
 }

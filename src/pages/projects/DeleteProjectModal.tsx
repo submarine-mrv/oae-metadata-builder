@@ -1,5 +1,5 @@
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
-import type { ProjectSummary } from "@/workspace/WorkspaceContext";
+import type { ProjectSummary } from "@/state/atoms";
 
 interface DeleteProjectModalProps {
   /** The project up for deletion; null closes the modal. */

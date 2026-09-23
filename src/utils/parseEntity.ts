@@ -34,8 +34,7 @@ import { parseVariables } from "@/utils/parseVariable";
  * through for AJV to reject at validation time — parsing never throws.
  *
  * Derived IDs (project_id on experiments/datasets, experiment_id on datasets)
- * are NOT set here; they are denormalized copies synced by AppStateContext
- * propagation.
+ * are NOT set here; they are denormalized copies synced by the project reducers.
  */
 
 function asRecord(raw: unknown): FormDataRecord {

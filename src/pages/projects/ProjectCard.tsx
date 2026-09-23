@@ -9,8 +9,8 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
+import type { ProjectSummary } from "@/state/atoms";
 import { formatRelativeTime } from "@/utils/relativeTime";
-import type { ProjectSummary } from "@/workspace/WorkspaceContext";
 import classes from "./ProjectCard.module.css";
 
 interface ProjectCardProps {

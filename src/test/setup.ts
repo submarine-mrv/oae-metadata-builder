@@ -52,7 +52,6 @@ beforeAll(() => {
     if (
       typeof args[0] === "string" &&
       (args[0].includes("Warning: ReactDOM.render") ||
-        args[0].includes("useAppState must be used within") ||
         args[0].includes("Not implemented: navigation"))
     ) {
       return;

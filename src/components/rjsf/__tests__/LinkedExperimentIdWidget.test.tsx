@@ -3,7 +3,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { AppStateProvider, useAppState } from "@/contexts/AppStateContext";
+import {
+  addDatasetAtom,
+  addExperimentAtom,
+  replaceExperimentFormDataAtom,
+  updateDatasetLinkingAtom,
+} from "@/state/actions";
+import type { AppStore } from "@/state/store";
+import { createTestStore, StoreWrapper, workspaceWithProject } from "@/state/testing";
 import LinkedExperimentIdWidget from "../LinkedExperimentIdWidget";
 
 // JSDOM doesn't support scrollIntoView - mock it to prevent Mantine combobox errors
@@ -11,29 +18,22 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-// Helper to setup state before rendering widget
-function StateSetup({ setup }: { setup: (api: ReturnType<typeof useAppState>) => void }) {
-  const api = useAppState();
-  React.useEffect(() => {
-    setup(api);
-  }, []);
-  return null;
-}
-
 // Wrapper component with providers
 function TestWrapper({
   children,
   setup,
 }: {
   children: React.ReactNode;
-  setup?: (api: ReturnType<typeof useAppState>) => void;
+  setup: (store: AppStore) => void;
 }) {
+  const [store] = React.useState(() => {
+    const s = createTestStore(workspaceWithProject());
+    setup(s);
+    return s;
+  });
   return (
     <MantineProvider>
-      <AppStateProvider>
-        {setup && <StateSetup setup={setup} />}
-        {children}
-      </AppStateProvider>
+      <StoreWrapper store={store}>{children}</StoreWrapper>
     </MantineProvider>
   );
 }
@@ -76,8 +76,8 @@ describe("LinkedExperimentIdWidget", () => {
     it("renders nothing when no experiments exist", () => {
       const { container } = render(
         <TestWrapper
-          setup={(api) => {
-            api.addDataset("Test Dataset");
+          setup={(store) => {
+            store.set(addDatasetAtom, "Test Dataset");
           }}
         >
           <LinkedExperimentIdWidget {...defaultProps} />
@@ -91,9 +91,9 @@ describe("LinkedExperimentIdWidget", () => {
     it("renders dropdown when experiments exist", () => {
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Experiment 1");
-            api.addDataset("Test Dataset");
+          setup={(store) => {
+            store.set(addExperimentAtom, "Experiment 1");
+            store.set(addDatasetAtom, "Test Dataset");
           }}
         >
           <LinkedExperimentIdWidget {...defaultProps} />
@@ -112,11 +112,11 @@ describe("LinkedExperimentIdWidget", () => {
     it('shows all experiments by name with "None" option at end', async () => {
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Baseline Study");
-            api.updateExperiment(1, { experiment_id: "EXP-001" });
-            api.addExperiment("Treatment Run");
-            api.addDataset("Test Dataset");
+          setup={(store) => {
+            store.set(addExperimentAtom, "Baseline Study");
+            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
+            store.set(addExperimentAtom, "Treatment Run");
+            store.set(addDatasetAtom, "Test Dataset");
           }}
         >
           <LinkedExperimentIdWidget {...defaultProps} />
@@ -144,10 +144,10 @@ describe("LinkedExperimentIdWidget", () => {
 
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Experiment 1");
-            api.updateExperiment(1, { experiment_id: "EXP-001" });
-            api.addDataset("Test Dataset");
+          setup={(store) => {
+            store.set(addExperimentAtom, "Experiment 1");
+            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
+            store.set(addDatasetAtom, "Test Dataset");
           }}
         >
           <LinkedExperimentIdWidget {...defaultProps} onChange={onChange} />
@@ -168,9 +168,9 @@ describe("LinkedExperimentIdWidget", () => {
 
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Treatment Run");
-            api.addDataset("Test Dataset");
+          setup={(store) => {
+            store.set(addExperimentAtom, "Treatment Run");
+            store.set(addDatasetAtom, "Test Dataset");
           }}
         >
           <LinkedExperimentIdWidget {...defaultProps} onChange={onChange} />
@@ -191,11 +191,11 @@ describe("LinkedExperimentIdWidget", () => {
 
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Experiment 1");
-            api.updateExperiment(1, { experiment_id: "EXP-001" });
-            api.addDataset("Test Dataset");
-            api.updateDatasetLinking(1, {
+          setup={(store) => {
+            store.set(addExperimentAtom, "Experiment 1");
+            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
+            store.set(addDatasetAtom, "Test Dataset");
+            store.set(updateDatasetLinkingAtom, 1, {
               linkedExperimentInternalId: 1,
             });
           }}
@@ -222,10 +222,10 @@ describe("LinkedExperimentIdWidget", () => {
     it("shows error when linked experiment has no experiment_id", () => {
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Treatment Run");
-            api.addDataset("Test Dataset");
-            api.updateDatasetLinking(1, {
+          setup={(store) => {
+            store.set(addExperimentAtom, "Treatment Run");
+            store.set(addDatasetAtom, "Test Dataset");
+            store.set(updateDatasetLinkingAtom, 1, {
               linkedExperimentInternalId: 1,
             });
           }}
@@ -244,11 +244,11 @@ describe("LinkedExperimentIdWidget", () => {
     it("does not show error when linked experiment has experiment_id", () => {
       render(
         <TestWrapper
-          setup={(api) => {
-            api.addExperiment("Baseline Study");
-            api.updateExperiment(1, { experiment_id: "EXP-001" });
-            api.addDataset("Test Dataset");
-            api.updateDatasetLinking(1, {
+          setup={(store) => {
+            store.set(addExperimentAtom, "Baseline Study");
+            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
+            store.set(addDatasetAtom, "Test Dataset");
+            store.set(updateDatasetLinkingAtom, 1, {
               linkedExperimentInternalId: 1,
             });
           }}

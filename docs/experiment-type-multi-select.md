@@ -102,7 +102,7 @@ This prevents the invalid state from being persisted.
 | `src/utils/experimentFields.ts` | `getExperimentSchemaType()` — shared logic |
 | `src/app/experiment/page.tsx` | Schema/uiSchema switching, model exclusivity in onChange |
 | `src/utils/validation.ts` | Schema selection for validation |
-| `src/contexts/AppStateContext.tsx` | Completion calculation |
+| `src/utils/formStatus.ts` | Completion calculation |
 | `src/app/overview/page.tsx` | Badge display for selected types |
 
 ### See also

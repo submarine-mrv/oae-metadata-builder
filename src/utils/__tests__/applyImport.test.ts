@@ -65,6 +65,45 @@ describe("applyImport", () => {
     expect(result.datasets[1].linking?.linkedExperimentInternalId).toBeNull();
   });
 
+  it("resolves each linking mode to an internal id", () => {
+    const prev = applyImport(emptyProjectState(), {
+      project: null,
+      experiments: [{ experiment_id: "E1" }],
+      datasets: [],
+    });
+    const result = applyImport(prev, {
+      project: null,
+      experiments: [{ experiment_id: "E2" }],
+      datasets: [
+        {
+          formData: { name: "existing" },
+          experimentLinking: {
+            mode: "use-file",
+            resolvedMatch: { type: "existing", experimentId: "E1", internalId: 1 },
+          },
+        },
+        {
+          formData: { name: "explicit import key" },
+          experimentLinking: { mode: "explicit", explicitImportKey: "experiment-0" },
+        },
+        {
+          formData: { name: "none", experiment_id: "E9" },
+          experimentLinking: { mode: "use-file", resolvedMatch: { type: "none" } },
+        },
+      ],
+    });
+    const links = result.datasets.map((d) => [
+      d.linking?.linkedExperimentInternalId,
+      d.formData.experiment_id,
+    ]);
+    expect(links).toEqual([
+      [1, "E1"],
+      [2, "E2"],
+      [null, undefined],
+    ]);
+    expect(result.datasets[2].formData).not.toHaveProperty("experiment_id");
+  });
+
   describe("ids come from the target project, not the file", () => {
     const withProject = (projectId: string) =>
       applyImport(emptyProjectState(), {

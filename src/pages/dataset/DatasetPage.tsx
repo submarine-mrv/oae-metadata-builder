@@ -3,6 +3,7 @@ import Form from "@rjsf/mantine";
 import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
+import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppLayout from "@/components/AppLayout";
@@ -27,8 +28,10 @@ import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import type { JSONSchema } from "@/components/schemaUtils";
 import ValidationButton from "@/components/ValidationButton";
 import VariablesField from "@/components/VariablesField";
-import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { replaceDatasetFormDataAtom } from "@/state/actions";
+import { activeDatasetIdAtom, experimentCountAtom } from "@/state/atoms";
+import { useDataset } from "@/state/hooks";
 import { isModelOutputType } from "@/utils/datasetFields";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
@@ -94,28 +97,28 @@ function createModelOutputFormSchema() {
 }
 
 export default function DatasetPage() {
-  const { state, replaceDatasetFormData, getDataset } = useAppState();
+  const activeDatasetId = useAtomValue(activeDatasetIdAtom);
+  const replaceDatasetFormData = useSetAtom(replaceDatasetFormDataAtom);
 
   // Dynamic schema/uiSchema switching based on dataset_type
   const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldDatasetUiSchema);
 
-  // Local form data state — decoupled from context to prevent stale fields
-  // on type switch (updateDataset uses merge semantics which would re-add
-  // fields that cleanup removed)
+  // Local form data, saved whole with replaceDatasetFormData so fields that
+  // cleanup removed on a type switch stay removed.
   const [formData, setFormData] = useState<any>({});
 
   // Get current dataset
-  const currentDataset = state.activeDatasetId ? getDataset(state.activeDatasetId) : null;
+  const currentDataset = useDataset(activeDatasetId);
 
   // Load dataset data when active dataset changes
   useEffect(() => {
     if (currentDataset) {
       setFormData(currentDataset.formData);
     }
-  }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hasExperiments = state.experiments.length > 0;
+  const hasExperiments = useAtomValue(experimentCountAtom) > 0;
 
   // AJV validation result, memoized on form data. Handles the polymorphic
   // variable workaround internally via validateDataset().
@@ -140,7 +143,7 @@ export default function DatasetPage() {
   // new one doesn't inherit the previous one's open/closed state.
   useEffect(() => {
     validation.closeErrorList();
-  }, [state.activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ref for formData so transformErrors can access latest data without
   // being recreated on every keystroke
@@ -205,7 +208,7 @@ export default function DatasetPage() {
 
   const handleFormChange = useCallback(
     (e: any) => {
-      if (!state.activeDatasetId) return;
+      if (!activeDatasetId) return;
 
       // The parse boundary: type-scoped field cleanup (including dropping
       // variables when dataset_type is model_output), conditional-field
@@ -215,9 +218,9 @@ export default function DatasetPage() {
       // Update local state first (form sees cleaned data immediately),
       // then sync to context
       setFormData(newData);
-      replaceDatasetFormData(state.activeDatasetId, newData);
+      replaceDatasetFormData(activeDatasetId, newData);
     },
-    [formData, state.activeDatasetId, replaceDatasetFormData],
+    [formData, activeDatasetId, replaceDatasetFormData],
   );
 
   // Show message if no dataset is selected

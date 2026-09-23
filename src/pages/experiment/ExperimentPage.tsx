@@ -3,6 +3,7 @@ import Form from "@rjsf/mantine";
 import type { DescriptionFieldProps } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
+import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
@@ -30,8 +31,10 @@ import StringListField from "@/components/rjsf/StringListField";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
-import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { replaceExperimentFormDataAtom } from "@/state/actions";
+import { activeExperimentIdAtom } from "@/state/atoms";
+import { useExperiment } from "@/state/hooks";
 import { experimentCustomValidate } from "@/utils/customValidators";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { getExperimentSchemaType } from "@/utils/experimentFields";
@@ -57,13 +60,12 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ExperimentPage() {
-  const { state, replaceExperimentFormData } = useAppState();
+  const activeExperimentId = useAtomValue(activeExperimentIdAtom);
+  const replaceExperimentFormData = useSetAtom(replaceExperimentFormDataAtom);
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
   const [formData, setFormData] = useState<any>({});
-
-  const activeExperimentId = state.activeExperimentId;
 
   // AJV validation result, memoized on form data. Split by err.name.
   const validationResult = useMemo(() => validateExperiment(formData), [formData]);
@@ -93,9 +95,7 @@ export default function ExperimentPage() {
     };
   }, [validation.showErrorList]);
 
-  const experiment = activeExperimentId
-    ? state.experiments.find((exp) => exp.id === activeExperimentId)
-    : null;
+  const experiment = useExperiment(activeExperimentId);
 
   // Load experiment data when experiment ID changes
   useEffect(() => {
@@ -135,9 +135,7 @@ export default function ExperimentPage() {
 
       setFormData(newData);
       if (activeExperimentId) {
-        // Full replacement (not merge) so cleared fields actually take
-        // effect — updateExperiment merges into existing formData which
-        // would silently re-introduce removed keys.
+        // Full replacement, so cleared fields stay cleared.
         replaceExperimentFormData(activeExperimentId, newData);
       }
     },

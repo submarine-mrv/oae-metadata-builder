@@ -14,8 +14,11 @@
 import { ActionIcon, Box, type ComboboxItem, Select, Text, Tooltip } from "@mantine/core";
 import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useMemo, useState } from "react";
-import { useAppState } from "@/contexts/AppStateContext";
+import { updateDatasetLinkingAtom } from "@/state/actions";
+import { activeDatasetIdAtom, experimentsAtom } from "@/state/atoms";
+import { useDataset } from "@/state/hooks";
 import DescriptionModal from "./DescriptionModal";
 
 const NONE_OPTION_VALUE = "__none__";
@@ -44,17 +47,15 @@ export default function LinkedExperimentIdWidget<
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
 
-  const { state, updateDatasetLinking } = useAppState();
+  const experiments = useAtomValue(experimentsAtom);
+  const updateDatasetLinking = useSetAtom(updateDatasetLinkingAtom);
 
   // Get the active dataset's internal ID
-  const datasetInternalId = state.activeDatasetId ?? undefined;
+  const activeDatasetId = useAtomValue(activeDatasetIdAtom);
+  const datasetInternalId = activeDatasetId ?? undefined;
 
   // Get linking metadata for the current dataset
-  const linkingMetadata = useMemo(() => {
-    if (datasetInternalId === undefined) return null;
-    const ds = state.datasets.find((d) => d.id === datasetInternalId);
-    return ds?.linking || null;
-  }, [datasetInternalId, state.datasets]);
+  const linkingMetadata = useDataset(activeDatasetId)?.linking || null;
 
   // Which experiment is currently linked (if any)
   const linkedExperimentInternalId = linkingMetadata?.linkedExperimentInternalId ?? null;
@@ -62,21 +63,21 @@ export default function LinkedExperimentIdWidget<
   // Get the linked experiment object
   const linkedExperiment = useMemo(() => {
     if (linkedExperimentInternalId === null) return null;
-    return state.experiments.find((e) => e.id === linkedExperimentInternalId) || null;
-  }, [linkedExperimentInternalId, state.experiments]);
+    return experiments.find((e) => e.id === linkedExperimentInternalId) || null;
+  }, [linkedExperimentInternalId, experiments]);
 
   // Check if linked experiment is missing an experiment_id
   const linkedExperimentMissingId =
     linkedExperiment !== null && !linkedExperiment.formData?.experiment_id;
 
   // Don't render at all if no experiments exist
-  if (state.experiments.length === 0) {
+  if (experiments.length === 0) {
     return null;
   }
 
   // Build dropdown options: all experiments (by name), then "None" at end
   const dropdownOptions: ComboboxItem[] = [
-    ...state.experiments.map((exp) => {
+    ...experiments.map((exp) => {
       const expName = exp.name || (exp.formData?.name as string | undefined) || "Experiment";
       return {
         value: String(exp.id),
@@ -98,7 +99,7 @@ export default function LinkedExperimentIdWidget<
       onChange(undefined);
     } else if (selectedValue) {
       const expInternalId = parseInt(selectedValue, 10);
-      const exp = state.experiments.find((e) => e.id === expInternalId);
+      const exp = experiments.find((e) => e.id === expInternalId);
       const expId = (exp?.formData?.experiment_id as string) || "";
 
       updateDatasetLinking(datasetInternalId, {
