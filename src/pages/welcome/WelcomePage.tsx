@@ -1,14 +1,15 @@
 import { Anchor, Button, Container, Group, Stack, Text, Title } from "@mantine/core";
 import { IconFileImport, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useSetAtom } from "jotai";
 import AppLayout from "@/components/AppLayout";
 import ImportFlow from "@/components/ImportFlow";
 import { useImportFlow } from "@/hooks/useImportFlow";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
+import { createProjectAtom } from "@/state/actions";
 
 /** Shown at /overview while the workspace has no projects. */
 export default function WelcomePage() {
-  const { createProject } = useWorkspace();
+  const createProject = useSetAtom(createProjectAtom);
   const navigate = useNavigate();
   const importFlow = useImportFlow();
 

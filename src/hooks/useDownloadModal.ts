@@ -6,10 +6,15 @@ import { validateDataset, validateExperiment, validateProject } from "@/utils/va
 
 export type DefaultSelection = "all" | "project" | "experiment" | "dataset";
 
-interface UseDownloadModalProps {
+interface ExportData {
   projectData: DraftProject;
   experiments: ExperimentRecord[];
   datasets: DatasetRecord[];
+}
+
+interface UseDownloadModalProps {
+  /** Called when the modal opens and on download. */
+  getData: () => ExportData;
   defaultSelection?: DefaultSelection;
 }
 
@@ -33,9 +38,7 @@ interface UseDownloadModalReturn {
  *   - "dataset": Only enable dataset section (for Dataset page download)
  */
 export function useDownloadModal({
-  projectData,
-  experiments,
-  datasets,
+  getData,
   defaultSelection = "all",
 }: UseDownloadModalProps): UseDownloadModalReturn {
   const [showModal, setShowModal] = useState(false);
@@ -61,6 +64,7 @@ export function useDownloadModal({
   ]);
 
   const openModal = useCallback(() => {
+    const { projectData, experiments, datasets } = getData();
     // Check if each section has data
     const hasProjectData = Boolean(projectData?.project_id);
     const hasExperiments = experiments.length > 0;
@@ -131,7 +135,7 @@ export function useDownloadModal({
     ]);
 
     setShowModal(true);
-  }, [projectData, experiments, datasets, defaultSelection]);
+  }, [getData, defaultSelection]);
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -139,10 +143,11 @@ export function useDownloadModal({
 
   const handleDownload = useCallback(
     (selectedSections: string[]) => {
+      const { projectData, experiments, datasets } = getData();
       exportMetadata(projectData, experiments, datasets, { selectedSections });
       setShowModal(false);
     },
-    [projectData, experiments, datasets],
+    [getData],
   );
 
   const handleSectionToggle = useCallback((key: string) => {

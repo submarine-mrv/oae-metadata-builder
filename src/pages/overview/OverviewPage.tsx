@@ -21,36 +21,53 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { useAppState } from "@/contexts/AppStateContext";
 import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
-import { projectDisplayName } from "@/workspace/types";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
+import {
+  addDatasetAtom,
+  addExperimentAtom,
+  deleteDatasetAtom,
+  deleteExperimentAtom,
+  deleteProjectAtom,
+  duplicateDatasetAtom,
+  duplicateExperimentAtom,
+} from "@/state/actions";
+import {
+  activeDatasetIdAtom,
+  activeExperimentIdAtom,
+  datasetsAtom,
+  experimentsAtom,
+  projectDataAtom,
+  projectNameAtom,
+  projectSummariesAtom,
+} from "@/state/atoms";
+import { formStatus } from "@/utils/formStatus";
+import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
 
 export default function OverviewPage() {
-  const {
-    state,
-    addExperiment,
-    setActiveExperiment,
-    deleteExperiment,
-    duplicateExperiment,
-    getProjectStatus,
-    getExperimentStatus,
-    getDatasetStatus,
-    addDataset,
-    setActiveDataset,
-    deleteDataset,
-    duplicateDataset,
-  } = useAppState();
-  const { projects, activeProjectId, deleteProject: deleteWorkspaceProject } = useWorkspace();
+  const projectData = useAtomValue(projectDataAtom);
+  const experiments = useAtomValue(experimentsAtom);
+  const datasets = useAtomValue(datasetsAtom);
+  const projectName = useAtomValue(projectNameAtom);
+  const activeSummary = useAtomValue(projectSummariesAtom).find((p) => p.isActive) ?? null;
+  const addExperiment = useSetAtom(addExperimentAtom);
+  const setActiveExperiment = useSetAtom(activeExperimentIdAtom);
+  const deleteExperiment = useSetAtom(deleteExperimentAtom);
+  const duplicateExperiment = useSetAtom(duplicateExperimentAtom);
+  const addDataset = useSetAtom(addDatasetAtom);
+  const setActiveDataset = useSetAtom(activeDatasetIdAtom);
+  const deleteDataset = useSetAtom(deleteDatasetAtom);
+  const duplicateDataset = useSetAtom(duplicateDatasetAtom);
+  const deleteProject = useSetAtom(deleteProjectAtom);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const activeSummary = projects.find((p) => p.id === activeProjectId) ?? null;
   const navigate = useNavigate();
 
-  const projectStatus = getProjectStatus();
+  const projectStatus = formStatus(projectData, validateProject);
   const projectCompletion = projectStatus.percentage;
+  const datasetOptions = { hasExperiments: experiments.length > 0 };
 
   const handleDeleteProject = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -58,14 +75,13 @@ export default function OverviewPage() {
   };
 
   const confirmDeleteProject = () => {
-    if (activeProjectId) deleteWorkspaceProject(activeProjectId);
+    if (activeSummary) deleteProject(activeSummary.id);
     setConfirmingDelete(false);
   };
 
   const handleCreateExperiment = () => {
-    // addExperiment will auto-generate "Experiment N" if no name provided
-    const id = addExperiment();
-    setActiveExperiment(id);
+    // Selects the new experiment.
+    addExperiment();
     navigate({ to: "/experiment" });
   };
 
@@ -91,8 +107,7 @@ export default function OverviewPage() {
   };
 
   const handleCreateDataset = () => {
-    const id = addDataset();
-    setActiveDataset(id);
+    addDataset();
     navigate({ to: "/dataset" });
   };
 
@@ -114,15 +129,15 @@ export default function OverviewPage() {
   };
 
   // Helper to find linked experiment for a dataset
-  const getLinkedExperiment = (dataset: (typeof state.datasets)[0]) => {
+  const getLinkedExperiment = (dataset: (typeof datasets)[number]) => {
     // First check linking metadata
     if (dataset.linking?.linkedExperimentInternalId) {
-      return state.experiments.find((e) => e.id === dataset.linking?.linkedExperimentInternalId);
+      return experiments.find((e) => e.id === dataset.linking?.linkedExperimentInternalId);
     }
     // Fallback: match by experiment_id string
     const expId = dataset.formData.experiment_id;
     if (expId) {
-      return state.experiments.find((e) => e.formData.experiment_id === expId);
+      return experiments.find((e) => e.formData.experiment_id === expId);
     }
     return null;
   };
@@ -141,14 +156,14 @@ export default function OverviewPage() {
     label: string;
     onClick: () => void;
   }> = [];
-  if (state.experiments.length === 0)
+  if (experiments.length === 0)
     uncreatedEntities.push({
       key: "experiment",
       icon: IconFlask,
       label: "Experiment",
       onClick: handleCreateExperiment,
     });
-  if (state.datasets.length === 0)
+  if (datasets.length === 0)
     uncreatedEntities.push({
       key: "dataset",
       icon: IconDatabase,
@@ -162,7 +177,7 @@ export default function OverviewPage() {
         <Stack gap="xl">
           <div>
             <Title order={1} lineClamp={1}>
-              {projectDisplayName(state)}
+              {projectName}
             </Title>
             <Text c="dimmed">Overview</Text>
           </div>
@@ -186,7 +201,7 @@ export default function OverviewPage() {
                     <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                     <div style={{ minWidth: 0 }}>
                       <Group gap={6} wrap="nowrap" align="center">
-                        <Text fw={600}>{projectDisplayName(state)}</Text>
+                        <Text fw={600}>{projectName}</Text>
                         {projectStatus.isValid && (
                           <IconCircleCheck
                             size={18}
@@ -205,7 +220,7 @@ export default function OverviewPage() {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {state.projectData?.project_id || "No project ID set"}
+                        {projectData.project_id || "No project ID set"}
                       </Text>
                     </div>
                   </Group>
@@ -240,14 +255,14 @@ export default function OverviewPage() {
           </div>
 
           {/* Experiments Section — only when experiments exist */}
-          {state.experiments.length > 0 && (
+          {experiments.length > 0 && (
             <div>
               <Group justify="space-between" mb="md">
                 <div>
                   <Title order={2}>Experiments</Title>
                   <Text size="sm" c="dimmed">
-                    {state.experiments.length} experiment
-                    {state.experiments.length !== 1 ? "s" : ""} created
+                    {experiments.length} experiment
+                    {experiments.length !== 1 ? "s" : ""} created
                   </Text>
                 </div>
                 <Button leftSection={<IconPlus size={16} />} onClick={handleCreateExperiment}>
@@ -256,8 +271,8 @@ export default function OverviewPage() {
               </Group>
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-                {state.experiments.map((experiment) => {
-                  const status = getExperimentStatus(experiment.id);
+                {experiments.map((experiment) => {
+                  const status = formStatus(experiment.formData, validateExperiment);
                   const completion = status.percentage;
                   return (
                     <Card
@@ -358,14 +373,14 @@ export default function OverviewPage() {
           )}
 
           {/* Datasets Section — only when datasets exist */}
-          {state.datasets.length > 0 && (
+          {datasets.length > 0 && (
             <div>
               <Group justify="space-between" mb="md">
                 <div>
                   <Title order={2}>Datasets</Title>
                   <Text size="sm" c="dimmed">
-                    {state.datasets.length} dataset
-                    {state.datasets.length !== 1 ? "s" : ""} created
+                    {datasets.length} dataset
+                    {datasets.length !== 1 ? "s" : ""} created
                   </Text>
                 </div>
                 <Button leftSection={<IconPlus size={16} />} onClick={handleCreateDataset}>
@@ -374,10 +389,12 @@ export default function OverviewPage() {
               </Group>
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-                {state.datasets.map((dataset) => {
+                {datasets.map((dataset) => {
                   const variableCount = (dataset.formData.variables?.length as number) || 0;
                   const linkedExperiment = getLinkedExperiment(dataset);
-                  const status = getDatasetStatus(dataset.id);
+                  const status = formStatus(dataset.formData, (d) =>
+                    validateDataset(d, datasetOptions),
+                  );
                   const completion = status.percentage;
                   return (
                     <Card

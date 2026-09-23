@@ -6,12 +6,18 @@ import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
 import "@/globals.css";
 import "@/uiSchemaConstants.css";
+import { startPersistence } from "@/state/persistence";
+import { appStore, hydrate } from "@/state/store";
 import { initAnalytics } from "@/utils/analytics";
+import { localStorageWorkspaceStore } from "@/workspace/storage";
 import App from "./App";
 import { router } from "./router";
 
 // Outside React so StrictMode's double mount can't duplicate page views.
 initAnalytics(router);
+
+hydrate(appStore, localStorageWorkspaceStore);
+startPersistence(appStore, localStorageWorkspaceStore);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

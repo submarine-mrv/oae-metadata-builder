@@ -7,7 +7,7 @@ import type {
 } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
 import { cleanFormData } from "./formDataCleanup";
-import { propagateProjectIdToDatasets, propagateProjectIdToExperiments } from "./idPropagation";
+import { propagateProjectId } from "./idPropagation";
 
 export interface ImportSelection {
   project: DraftProject | null;
@@ -151,8 +151,8 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
   const projectId = newProjectData.project_id as string | undefined;
   return {
     projectData: newProjectData,
-    experiments: propagateProjectIdToExperiments(newExperiments, projectId),
-    datasets: propagateProjectIdToDatasets(newDatasets, projectId),
+    experiments: propagateProjectId(newExperiments, projectId),
+    datasets: propagateProjectId(newDatasets, projectId),
     nextExperimentId: nextExpId,
     nextDatasetId: nextDsId,
   };

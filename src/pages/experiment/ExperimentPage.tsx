@@ -1,10 +1,11 @@
 import { Container, Group, Stack, Text, Title } from "@mantine/core";
 import Form from "@rjsf/mantine";
-import type { DescriptionFieldProps } from "@rjsf/utils";
+import type { DescriptionFieldProps, RJSFSchema, UiSchema } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
+import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import DosingLocationField from "@/components/DosingLocationField";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
@@ -30,8 +31,11 @@ import StringListField from "@/components/rjsf/StringListField";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
-import { useAppState } from "@/contexts/AppStateContext";
 import { useFormValidation } from "@/hooks/useFormValidation";
+import { replaceExperimentFormDataAtom } from "@/state/actions";
+import { activeExperimentIdAtom } from "@/state/atoms";
+import { useExperiment } from "@/state/hooks";
+import type { DraftExperiment } from "@/types/forms";
 import { experimentCustomValidate } from "@/utils/customValidators";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { getExperimentSchemaType } from "@/utils/experimentFields";
@@ -56,14 +60,40 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
 
+const NO_DATA: DraftExperiment = {};
+
+// Schema selection: see docs/experiment-type-multi-select.md
+const schemaGetters: Record<string, () => RJSFSchema> = {
+  intervention: getInterventionSchema,
+  tracer_study: getTracerSchema,
+  intervention_with_tracer: getInterventionWithTracerSchema,
+  model: getModelSchema,
+};
+
+const formsByType = new Map<string, { schema: RJSFSchema; uiSchema: UiSchema }>();
+
+/** The schema and uiSchema for a schema type, one object per type since RJSF caches by identity. */
+function experimentForm(schemaType: string) {
+  let form = formsByType.get(schemaType);
+  if (!form) {
+    form = {
+      schema: (schemaGetters[schemaType] ?? getInSituExperimentSchema)(),
+      uiSchema: schemaType === "model" ? modelUiSchema : fieldExperimentUiSchema,
+    };
+    formsByType.set(schemaType, form);
+  }
+  return form;
+}
+
 export default function ExperimentPage() {
-  const { state, replaceExperimentFormData } = useAppState();
+  const activeExperimentId = useAtomValue(activeExperimentIdAtom);
+  const replaceExperimentFormData = useSetAtom(replaceExperimentFormDataAtom);
 
-  const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
-  const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
-  const [formData, setFormData] = useState<any>({});
-
-  const activeExperimentId = state.activeExperimentId;
+  const experiment = useExperiment(activeExperimentId);
+  const formData = experiment?.formData ?? NO_DATA;
+  const { schema: activeSchema, uiSchema: activeUiSchema } = experimentForm(
+    getExperimentSchemaType(formData.experiment_types ?? []),
+  );
 
   // AJV validation result, memoized on form data. Split by err.name.
   const validationResult = useMemo(() => validateExperiment(formData), [formData]);
@@ -91,38 +121,13 @@ export default function ExperimentPage() {
         : errors.filter((e) => e.name !== "required");
       return transformFormErrors(filtered, activeSchema);
     };
-  }, [validation.showErrorList]);
+  }, [validation.showErrorList, activeSchema]);
 
-  const experiment = activeExperimentId
-    ? state.experiments.find((exp) => exp.id === activeExperimentId)
-    : null;
-
-  // Load experiment data when experiment ID changes
+  // Reset error-list visibility so the new entity doesn't inherit
+  // the previous one's open/closed state.
   useEffect(() => {
-    // Reset error-list visibility so the new entity doesn't inherit
-    // the previous one's open/closed state.
     validation.closeErrorList();
-
-    if (experiment) {
-      setFormData(experiment.formData);
-    }
   }, [activeExperimentId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Dynamic schema and uiSchema switching based on experiment_types
-  // See docs/experiment-type-multi-select.md for the full decision table
-  useEffect(() => {
-    const schemaType = getExperimentSchemaType(formData.experiment_types ?? []);
-
-    // Schema selection — see docs/experiment-type-multi-select.md
-    const schemaMap: Record<string, () => any> = {
-      intervention: getInterventionSchema,
-      tracer_study: getTracerSchema,
-      intervention_with_tracer: getInterventionWithTracerSchema,
-      model: getModelSchema,
-    };
-    setActiveSchema((schemaMap[schemaType] || getInSituExperimentSchema)());
-    setActiveUiSchema(schemaType === "model" ? modelUiSchema : fieldExperimentUiSchema);
-  }, [formData.experiment_types]);
 
   const handleFormChange = useCallback(
     (e: any) => {
@@ -130,16 +135,9 @@ export default function ExperimentPage() {
 
       // The parse boundary: model exclusivity, type-scoped field cleanup,
       // conditional-field cleanup, and empty-value cleanup in one pass.
-      // `formData` as prev enables the type-transition recency rule.
-      const newData = parseExperiment(e.formData, formData);
-
-      setFormData(newData);
-      if (activeExperimentId) {
-        // Full replacement (not merge) so cleared fields actually take
-        // effect — updateExperiment merges into existing formData which
-        // would silently re-introduce removed keys.
-        replaceExperimentFormData(activeExperimentId, newData);
-      }
+      // The record's formData as prev enables the type-transition recency rule.
+      // Full replacement, so cleared fields stay cleared.
+      replaceExperimentFormData(activeExperimentId, parseExperiment(e.formData, formData));
     },
     [formData, activeExperimentId, replaceExperimentFormData],
   );

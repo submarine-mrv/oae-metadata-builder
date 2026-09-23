@@ -1,7 +1,8 @@
+import { useAtomValue } from "jotai";
 import type React from "react";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
+import { activeProjectIdAtom } from "@/state/atoms";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ interface AppLayoutProps {
  * - Prevents body scroll to eliminate jitter during hydration
  */
 export default function AppLayout({ children, noScroll = false }: AppLayoutProps) {
-  const projectOpen = useWorkspace().activeProjectId !== null;
+  const projectOpen = useAtomValue(activeProjectIdAtom) !== null;
 
   useEffect(() => {
     if (!projectOpen) return;

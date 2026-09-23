@@ -1,21 +1,23 @@
 import { Button, Group, Menu, Text } from "@mantine/core";
 import { IconCheck, IconChevronDown, IconFolders, IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAppState } from "@/contexts/AppStateContext";
-import { projectDisplayName } from "@/workspace/types";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
+import { useAtomValue, useSetAtom } from "jotai";
+import { createProjectAtom, switchProjectAtom } from "@/state/actions";
+import { activeProjectIdAtom, projectMenuAtom, projectNameAtom } from "@/state/atoms";
 
 /**
  * The active project after the brand name, as a breadcrumb: "OAE Metadata Builder / Kiel trial ▾".
  * Rendered whenever a project exists; Navigation leaves it out of an empty workspace.
  */
 export default function ProjectSwitcher() {
-  const { projects, activeProjectId, createProject, switchProject } = useWorkspace();
-  const { state } = useAppState();
+  const projects = useAtomValue(projectMenuAtom);
+  const activeProjectId = useAtomValue(activeProjectIdAtom);
+  const createProject = useSetAtom(createProjectAtom);
+  const switchProject = useSetAtom(switchProjectAtom);
   const navigate = useNavigate();
 
-  // Live from the editing session, so the title follows the Research Project name as it's typed.
-  const activeName = projectDisplayName(state);
+  // Follows the Research Project name as it's typed.
+  const activeName = useAtomValue(projectNameAtom);
 
   const handleNew = () => {
     createProject();
