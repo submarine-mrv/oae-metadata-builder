@@ -1,7 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { DraftExperiment } from "@/types/forms";
-import { AppStateProvider, type ExperimentData, useAppState } from "../AppStateContext";
+import type { DraftExperiment, ExperimentRecord } from "@/types/forms";
+import type { ProjectState } from "@/workspace/types";
+import { AppStateProvider, useAppState } from "../AppStateContext";
 
 describe("AppStateContext", () => {
   describe("Provider and Hook", () => {
@@ -22,11 +23,9 @@ describe("AppStateContext", () => {
       });
 
       expect(result.current.state).toEqual({
-        hasProject: false,
         projectData: { project_id: "" },
         experiments: [],
         datasets: [],
-        activeTab: "overview",
         activeExperimentId: null,
         activeDatasetId: null,
         nextExperimentId: 1,
@@ -75,76 +74,6 @@ describe("AppStateContext", () => {
       expect(result.current.state.experiments[0].formData.project_id).toBe("new-project");
       // Experiment name and other properties should remain unchanged
       expect(result.current.state.experiments[0].name).toBe("Test Experiment");
-    });
-  });
-
-  describe("createProject", () => {
-    it("should set hasProject to true", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-
-      act(() => {
-        result.current.createProject();
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
-    });
-  });
-
-  describe("deleteProject", () => {
-    it("should set hasProject to false and reset projectData", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      // Create a project and add data
-      act(() => {
-        result.current.createProject();
-        result.current.updateProjectData({ project_id: "test-project", description: "Test" });
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
-
-      act(() => {
-        result.current.deleteProject();
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-      expect(result.current.state.projectData).toEqual({});
-    });
-
-    it("should clear project_id from all experiments and datasets", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      // Create project with ID
-      act(() => {
-        result.current.createProject();
-        result.current.updateProjectData({ project_id: "my-project" });
-      });
-
-      // Add experiment and dataset
-      act(() => {
-        result.current.addExperiment("Exp 1");
-        result.current.addDataset("DS 1");
-      });
-
-      // Verify they have the project_id
-      expect(result.current.state.experiments[0].formData.project_id).toBe("my-project");
-      expect(result.current.state.datasets[0].formData.project_id).toBe("my-project");
-
-      // Delete the project
-      act(() => {
-        result.current.deleteProject();
-      });
-
-      // All experiments and datasets should have project_id cleared
-      expect(result.current.state.experiments[0].formData.project_id).toBe("");
-      expect(result.current.state.datasets[0].formData.project_id).toBe("");
     });
   });
 
@@ -278,7 +207,7 @@ describe("AppStateContext", () => {
       });
     });
 
-    it("should update experiment_types from formData", () => {
+    it("should set and clear experiment_types in formData", () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider,
       });
@@ -295,8 +224,13 @@ describe("AppStateContext", () => {
         });
       });
 
-      const experiment = result.current.state.experiments.find((e) => e.id === experimentId);
-      expect(experiment?.experiment_types).toEqual(["intervention"]);
+      const experiment = () => result.current.state.experiments.find((e) => e.id === experimentId);
+      expect(experiment()?.formData.experiment_types).toEqual(["intervention"]);
+
+      act(() => {
+        result.current.updateExperiment(experimentId!, { experiment_types: [] });
+      });
+      expect(experiment()?.formData.experiment_types).toBeUndefined();
     });
 
     it("should update name from formData if provided", () => {
@@ -548,10 +482,10 @@ describe("AppStateContext", () => {
       const copy = result.current.state.experiments[1];
 
       expect(copy.formData.description).toBe("A description");
-      expect(copy.experiment_types).toEqual(["intervention"]);
+      expect(copy.formData.experiment_types).toEqual(["intervention"]);
       // Mutating the copy must not affect the original (no shared refs).
       expect(copy.formData).not.toBe(original.formData);
-      expect(copy.experiment_types).not.toBe(original.experiment_types);
+      expect(copy.formData.experiment_types).not.toBe(original.formData.experiment_types);
     });
 
     it("should clear the user-set experiment_id on the copy", () => {
@@ -619,28 +553,6 @@ describe("AppStateContext", () => {
 
       expect(result.current.state.experiments).toHaveLength(beforeLength);
       expect(result.current.state.nextExperimentId).toBe(nextIdBefore);
-    });
-  });
-
-  describe("setActiveTab", () => {
-    it("should set active tab", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      expect(result.current.state.activeTab).toBe("overview");
-
-      act(() => {
-        result.current.setActiveTab("project");
-      });
-
-      expect(result.current.state.activeTab).toBe("project");
-
-      act(() => {
-        result.current.setActiveTab("experiment");
-      });
-
-      expect(result.current.state.activeTab).toBe("experiment");
     });
   });
 
@@ -1014,195 +926,6 @@ describe("AppStateContext", () => {
       expect(result.current.getDatasetStatus(dsId).percentage).toBe(
         result.current.getDatasetCompletionPercentage(dsId),
       );
-    });
-  });
-
-  describe("importAllData", () => {
-    it("should import project data and experiments", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      const importedProjectData = {
-        project_id: "imported-project",
-        description: "Imported description",
-      };
-
-      const importedExperiments: ExperimentData[] = [
-        {
-          id: 1, // This ID will be reassigned
-          name: "Imported Exp 1",
-          formData: { experiment_id: "exp-001" },
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
-
-      act(() => {
-        result.current.importAllData(importedProjectData, importedExperiments, []);
-      });
-
-      expect(result.current.state.projectData).toEqual(importedProjectData);
-      expect(result.current.state.experiments).toHaveLength(1);
-      expect(result.current.state.experiments[0].name).toBe("Imported Exp 1");
-    });
-
-    it("should reassign experiment IDs to avoid conflicts", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      // Add an existing experiment first
-      act(() => {
-        result.current.addExperiment("Existing");
-      });
-
-      const nextIdBeforeImport = result.current.state.nextExperimentId;
-
-      const importedExperiments: ExperimentData[] = [
-        {
-          id: 1, // Original ID from imported file
-          name: "Imported 1",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: 2, // Original ID from imported file
-          name: "Imported 2",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
-
-      act(() => {
-        result.current.importAllData({}, importedExperiments, []);
-      });
-
-      // IDs should be reassigned starting from nextExperimentId
-      expect(result.current.state.experiments[0].id).toBe(nextIdBeforeImport);
-      expect(result.current.state.experiments[1].id).toBe(nextIdBeforeImport + 1);
-    });
-
-    it("should update nextExperimentId after import", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      const importedExperiments: ExperimentData[] = [
-        {
-          id: 1,
-          name: "Exp 1",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: 2,
-          name: "Exp 2",
-          formData: {},
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
-
-      act(() => {
-        result.current.importAllData({}, importedExperiments, []);
-      });
-
-      // nextExperimentId should be 1 (initial) + 2 (imported) = 3
-      expect(result.current.state.nextExperimentId).toBe(3);
-    });
-
-    it("should reset activeExperimentId to null", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      act(() => {
-        result.current.addExperiment("Test");
-      });
-
-      // Should have active experiment
-      expect(result.current.state.activeExperimentId).not.toBeNull();
-
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      // Should be reset to null
-      expect(result.current.state.activeExperimentId).toBeNull();
-    });
-
-    it("should reset activeTab to overview", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      act(() => {
-        result.current.setActiveTab("project");
-      });
-
-      expect(result.current.state.activeTab).toBe("project");
-
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      expect(result.current.state.activeTab).toBe("overview");
-    });
-
-    it("should set hasProject to true when importing project with content", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-
-      act(() => {
-        result.current.importAllData({ project_id: "imported-project" }, [], []);
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
-    });
-
-    it("should set hasProject to false when importing empty project", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      // First create a project
-      act(() => {
-        result.current.createProject();
-      });
-
-      expect(result.current.state.hasProject).toBe(true);
-
-      // Import with empty project data
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      expect(result.current.state.hasProject).toBe(false);
-    });
-
-    it("should reset triggerValidation to false", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
-
-      act(() => {
-        result.current.setTriggerValidation(true);
-      });
-
-      expect(result.current.state.triggerValidation).toBe(true);
-
-      act(() => {
-        result.current.importAllData({}, [], []);
-      });
-
-      expect(result.current.state.triggerValidation).toBe(false);
     });
   });
 
@@ -1588,8 +1311,8 @@ describe("AppStateContext", () => {
 
       const dataset = result.current.state.datasets.find((d) => d.name === "Dataset 1");
       expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
-      // Original experiment_id should be preserved
-      expect(dataset?.formData.experiment_id).toBe("EXP-ORPHAN");
+      // An unlinked dataset has no experiment_id
+      expect(dataset?.formData).not.toHaveProperty("experiment_id");
     });
 
     it("should propagate experiment_id to linked datasets when experiment_id is set", () => {
@@ -1677,7 +1400,7 @@ describe("AppStateContext", () => {
       expect(dataset?.formData.experiment_id).toBeUndefined();
     });
 
-    it("should not overwrite experiment_id when linking resolves to none", () => {
+    it("should remove experiment_id when linking resolves to none", () => {
       const { result } = renderHook(() => useAppState(), {
         wrapper: AppStateProvider,
       });
@@ -1702,62 +1425,56 @@ describe("AppStateContext", () => {
 
       const dataset = result.current.state.datasets.find((d) => d.name === "Dataset 1");
       expect(dataset?.linking?.linkedExperimentInternalId).toBeNull();
-      // Original experiment_id from file should be preserved
-      expect(dataset?.formData.experiment_id).toBe("EXP-UNMATCHED");
+      // The file's experiment_id is not kept
+      expect(dataset?.formData).not.toHaveProperty("experiment_id");
     });
   });
 
-  describe("restoreFullState", () => {
-    it("normalizes legacy invariant violations and re-derives the top-level experiment_types copy", () => {
-      const { result } = renderHook(() => useAppState(), {
-        wrapper: AppStateProvider,
-      });
+  describe("initialState parsing", () => {
+    it("normalizes legacy invariant violations and drops the top-level experiment_types copy", () => {
+      const fixture: ProjectState = {
+        projectData: { project_id: "proj-1" },
+        experiments: [
+          {
+            id: 1,
+            name: "Legacy",
+            // Saved before model exclusivity was enforced at boundaries, and
+            // while records still carried a top-level experiment_types copy.
+            formData: {
+              experiment_id: "exp-legacy",
+              experiment_types: ["model", "intervention"],
+              dosing_description: "should be dropped",
+            } as unknown as DraftExperiment,
+            experiment_types: ["model", "intervention"],
+            createdAt: 1,
+            updatedAt: 1,
+          } as ExperimentRecord,
+        ],
+        datasets: [
+          {
+            id: 1,
+            name: "Legacy model output",
+            formData: {
+              dataset_type: "model_output",
+              variables: [{ schema_class: "DiscretePHVariable" }],
+            } as unknown as import("@/types/forms").DraftDataset,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        nextExperimentId: 2,
+        nextDatasetId: 2,
+      };
 
-      act(() => {
-        result.current.restoreFullState({
-          hasProject: true,
-          projectData: { project_id: "proj-1" },
-          experiments: [
-            {
-              id: 1,
-              name: "Legacy",
-              // Saved before model exclusivity was enforced at boundaries:
-              // both the formData and the duplicated top-level copy are stale.
-              formData: {
-                experiment_id: "exp-legacy",
-                experiment_types: ["model", "intervention"],
-                dosing_description: "should be dropped",
-              } as unknown as DraftExperiment,
-              experiment_types: [
-                "model",
-                "intervention",
-              ] as unknown as DraftExperiment["experiment_types"],
-              createdAt: 1,
-              updatedAt: 1,
-            },
-          ],
-          datasets: [
-            {
-              id: 1,
-              name: "Legacy model output",
-              formData: {
-                dataset_type: "model_output",
-                variables: [{ schema_class: "DiscretePHVariable" }],
-              } as unknown as import("@/types/forms").DraftDataset,
-              createdAt: 1,
-              updatedAt: 1,
-            },
-          ],
-          nextExperimentId: 2,
-          nextDatasetId: 2,
-        });
+      const { result } = renderHook(() => useAppState(), {
+        wrapper: ({ children }) => (
+          <AppStateProvider initialState={fixture}>{children}</AppStateProvider>
+        ),
       });
 
       const exp = result.current.state.experiments[0];
       expect(exp.formData.experiment_types).toEqual(["model"]);
-      // The duplicated top-level copy must match the parsed formData,
-      // not the stale saved value.
-      expect(exp.experiment_types).toEqual(["model"]);
+      expect(exp).not.toHaveProperty("experiment_types");
       expect(exp.formData.dosing_description).toBeUndefined();
 
       const ds = result.current.state.datasets[0];

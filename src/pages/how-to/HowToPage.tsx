@@ -251,7 +251,7 @@ export default function HowToPage() {
             <StepCard
               stepNumber="1"
               title="Create Your Sections"
-              description="Open the Metadata Builder and create the sections you need: Project, Experiment, or Dataset. You can add multiple experiments and datasets within a single session."
+              description="Open the Metadata Builder and create the sections you need: Project, Experiment, or Dataset. You can add multiple experiments and datasets within a single project."
             >
               <CalloutBox variant="tip" title="Flexible Order">
                 You don&apos;t need to work in any particular order. For example, you might create

@@ -68,6 +68,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## Architecture
 
+Workspace, persistence and import: see [docs/multi-project.md](docs/multi-project.md).
+
 ### Schema Processing
 
 1. Source schema from `submarine-mrv/oae-data-protocol`

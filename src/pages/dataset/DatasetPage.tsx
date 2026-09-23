@@ -94,7 +94,7 @@ function createModelOutputFormSchema() {
 }
 
 export default function DatasetPage() {
-  const { state, replaceDatasetFormData, getDataset, setActiveTab } = useAppState();
+  const { state, replaceDatasetFormData, getDataset } = useAppState();
 
   // Dynamic schema/uiSchema switching based on dataset_type
   const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
@@ -202,10 +202,6 @@ export default function DatasetPage() {
       return transformed;
     };
   }, [hasExperiments, validation.showErrorList, activeSchema]);
-
-  useEffect(() => {
-    setActiveTab("dataset");
-  }, [setActiveTab]);
 
   const handleFormChange = useCallback(
     (e: any) => {

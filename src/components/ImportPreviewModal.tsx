@@ -11,8 +11,9 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconAlertTriangle, IconCheck, IconFileImport } from "@tabler/icons-react";
+import { IconAlertTriangle, IconFileImport } from "@tabler/icons-react";
 import type React from "react";
+import ImportModeControl from "@/components/ImportModeControl";
 import type {
   DatasetExperimentLinking,
   ExperimentLinkOption,
@@ -34,6 +35,12 @@ interface ImportPreviewModalProps {
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
   duplicateExperimentIdError: string | null;
   onImport: () => void;
+  importMode: "new" | "merge";
+  onImportModeChange: (mode: "new" | "merge") => void;
+  /** False when there is no current project to merge into; the mode control is hidden. */
+  canMerge: boolean;
+  /** Shown as the merge target. */
+  currentProjectName: string;
 }
 
 /**
@@ -61,30 +68,21 @@ export default function ImportPreviewModal({
   getExperimentLinkOptions,
   duplicateExperimentIdError,
   onImport,
+  importMode,
+  onImportModeChange,
+  canMerge,
+  currentProjectName,
 }: ImportPreviewModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const selectedCount = items.filter((item) => item.selected).length;
   const noneSelected = selectedCount === 0;
+  // Duplicate ids would collapse experiments in either mode.
   const hasBlockingError = duplicateExperimentIdError !== null;
 
   // Group items by type
   const projectItems = items.filter((item) => item.type === "project");
   const experimentItems = items.filter((item) => item.type === "experiment");
   const datasetItems = items.filter((item) => item.type === "dataset");
-
-  // Build summary text
-  const summaryParts: string[] = [];
-  if (projectItems.length > 0) {
-    summaryParts.push("project metadata");
-  }
-  if (experimentItems.length > 0) {
-    summaryParts.push(
-      `${experimentItems.length} experiment${experimentItems.length !== 1 ? "s" : ""}`,
-    );
-  }
-  if (datasetItems.length > 0) {
-    summaryParts.push(`${datasetItems.length} dataset${datasetItems.length !== 1 ? "s" : ""}`);
-  }
 
   /**
    * Parse the select value and call the linking handler
@@ -210,15 +208,16 @@ export default function ImportPreviewModal({
       fullScreen={isMobile ?? false}
     >
       <Stack gap="md">
-        {/* Success message with summary */}
-        {!duplicateExperimentIdError && summaryParts.length > 0 && (
-          <Alert icon={<IconCheck size={18} />} color="teal" variant="light">
-            <Text size="sm">OAE metadata file was loaded successfully.</Text>
-          </Alert>
+        {canMerge && (
+          <ImportModeControl
+            value={importMode}
+            onChange={onImportModeChange}
+            currentProjectName={currentProjectName}
+          />
         )}
 
-        {/* Duplicate experiment_id error */}
-        {duplicateExperimentIdError && (
+        {/* Duplicate experiment_id error blocks import */}
+        {hasBlockingError && (
           <Alert icon={<IconAlertTriangle size={18} />} color="red" variant="light">
             <Text size="sm">{duplicateExperimentIdError}</Text>
           </Alert>

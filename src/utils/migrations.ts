@@ -2,8 +2,8 @@
  * Form data migrations — normalize data from older app versions on load.
  *
  * Each migration function handles one specific format change. They are run
- * in order by `migrateFormData`, which is called at load boundaries (session
- * restore and file import) — NOT on every form change.
+ * in order by `migrateFormData`, which is called at load boundaries (project
+ * load and file import) — NOT on every form change.
  *
  * When adding a new migration:
  *   1. Write a pure function: (data) => data (return same ref if no change)
@@ -57,7 +57,7 @@ const MIGRATIONS: Array<(data: Record<string, any>) => Record<string, any>> = [
 
 /**
  * Run all registered migrations on a form data object.
- * Called at load boundaries: session restore and JSON file import.
+ * Called at load boundaries: project load and JSON file import.
  */
 export function migrateFormData<T extends Record<string, any>>(data: T): T {
   if (!data || typeof data !== "object") return data;

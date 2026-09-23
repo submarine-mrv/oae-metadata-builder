@@ -1,4 +1,5 @@
 import * as path from "path";
+import { createFromOverview } from "./fixtures/app";
 import { ExperimentPage } from "./fixtures/experiment-page";
 import { expect, test } from "./fixtures/test";
 
@@ -8,13 +9,7 @@ test.describe("Conditional Dropdown Fields", () => {
   test.beforeEach(async ({ page }) => {
     experimentPage = new ExperimentPage(page);
 
-    // Navigate to overview and create an experiment
-    await page.goto("/overview");
-    await page.waitForLoadState("networkidle");
-
-    // Create a new experiment
-    await page.getByRole("button", { name: /Create.*Experiment/i }).click();
-    await page.waitForURL("**/experiment");
+    await createFromOverview(page, "Experiment");
     await page.waitForLoadState("networkidle");
 
     // Select "Intervention" experiment type to get alkalinity feedstock fields
@@ -168,19 +163,12 @@ test.describe("Import preserves conditional field values", () => {
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
 
-    // Dismiss session restore modal if it appears
-    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
-    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startFresh.click();
-      await page.waitForTimeout(300);
-    }
-
     // Open hamburger menu and trigger import
     await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixturePath);
     await page.waitForTimeout(1000);
@@ -215,17 +203,11 @@ test.describe("Import preserves conditional field values", () => {
     await page.goto("/overview");
     await page.waitForLoadState("networkidle");
 
-    const startFresh = page.getByRole("button", { name: /Start Fresh/i });
-    if (await startFresh.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startFresh.click();
-      await page.waitForTimeout(300);
-    }
-
     await page.locator("button.mantine-Burger-burger, [aria-label='Menu']").first().click();
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixturePath);
     await page.waitForTimeout(1000);

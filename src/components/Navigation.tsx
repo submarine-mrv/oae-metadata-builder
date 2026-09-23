@@ -20,22 +20,29 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import type React from "react";
-import { useRef } from "react";
 import { useAuth } from "@/auth/useAuth";
 import DownloadModal from "@/components/DownloadModal";
-import ImportPreviewModal from "@/components/ImportPreviewModal";
+import ImportFlow from "@/components/ImportFlow";
+import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
-import { useImportPreview } from "@/hooks/useImportPreview";
+import { useImportFlow } from "@/hooks/useImportFlow";
 import { trackEvent } from "@/utils/analytics";
-import { importMetadata } from "@/utils/exportImport";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
+
+const TABS = [
+  { value: "overview", label: "Overview" },
+  { value: "project", label: "Project" },
+  { value: "experiment", label: "Experiments" },
+  { value: "dataset", label: "Datasets" },
+];
 
 export default function Navigation() {
   const { client, user } = useAuth();
-  const { state, setActiveTab, importSelectedData, toggleJsonPreview } = useAppState();
+  const { state, toggleJsonPreview } = useAppState();
+  const hasProjects = useWorkspace().projects.length > 0;
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFlow = useImportFlow();
 
   const { showModal, sections, openModal, closeModal, handleDownload, handleSectionToggle } =
     useDownloadModal({
@@ -45,12 +52,6 @@ export default function Navigation() {
       defaultSelection: "all",
     });
 
-  const importPreview = useImportPreview({
-    currentProjectData: state.projectData,
-    currentExperiments: state.experiments,
-    currentDatasets: state.datasets,
-  });
-
   const handleNavigation = (value: string) => {
     const paths = {
       overview: "/overview",
@@ -59,55 +60,7 @@ export default function Navigation() {
       dataset: "/dataset",
       "how-to": "/how-to",
     } as const;
-    if (value !== "how-to") {
-      const tab = value as "overview" | "project" | "experiment" | "dataset";
-      setActiveTab(tab);
-    }
     navigate({ to: paths[value as keyof typeof paths] });
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const { projectData, experiments, datasets } = await importMetadata(file);
-
-      // Extract form data from experiment/dataset states
-      const experimentFormData = experiments.map((exp) => exp.formData);
-      const datasetFormData = datasets.map((ds) => ds.formData);
-
-      // Open preview modal instead of auto-importing
-      importPreview.openPreview(file.name, projectData, experimentFormData, datasetFormData);
-
-      // Reset file input
-      e.target.value = "";
-    } catch (error) {
-      console.error("Import failed:", error);
-      alert(
-        `Failed to import metadata: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-  };
-
-  const handleImport = () => {
-    const selected = importPreview.getSelectedItems();
-    // Extract just the formData for experiments (they don't have linking config in import)
-    const experimentFormData = selected.experiments;
-    // Pass datasets with their linking configuration
-    importSelectedData(selected.project, experimentFormData, selected.datasets);
-    // On confirm, not on file selection: the preview can still be cancelled.
-    trackEvent("metadata_import", {
-      project: selected.project ? 1 : 0,
-      experiments: experimentFormData.length,
-      datasets: selected.datasets.length,
-    });
-    importPreview.closePreview();
-    navigate({ to: "/overview" });
   };
 
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -120,7 +73,13 @@ export default function Navigation() {
   };
   const currentTab = pathToTab[pathname] ?? "";
 
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery("(max-width: 768px)", undefined, {
+    getInitialValueInEffect: false,
+  });
+  // Narrower than this, centred tabs squeeze the crumb to a few letters.
+  const isCompact = useMediaQuery("(max-width: 1279px)", undefined, {
+    getInitialValueInEffect: false,
+  });
 
   const handleSignOut = async () => {
     await client.signOut();
@@ -131,77 +90,79 @@ export default function Navigation() {
   return (
     <>
       <Box px="lg" py="sm">
-        {/* Top row: logo + actions (+ menu on mobile) */}
+        {/* Top row: brand + crumb, tabs (wide screens only), actions */}
         <Box
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr auto" : "1fr auto 1fr",
+            gridTemplateColumns: isCompact
+              ? "minmax(0, 1fr) auto"
+              : "minmax(0, 1fr) auto minmax(0, 1fr)",
             alignItems: "center",
             gap: "1rem",
           }}
         >
-          {/* Logo and title - left aligned, links to Overview */}
-          <Link
-            to="/overview"
-            onClick={() => setActiveTab("overview")}
-            style={{ textDecoration: "none" }}
-          >
-            <Group gap="sm">
-              <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w="auto" />
-              <Text fw={500} size="md" c="hadal.9" ff="var(--font-display)">
-                OAE Metadata Builder
-              </Text>
-            </Group>
-          </Link>
+          {/* Brand, then the active project as a breadcrumb */}
+          <Group gap="sm" wrap="nowrap" pr="lg" style={{ minWidth: 0 }}>
+            <Link
+              to="/overview"
+              aria-label="OAE Metadata Builder"
+              style={{ textDecoration: "none", flexShrink: 0 }}
+            >
+              <Group gap="sm" wrap="nowrap">
+                <Image src="/cts-logo.png" alt="Carbon to Sea" h={32} w={36} decoding="sync" />
+                {!isMobile && (
+                  <Text
+                    fw={500}
+                    size="md"
+                    c="hadal.9"
+                    ff="var(--font-display)"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    OAE Metadata Builder
+                  </Text>
+                )}
+              </Group>
+            </Link>
+            {hasProjects && <ProjectSwitcher />}
+          </Group>
 
-          {/* Navigation tabs - centered (desktop only) */}
-          {!isMobile && (
+          {/* Navigation tabs, centred */}
+          {!isCompact && hasProjects && (
             <SegmentedControl
               style={{
                 backgroundColor: "var(--brand-sunlight)",
               }}
               value={currentTab}
               onChange={handleNavigation}
-              data={[
-                { value: "overview", label: "Overview" },
-                { value: "project", label: "Project" },
-                { value: "experiment", label: "Experiments" },
-                { value: "dataset", label: "Datasets" },
-              ]}
+              data={TABS}
               size="md"
               radius="md"
             />
           )}
 
-          {/* Actions - right aligned */}
-          <Group gap="xs" justify="flex-end">
+          {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
+          <Group gap="xs" justify="flex-end" style={{ gridColumn: isCompact ? 2 : 3 }}>
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>
                 <Button
                   variant="light"
                   leftSection={<IconFileImport size={16} />}
-                  onClick={handleImportClick}
+                  onClick={importFlow.openFilePicker}
                 >
                   Import
                 </Button>
-                <Button
-                  variant="outline"
-                  leftSection={<IconDownload size={16} />}
-                  onClick={openModal}
-                >
-                  Export
-                </Button>
+                {hasProjects && (
+                  <Button
+                    variant="outline"
+                    leftSection={<IconDownload size={16} />}
+                    onClick={openModal}
+                  >
+                    Export
+                  </Button>
+                )}
               </>
             )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
 
             <Menu shadow="md" width={200}>
               <Menu.Target>
@@ -246,13 +207,15 @@ export default function Navigation() {
                   <>
                     <Menu.Item
                       leftSection={<IconFileImport size={16} />}
-                      onClick={handleImportClick}
+                      onClick={importFlow.openFilePicker}
                     >
                       Import
                     </Menu.Item>
-                    <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
-                      Export
-                    </Menu.Item>
+                    {hasProjects && (
+                      <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
+                        Export
+                      </Menu.Item>
+                    )}
                     <Menu.Divider />
                   </>
                 )}
@@ -293,8 +256,8 @@ export default function Navigation() {
           </Group>
         </Box>
 
-        {/* Bottom row: SegmentedControl full-width (mobile only) */}
-        {isMobile && (
+        {/* Tabs on their own full-width row when the top row is too narrow */}
+        {isCompact && hasProjects && (
           <SegmentedControl
             style={{
               backgroundColor: "var(--brand-sunlight)",
@@ -302,13 +265,8 @@ export default function Navigation() {
             }}
             value={currentTab}
             onChange={handleNavigation}
-            data={[
-              { value: "overview", label: "Overview" },
-              { value: "project", label: "Project" },
-              { value: "experiment", label: "Experiments" },
-              { value: "dataset", label: "Datasets" },
-            ]}
-            size="xs"
+            data={TABS}
+            size={isMobile ? "xs" : "sm"}
             radius="md"
             fullWidth
           />
@@ -324,17 +282,7 @@ export default function Navigation() {
         onSectionToggle={handleSectionToggle}
       />
 
-      <ImportPreviewModal
-        opened={importPreview.state.isOpen}
-        onClose={importPreview.closePreview}
-        filename={importPreview.state.filename}
-        items={importPreview.state.items}
-        onToggleItem={importPreview.toggleItem}
-        onSetDatasetLinking={importPreview.setDatasetExperimentLinking}
-        getExperimentLinkOptions={importPreview.getExperimentLinkOptions}
-        duplicateExperimentIdError={importPreview.state.duplicateExperimentIdError}
-        onImport={handleImport}
-      />
+      <ImportFlow flow={importFlow} />
     </>
   );
 }

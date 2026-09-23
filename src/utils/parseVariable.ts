@@ -11,7 +11,7 @@ import { cleanVariableData } from "@/utils/formDataCleanup";
  *   normalizeVariableFields → stripExtraVariableFields → cleanVariableData
  *
  * Run this at every boundary where variable data enters application state
- * (modal save, import, session restore) so stored variables are always clean —
+ * (modal save, import, project load) so stored variables are always clean —
  * no orphaned type-switch fields, no empty strings. Validation can then trust the
  * data and check it directly against its schema_class, without re-cleaning.
  *

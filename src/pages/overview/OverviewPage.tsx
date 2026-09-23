@@ -1,7 +1,5 @@
 import {
   ActionIcon,
-  Alert,
-  Anchor,
   Badge,
   Button,
   Card,
@@ -14,7 +12,6 @@ import {
   Title,
 } from "@mantine/core";
 import {
-  IconAlertTriangle,
   IconCircleCheck,
   IconCopy,
   IconDatabase,
@@ -23,18 +20,18 @@ import {
   IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { useEffect } from "react";
+import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useAppState } from "@/contexts/AppStateContext";
+import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
+import { projectDisplayName } from "@/workspace/types";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export default function OverviewPage() {
   const {
     state,
-    setActiveTab,
-    createProject,
-    deleteProject,
     addExperiment,
     setActiveExperiment,
     deleteExperiment,
@@ -47,48 +44,37 @@ export default function OverviewPage() {
     deleteDataset,
     duplicateDataset,
   } = useAppState();
+  const { projects, activeProjectId, deleteProject: deleteWorkspaceProject } = useWorkspace();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const activeSummary = projects.find((p) => p.id === activeProjectId) ?? null;
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setActiveTab("overview");
-  }, [setActiveTab]);
 
   const projectStatus = getProjectStatus();
   const projectCompletion = projectStatus.percentage;
 
-  const handleCreateProject = () => {
-    createProject();
-    setActiveTab("project");
-    navigate({ to: "/project" });
-  };
-
   const handleDeleteProject = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      confirm(
-        "Are you sure you want to delete this project? This will clear project data and unlink project IDs from experiments and datasets.",
-      )
-    ) {
-      deleteProject();
-    }
+    setConfirmingDelete(true);
+  };
+
+  const confirmDeleteProject = () => {
+    if (activeProjectId) deleteWorkspaceProject(activeProjectId);
+    setConfirmingDelete(false);
   };
 
   const handleCreateExperiment = () => {
     // addExperiment will auto-generate "Experiment N" if no name provided
     const id = addExperiment();
     setActiveExperiment(id);
-    setActiveTab("experiment");
     navigate({ to: "/experiment" });
   };
 
   const handleEditProject = () => {
-    setActiveTab("project");
     navigate({ to: "/project" });
   };
 
   const handleEditExperiment = (id: number) => {
     setActiveExperiment(id);
-    setActiveTab("experiment");
     navigate({ to: "/experiment" });
   };
 
@@ -107,13 +93,11 @@ export default function OverviewPage() {
   const handleCreateDataset = () => {
     const id = addDataset();
     setActiveDataset(id);
-    setActiveTab("dataset");
     navigate({ to: "/dataset" });
   };
 
   const handleEditDataset = (id: number) => {
     setActiveDataset(id);
-    setActiveTab("dataset");
     navigate({ to: "/dataset" });
   };
 
@@ -157,13 +141,6 @@ export default function OverviewPage() {
     label: string;
     onClick: () => void;
   }> = [];
-  if (!state.hasProject)
-    uncreatedEntities.push({
-      key: "project",
-      icon: IconFolder,
-      label: "Project",
-      onClick: handleCreateProject,
-    });
   if (state.experiments.length === 0)
     uncreatedEntities.push({
       key: "experiment",
@@ -183,117 +160,84 @@ export default function OverviewPage() {
     <AppLayout>
       <Container size="lg" py="xl">
         <Stack gap="xl">
-          {/* Header */}
           <div>
-            <Title order={1}>OAE Metadata Builder – Overview</Title>
+            <Title order={1} lineClamp={1}>
+              {projectDisplayName(state)}
+            </Title>
+            <Text c="dimmed">Overview</Text>
           </div>
 
-          {/* Beta notice */}
-          <Alert
-            variant="light"
-            color="progressBlue"
-            icon={<IconAlertTriangle size={20} />}
-            title="Welcome to the OAE Metadata Builder"
-          >
-            <Text size="sm">
-              The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
-              (OAE) projects, experiments, and datasets in compliance with the{" "}
-              <Anchor
-                href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                OAE Data Management Protocol
-              </Anchor>
-              .
-            </Text>
-            <Text size="sm" mt="xs">
-              The metadata builder is currently in beta testing with a planned Spring 2026 launch.
-              If you have questions or concerns, please contact{" "}
-              <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
-            </Text>
-            <Text size="sm" mt="xs">
-              For more information, visit the{" "}
-              <Anchor component={Link} to="/about">
-                About page
-              </Anchor>
-              .
-            </Text>
-          </Alert>
+          <div>
+            <Group justify="space-between" mb="md">
+              <Title order={2}>Project Metadata</Title>
+            </Group>
 
-          {/* Project Section — only when created */}
-          {state.hasProject && (
-            <div>
-              <Group justify="space-between" mb="md">
-                <Title order={2}>Project</Title>
-              </Group>
-
-              <Card
-                shadow="sm"
-                padding="lg"
-                radius="md"
-                withBorder
-                style={{ cursor: "pointer" }}
-                onClick={handleEditProject}
-              >
-                <Stack gap="sm">
-                  <Group justify="space-between" wrap="nowrap" align="flex-start">
-                    <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
-                      <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
-                      <div style={{ minWidth: 0 }}>
-                        <Group gap={6} wrap="nowrap" align="center">
-                          <Text fw={600}>Project Metadata</Text>
-                          {projectStatus.isValid && (
-                            <IconCircleCheck
-                              size={18}
-                              color="var(--mantine-color-green-6)"
-                              aria-label="Validation passed"
-                              style={{ flexShrink: 0 }}
-                            />
-                          )}
-                        </Group>
-                        <Text
-                          size="sm"
-                          c="dimmed"
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {state.projectData?.project_id || "No project ID set"}
-                        </Text>
-                      </div>
-                    </Group>
-                    <Button
-                      variant="subtle"
-                      color="red"
-                      size="xs"
-                      style={{ flexShrink: 0 }}
-                      onClick={handleDeleteProject}
-                    >
-                      <IconTrash size={16} />
-                    </Button>
+            <Card
+              shadow="sm"
+              padding="lg"
+              radius="md"
+              withBorder
+              style={{ cursor: "pointer" }}
+              onClick={handleEditProject}
+            >
+              <Stack gap="sm">
+                <Group justify="space-between" wrap="nowrap" align="flex-start">
+                  <Group gap="xs" wrap="nowrap" align="flex-start" style={{ minWidth: 0 }}>
+                    <IconFolder size={20} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <Group gap={6} wrap="nowrap" align="center">
+                        <Text fw={600}>{projectDisplayName(state)}</Text>
+                        {projectStatus.isValid && (
+                          <IconCircleCheck
+                            size={18}
+                            color="var(--mantine-color-green-6)"
+                            aria-label="Validation passed"
+                            style={{ flexShrink: 0 }}
+                          />
+                        )}
+                      </Group>
+                      <Text
+                        size="sm"
+                        c="dimmed"
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {state.projectData?.project_id || "No project ID set"}
+                      </Text>
+                    </div>
                   </Group>
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="xs"
+                    style={{ flexShrink: 0 }}
+                    onClick={handleDeleteProject}
+                    aria-label="Delete project"
+                  >
+                    <IconTrash size={16} />
+                  </Button>
+                </Group>
 
-                  <Stack gap="xs">
-                    <Group justify="space-between">
-                      <Text size="xs">Progress</Text>
-                      <Badge size="xs" color={getCompletionColor(projectCompletion)}>
-                        {projectCompletion}%
-                      </Badge>
-                    </Group>
-                    <Progress
-                      value={projectCompletion}
-                      size="md"
-                      radius="md"
-                      color={getCompletionColor(projectCompletion)}
-                    />
-                  </Stack>
+                <Stack gap="xs">
+                  <Group justify="space-between">
+                    <Text size="xs">Progress</Text>
+                    <Badge size="xs" color={getCompletionColor(projectCompletion)}>
+                      {projectCompletion}%
+                    </Badge>
+                  </Group>
+                  <Progress
+                    value={projectCompletion}
+                    size="md"
+                    radius="md"
+                    color={getCompletionColor(projectCompletion)}
+                  />
                 </Stack>
-              </Card>
-            </div>
-          )}
+              </Stack>
+            </Card>
+          </div>
 
           {/* Experiments Section — only when experiments exist */}
           {state.experiments.length > 0 && (
@@ -374,17 +318,18 @@ export default function OverviewPage() {
                           </Group>
                         </Group>
 
-                        {experiment.experiment_types && experiment.experiment_types.length > 0 && (
-                          <Group gap="xs">
-                            {experiment.experiment_types.map((t: string) => (
-                              <Badge variant="light" size="sm" key={t}>
-                                {t
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                              </Badge>
-                            ))}
-                          </Group>
-                        )}
+                        {experiment.formData.experiment_types &&
+                          experiment.formData.experiment_types.length > 0 && (
+                            <Group gap="xs">
+                              {experiment.formData.experiment_types.map((t: string) => (
+                                <Badge variant="light" size="sm" key={t}>
+                                  {t
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                </Badge>
+                              ))}
+                            </Group>
+                          )}
 
                         <Stack gap="xs">
                           <Group justify="space-between">
@@ -553,13 +498,7 @@ export default function OverviewPage() {
           {/* Compact create cards for uncreated entities */}
           {uncreatedEntities.length > 0 && (
             <SimpleGrid
-              cols={
-                uncreatedEntities.length === 1
-                  ? { base: 1 }
-                  : uncreatedEntities.length === 2
-                    ? { base: 1, xs: 2 }
-                    : { base: 1, xs: 2, sm: 3 }
-              }
+              cols={uncreatedEntities.length === 1 ? { base: 1 } : { base: 1, xs: 2 }}
               spacing="md"
               {...(uncreatedEntities.length === 1 ? { maw: 300 } : {})}
             >
@@ -612,6 +551,11 @@ export default function OverviewPage() {
           )}
         </Stack>
       </Container>
+      <DeleteProjectModal
+        project={confirmingDelete ? activeSummary : null}
+        onConfirm={confirmDeleteProject}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </AppLayout>
   );
 }

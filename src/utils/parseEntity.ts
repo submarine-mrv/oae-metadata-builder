@@ -25,8 +25,8 @@ import { parseVariables } from "@/utils/parseVariable";
 
 /**
  * Per-entity parse boundaries, following the parseVariable pattern: every path
- * where entity data enters application state (form onChange, import, session
- * restore) funnels through the entity's parse function, which establishes the
+ * where entity data enters application state (form onChange, import, project
+ * load) funnels through the entity's parse function, which establishes the
  * entity's own-invariants in one pass. Downstream code trusts the Draft type
  * and does not re-clean or re-check.
  *

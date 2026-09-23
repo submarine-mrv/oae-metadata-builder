@@ -1,7 +1,7 @@
 import type React from "react";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import { useAppState } from "@/contexts/AppStateContext";
+import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -16,11 +16,10 @@ interface AppLayoutProps {
  * - Prevents body scroll to eliminate jitter during hydration
  */
 export default function AppLayout({ children, noScroll = false }: AppLayoutProps) {
-  const { state } = useAppState();
-  const hasContent = state.hasProject || state.experiments.length > 0 || state.datasets.length > 0;
+  const projectOpen = useWorkspace().activeProjectId !== null;
 
   useEffect(() => {
-    if (!hasContent) return;
+    if (!projectOpen) return;
 
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -28,7 +27,7 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
 
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [hasContent]);
+  }, [projectOpen]);
 
   return (
     <div

@@ -13,11 +13,25 @@ export async function waitForRoute(locator: Locator) {
   await expect(locator).toBeVisible({ timeout: COLD_START_TIMEOUT });
 }
 
-/** Open the overview and create a fresh project or experiment. */
-export async function createFromOverview(page: Page, kind: "Project" | "Experiment") {
+/** Make sure a project exists, then open its project form or create an experiment or dataset. */
+export async function createFromOverview(page: Page, kind: "Project" | "Experiment" | "Dataset") {
   await page.goto("/overview");
-  const create = page.getByRole("button", { name: new RegExp(`Create.*${kind}`, "i") });
-  await waitForRoute(create);
-  await create.click();
+  const firstProject = page.getByRole("button", { name: "Create your first project" });
+  const overview = page.getByRole("heading", { name: "Project Metadata" });
+  await waitForRoute(firstProject.or(overview).first());
+
+  if (await firstProject.isVisible()) {
+    await firstProject.click();
+    await page.waitForURL("**/project");
+    if (kind === "Project") return;
+    await page.goto("/overview");
+  }
+  if (kind === "Project") {
+    await page.goto("/project");
+    return;
+  }
+  const card = page.getByRole("button", { name: new RegExp(`Create.*${kind}`, "i") });
+  await waitForRoute(card);
+  await card.click();
   await page.waitForURL(`**/${kind.toLowerCase()}`);
 }
