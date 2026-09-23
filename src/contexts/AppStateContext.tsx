@@ -10,47 +10,63 @@ import type {
   ExperimentRecord,
 } from "@/types/forms";
 import { computeCompletion } from "@/utils/completionCalculator";
+import { cleanFormData } from "@/utils/formDataCleanup";
+import { propagateExperimentIdToDatasets } from "@/utils/idPropagation";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
 
 export type AppState = AppFormState;
 
-import { applyImport, type ImportSelection } from "@/utils/applyImport";
-import { cleanFormData } from "@/utils/formDataCleanup";
-import {
-  propagateProjectIdToDatasets,
-  propagateProjectIdToExperiments,
-} from "@/utils/idPropagation";
+import * as reducers from "@/state/projectReducers";
+import type { ImportSelection } from "@/utils/applyImport";
 import { parseProjectState } from "@/utils/parseProjectState";
 import { emptyProjectState, type ProjectState } from "@/workspace/types";
 
-// =============================================================================
-// ID Propagation Helpers
-// =============================================================================
+function mergeExperiment(
+  state: ProjectState,
+  id: number,
+  data: Partial<DraftExperiment> & { name?: string },
+): ProjectState {
+  const oldExpId = state.experiments.find((exp) => exp.id === id)?.formData?.experiment_id;
+  const newExpId = data.experiment_id;
 
-/**
- * Propagate experiment_id to all datasets linked to the given experiment.
- * Only updates datasets where linking.linkedExperimentInternalId matches.
- */
-function propagateExperimentIdToDatasets(
-  datasets: DatasetRecord[],
-  experimentInternalId: number,
-  experimentId: string | undefined,
-): DatasetRecord[] {
-  return datasets.map((ds) => {
-    // Only update if this dataset is linked to this specific experiment
-    if (ds.linking?.linkedExperimentInternalId !== experimentInternalId) {
-      return ds;
-    }
-    // Update experiment_id in formData
-    return {
-      ...ds,
-      formData: {
-        ...ds.formData,
-        experiment_id: experimentId || undefined,
-      },
-      updatedAt: Date.now(),
-    };
-  });
+  const experiments = state.experiments.map((exp) =>
+    exp.id === id
+      ? {
+          ...exp,
+          formData: cleanFormData({ ...exp.formData, ...data }) as DraftExperiment,
+          name: data.name || exp.name,
+          updatedAt: Date.now(),
+        }
+      : exp,
+  );
+
+  // When RJSF clears a field, experiment_id may be undefined in `data`, so detect a clear by key presence.
+  const expIdChanged = "experiment_id" in data && newExpId !== oldExpId;
+  const datasets = expIdChanged
+    ? propagateExperimentIdToDatasets(state.datasets, id, (newExpId as string) || undefined)
+    : state.datasets;
+
+  return { ...state, experiments, datasets };
+}
+
+function mergeDataset(
+  state: ProjectState,
+  id: number,
+  data: Partial<DraftDataset> & { name?: string },
+): ProjectState {
+  return {
+    ...state,
+    datasets: state.datasets.map((ds) =>
+      ds.id === id
+        ? {
+            ...ds,
+            formData: { ...ds.formData, ...data } as DraftDataset,
+            name: data.name || ds.name,
+            updatedAt: Date.now(),
+          }
+        : ds,
+    ),
+  };
 }
 
 interface AppStateContextType {
@@ -139,6 +155,11 @@ function sameProjectState(a: ProjectState, b: ProjectState): boolean {
   return PROJECT_STATE_KEYS.every((key) => a[key] === b[key]);
 }
 
+/** Merge a reducer's result into the full state; an unchanged result keeps the same object. */
+function withProject(prev: AppState, next: ProjectState): AppState {
+  return next === prev ? prev : { ...prev, ...next };
+}
+
 export function AppStateProvider({ children, initialState, onChange }: AppStateProviderProps) {
   const [state, setState] = useState<AppState>(() => {
     const project = initialState ? parseProjectState(initialState) : emptyProjectState();
@@ -162,179 +183,45 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
   }, [state]);
 
   const updateProjectData = useCallback((data: DraftProject) => {
-    setState((prev) => {
-      data = cleanFormData(data);
-      const newProjectId = data.project_id;
-      const oldProjectId = prev.projectData.project_id;
-
-      // If project_id changed, propagate to linked experiments and datasets
-      const experimentsNeedUpdate = newProjectId !== oldProjectId;
-      const newExperiments = experimentsNeedUpdate
-        ? propagateProjectIdToExperiments(prev.experiments, newProjectId)
-        : prev.experiments;
-      const newDatasets = experimentsNeedUpdate
-        ? propagateProjectIdToDatasets(prev.datasets, newProjectId)
-        : prev.datasets;
-
-      return {
-        ...prev,
-        projectData: data,
-        experiments: newExperiments,
-        datasets: newDatasets,
-      };
-    });
+    setState((prev) => withProject(prev, reducers.updateProjectData(prev, data)));
   }, []);
 
   const addExperiment = useCallback((name?: string): number => {
-    // Use a ref to reliably capture the assigned ID
     const idRef = { current: 0 };
-
     setState((prev) => {
-      const id = prev.nextExperimentId;
+      const { state, id } = reducers.addExperiment(prev, name);
       idRef.current = id;
-      const defaultName = name || `Experiment ${id}`;
-
-      const newExperiment: ExperimentRecord = {
-        id,
-        name: defaultName,
-        formData: {
-          project_id: prev.projectData?.project_id || "",
-        },
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      return {
-        ...prev,
-        experiments: [...prev.experiments, newExperiment],
-        activeExperimentId: id,
-        nextExperimentId: prev.nextExperimentId + 1,
-      };
+      return { ...prev, ...state, activeExperimentId: id };
     });
-
     return idRef.current;
   }, []);
 
   const updateExperiment = useCallback(
     (id: number, data: Partial<DraftExperiment> & { name?: string }) => {
-      setState((prev) => {
-        // Find the existing experiment to check for experiment_id changes
-        const existingExp = prev.experiments.find((exp) => exp.id === id);
-        const oldExpId = existingExp?.formData?.experiment_id;
-        const newExpId = data.experiment_id;
-
-        // Update experiments
-        const newExperiments = prev.experiments.map((exp) =>
-          exp.id === id
-            ? {
-                ...exp,
-                formData: cleanFormData({ ...exp.formData, ...data }) as DraftExperiment,
-                name: data.name || exp.name,
-                updatedAt: Date.now(),
-              }
-            : exp,
-        );
-
-        // If experiment_id changed, propagate to linked datasets.
-        // Check both directions: set (newExpId defined) or cleared (oldExpId existed, newExpId absent).
-        // When RJSF clears a field, experiment_id may be undefined in `data` — detect via key presence.
-        const hasExpIdKey = "experiment_id" in data;
-        const expIdChanged = hasExpIdKey && newExpId !== oldExpId;
-        const newDatasets = expIdChanged
-          ? propagateExperimentIdToDatasets(prev.datasets, id, (newExpId as string) || undefined)
-          : prev.datasets;
-
-        return {
-          ...prev,
-          experiments: newExperiments,
-          datasets: newDatasets,
-        };
-      });
+      setState((prev) => withProject(prev, mergeExperiment(prev, id, data)));
     },
     [],
   );
 
-  /**
-   * Full replacement of an experiment's formData. The incoming `data` is
-   * authoritative — any keys absent from `data` are treated as cleared,
-   * not as "unchanged". Use this from the experiment form page where the
-   * page always has the complete current form state.
-   */
   const replaceExperimentFormData = useCallback((id: number, data: DraftExperiment) => {
-    setState((prev) => {
-      const cleaned = cleanFormData(data);
-      const existingExp = prev.experiments.find((exp) => exp.id === id);
-      const oldExpId = existingExp?.formData?.experiment_id;
-      const newExpId = cleaned.experiment_id;
-
-      const newExperiments = prev.experiments.map((exp) =>
-        exp.id === id
-          ? {
-              ...exp,
-              formData: cleaned as DraftExperiment,
-              name: (cleaned.name as string) || exp.name,
-              updatedAt: Date.now(),
-            }
-          : exp,
-      );
-
-      // If experiment_id changed (including clear), propagate to
-      // linked datasets — mirrors updateExperiment's behavior.
-      const expIdChanged = newExpId !== oldExpId;
-      const newDatasets = expIdChanged
-        ? propagateExperimentIdToDatasets(prev.datasets, id, (newExpId as string) || undefined)
-        : prev.datasets;
-
-      return {
-        ...prev,
-        experiments: newExperiments,
-        datasets: newDatasets,
-      };
-    });
+    setState((prev) => withProject(prev, reducers.replaceExperimentFormData(prev, id, data)));
   }, []);
 
   const deleteExperiment = useCallback((id: number) => {
     setState((prev) => ({
       ...prev,
-      experiments: prev.experiments.filter((exp) => exp.id !== id),
+      ...reducers.deleteExperiment(prev, id),
       activeExperimentId: prev.activeExperimentId === id ? null : prev.activeExperimentId,
     }));
   }, []);
 
   const duplicateExperiment = useCallback((id: number): number => {
     const idRef = { current: 0 };
-
     setState((prev) => {
-      const original = prev.experiments.find((exp) => exp.id === id);
-      if (!original) return prev;
-
-      const newId = prev.nextExperimentId;
+      const { state, id: newId } = reducers.duplicateExperiment(prev, id);
       idRef.current = newId;
-      const newName = `${original.name} (Copy)`;
-
-      const duplicate: ExperimentRecord = {
-        ...structuredClone(original),
-        id: newId,
-        name: newName,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      // Keep the form's own name field in sync with the display name.
-      if (duplicate.formData.name !== undefined) {
-        duplicate.formData.name = newName;
-      }
-      // experiment_id is the user-set unique identifier — don't carry it
-      // over. The user must assign a new one to the copy. (newId above is
-      // the internal tracking ID, which is unrelated to experiment_id.)
-      delete duplicate.formData.experiment_id;
-
-      return {
-        ...prev,
-        experiments: [...prev.experiments, duplicate],
-        nextExperimentId: prev.nextExperimentId + 1,
-      };
+      return withProject(prev, state);
     });
-
     return idRef.current;
   }, []);
 
@@ -414,112 +301,40 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
 
   const addDataset = useCallback((name?: string): number => {
     const idRef = { current: 0 };
-
     setState((prev) => {
-      const id = prev.nextDatasetId;
+      const { state, id } = reducers.addDataset(prev, name);
       idRef.current = id;
-      const defaultName = name || `Dataset ${id}`;
-
-      const newDataset: DatasetRecord = {
-        id,
-        name: defaultName,
-        formData: {
-          project_id: prev.projectData?.project_id || "",
-        },
-        // No experiment link by default
-        linking: {
-          linkedExperimentInternalId: null,
-        },
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      return {
-        ...prev,
-        datasets: [...prev.datasets, newDataset],
-        activeDatasetId: id,
-        nextDatasetId: prev.nextDatasetId + 1,
-      };
+      return { ...prev, ...state, activeDatasetId: id };
     });
-
     return idRef.current;
   }, []);
 
   const updateDataset = useCallback(
     (id: number, data: Partial<DraftDataset> & { name?: string }) => {
-      setState((prev) => ({
-        ...prev,
-        datasets: prev.datasets.map((ds) =>
-          ds.id === id
-            ? {
-                ...ds,
-                formData: { ...ds.formData, ...data } as DraftDataset,
-                name: data.name || ds.name,
-                updatedAt: Date.now(),
-              }
-            : ds,
-        ),
-      }));
+      setState((prev) => withProject(prev, mergeDataset(prev, id, data)));
     },
     [],
   );
 
   const replaceDatasetFormData = useCallback((id: number, data: DraftDataset) => {
-    setState((prev) => ({
-      ...prev,
-      datasets: prev.datasets.map((ds) =>
-        ds.id === id
-          ? {
-              ...ds,
-              formData: cleanFormData(data),
-              name: (data.name as string) || ds.name,
-              updatedAt: Date.now(),
-            }
-          : ds,
-      ),
-    }));
+    setState((prev) => withProject(prev, reducers.replaceDatasetFormData(prev, id, data)));
   }, []);
 
   const deleteDataset = useCallback((id: number) => {
     setState((prev) => ({
       ...prev,
-      datasets: prev.datasets.filter((ds) => ds.id !== id),
+      ...reducers.deleteDataset(prev, id),
       activeDatasetId: prev.activeDatasetId === id ? null : prev.activeDatasetId,
     }));
   }, []);
 
   const duplicateDataset = useCallback((id: number): number => {
     const idRef = { current: 0 };
-
     setState((prev) => {
-      const original = prev.datasets.find((ds) => ds.id === id);
-      if (!original) return prev;
-
-      const newId = prev.nextDatasetId;
+      const { state, id: newId } = reducers.duplicateDataset(prev, id);
       idRef.current = newId;
-      const newName = `${original.name} (Copy)`;
-
-      // structuredClone deep-copies formData and linking metadata so the
-      // copy stays linked to the same experiment without sharing references.
-      const duplicate: DatasetRecord = {
-        ...structuredClone(original),
-        id: newId,
-        name: newName,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      // Keep the form's own name field in sync with the display name.
-      if (duplicate.formData.name !== undefined) {
-        duplicate.formData.name = newName;
-      }
-
-      return {
-        ...prev,
-        datasets: [...prev.datasets, duplicate],
-        nextDatasetId: prev.nextDatasetId + 1,
-      };
+      return withProject(prev, state);
     });
-
     return idRef.current;
   }, []);
 
@@ -537,54 +352,9 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
     [state.datasets],
   );
 
-  // =============================================================================
-  // ID Linking Methods
-  // =============================================================================
-
-  /**
-   * Update dataset linking metadata for experiment linking.
-   * When linking to an experiment, sync experiment_id from that experiment.
-   */
   const updateDatasetLinking = useCallback(
     (id: number, linking: Partial<DatasetLinkingMetadata>) => {
-      setState((prev) => ({
-        ...prev,
-        datasets: prev.datasets.map((ds) => {
-          if (ds.id !== id) return ds;
-
-          const newLinking = {
-            ...ds.linking,
-            ...linking,
-          } as DatasetLinkingMetadata;
-
-          let newFormData = ds.formData;
-
-          // If linking to an experiment, sync experiment_id from that experiment
-          if (
-            linking.linkedExperimentInternalId !== undefined &&
-            linking.linkedExperimentInternalId !== ds.linking?.linkedExperimentInternalId
-          ) {
-            if (linking.linkedExperimentInternalId !== null) {
-              // Find the experiment and get its experiment_id
-              const linkedExp = prev.experiments.find(
-                (exp) => exp.id === linking.linkedExperimentInternalId,
-              );
-              newFormData = {
-                ...newFormData,
-                experiment_id: (linkedExp?.formData?.experiment_id as string) || "",
-              };
-            }
-            // If setting to null, we leave the current value (user can manually edit)
-          }
-
-          return {
-            ...ds,
-            linking: newLinking,
-            formData: newFormData,
-            updatedAt: Date.now(),
-          };
-        }),
-      }));
+      setState((prev) => withProject(prev, reducers.updateDatasetLinking(prev, id, linking)));
     },
     [],
   );
@@ -595,10 +365,12 @@ export function AppStateProvider({ children, initialState, onChange }: AppStateP
       experiments: DraftExperiment[],
       datasets: ImportSelection["datasets"],
     ) => {
-      setState((prev) => ({
-        ...prev,
-        ...applyImport(prev, { project: projectData, experiments, datasets }),
-      }));
+      setState((prev) =>
+        withProject(
+          prev,
+          reducers.importSelection(prev, { project: projectData, experiments, datasets }),
+        ),
+      );
     },
     [],
   );
