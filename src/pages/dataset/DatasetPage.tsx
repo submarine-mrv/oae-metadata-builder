@@ -1,11 +1,11 @@
 import { Container, Group, Stack, Text, Title } from "@mantine/core";
 import Form from "@rjsf/mantine";
-import type { DescriptionFieldProps, RJSFValidationError } from "@rjsf/utils";
+import type { DescriptionFieldProps, RJSFSchema, RJSFValidationError, UiSchema } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import EmptyEntityPage from "@/components/EmptyEntityPage";
 import FilenamesField from "@/components/FilenamesField";
@@ -32,6 +32,7 @@ import { useFormValidation } from "@/hooks/useFormValidation";
 import { replaceDatasetFormDataAtom } from "@/state/actions";
 import { activeDatasetIdAtom, experimentCountAtom } from "@/state/atoms";
 import { useDataset } from "@/state/hooks";
+import type { DraftDataset } from "@/types/forms";
 import { isModelOutputType } from "@/utils/datasetFields";
 import { transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
@@ -52,6 +53,8 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 
 // Hidden submit button - we don't use RJSF's submit anymore
 const HiddenSubmitButton = () => null;
+
+const NO_DATA: DraftDataset = {};
 
 /**
  * Replaces the `variables` item schema with a plain `array`.
@@ -86,37 +89,34 @@ function withVariablesAsPlainArray(schema: any) {
   return schema;
 }
 
-/** Builds the FieldDataset schema the RJSF *form* renders from. */
-function createFieldDatasetFormSchema() {
-  return withVariablesAsPlainArray(getFieldDatasetSchema());
-}
+const formsByType = new Map<boolean, { schema: RJSFSchema; uiSchema: UiSchema }>();
 
-/** Builds the ModelOutputDataset schema the RJSF *form* renders from. */
-function createModelOutputFormSchema() {
-  return withVariablesAsPlainArray(getModelOutputDatasetSchema());
+/** The schema and uiSchema the RJSF form renders, one object per type since RJSF caches by identity. */
+function datasetForm(datasetType: unknown) {
+  const modelOutput = isModelOutputType(datasetType);
+  let form = formsByType.get(modelOutput);
+  if (!form) {
+    form = modelOutput
+      ? {
+          schema: withVariablesAsPlainArray(getModelOutputDatasetSchema()),
+          uiSchema: modelOutputUiSchema,
+        }
+      : {
+          schema: withVariablesAsPlainArray(getFieldDatasetSchema()),
+          uiSchema: fieldDatasetUiSchema,
+        };
+    formsByType.set(modelOutput, form);
+  }
+  return form;
 }
 
 export default function DatasetPage() {
   const activeDatasetId = useAtomValue(activeDatasetIdAtom);
   const replaceDatasetFormData = useSetAtom(replaceDatasetFormDataAtom);
 
-  // Dynamic schema/uiSchema switching based on dataset_type
-  const [activeSchema, setActiveSchema] = useState<any>(() => createFieldDatasetFormSchema());
-  const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldDatasetUiSchema);
-
-  // Local form data, saved whole with replaceDatasetFormData so fields that
-  // cleanup removed on a type switch stay removed.
-  const [formData, setFormData] = useState<any>({});
-
-  // Get current dataset
   const currentDataset = useDataset(activeDatasetId);
-
-  // Load dataset data when active dataset changes
-  useEffect(() => {
-    if (currentDataset) {
-      setFormData(currentDataset.formData);
-    }
-  }, [activeDatasetId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const formData = currentDataset?.formData ?? NO_DATA;
+  const { schema: activeSchema, uiSchema: activeUiSchema } = datasetForm(formData.dataset_type);
 
   const hasExperiments = useAtomValue(experimentCountAtom) > 0;
 
@@ -149,19 +149,6 @@ export default function DatasetPage() {
   // being recreated on every keystroke
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
-
-  // Dynamic schema switching based on dataset_type
-  useEffect(() => {
-    const datasetType = formData.dataset_type;
-
-    if (isModelOutputType(datasetType)) {
-      setActiveSchema(createModelOutputFormSchema());
-      setActiveUiSchema(modelOutputUiSchema);
-    } else {
-      setActiveSchema(createFieldDatasetFormSchema());
-      setActiveUiSchema(fieldDatasetUiSchema);
-    }
-  }, [formData.dataset_type]);
 
   // Wrap error transformer to:
   // 1. Suppress experiment_id errors when no experiments exist
@@ -213,14 +200,13 @@ export default function DatasetPage() {
       // The parse boundary: type-scoped field cleanup (including dropping
       // variables when dataset_type is model_output), conditional-field
       // cleanup, variable parsing, and empty-value cleanup in one pass.
-      const newData = parseDataset(e.formData, getBaseSchema() as JSONSchema);
-
-      // Update local state first (form sees cleaned data immediately),
-      // then sync to context
-      setFormData(newData);
-      replaceDatasetFormData(activeDatasetId, newData);
+      // Saved whole, so fields that cleanup removed on a type switch stay removed.
+      replaceDatasetFormData(
+        activeDatasetId,
+        parseDataset(e.formData, getBaseSchema() as JSONSchema),
+      );
     },
-    [formData, activeDatasetId, replaceDatasetFormData],
+    [activeDatasetId, replaceDatasetFormData],
   );
 
   // Show message if no dataset is selected

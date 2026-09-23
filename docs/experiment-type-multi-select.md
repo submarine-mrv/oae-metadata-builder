@@ -100,7 +100,8 @@ This prevents the invalid state from being persisted.
 | File | Role |
 |---|---|
 | `src/utils/experimentFields.ts` | `getExperimentSchemaType()` — shared logic |
-| `src/app/experiment/page.tsx` | Schema/uiSchema switching, model exclusivity in onChange |
+| `src/pages/experiment/ExperimentPage.tsx` | Schema/uiSchema selection (`experimentForm`) |
+| `src/utils/parseEntity.ts` | Model exclusivity in `parseExperiment`, run on every onChange |
 | `src/utils/validation.ts` | Schema selection for validation |
 | `src/utils/formStatus.ts` | Completion calculation |
 | `src/app/overview/page.tsx` | Badge display for selected types |
