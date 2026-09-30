@@ -2113,7 +2113,7 @@
         "data_access_link": {
           "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Required for open access, optional otherwise.",
           "pattern": "^https?://.+",
-          "title": "Data access link",
+          "title": "Data Access Link",
           "type": "string"
         },
         "data_accessibility": {
@@ -3829,7 +3829,7 @@
         "data_access_link": {
           "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Required for open access, optional otherwise.",
           "pattern": "^https?://.+",
-          "title": "Data access link",
+          "title": "Data Access Link",
           "type": "string"
         },
         "data_accessibility": {
@@ -5609,7 +5609,7 @@
         "data_access_link": {
           "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Required for open access, optional otherwise.",
           "pattern": "^https?://.+",
-          "title": "Data access link",
+          "title": "Data Access Link",
           "type": "string"
         },
         "data_accessibility": {
@@ -7916,5 +7916,5 @@
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
   "version": "0.4.0",
-  "x-protocol-git-hash": "1835e4b73c57f16ba33afbd983156fb1564e3ec7"
+  "x-protocol-git-hash": "e17ff50ca61a3e97533116396f00cd4233fb2221"
 }
