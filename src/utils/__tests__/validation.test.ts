@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { MESSAGES } from "@/constants/messages";
 import type { DraftExperiment } from "@/types/forms";
 import { validateDataset, validateExperiment, validateProject } from "../validation";
 
@@ -400,8 +399,7 @@ describe("Validation", () => {
     });
   });
 
-  // Protocol 0.4.0 rules: scheduled access needs a date; open access needs a
-  // link or a date, but not both.
+  // Scheduled access needs a date; open access needs a link.
   describe("data access rules", () => {
     const dataset = (overrides: Record<string, unknown>) => ({
       project_id: "p1",
@@ -436,23 +434,24 @@ describe("Validation", () => {
       expect(errors).toEqual([]);
     });
 
-    it("accepts open access with only a date", () => {
+    it("rejects open access with only a date", () => {
       const errors = dataAccessErrors(
         dataset({ data_accessibility: "open_access", data_access_date: "2027-06-01" }),
       );
-      expect(errors).toEqual([]);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].params?.missingProperty).toBe("data_access_link");
     });
 
-    it("rejects open access with neither, naming both fields once", () => {
+    it("requires a link for open access", () => {
       const errors = dataAccessErrors(dataset({ data_accessibility: "open_access" }));
+      expect(errors).toHaveLength(1);
+      expect(errors[0].params?.missingProperty).toBe("data_access_link");
+      expect(errors[0].message).toBe("Field is required");
+    });
 
-      expect(errors.map((e) => e.property).sort()).toEqual([
-        ".data_access_date",
-        ".data_access_link",
-      ]);
-      for (const e of errors) {
-        expect(e.message).toBe(MESSAGES.validation.dataAccessEitherOr);
-      }
+    it("requires neither field for conditional access", () => {
+      const errors = dataAccessErrors(dataset({ data_accessibility: "conditional_access" }));
+      expect(errors).toEqual([]);
     });
 
     it("requires a date for scheduled access", () => {
