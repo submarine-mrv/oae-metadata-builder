@@ -14,7 +14,7 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 - The overview heading shows the project name. (#81)
 - Open access datasets require a data access link; a data access date no longer counts. The date
   field only appears for scheduled access, and a date saved on an open or conditional access
-  dataset is dropped when the dataset loads.
+  dataset is dropped when the dataset loads. (#83)
 
 ## [0.3.0] — 2026-09-08
 
