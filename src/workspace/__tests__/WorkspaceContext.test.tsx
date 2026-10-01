@@ -65,6 +65,20 @@ describe("WorkspaceProvider", () => {
     expect(result.current.projects).toHaveLength(1);
   });
 
+  it("deletes every project at once and saves immediately", () => {
+    const { result } = renderHook(() => useWorkspace(), { wrapper });
+    act(() => {
+      result.current.createProject();
+    });
+    act(() => {
+      result.current.createProject();
+    });
+    act(() => result.current.deleteAllProjects());
+    expect(result.current.projects).toHaveLength(0);
+    expect(result.current.activeProjectId).toBeNull();
+    expect(localStorageWorkspaceStore.load()?.projects).toEqual([]);
+  });
+
   it("deleting the last project leaves no active project", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
     let id = "";

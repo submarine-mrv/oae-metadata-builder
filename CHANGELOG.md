@@ -8,8 +8,7 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
   one or opens the Projects page, which lists every project with its counts and last edit. (#81)
 - A welcome screen appears on first run and after the last project is deleted, with buttons to
   create a project or import one from a file. (#81)
-- The prompt to restore a previous session is gone. Projects save automatically in the browser and
-  no longer expire after 30 days. (#81)
+- Projects save automatically in the browser and no longer expire after 30 days. (#81)
 - Importing a file can add it as a new project or merge it into the current one. (#81)
 - The overview heading shows the project name. (#81)
 

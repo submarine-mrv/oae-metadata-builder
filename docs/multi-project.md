@@ -34,7 +34,11 @@ The overview's H1 is always the project name, with "Overview" beneath it. The pr
 
 ## Deleting
 
-You delete a whole project, from its `/projects` card or the overview's project card. `DeleteProjectModal` confirms first and names the experiment and dataset counts. Deleting the active project activates the most recently edited one left. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place.
+You delete a whole project, from its `/projects` card or the overview's project card. `DeleteProjectModal` confirms first and names the experiment and dataset counts. Deleting the active project activates the most recently edited one left. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place. The restore prompt's Start fresh deletes every project at once.
+
+## Restore prompt
+
+`RestorePrompt` (`src/components/RestorePrompt.tsx`) runs on the first load of a tab. With saved projects it says the work is kept in this browser only and offers Continue or Start fresh. Start fresh asks to confirm, then `deleteAllProjects()` empties the workspace and the welcome screen shows. A `sessionStorage` key marks the tab as asked, so reloads in the same tab don't ask again; a new tab does. A reload that leaves the prompt unanswered asks again.
 
 ## Persistence
 
