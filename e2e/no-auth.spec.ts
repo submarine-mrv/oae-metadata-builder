@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// Runs against a dev server started with VITE_AUTH_ENABLED=false (see playwright.config.ts).
+// Runs in the chromium-no-auth project, against a dev server with VITE_AUTH_ENABLED=false.
 test.describe("with auth turned off", () => {
   test("hides the account menu items", async ({ page }) => {
     await page.goto("/overview");

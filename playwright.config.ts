@@ -43,15 +43,17 @@ export default defineConfig({
 
   // Configure projects for major browsers
   projects: [
+    // Login-flow tests, against the server with the in-memory auth provider.
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3000" },
-      testIgnore: "no-auth.spec.ts",
+      testMatch: /\/auth\.spec\.ts$/,
     },
+    // Everything else, against the server with auth off, as production runs today.
     {
       name: "chromium-no-auth",
       use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3001" },
-      testMatch: "no-auth.spec.ts",
+      testIgnore: /\/auth\.spec\.ts$/,
     },
     // Can add more browsers later if needed:
     // {
