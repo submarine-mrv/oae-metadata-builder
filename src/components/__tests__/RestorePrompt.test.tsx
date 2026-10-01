@@ -39,32 +39,32 @@ describe("RestorePrompt", () => {
 
   it("stays hidden with nothing saved, and marks the tab as asked", () => {
     renderPrompt();
-    expect(screen.queryByText("Welcome back")).not.toBeInTheDocument();
+    expect(screen.queryByText("Restore previous session?")).not.toBeInTheDocument();
     expect(sessionStorage.getItem(RESTORE_PROMPTED_KEY)).not.toBeNull();
   });
 
   it("asks once per tab when projects are saved", async () => {
     seed(2);
     const { unmount } = renderPrompt();
-    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
-    expect(screen.getByText(/2 saved projects/)).toBeInTheDocument();
+    expect(await screen.findByText("Restore previous session?")).toBeInTheDocument();
+    expect(screen.getByText(/2 projects saved/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await userEvent.click(screen.getByRole("button", { name: "Restore session" }));
     expect(screen.getByRole("status")).toHaveTextContent("2");
     unmount();
 
     renderPrompt();
-    expect(screen.queryByText("Welcome back")).not.toBeInTheDocument();
+    expect(screen.queryByText("Restore previous session?")).not.toBeInTheDocument();
   });
 
   it("asks again after a reload that left the prompt unanswered", async () => {
     seed(1);
     const { unmount } = renderPrompt();
-    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
+    expect(await screen.findByText("Restore previous session?")).toBeInTheDocument();
     unmount();
 
     renderPrompt();
-    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
+    expect(await screen.findByText("Restore previous session?")).toBeInTheDocument();
   });
 
   it("removes every project only after the confirm step", async () => {

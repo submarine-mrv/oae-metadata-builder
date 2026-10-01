@@ -25,8 +25,7 @@ function markPrompted() {
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /**
- * On the first load of a tab with saved projects, says the work is kept in this browser and
- * offers to continue or start fresh. Starting fresh deletes every project after a confirm step.
+ * On the first load of a tab with saved projects, offers to restore them or start fresh. Starting fresh deletes every project after a confirm step.
  */
 export default function RestorePrompt() {
   const { projects, deleteAllProjects } = useWorkspace();
@@ -61,7 +60,7 @@ export default function RestorePrompt() {
     <Modal
       opened
       onClose={close}
-      title={confirming ? "Start fresh?" : "Welcome back"}
+      title={confirming ? "Start fresh?" : "Restore previous session?"}
       centered
       closeOnClickOutside={false}
     >
@@ -69,10 +68,13 @@ export default function RestorePrompt() {
         <Stack>
           <Text size="sm">
             This removes {plural(projects.length, "project")}
-            {contents.length > 0 && `, with ${contents.join(" and ")},`} from this browser. It
-            cannot be undone.
+            {contents.length > 0 && `, with ${contents.join(" and ")},`} from this browser. You
+            can't undo this.
           </Text>
-          <Text size="sm">To keep a copy, go back, continue, and export it first.</Text>
+          <Text size="sm">
+            To keep a permanent copy, select Back, restore your session, and export{" "}
+            {projects.length === 1 ? "the project" : "each project"} first.
+          </Text>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setConfirming(false)}>
               Back
@@ -85,17 +87,20 @@ export default function RestorePrompt() {
       ) : (
         <Stack>
           <Text size="sm">
-            This browser has {plural(projects.length, "saved project")}, last edited{" "}
-            {formatRelativeTime(lastEdited)}.
+            You have {plural(projects.length, "project")} saved in this browser, last edited{" "}
+            {formatRelativeTime(lastEdited)}. Would you like to restore work from your previous
+            session?
           </Text>
-          <Text size="sm">
-            Your work is saved in this browser only. Export a project to keep a copy.
+          <Text size="xs" c="dimmed">
+            Auto-save stores projects in your browser, so clearing your browsing data deletes
+            projects from previous sessions. To keep a permanent copy, restore your session, open
+            the project, and select Export in the header.
           </Text>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setConfirming(true)}>
               Start fresh
             </Button>
-            <Button onClick={close}>Continue</Button>
+            <Button onClick={close}>Restore session</Button>
           </Group>
         </Stack>
       )}

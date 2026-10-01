@@ -11,8 +11,8 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 - Projects save automatically in the browser and no longer expire after 30 days. (#81)
 - Importing a file can add it as a new project or merge it into the current one. (#81)
 - The overview heading shows the project name. (#81)
-- Opening the builder in a new tab with saved projects asks whether to continue or start fresh, and
-  says work is saved in this browser only. Starting fresh removes every project after a confirm
+- Opening the builder in a new tab with saved projects asks whether to restore the previous session
+  or start fresh, and explains that exporting a project keeps a permanent copy. Starting fresh removes every project after a confirm
   step. (#87)
 
 ## [0.3.0] — 2026-09-08
