@@ -30,9 +30,6 @@ export default defineConfig({
 
   // Shared settings for all projects
   use: {
-    // Base URL for the application
-    baseURL: "http://localhost:3000",
-
     // Collect trace when retrying the failed test
     trace: "on-first-retry",
 
@@ -48,7 +45,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3000" },
       testIgnore: "no-auth.spec.ts",
     },
     {
