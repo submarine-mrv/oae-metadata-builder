@@ -205,3 +205,78 @@ describe("analytics with a measurement ID", () => {
     ]);
   });
 });
+
+describe("shared opt-out with the OAE Data Commons", () => {
+  const OPT_OUT_COOKIE = "oae_analytics_v1";
+
+  function setOptOutCookie(value: string) {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom has no Cookie Store API
+    document.cookie = `${OPT_OUT_COOKIE}=${value}; path=/`;
+  }
+
+  beforeEach(() => {
+    vi.stubEnv("VITE_GA_MEASUREMENT_ID", MEASUREMENT_ID);
+  });
+
+  afterEach(() => {
+    setOptOutCookie("; max-age=0");
+    vi.unstubAllGlobals();
+    delete (window as unknown as Record<string, unknown>)[`ga-disable-${MEASUREMENT_ID}`];
+  });
+
+  it("does not load gtag.js after an opt-out on the Data Commons", () => {
+    setOptOutCookie("off");
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(document.querySelector(SCRIPT_SELECTOR)).toBeNull();
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("treats Global Privacy Control as an opt-out", () => {
+    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
+    const { router } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(document.querySelector(SCRIPT_SELECTOR)).toBeNull();
+  });
+
+  it("lets an explicit opt-in override Global Privacy Control", () => {
+    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
+    setOptOutCookie("on");
+    const { router } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(document.querySelector(SCRIPT_SELECTOR)).not.toBeNull();
+  });
+
+  it("stops collecting as soon as an opt-out lands while the page is open", () => {
+    const { router, subscribe } = fakeRouter();
+    initAnalytics(router);
+
+    setOptOutCookie("off");
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+    trackEvent("metadata_export", { datasets: 1 });
+
+    const names = gtagCalls().map(([, name]) => name);
+    expect(names).not.toContain("page_view");
+    expect(names).not.toContain("metadata_export");
+    const flags = window as unknown as Record<string, unknown>;
+    expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
+  });
+
+  it("disables gtag when the window regains focus after an opt-out elsewhere", () => {
+    const { router } = fakeRouter();
+    initAnalytics(router);
+
+    setOptOutCookie("off");
+    window.dispatchEvent(new Event("focus"));
+
+    const flags = window as unknown as Record<string, unknown>;
+    expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
+  });
+});

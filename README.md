@@ -161,6 +161,9 @@ Google Analytics is gated on one build-time variable, set in the deploy environm
 ```bash
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
+
+Visitors who opt out on the OAE Data Commons privacy page aren't tracked here either: both sites read the `oae_analytics_v1` cookie on `.oaedata.org`. With no stored choice, a Global Privacy Control or Do Not Track signal also turns analytics off.
+
 ## Related Repositories
 
 - [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol) - Source schema definition and protocol specification
