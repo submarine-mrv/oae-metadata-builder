@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { authEnabled, authProvider } from "../../config";
 
-const authDisabled = import.meta.env.VITE_AUTH_ENABLED !== "true";
+const authDisabled = !authEnabled || authProvider !== "supabase";
 const url = authDisabled ? "http://127.0.0.1:54321" : import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = authDisabled
   ? "auth-disabled"

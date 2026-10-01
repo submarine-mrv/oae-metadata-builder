@@ -154,6 +154,18 @@ SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
 - **UI Layout**: Update the page's `uiSchema.ts` (e.g. `/src/pages/project/uiSchema.ts`) for field ordering and presentation
 - **Components**: Add new widgets/fields in `/src/components/`
 
+### Auth
+
+Login is behind one build-time flag:
+
+| Setting | Result |
+|---|---|
+| `VITE_AUTH_ENABLED` unset or `false` | No account menu items; `/auth/*` and `/profile` redirect to `/overview`; no Supabase code loads |
+| `VITE_AUTH_ENABLED=true` | Supabase login. Needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` |
+| `VITE_AUTH_ENABLED=true`, `VITE_AUTH_PROVIDER=memory` | In-browser fake login that accepts any email and password, for e2e tests and demos |
+
+Playwright starts one dev server with the memory provider and a second on port 3001 with auth off (`e2e/no-auth.spec.ts`).
+
 ### Analytics
 
 Google Analytics is gated on one build-time variable, set in the deploy environment:

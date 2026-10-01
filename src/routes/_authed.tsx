@@ -1,10 +1,12 @@
 import { Center, Loader } from "@mantine/core";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { authEnabled } from "@/auth/config";
 import { useAuth } from "@/auth/useAuth";
 import { setPendingVerificationEmail } from "@/auth/verification";
 
 export const Route = createFileRoute("/_authed")({
   beforeLoad: ({ context, location }) => {
+    if (!authEnabled) throw redirect({ to: "/overview" });
     if (context.auth.status === "loading") return;
     const user = context.auth.user;
     if (!context.auth.isAuthenticated || !user) {
