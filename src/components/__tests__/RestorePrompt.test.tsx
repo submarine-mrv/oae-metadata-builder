@@ -67,6 +67,22 @@ describe("RestorePrompt", () => {
     expect(screen.getByRole("button", { name: "Back" })).toHaveFocus();
   });
 
+  it("has no close button; Escape restores, or backs out of the confirm step", async () => {
+    seed(1);
+    renderPrompt();
+    await screen.findByText("Welcome back");
+    expect(screen.queryByRole("button", { name: /close/i })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Start fresh" }));
+    await userEvent.keyboard("{Escape}");
+    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByText("Welcome back")).not.toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+  });
+
   it("asks again after a reload that left the prompt unanswered", async () => {
     seed(1);
     const { unmount } = renderPrompt();

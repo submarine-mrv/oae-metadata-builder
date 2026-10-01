@@ -59,10 +59,12 @@ export default function RestorePrompt() {
   return (
     <Modal
       opened
-      onClose={close}
+      // Escape backs out of the confirm step; on the first step it restores, the safe choice.
+      onClose={confirming ? () => setConfirming(false) : close}
       title={confirming ? "Start fresh?" : "Welcome back"}
       centered
       closeOnClickOutside={false}
+      withCloseButton={false}
     >
       {confirming ? (
         <Stack>
