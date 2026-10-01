@@ -13,6 +13,8 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 - The overview heading shows the project name. (#81)
 - Opening the builder in a new tab with saved projects asks whether to restore the previous session
   or start fresh. Starting fresh removes every project after a confirm step. (#87)
+- Closing or reloading the tab no longer shows a "leave site?" warning, since work is saved as you
+  go. The how-to guide now describes saving, export and import as they work today. (#87)
 
 ## [0.3.0] — 2026-09-08
 
