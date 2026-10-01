@@ -166,16 +166,10 @@ export default function DatasetPage() {
   //    schema renders variables via VariablesField and omits their item schema)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
-      // Transform first. The data-access either/or rule is recognised by its
-      // per-branch "required" errors, so filtering those out beforehand would
-      // leave only the meaningless anyOf/if envelope on the dataset object.
-      let transformed = transformFormErrors(errors, activeSchema);
+      let transformed = transformFormErrors(errors);
 
       // Hide required-field errors from inline display unless the user has
-      // explicitly clicked the badge to reveal the full error list. The
-      // data-access either/or errors are among them: a notice under the
-      // accessibility select states the rule up front, and both fields go
-      // red only once the user asks for validation.
+      // explicitly clicked the badge to reveal the full error list.
       if (!validation.showErrorList) {
         transformed = transformed.filter((e) => e.name !== "required");
       }
@@ -201,7 +195,7 @@ export default function DatasetPage() {
 
       return transformed;
     };
-  }, [hasExperiments, validation.showErrorList, activeSchema]);
+  }, [hasExperiments, validation.showErrorList]);
 
   const handleFormChange = useCallback(
     (e: any) => {

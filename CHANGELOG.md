@@ -12,6 +12,9 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
   no longer expire after 30 days. (#81)
 - Importing a file can add it as a new project or merge it into the current one. (#81)
 - The overview heading shows the project name. (#81)
+- Open access datasets require a data access link; a data access date no longer counts. The date
+  field only appears for scheduled access, and a date saved on an open or conditional access
+  dataset is dropped when the dataset loads. (#83)
 
 ## [0.3.0] — 2026-09-08
 
