@@ -12,6 +12,8 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
   no longer expire after 30 days. (#81)
 - Importing a file can add it as a new project or merge it into the current one. (#81)
 - The overview heading shows the project name. (#81)
+- The welcome screen links the how-to guide, the About page and the schema documentation at
+  schema.oaedata.org, and says work is saved in this browser only. (#86)
 
 ## [0.3.0] — 2026-09-08
 
