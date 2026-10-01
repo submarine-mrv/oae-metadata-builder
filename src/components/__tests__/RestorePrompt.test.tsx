@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { WORKSPACE_KEY } from "@/workspace/storage";
@@ -39,14 +39,14 @@ describe("RestorePrompt", () => {
 
   it("stays hidden with nothing saved, and marks the tab as asked", () => {
     renderPrompt();
-    expect(screen.queryByText("Restore previous session?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome back")).not.toBeInTheDocument();
     expect(sessionStorage.getItem(RESTORE_PROMPTED_KEY)).not.toBeNull();
   });
 
   it("asks once per tab when projects are saved", async () => {
     seed(2);
     const { unmount } = renderPrompt();
-    expect(await screen.findByText("Restore previous session?")).toBeInTheDocument();
+    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
     expect(screen.getByText(/2 projects saved/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Restore session" }));
@@ -54,17 +54,27 @@ describe("RestorePrompt", () => {
     unmount();
 
     renderPrompt();
-    expect(screen.queryByText("Restore previous session?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome back")).not.toBeInTheDocument();
+  });
+
+  it("focuses Restore session on open and Back on the confirm step", async () => {
+    seed(1);
+    renderPrompt();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Restore session" })).toHaveFocus(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start fresh" }));
+    expect(screen.getByRole("button", { name: "Back" })).toHaveFocus();
   });
 
   it("asks again after a reload that left the prompt unanswered", async () => {
     seed(1);
     const { unmount } = renderPrompt();
-    expect(await screen.findByText("Restore previous session?")).toBeInTheDocument();
+    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
     unmount();
 
     renderPrompt();
-    expect(await screen.findByText("Restore previous session?")).toBeInTheDocument();
+    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
   });
 
   it("removes every project only after the confirm step", async () => {

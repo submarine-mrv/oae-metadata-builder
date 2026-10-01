@@ -12,8 +12,7 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 - Importing a file can add it as a new project or merge it into the current one. (#81)
 - The overview heading shows the project name. (#81)
 - Opening the builder in a new tab with saved projects asks whether to restore the previous session
-  or start fresh, and explains that exporting a project keeps a permanent copy. Starting fresh removes every project after a confirm
-  step. (#87)
+  or start fresh. Starting fresh removes every project after a confirm step. (#87)
 
 ## [0.3.0] — 2026-09-08
 

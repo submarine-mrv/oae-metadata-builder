@@ -60,7 +60,7 @@ export default function RestorePrompt() {
     <Modal
       opened
       onClose={close}
-      title={confirming ? "Start fresh?" : "Restore previous session?"}
+      title={confirming ? "Start fresh?" : "Welcome back"}
       centered
       closeOnClickOutside={false}
     >
@@ -76,7 +76,8 @@ export default function RestorePrompt() {
             {projects.length === 1 ? "the project" : "each project"} first.
           </Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setConfirming(false)}>
+            {/* Focus the safe choice, so Enter never deletes. */}
+            <Button variant="default" onClick={() => setConfirming(false)} autoFocus>
               Back
             </Button>
             <Button color="red" onClick={startFresh}>
@@ -91,16 +92,13 @@ export default function RestorePrompt() {
             {formatRelativeTime(lastEdited)}. Would you like to restore work from your previous
             session?
           </Text>
-          <Text size="xs" c="dimmed">
-            Auto-save stores projects in your browser, so clearing your browsing data deletes
-            projects from previous sessions. To keep a permanent copy, restore your session, open
-            the project, and select Export in the header.
-          </Text>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setConfirming(true)}>
               Start fresh
             </Button>
-            <Button onClick={close}>Restore session</Button>
+            <Button onClick={close} data-autofocus>
+              Restore session
+            </Button>
           </Group>
         </Stack>
       )}

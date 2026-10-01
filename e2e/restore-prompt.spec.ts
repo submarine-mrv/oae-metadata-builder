@@ -15,15 +15,14 @@ test.describe("Restore prompt", () => {
     // Reloading the same tab never asks.
     await page.reload();
     await expect(page.getByRole("button", { name: /Current project:/ })).toBeVisible();
-    await expect(page.getByRole("dialog", { name: "Restore previous session?" })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Welcome back" })).toHaveCount(0);
 
     // A new tab is a new session.
     const tab = await context.newPage();
     await tab.goto("/overview");
-    const prompt = tab.getByRole("dialog", { name: "Restore previous session?" });
+    const prompt = tab.getByRole("dialog", { name: "Welcome back" });
     await waitForRoute(prompt);
     await expect(prompt).toContainText("1 project saved");
-    await expect(prompt).toContainText("Export in the header");
 
     await tab.getByRole("button", { name: "Start fresh" }).click();
     await expect(tab.getByRole("dialog", { name: "Start fresh?" })).toContainText(

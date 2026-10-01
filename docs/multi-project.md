@@ -38,7 +38,7 @@ You delete a whole project, from its `/projects` card or the overview's project 
 
 ## Restore prompt
 
-`RestorePrompt` (`src/components/RestorePrompt.tsx`) runs on the first load of a tab. With saved projects it offers Restore session or Start fresh, and notes that clearing browsing data deletes saved projects, so an export is the permanent copy. Start fresh asks to confirm, then `deleteAllProjects()` empties the workspace and the welcome screen shows. A `sessionStorage` key marks the tab as asked, so reloads in the same tab don't ask again; a new tab does. A reload that leaves the prompt unanswered asks again.
+`RestorePrompt` (`src/components/RestorePrompt.tsx`) runs on the first load of a tab. With saved projects it offers Restore session or Start fresh. Start fresh asks to confirm, then `deleteAllProjects()` empties the workspace and the welcome screen shows. A `sessionStorage` key marks the tab as asked, so reloads in the same tab don't ask again; a new tab does. A reload that leaves the prompt unanswered asks again.
 
 ## Persistence
 
