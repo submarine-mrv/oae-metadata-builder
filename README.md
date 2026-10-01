@@ -164,7 +164,7 @@ Login is behind one build-time flag:
 | `VITE_AUTH_ENABLED=true` | Supabase login. Needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` |
 | `VITE_AUTH_ENABLED=true`, `VITE_AUTH_PROVIDER=memory` | In-browser fake login that accepts any email and password, for e2e tests and demos |
 
-Playwright starts one dev server with the memory provider and a second on port 3001 with auth off (`e2e/no-auth.spec.ts`).
+Playwright runs `e2e/auth.spec.ts` against a dev server with the memory provider (port 3000) and every other spec against a second server with auth off (port 3001), as production runs today.
 
 ### Analytics
 
