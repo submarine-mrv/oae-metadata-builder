@@ -134,7 +134,9 @@ export function initAnalytics(router: AnyRouter) {
   // onResolved also fires for the initial route, so this covers page load.
   router.subscribe("onResolved", sendPageView);
 
-  // Also covers gtag's own hits, which don't pass through sendPageView or trackEvent.
+  // Also covers gtag's own hits, which don't pass through sendPageView or trackEvent. These run
+  // before gtag's listeners, so pagehide catches a background tab closed after an opt-out.
   document.addEventListener("visibilitychange", collectionAllowed);
   window.addEventListener("focus", collectionAllowed);
+  window.addEventListener("pagehide", collectionAllowed);
 }

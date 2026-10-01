@@ -279,4 +279,15 @@ describe("shared opt-out with the OAE Data Commons", () => {
     const flags = window as unknown as Record<string, unknown>;
     expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
   });
+
+  it("disables gtag before a background tab is closed after an opt-out elsewhere", () => {
+    const { router } = fakeRouter();
+    initAnalytics(router);
+
+    setOptOutCookie("off");
+    window.dispatchEvent(new Event("pagehide"));
+
+    const flags = window as unknown as Record<string, unknown>;
+    expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
+  });
 });
