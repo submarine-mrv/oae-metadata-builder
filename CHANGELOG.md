@@ -21,6 +21,8 @@ Built against oae-data-protocol v0.5.0.
   go. The how-to guide now describes saving, export and import as they work today. (#87)
 - Analytics follows the opt-out on the OAE Data Commons privacy page. With no choice made, it stays
   off when the browser sends Global Privacy Control or Do Not Track. (#84)
+- Creating a project, experiment or dataset opens its page without briefly showing the previous page
+  first. (#92)
 
 ## [0.3.0] — 2026-09-08
 
