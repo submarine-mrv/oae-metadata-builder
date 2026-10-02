@@ -15,6 +15,8 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
 - Open access datasets require a data access link; a data access date no longer counts. The date
   field only appears for scheduled access, and a date saved on an open or conditional access
   dataset is dropped when the dataset loads. (#83)
+- The welcome screen links the how-to guide, the About page and the schema documentation at
+  schema.oaedata.org, and says work is saved in this browser only. (#86)
 
 ## [0.3.0] — 2026-09-08
 

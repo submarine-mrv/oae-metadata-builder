@@ -35,15 +35,22 @@ export default function WelcomePage() {
             .
           </Text>
           <Text>
-            If you have questions or concerns, please contact{" "}
-            <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
-          </Text>
-          <Text>
-            For more information, visit the{" "}
+            New here? Read the{" "}
+            <Anchor component={Link} to="/how-to">
+              how-to guide
+            </Anchor>{" "}
+            or the{" "}
             <Anchor component={Link} to="/about">
               About page
             </Anchor>
+            . Technical documentation for the schema is at{" "}
+            <Anchor href="https://schema.oaedata.org" target="_blank" rel="noopener noreferrer">
+              schema.oaedata.org
+            </Anchor>
             .
+          </Text>
+          <Text size="sm" c="dimmed">
+            Your work is saved in this browser only. Export a project to keep a copy.
           </Text>
           <Group mt="md">
             <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>
