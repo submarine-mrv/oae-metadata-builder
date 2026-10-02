@@ -46,6 +46,7 @@ interface WorkspaceContextValue {
   createProject: () => string;
   switchProject: (id: string) => void;
   deleteProject: (id: string) => void;
+  deleteAllProjects: () => void;
   importAsNewProject: (selection: ImportSelection) => string;
   updateProject: (id: string, state: ProjectState) => void;
 }
@@ -120,6 +121,11 @@ export function WorkspaceProvider({
     setWorkspace((ws) => deleteIn(ws, id));
   }, []);
 
+  const deleteAllProjects = useCallback(() => {
+    saveNow.current = true;
+    setWorkspace(emptyWorkspace());
+  }, []);
+
   const importAsNewProject = useCallback((selection: ImportSelection) => {
     const state = applyImport(emptyProjectState(), selection);
     const record = newProjectRecord(state);
@@ -153,10 +159,19 @@ export function WorkspaceProvider({
       createProject,
       switchProject,
       deleteProject,
+      deleteAllProjects,
       importAsNewProject,
       updateProject,
     };
-  }, [workspace, createProject, switchProject, deleteProject, importAsNewProject, updateProject]);
+  }, [
+    workspace,
+    createProject,
+    switchProject,
+    deleteProject,
+    deleteAllProjects,
+    importAsNewProject,
+    updateProject,
+  ]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
