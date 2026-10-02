@@ -1,7 +1,6 @@
 import { Button, Container, Stack, Text, Title } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAppState } from "@/contexts/AppStateContext";
 import AppLayout from "./AppLayout";
 
 export default function EmptyEntityPage({
@@ -12,7 +11,6 @@ export default function EmptyEntityPage({
   description: string;
 }) {
   const navigate = useNavigate();
-  const { setActiveTab } = useAppState();
 
   return (
     <AppLayout>
@@ -24,10 +22,7 @@ export default function EmptyEntityPage({
           </Text>
           <Button
             leftSection={<IconArrowLeft size={16} />}
-            onClick={() => {
-              setActiveTab("overview");
-              navigate({ to: "/overview" });
-            }}
+            onClick={() => navigate({ to: "/overview" })}
           >
             Back to Overview
           </Button>

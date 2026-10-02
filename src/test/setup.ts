@@ -86,3 +86,14 @@ globalThis.Blob = vi.fn((parts: any[], options?: any) => new MockBlob(parts, opt
 if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
+
+// Node 26 defines a localStorage getter on globalThis that yields undefined without
+// --localstorage-file, and vitest skips window keys the global already has. Use jsdom's.
+const jsdomWindow = (globalThis as any).jsdom?.window;
+if (globalThis.localStorage === undefined && jsdomWindow?.localStorage) {
+  Object.defineProperty(globalThis, "localStorage", {
+    value: jsdomWindow.localStorage,
+    configurable: true,
+    writable: true,
+  });
+}

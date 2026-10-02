@@ -6,7 +6,9 @@ protects `main`, so there are no direct pushes to it: a release goes through its
 1. Confirm `dev` is green: `npm run check`, `npm test`, `npm run build`.
 2. In `CHANGELOG.md`, replace `Unreleased` on the top section with today's date. Each entry is one
    user-visible PR with its number; internal-only PRs (tests, CI) are left out. Medium / Large
-   refactors can be included at the author's discretion.
+   refactors can be included at the author's discretion. Group entries under `### Added`,
+   `### Updated`, `### Fixed` and `### Removed`, skipping empty ones. Work behind the auth flag goes
+   under `### Log in / Collaboration`, which opens with a note that it needs `VITE_AUTH_ENABLED`.
 3. Bump the version: `npm version X.Y.Z --no-git-tag-version`. That updates `package.json` and both
    `version` fields in `package-lock.json`, and nothing else. The flag matters — without it npm
    commits and tags on the spot, and the tag belongs on `main` in step 6.
@@ -36,8 +38,14 @@ requires linear history. The fix is to drop the `pull_request` rule on `main` an
 instead (`git push origin origin/dev:main`), which removes the merge commit, the flag, and this
 paragraph.
 
-Pre-1.0, breaking changes bump the minor (0.1.x → 0.2.0). A change is breaking if metadata saved by
-the previous version no longer loads unchanged.
+Version numbers track changes to the app. The data format has its own version: each export records
+the oae-data-protocol version it follows.
+
+- **Major:** the builder can no longer open work from an earlier version (exported files or projects
+  saved in the browser), or you have to use it differently, such as needing an account.
+- **Minor:** new features, or adopting a new protocol version, including a breaking one. The
+  changelog says what changes for existing files.
+- **Patch:** fixes.
 
 Every changelog section opens with the oae-data-protocol it was built against. Read both values
 out of `src/schema/schema.bundled.json` — `version` and `x-protocol-git-hash` — and check the hash

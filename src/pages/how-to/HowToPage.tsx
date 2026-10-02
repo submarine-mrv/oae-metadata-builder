@@ -251,7 +251,7 @@ export default function HowToPage() {
             <StepCard
               stepNumber="1"
               title="Create Your Sections"
-              description="Open the Metadata Builder and create the sections you need: Project, Experiment, or Dataset. You can add multiple experiments and datasets within a single session."
+              description="Open the Metadata Builder and create the sections you need: Project, Experiment, or Dataset. You can add multiple experiments and datasets within a single project."
             >
               <CalloutBox variant="tip" title="Flexible Order">
                 You don&apos;t need to work in any particular order. For example, you might create
@@ -263,24 +263,25 @@ export default function HowToPage() {
             <StepCard
               stepNumber="2"
               title="Fill Out the Fields"
-              description="Complete the metadata fields for each section you've created. The builder provides real-time validation and guidance to help you fill out each field correctly."
+              description="Complete the metadata fields for each section you've created. Each form shows how many required fields are still missing; select that count to see which ones and check your entries."
             />
 
             <StepCard
               stepNumber="3"
-              title="Export to Save Your Progress"
-              description="Click the Export button in the navigation bar to download your metadata as a JSON file. This is how you save your work."
+              title="Export to Keep a Copy"
+              description="Click the Export button in the header to download the open project's metadata as a JSON file."
             >
-              <CalloutBox variant="important" title="No Auto-Save">
-                The builder does not have auto-save or user accounts. You must click Export to save
-                your progress. Export frequently to avoid losing work.
+              <CalloutBox variant="important" title="Saved in This Browser">
+                The builder saves your projects in this browser as you work, so they are still here
+                when you come back. Clearing your browsing data deletes them. Export a project to
+                keep a permanent copy or to share it.
               </CalloutBox>
             </StepCard>
 
             <StepCard
               stepNumber="4"
-              title="Import to Continue Later"
-              description="To resume work, click the Import button and upload your previously exported JSON file. You can select which metadata sections to import, making it easy to work with files from different contributors."
+              title="Import an Exported File"
+              description="To continue on another computer or combine work from other contributors, click Import and upload an exported JSON file. You can add it as a new project or merge it into the current one, and choose which sections to import."
             >
               <CalloutBox variant="tip" title="Collaboration Tip">
                 In most projects, multiple people contribute different parts of the metadata. Each

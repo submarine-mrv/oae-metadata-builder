@@ -1,7 +1,6 @@
 // scripts/bundle-schema.mjs
 import $RefParser from "@apidevtools/json-schema-ref-parser";
 import { readFile, writeFile } from "node:fs/promises";
-import { rewriteEitherOrRules } from "./lib/eitherOr.mjs";
 
 const INPUT = "./schemas/schema.json"; // LinkML output
 const OUTPUT = "./src/schema/schema.bundled.json";
@@ -184,6 +183,7 @@ function fixConditionalFields(schema) {
   const conditionalFields = [
     "alkalinity_feedstock_custom",
     "alkalinity_feedstock_processing_custom",
+    "data_access_date",
     "mcdr_forcing_description",
     "model_component_type_custom",
     "tracer_form_custom"
@@ -438,9 +438,6 @@ if (simulationTypePatches !== 1) {
 console.log(
   `✓ Patched ModelOutputDataset simulation_type conditional to require contains "perturbation"`
 );
-
-const eitherOrRewrites = rewriteEitherOrRules(decorated);
-console.log(`✓ Rewrote ${eitherOrRewrites} either/or rule(s) as "not both absent" for RJSF`);
 
 // Discriminate the polymorphic variables union on schema_class.
 decorated = discriminateVariableUnions(decorated, [

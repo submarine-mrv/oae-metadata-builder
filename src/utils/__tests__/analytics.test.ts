@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { initAnalytics, trackEvent } from "@/utils/analytics";
+import { initAnalytics, pageTitleFor, trackEvent } from "@/utils/analytics";
 
 const MEASUREMENT_ID = "G-TEST12345";
 const SCRIPT_SELECTOR = "#ga4-gtag";
@@ -23,6 +23,19 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe("pageTitleFor", () => {
+  it("maps routes to fixed labels", () => {
+    expect(pageTitleFor("/overview")).toBe("Overview");
+    expect(pageTitleFor("/experiment")).toBe("Experiments");
+    expect(pageTitleFor("/auth/login")).toBe("Log in");
+    expect(pageTitleFor("/profile")).toBe("Profile");
+  });
+
+  it("falls back to the pathname for unknown routes", () => {
+    expect(pageTitleFor("/nope")).toBe("/nope");
+  });
 });
 
 describe("analytics with no measurement ID", () => {
@@ -108,6 +121,68 @@ describe("analytics with a measurement ID", () => {
     });
   });
 
+  it("sends the route label as page_title, never document.title", () => {
+    document.title = "Kiel trial · OAE Metadata Builder";
+    window.history.pushState({}, "", "/overview");
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+
+    const pageView = gtagCalls().find(([, name]) => name === "page_view");
+    expect(pageView?.[2]).toMatchObject({ page_title: "Overview" });
+  });
+
+  it("sets a route label as page_title at init so events never fall back to document.title", () => {
+    document.title = "Kiel trial · OAE Metadata Builder";
+    window.history.pushState({}, "", "/project");
+    const { router } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(gtagCalls()).toContainEqual(["set", { page_title: "Project" }]);
+  });
+
+  it("sets the route label before a page view so later events carry it", () => {
+    document.title = "Kiel trial · OAE Metadata Builder";
+    window.history.pushState({}, "", "/experiment");
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+    trackEvent("metadata_export", { datasets: 1 });
+
+    const calls = gtagCalls();
+    const lastSet = calls.map(([command]) => command).lastIndexOf("set");
+    const pageView = calls.findIndex(([, name]) => name === "page_view");
+    const exportEvent = calls.findIndex(([, name]) => name === "metadata_export");
+    expect(calls[lastSet]).toEqual(["set", { page_title: "Experiments" }]);
+    expect(lastSet).toBeLessThan(pageView);
+    expect(lastSet).toBeLessThan(exportEvent);
+    expect(JSON.stringify(calls)).not.toContain("Kiel trial");
+  });
+
+  it("removes auth and PII query parameters from page views", () => {
+    window.history.pushState(
+      {},
+      "",
+      "/auth/callback?email=person%40example.com&token_hash=secret&returnTo=%2Foverview",
+    );
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+
+    const pageView = gtagCalls().find(([, name]) => name === "page_view");
+    expect(pageView?.[2]).toMatchObject({
+      page_path: "/auth/callback?returnTo=%2Foverview",
+      page_location: `${window.location.origin}/auth/callback?returnTo=%2Foverview`,
+    });
+  });
+
   it("omits the params argument for events with no parameters", () => {
     const { router } = fakeRouter();
     initAnalytics(router);
@@ -128,5 +203,91 @@ describe("analytics with a measurement ID", () => {
       "metadata_export",
       { sections: "project,dataset", datasets: 2 },
     ]);
+  });
+});
+
+describe("shared opt-out with the OAE Data Commons", () => {
+  const OPT_OUT_COOKIE = "oae_analytics_v1";
+
+  function setOptOutCookie(value: string) {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom has no Cookie Store API
+    document.cookie = `${OPT_OUT_COOKIE}=${value}; path=/`;
+  }
+
+  beforeEach(() => {
+    vi.stubEnv("VITE_GA_MEASUREMENT_ID", MEASUREMENT_ID);
+  });
+
+  afterEach(() => {
+    setOptOutCookie("; max-age=0");
+    vi.unstubAllGlobals();
+    delete (window as unknown as Record<string, unknown>)[`ga-disable-${MEASUREMENT_ID}`];
+  });
+
+  it("does not load gtag.js after an opt-out on the Data Commons", () => {
+    setOptOutCookie("off");
+    const { router, subscribe } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(document.querySelector(SCRIPT_SELECTOR)).toBeNull();
+    expect(subscribe).not.toHaveBeenCalled();
+  });
+
+  it("treats Global Privacy Control as an opt-out", () => {
+    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
+    const { router } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(document.querySelector(SCRIPT_SELECTOR)).toBeNull();
+  });
+
+  it("lets an explicit opt-in override Global Privacy Control", () => {
+    vi.stubGlobal("navigator", { ...navigator, globalPrivacyControl: true });
+    setOptOutCookie("on");
+    const { router } = fakeRouter();
+
+    initAnalytics(router);
+
+    expect(document.querySelector(SCRIPT_SELECTOR)).not.toBeNull();
+  });
+
+  it("stops collecting as soon as an opt-out lands while the page is open", () => {
+    const { router, subscribe } = fakeRouter();
+    initAnalytics(router);
+
+    setOptOutCookie("off");
+    const onResolved = subscribe.mock.calls[0][1] as () => void;
+    onResolved();
+    trackEvent("metadata_export", { datasets: 1 });
+
+    const names = gtagCalls().map(([, name]) => name);
+    expect(names).not.toContain("page_view");
+    expect(names).not.toContain("metadata_export");
+    const flags = window as unknown as Record<string, unknown>;
+    expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
+  });
+
+  it("disables gtag when the window regains focus after an opt-out elsewhere", () => {
+    const { router } = fakeRouter();
+    initAnalytics(router);
+
+    setOptOutCookie("off");
+    window.dispatchEvent(new Event("focus"));
+
+    const flags = window as unknown as Record<string, unknown>;
+    expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
+  });
+
+  it("disables gtag before a background tab is closed after an opt-out elsewhere", () => {
+    const { router } = fakeRouter();
+    initAnalytics(router);
+
+    setOptOutCookie("off");
+    window.dispatchEvent(new Event("pagehide"));
+
+    const flags = window as unknown as Record<string, unknown>;
+    expect(flags[`ga-disable-${MEASUREMENT_ID}`]).toBe(true);
   });
 });

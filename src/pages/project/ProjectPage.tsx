@@ -4,9 +4,8 @@ import type { DescriptionFieldProps } from "@rjsf/utils";
 import { customizeValidator } from "@rjsf/validator-ajv8";
 import Ajv2019 from "ajv/dist/2019";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import EmptyEntityPage from "@/components/EmptyEntityPage";
 import ExternalProjectField from "@/components/ExternalProjectField";
 import IsoIntervalWidget from "@/components/IsoIntervalWidget";
 import JsonPreviewSidebar from "@/components/JsonPreviewSidebar";
@@ -44,7 +43,7 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
-  const { state, updateProjectData, setActiveTab } = useAppState();
+  const { state, updateProjectData } = useAppState();
   const [schema] = useState<any>(() => getProjectSchema());
 
   // Source of truth for badge counts: run AJV via validateProject, memoized
@@ -72,22 +71,9 @@ export default function ProjectPage() {
       const filtered = validation.showErrorList
         ? errors
         : errors.filter((e) => e.name !== "required");
-      return transformFormErrors(filtered, schema);
+      return transformFormErrors(filtered);
     };
   }, [validation.showErrorList]);
-
-  useEffect(() => {
-    setActiveTab("project");
-  }, [setActiveTab]);
-
-  if (!state.hasProject) {
-    return (
-      <EmptyEntityPage
-        title="No Project Created"
-        description="Please create a project from the Overview page."
-      />
-    );
-  }
 
   return (
     <AppLayout noScroll>

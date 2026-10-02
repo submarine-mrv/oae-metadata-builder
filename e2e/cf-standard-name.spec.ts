@@ -1,5 +1,6 @@
 import { type Download, expect, type Page, test } from "@playwright/test";
 import * as fs from "fs";
+import { createFromOverview } from "./fixtures/app";
 
 /**
  * CF Standard Name picker.
@@ -12,10 +13,7 @@ import * as fs from "fs";
 const CF_PICKER = 'button[aria-label="CF standard name"]';
 
 async function createDataset(page: Page) {
-  await page.goto("/overview");
-  await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: /Create.*Dataset/i }).click();
-  await page.waitForURL("**/dataset");
+  await createFromOverview(page, "Dataset");
   await page.waitForLoadState("networkidle");
 }
 

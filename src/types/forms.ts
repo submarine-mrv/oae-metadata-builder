@@ -1,17 +1,12 @@
 /**
- * Type definitions for OAE Metadata Form
- *
- * Strategy: "Typed Envelope, Flexible Content"
- *
- * We type the structural parts (container, metadata, state management) but keep
- * the schema-driven form content flexible. This avoids duplicating the JSON Schema
- * in TypeScript while still providing type safety for our application logic.
- *
- * Key principles:
- * 1. Use `Record<string, unknown>` instead of `any` - forces explicit type narrowing
- * 2. Type guards for runtime checking of known fields
- * 3. RJSF's built-in types for form handling
- * 4. Explicit types for our custom structures
+ * Types for the metadata builder, in three layers:
+ * - Schema content (`DraftProject`, `DraftExperiment`, `DraftDataset`): what RJSF
+ *   edits and what is exported. Possibly incomplete; the `parse*` functions in
+ *   utils/parseEntity are the only producers from raw data.
+ * - Entity records (`ExperimentRecord`, `DatasetRecord`): app-only wrappers with
+ *   the internal id, display name, timestamps and linking around a `Draft*`.
+ * - Project state (`ProjectState`, `ProjectRecord` in src/workspace/types.ts):
+ *   project content plus its records and id counters; the unit that is saved.
  */
 
 import type { IChangeEvent } from "@rjsf/core";
@@ -58,7 +53,8 @@ export type ExperimentTypes = ["model"] | NonModelType[];
  */
 export interface DraftProject extends FormDataRecord {
   project_id?: string;
-  name?: string;
+  /** Rendered as "Research Project"; doubles as the project's display name. */
+  research_project?: string;
   description?: string;
   // ... other known fields can be added as needed
 }
@@ -126,17 +122,15 @@ export interface DatasetLinkingMetadata {
 // =============================================================================
 
 /**
- * Experiment data as stored in application state
+ * App-side wrapper around an experiment's schema content.
  */
-export interface ExperimentState {
+export interface ExperimentRecord {
   /** Internal integer ID for tracking */
   id: number;
   /** Display name */
   name: string;
   /** Form data (schema-driven) */
   formData: DraftExperiment;
-  /** Experiment type for conditional schema selection */
-  experiment_types?: ExperimentTypes;
   /** Creation timestamp */
   createdAt: number;
   /** Last update timestamp */
@@ -144,9 +138,9 @@ export interface ExperimentState {
 }
 
 /**
- * Dataset data as stored in application state
+ * App-side wrapper around a dataset's schema content.
  */
-export interface DatasetState {
+export interface DatasetRecord {
   /** Internal integer ID for tracking */
   id: number;
   /** Display name */
@@ -165,11 +159,9 @@ export interface DatasetState {
  * Main application state
  */
 export interface AppFormState {
-  hasProject: boolean;
   projectData: DraftProject;
-  experiments: ExperimentState[];
-  datasets: DatasetState[];
-  activeTab: "overview" | "project" | "experiment" | "dataset";
+  experiments: ExperimentRecord[];
+  datasets: DatasetRecord[];
   activeExperimentId: number | null;
   activeDatasetId: number | null;
   nextExperimentId: number;
@@ -200,8 +192,8 @@ export interface ExportContainer {
  */
 export interface ImportResult {
   projectData: DraftProject;
-  experiments: ExperimentState[];
-  datasets: DatasetState[];
+  experiments: ExperimentRecord[];
+  datasets: DatasetRecord[];
 }
 
 // =============================================================================

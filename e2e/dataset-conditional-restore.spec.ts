@@ -29,7 +29,7 @@ test.describe("Dataset Conditional Field Restore", () => {
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixtureFile);
     await page.waitForTimeout(1000);
@@ -79,7 +79,7 @@ test.describe("Dataset Conditional Field Restore", () => {
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixtureFile);
     await page.waitForTimeout(1000);
@@ -147,7 +147,7 @@ test.describe("Dataset Conditional Field Restore", () => {
     await page.waitForTimeout(300);
 
     const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByText("Import").click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(fixtureFile);
     await page.waitForTimeout(1000);

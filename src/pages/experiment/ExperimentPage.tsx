@@ -57,7 +57,7 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ExperimentPage() {
-  const { state, replaceExperimentFormData, setActiveTab } = useAppState();
+  const { state, replaceExperimentFormData } = useAppState();
 
   const [activeSchema, setActiveSchema] = useState<any>(() => getInSituExperimentSchema());
   const [activeUiSchema, setActiveUiSchema] = useState<any>(fieldExperimentUiSchema);
@@ -89,17 +89,13 @@ export default function ExperimentPage() {
       const filtered = validation.showErrorList
         ? errors
         : errors.filter((e) => e.name !== "required");
-      return transformFormErrors(filtered, activeSchema);
+      return transformFormErrors(filtered);
     };
   }, [validation.showErrorList]);
 
   const experiment = activeExperimentId
     ? state.experiments.find((exp) => exp.id === activeExperimentId)
     : null;
-
-  useEffect(() => {
-    setActiveTab("experiment");
-  }, [setActiveTab]);
 
   // Load experiment data when experiment ID changes
   useEffect(() => {

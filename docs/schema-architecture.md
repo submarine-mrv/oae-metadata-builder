@@ -10,7 +10,7 @@
 ```
 LinkML (oae-data-protocol)
   └─ just gen-all ─→ JSON Schema (Draft 2019-09)
-       └─ make schema ─→ oae-form/schemas/schema.json   (verbatim copy, git-hash tracked)
+       └─ make schema ─→ oae-metadata-builder/schemas/schema.json   (verbatim copy, git-hash tracked)
             └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json
                  ├─ AJV validation        (runtime authority)
                  ├─ RJSF rendering         (project / experiment / dataset forms)
@@ -85,7 +85,7 @@ their specific ones. The type-specific fields *are* valid against their `schema_
 to "expand" or "complete" the nested polymorphism.
 
 Corollary: `oae_data_protocol.validation.schema.json` (generated with
-`include_range_class_descendants=True`) is intentionally **not** used in oae-form. For these nested
+`include_range_class_descendants=True`) is intentionally **not** used in the builder. For these nested
 slots it is *looser* than the form schema (it turns `analyzing_instrument` into an `anyOf` of all
 instrument subtypes). It exists for other programmatic-validation use cases, not the builder.
 
