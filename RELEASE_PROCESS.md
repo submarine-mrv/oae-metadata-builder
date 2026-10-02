@@ -6,7 +6,9 @@ protects `main`, so there are no direct pushes to it: a release goes through its
 1. Confirm `dev` is green: `npm run check`, `npm test`, `npm run build`.
 2. In `CHANGELOG.md`, replace `Unreleased` on the top section with today's date. Each entry is one
    user-visible PR with its number; internal-only PRs (tests, CI) are left out. Medium / Large
-   refactors can be included at the author's discretion.
+   refactors can be included at the author's discretion. Group entries under `### Added`,
+   `### Updated`, `### Fixed` and `### Removed`, skipping empty ones. Work behind the auth flag goes
+   under `### Log in / Collaboration`, which opens with a note that it needs `VITE_AUTH_ENABLED`.
 3. Bump the version: `npm version X.Y.Z --no-git-tag-version`. That updates `package.json` and both
    `version` fields in `package-lock.json`, and nothing else. The flag matters — without it npm
    commits and tags on the spot, and the tag belongs on `main` in step 6.
