@@ -47,6 +47,10 @@ export default function WelcomePage() {
             <Anchor href="https://schema.oaedata.org" target="_blank" rel="noopener noreferrer">
               schema.oaedata.org
             </Anchor>
+            . Completed metadata files can be submitted to the{" "}
+            <Anchor href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
+              OAE Data Commons
+            </Anchor>
             .
           </Text>
           <Text size="sm" c="dimmed">

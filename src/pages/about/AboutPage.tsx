@@ -42,9 +42,12 @@ export default function AboutPage() {
                   experiments, oceanographic datasets, and ocean models through a single web-based
                   interface, and export standardized JSON metadata files that are fully compliant
                   with the OAE Data Protocol. These metadata files are intended to be uploaded
-                  alongside datasets to any scientific data repository, and will be used by the OAE
-                  Data Commons to enhance search and discovery across the field of ocean alkalinity
-                  enhancement research.
+                  alongside datasets to any scientific data repository, and will be used by the{" "}
+                  <Anchor href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
+                    OAE Data Commons
+                  </Anchor>{" "}
+                  to enhance search and discovery across the field of ocean alkalinity enhancement
+                  research.
                   <br />
                   <br />
                   The full open-source code for the metadata builder is available on{" "}
