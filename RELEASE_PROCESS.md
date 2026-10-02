@@ -36,8 +36,8 @@ requires linear history. The fix is to drop the `pull_request` rule on `main` an
 instead (`git push origin origin/dev:main`), which removes the merge commit, the flag, and this
 paragraph.
 
-Versions describe the builder. Data compatibility belongs to the protocol, whose version every
-export records.
+Version numbers track changes to the app. The data format has its own version: each export records
+the oae-data-protocol version it follows.
 
 - **Major:** the builder can no longer open work from an earlier version (exported files or projects
   saved in the browser), or you have to use it differently, such as needing an account.
