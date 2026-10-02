@@ -8,6 +8,9 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 Built against oae-data-protocol v0.5.0.
 
+Keep several projects in the browser and pick up where you left off when you come back. Open access
+datasets now need a data access link.
+
 ### Added
 
 - Added support for multiple projects in a single session, with an app-switcher to toggle between them (#81)
@@ -46,6 +49,10 @@ account menu or Supabase code ship. (#85)
   password. (#70)
 - A profile page for your name, organization and ORCID, with options to change your email or
   password and to delete your account. (#70)
+
+### Acknowledgements
+
+Thanks to [@jashanbhullar](https://github.com/jashanbhullar) for the login and account work (#70).
 
 ## [0.3.0] — 2026-09-08
 

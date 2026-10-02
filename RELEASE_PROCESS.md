@@ -9,6 +9,9 @@ protects `main`, so there are no direct pushes to it: a release goes through its
    refactors can be included at the author's discretion. Group entries under `### Added`,
    `### Updated`, `### Fixed` and `### Removed`, skipping empty ones. Work behind the auth flag goes
    under `### Log in / Collaboration`, which opens with a note that it needs `VITE_AUTH_ENABLED`.
+   Open the section with a sentence or two on what changed for users. If anyone outside the core
+   team authored a PR in the release, end with `### Acknowledgements` crediting them by GitHub
+   handle; check authors with `gh pr view <n> --json author`.
 3. Bump the version: `npm version X.Y.Z --no-git-tag-version`. That updates `package.json` and both
    `version` fields in `package-lock.json`, and nothing else. The flag matters — without it npm
    commits and tags on the spot, and the tag belongs on `main` in step 6.
@@ -18,13 +21,18 @@ protects `main`, so there are no direct pushes to it: a release goes through its
    leave the two histories permanently unrelated, and not rebase, which rewrites every commit with
    a fresh SHA. The ruleset asks for an approving review; you cannot approve your own PR, so
    merging your own release PR relies on your bypass entry in the ruleset.
-6. Tag the merge commit and push the tag (the rulesets cover branches, not tags):
+6. Tag the merge commit, push the tag (the rulesets cover branches, not tags), and publish the
+   GitHub release with the changelog section as its notes:
 
    ```bash
    git fetch origin
    git tag vX.Y.Z origin/main
    git push origin vX.Y.Z
+   gh release create vX.Y.Z --verify-tag --notes-file <(scripts/release-notes.sh X.Y.Z)
    ```
+
+   `CHANGELOG.md` is the only release history. Don't use `--generate-notes`: its PR-title list drifts
+   from the changelog and includes internal PRs.
 
 There is no back-merge into `dev`, and no way to do one: `dev`'s ruleset sets
 `required_linear_history`, which rejects the merge commit that merging `main` would create. Nothing
