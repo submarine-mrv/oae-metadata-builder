@@ -2,7 +2,9 @@
 
 Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the minor version.
 
-## Unreleased
+## [0.4.0] — 2026-10-02
+
+Built against oae-data-protocol v0.5.0.
 
 - You can keep several projects. A switcher beside the app name moves between them, creates a new
   one or opens the Projects page, which lists every project with its counts and last edit. (#81)
@@ -20,6 +22,8 @@ Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the 
   or start fresh. Starting fresh removes every project after a confirm step. (#87)
 - Closing or reloading the tab no longer shows a "leave site?" warning, since work is saved as you
   go. The how-to guide now describes saving, export and import as they work today. (#87)
+- Analytics follows the opt-out on the OAE Data Commons privacy page. With no choice made, it stays
+  off when the browser sends Global Privacy Control or Do Not Track. (#84)
 
 ## [0.3.0] — 2026-09-08
 
