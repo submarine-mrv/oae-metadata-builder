@@ -23,8 +23,8 @@ export default function WelcomePage() {
         <Stack gap="lg" py="xl">
           <Title order={1}>Welcome to the OAE Metadata Builder</Title>
           <Text>
-            The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
-            (OAE) projects, experiments, and datasets in compliance with the{" "}
+            The metadata builder produces metadata for Ocean Alkalinity Enhancement (OAE) projects,
+            experiments, and datasets in compliance with the{" "}
             <Anchor
               href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
               target="_blank"
@@ -32,7 +32,11 @@ export default function WelcomePage() {
             >
               OAE Data Management Protocol
             </Anchor>
-            .
+            . These files are what projects submit to the{" "}
+            <Anchor href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
+              OAE Data Commons
+            </Anchor>
+            , which uses them to generate project pages.
           </Text>
           <Text>
             New here? Read the{" "}
@@ -46,10 +50,6 @@ export default function WelcomePage() {
             . Technical documentation for the schema is at{" "}
             <Anchor href="https://schema.oaedata.org" target="_blank" rel="noopener noreferrer">
               schema.oaedata.org
-            </Anchor>
-            . Completed metadata files can be submitted to the{" "}
-            <Anchor href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
-              OAE Data Commons
             </Anchor>
             .
           </Text>
