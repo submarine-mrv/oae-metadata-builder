@@ -8,7 +8,7 @@ import "@/globals.css";
 import "@/uiSchemaConstants.css";
 import { initAnalytics } from "@/utils/analytics";
 import App from "./App";
-import { router } from "./router";
+import { preloadEntityRoutes, router } from "./router";
 
 // Outside React so StrictMode's double mount can't duplicate page views.
 initAnalytics(router);
@@ -18,3 +18,5 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+preloadEntityRoutes();
