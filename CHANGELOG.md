@@ -1,25 +1,26 @@
 # Changelog
 
-Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the minor version.
+Notable changes to the OAE Metadata Builder. Major versions change what the builder can open or how
+you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
+[RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
-## Unreleased
+## [1.0.0] — 2026-10-02
 
-- You can keep several projects. A switcher beside the app name moves between them, creates a new
-  one or opens the Projects page, which lists every project with its counts and last edit. (#81)
-- A welcome screen appears on first run and after the last project is deleted, with buttons to
-  create a project or import one from a file. (#81)
+Built against oae-data-protocol v0.5.0.
+
+- Added support for multiple projects in a single session, with an app-switcher to toggle between them (#81)
+- Updated welcome screen with CTA for creating a first project, or importing one from a file (#81)
 - Projects save automatically in the browser and no longer expire after 30 days. (#81)
-- Importing a file can add it as a new project or merge it into the current one. (#81)
-- The overview heading shows the project name. (#81)
-- Open access datasets require a data access link; a data access date no longer counts. The date
-  field only appears for scheduled access, and a date saved on an open or conditional access
-  dataset is dropped when the dataset loads. (#83)
-- The welcome screen links the how-to guide, the About page and the schema documentation at
-  schema.oaedata.org, and says work is saved in this browser only. (#86)
+- You can delete a project from its card on the Projects page or from the overview, after a confirm
+  dialog. The browser tab title shows the project name once it's set. (#81)
+- `open_access` datasets require a data access link; The date field only appears for scheduled access,
+  and a date saved on an open or conditional access dataset is dropped when the dataset loads. (#83)
 - Opening the builder in a new tab with saved projects asks whether to restore the previous session
   or start fresh. Starting fresh removes every project after a confirm step. (#87)
 - Closing or reloading the tab no longer shows a "leave site?" warning, since work is saved as you
   go. The how-to guide now describes saving, export and import as they work today. (#87)
+- Analytics follows the opt-out on the OAE Data Commons privacy page. With no choice made, it stays
+  off when the browser sends Global Privacy Control or Do Not Track. (#84)
 
 ## [0.3.0] — 2026-09-08
 
