@@ -73,7 +73,7 @@ Set at build time, in `.env` locally or in the deploy environment:
 | `VITE_AUTH_ENABLED` | `true` turns on login. Unset or `false`: no account menu, `/auth/*` and `/profile` redirect to `/overview`, no Supabase code loads |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase project, needed when auth is on |
 | `VITE_AUTH_PROVIDER` | `memory` swaps Supabase for an in-browser fake login, for e2e tests and demos |
-| `VITE_GA_MEASUREMENT_ID` | Google Analytics ID; analytics stay off without it, and for visitors who opted out on the OAE Data Commons (shared `oae_analytics_v1` cookie on `.oaedata.org`) or whose browser sends Global Privacy Control or Do Not Track |
+| `VITE_GA_MEASUREMENT_ID` | Google Analytics ID (optional) |
 
 Playwright runs `e2e/auth.spec.ts` against a dev server with the memory provider (port 3000) and
 the other specs against a second server with auth off (port 3001).
