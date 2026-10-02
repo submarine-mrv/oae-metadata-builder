@@ -1,8 +1,10 @@
 # Changelog
 
-Notable changes to the OAE Metadata Builder. Pre-1.0, breaking changes bump the minor version.
+Notable changes to the OAE Metadata Builder. Major versions change what the builder can open or how
+you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
+[RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
-## [0.4.0] — 2026-10-02
+## [1.0.0] — 2026-10-02
 
 Built against oae-data-protocol v0.5.0.
 
@@ -13,11 +15,14 @@ Built against oae-data-protocol v0.5.0.
 - Projects save automatically in the browser and no longer expire after 30 days. (#81)
 - Importing a file can add it as a new project or merge it into the current one. (#81)
 - The overview heading shows the project name. (#81)
+- You can delete a project from its card on the Projects page or from the overview, after a confirm
+  dialog. The browser tab title shows the project name once it's set. (#81)
 - Open access datasets require a data access link; a data access date no longer counts. The date
   field only appears for scheduled access, and a date saved on an open or conditional access
   dataset is dropped when the dataset loads. (#83)
 - The welcome screen links the how-to guide, the About page and the schema documentation at
-  schema.oaedata.org, and says work is saved in this browser only. (#86)
+  schema.oaedata.org, and says work is saved in this browser only. The About page links
+  schema.oaedata.org in place of the raw JSON Schema file. (#86)
 - Opening the builder in a new tab with saved projects asks whether to restore the previous session
   or start fresh. Starting fresh removes every project after a confirm step. (#87)
 - Closing or reloading the tab no longer shows a "leave site?" warning, since work is saved as you

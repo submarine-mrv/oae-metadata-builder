@@ -36,8 +36,14 @@ requires linear history. The fix is to drop the `pull_request` rule on `main` an
 instead (`git push origin origin/dev:main`), which removes the merge commit, the flag, and this
 paragraph.
 
-Pre-1.0, breaking changes bump the minor (0.1.x → 0.2.0). A change is breaking if metadata saved by
-the previous version no longer loads unchanged.
+Versions describe the builder. Data compatibility belongs to the protocol, whose version every
+export records.
+
+- **Major:** the builder can no longer open work from an earlier version (exported files or projects
+  saved in the browser), or you have to use it differently, such as needing an account.
+- **Minor:** new features, or adopting a new protocol version, including a breaking one. The
+  changelog says what changes for existing files.
+- **Patch:** fixes.
 
 Every changelog section opens with the oae-data-protocol it was built against. Read both values
 out of `src/schema/schema.bundled.json` — `version` and `x-protocol-git-hash` — and check the hash
