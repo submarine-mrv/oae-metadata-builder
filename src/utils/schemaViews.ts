@@ -147,15 +147,17 @@ export function getDatasetSchema() {
  * Gets the FieldDataset schema for field dataset types.
  * Has field-specific fields: platform_info, temporal_coverage,
  * variables, calibration_files, qc_flag_scheme, data_product_type.
+ * Has if/then conditional (data_accessibility → data_access_date)
+ * so needs additionalProperties: true.
  */
 export function getFieldDatasetSchema() {
-  return createSchemaView("FieldDataset", "FieldDatasetSchema");
+  return createSchemaView("FieldDataset", "FieldDatasetSchema", true);
 }
 
 /**
  * Gets the ModelOutputDataset schema for model output datasets.
- * Has if/then conditional (simulation_type → mcdr_forcing_description)
- * so needs additionalProperties: true.
+ * Has if/then conditionals (simulation_type → mcdr_forcing_description,
+ * data_accessibility → data_access_date) so needs additionalProperties: true.
  */
 export function getModelOutputDatasetSchema() {
   return createSchemaView("ModelOutputDataset", "ModelOutputDatasetSchema", true);

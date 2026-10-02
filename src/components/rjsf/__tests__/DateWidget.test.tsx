@@ -228,7 +228,7 @@ describe("DateWidget", () => {
 
   it("surfaces validation errors on the input", () => {
     renderWidget({
-      rawErrors: ["Either a data access link (DOI) or a data access date must be provided."],
+      rawErrors: ["Field is required"],
     });
     expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
   });

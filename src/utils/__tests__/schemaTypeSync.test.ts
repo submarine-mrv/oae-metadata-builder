@@ -132,8 +132,7 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
     expect(def?.enum?.length ?? 0).toBeGreaterThan(0);
   });
 
-  // RJSF turns a `then.anyOf` into an "Option 1 / Option 2" selector. The
-  // bundler rewrites those as "not both absent"; this guards the rewrite.
+  // RJSF turns a `then.anyOf` into an "Option 1 / Option 2" selector.
   it("carries no then.anyOf rules RJSF would render as a selector", () => {
     const defs = (bundled as { $defs?: Record<string, any> }).$defs ?? {};
     const offenders: string[] = [];
@@ -142,10 +141,19 @@ describe("field-list sync (parse boundaries must not drop schema fields)", () =>
       for (const rule of rules) if (rule?.then?.anyOf) offenders.push(name);
     }
     expect(offenders).toEqual([]);
-    // The rewritten form: "not both absent", which RJSF neither renders as a
-    // selector nor resolves into `required`.
-    const rule = defs.FieldDataset.allOf.find((r: any) => r.then?.not?.properties);
-    expect(rule?.then.not.properties).toEqual({ data_access_link: false, data_access_date: false });
-    expect(defs.FieldDataset.allOf.some((r: any) => r.then?.then)).toBe(false);
+  });
+
+  it.each([
+    "FieldDataset",
+    "ModelOutputDataset",
+  ])("%s renders data_access_date only under scheduled access", (defName) => {
+    const def = (bundled as { $defs: Record<string, any> }).$defs[defName];
+    const ruleFor = (value: string) =>
+      def.allOf.find((r: any) => r.if?.properties?.data_accessibility?.const === value);
+
+    expect(def.properties.data_access_date).toBeUndefined();
+    expect(ruleFor("scheduled_access").then.properties.data_access_date.format).toBe("date");
+    expect(ruleFor("scheduled_access").then.required).toEqual(["data_access_date"]);
+    expect(ruleFor("open_access").then.required).toEqual(["data_access_link"]);
   });
 });
