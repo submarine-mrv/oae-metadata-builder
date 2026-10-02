@@ -1,169 +1,98 @@
-# OAE Data Protocol - Metadata Form Builder
+# OAE Metadata Builder
 
-A dynamic form builder for Ocean Alkalinization Enhancement (OAE) data collection metadata.
+A web app for writing metadata for Ocean Alkalinity Enhancement (OAE) projects, experiments and
+datasets. It follows the [OAE Data Management Protocol](https://www.carbontosea.org/oae-data-protocol/1-0-0/)
+and exports JSON files that validate against the protocol's schema.
 
-- Main Status: [![main deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=main)](https://app.netlify.com/projects/oae-mb/deploys?branch=main)
-- Dev Status: [![dev deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=dev)](https://app.netlify.com/projects/oae-mb/deploys?branch=dev)
+**Use it at [metadata.oaedata.org](https://metadata.oaedata.org).**
+Schema documentation is at [schema.oaedata.org](https://schema.oaedata.org).
 
-## Overview
+[![main deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=main)](https://app.netlify.com/projects/oae-mb/deploys?branch=main)
 
-This application generates schema-driven forms for collecting structured metadata according to the OAE Data Protocol specification. The form structure is entirely driven by JSON Schema, enabling rapid iteration and updates as the protocol evolves.
+## What it does
 
-- Main Status [![main deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=main)](https://app.netlify.com/projects/oae-mb/deploys?branch=main)
-- Dev Status [![dev deployment status](https://api.netlify.com/api/v1/badges/025da03c-7c7e-440c-a9b4-25f9bc50b17b/deploy-status?branch=dev)](https://app.netlify.com/projects/oae-mb/deploys?branch=dev)
+- Builds the project, experiment and dataset forms from the protocol's JSON Schema, so a schema
+  release changes the forms without UI code changes for most fields.
+- Holds several projects. Your work is saved in your browser's local storage; export a project to
+  keep a copy or move it to another machine.
+- Imports exported files, as a new project or merged into the current one.
+- Validates when you ask it to, with errors on each field and a summary list.
+- Provides map pickers for spatial coverage, ISO 8601 date ranges, controlled vocabularies (NERC sea
+  names, platform types, units) and a CF standard name picker for variables.
 
-### Schema Source
+## Schema
 
-The JSON schema is managed in the [`submarine-mrv/oae-data-protocol`](https://github.com/submarine-mrv/oae-data-protocol) repository. This application consumes the schema output and generates interactive forms for data collection.
-
-## Features
-
-- **Schema-driven form generation** - Forms automatically adapt to schema changes
-- **Custom UI components** - Specialized widgets for temporal coverage, spatial bounding boxes, and controlled vocabularies
-- **Real-time validation** - Client-side validation with custom error messages
-
-## Technology Stack
-
-- **Frontend Framework**: React 19 with Vite and TanStack Router (file-based routing)
-- **Form Engine**: React JSON Schema Forms (RJSF) with `@rjsf/mantine`
-- **UI Components**: Mantine v8 design system
-- **Icons**: Tabler Icons React
-- **Validation**: AJV JSON Schema validator
-- **Build Tool**: Vite
-- **Linting & Formatting**: Biome
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 26 (see `.mise.toml`)
-- npm
-
-### Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd oae-form
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the application.
-
-### Available Scripts
-
-- `npm run dev` - Start the Vite dev server (port 3000)
-- `npm run build` - Build for production (generates the route tree, type-checks with `tsc -b`, then `vite build`)
-- `npm run preview` - Preview the production build locally
-- `npm test` - Run unit tests (Vitest)
-- `npm run test:e2e` - Run end-to-end tests (Playwright)
-- `npm run check` - Lint and format check with Biome (enforced in CI)
-- `npm run check:fix` - Apply Biome lint and format fixes
-- `node scripts/bundle-schema.mjs` - Bundle JSON schema for human readable sea names labels
-
-## Architecture
-
-Workspace, persistence and import: see [docs/multi-project.md](docs/multi-project.md).
-
-### Schema Processing
-
-1. Source schema from `submarine-mrv/oae-data-protocol`
-2. Schema bundling resolves references and adds controlled vocabulary labels
-3. Bundled schema imported from `/src/schema/schema.bundled.json`
-4. Form generation driven by bundled schema + UI configuration
-
-### Custom Components
-
-**Templates:**
-
-- `CustomArrayFieldItemButtonsTemplate` - Trash icon remove buttons
-- `CustomTitleFieldTemplate` - Consistent object field styling
-
-**Widgets:**
-
-- `IsoIntervalWidget` - ISO 8601 date interval input with validation
-- `SeaNamesAutocompleteWidget` - Controlled vocabulary selection
-- `SpatialCoverageMiniMap` - Geographic bounding box input with map
-
-**Fields:**
-
-- `ExternalProjectField` - Multi-field layouts for external research projects
-- `SpatialCoverageFlatField` - Alternative spatial coverage input
-
-### Form Configuration
-
-The application uses two configuration layers:
-
-1. **JSON Schema** (`/src/schema/schema.bundled.json`) - Data structure, validation rules, field types
-2. **UI Schema** (colocated per page, e.g. `src/pages/project/uiSchema.ts`; shared pieces in `src/uiSchemaConstants.ts`) - Presentation layer, widget selection, field ordering, styling
+The schema lives in [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol),
+written in LinkML and generated to JSON Schema. This repo keeps a bundled copy in
+`src/schema/schema.bundled.json`; the protocol version it was built against is in its `version` and
+`x-protocol-git-hash` fields. [CHANGELOG.md](CHANGELOG.md) notes the protocol version for each
+release.
 
 ## Development
 
-### Linting & Formatting
-
-[Biome](https://biomejs.dev/) handles linting and formatting (replacing ESLint/Prettier), mirroring the `oae-data-web` setup so components can be shared across repos. Config lives in `biome.json`; CI enforces it via `npm run check` in `.github/workflows/lint.yml`.
-
-### Adding Custom Components
-
-Custom components should be designed with portability in mind for potential future migration away from RJSF:
-
-- Use Mantine primitives directly, not through RJSF wrappers
-- Handle own state and validation logic
-- Design for reuse in non-RJSF contexts
-
-### Schema Updates
-
-If you're actively developing the schema in the `oae-data-protocol` repository alongside this repo, the `make schema`
-command can be used to pull and bundle the latest JSON Schema artifacts from `oae-data-protocol`.
-
-First, make sure you've exported JSON Schema & project artifacts from within the oae-data-protocol repo. This can be
-done by running:
+Requires Node 26 (see `.mise.toml`).
 
 ```bash
-make gen-project
+git clone https://github.com/submarine-mrv/oae-metadata-builder.git
+cd oae-metadata-builder
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-**Note:** The above should **not** be run from this repo, as it is a make task associated with the `oae-data-protocol`
-project, so must be run from the root of that repository.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server on port 3000 |
+| `npm run build` | Route tree, type-check (`tsc -b`) and production build |
+| `npm run preview` | Serve the production build |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:e2e` | End-to-end tests (Playwright) |
+| `npm run check` / `check:fix` | Biome lint and format; CI runs `check` |
 
-Then, from the root of this repository, you can import the latest JSON Schema into this project and run the
-necessary schema-bundling. This bundling script (located in `scripts/bundle-schema.mjs`) prepares the JSON Schema
-of the OAE Data Protocol for use in this project. It creates multiple separate root-schema artifacts (e.g. for
-Projects and Experiments), and also pulls in human-readable names for titles of dynamic enums (such as for the Sea
-Names controlled vocabulary). It also makes some important fixes to enable conditional rendering of certain fields
-(namely conditional rendering of `_custom` fields when a controlled vocab value is not found for a given enum field,
-such as with `alkalinity_feedstock_type` and `alkalinity_feedstock_type_custom`).
+Stack: React 19, Vite, TanStack Router, [RJSF](https://rjsf-team.github.io/react-jsonschema-form/)
+with Mantine v8, AJV (JSON Schema 2019-09) and Biome.
+
+### Updating the schema
+
+With `oae-data-protocol` checked out next to this repo:
 
 ```bash
-# If the protocol repo is locally in the same parent directory as this repo, (e.g. ../oae-data-protocol)
-make schema
-
-# To override the schema repo path, set the corresponding environment variable: 
-SCHEMA_REPO_PATH=/path/to/your/oae-data-protocol make schema
+cd ../oae-data-protocol && just gen-all   # regenerate JSON Schema, then commit
+cd ../oae-metadata-builder && make schema # copy and bundle; needs a clean protocol tree
 ```
 
-### Customization
+`make schema` records the protocol commit in the bundled schema. Set `SCHEMA_REPO_PATH` if the
+protocol repo lives elsewhere. `scripts/bundle-schema.mjs` does the bundling: it resolves refs,
+labels vocabulary enums and reshapes conditional rules so RJSF renders them.
 
-- **Styling**: Modify `/src/globals.css` or component-level styles
-- **Validation**: Add custom validation in `/src/utils/customValidators.ts`
-- **UI Layout**: Update the page's `uiSchema.ts` (e.g. `/src/pages/project/uiSchema.ts`) for field ordering and presentation
-- **Components**: Add new widgets/fields in `/src/components/`
+### Build configuration
 
-### Analytics
+Set at build time, in `.env` locally or in the deploy environment:
 
-Google Analytics is gated on one build-time variable, set in the deploy environment:
+| Variable | Effect |
+|---|---|
+| `VITE_AUTH_ENABLED` | `true` turns on login. Unset or `false`: no account menu, `/auth/*` and `/profile` redirect to `/overview`, no Supabase code loads |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase project, needed when auth is on |
+| `VITE_AUTH_PROVIDER` | `memory` swaps Supabase for an in-browser fake login, for e2e tests and demos |
+| `VITE_GA_MEASUREMENT_ID` | Google Analytics ID; analytics stay off without it, and for visitors who opted out on the OAE Data Commons (shared `oae_analytics_v1` cookie on `.oaedata.org`) or whose browser sends Global Privacy Control or Do Not Track |
 
-```bash
-VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
-```
+Playwright runs `e2e/auth.spec.ts` against a dev server with the memory provider (port 3000) and
+the other specs against a second server with auth off (port 3001).
 
-Visitors who opt out on the OAE Data Commons privacy page aren't tracked here either: both sites read the `oae_analytics_v1` cookie on `.oaedata.org`. With no stored choice, a Global Privacy Control or Do Not Track signal also turns analytics off.
+### Architecture notes
 
-## Related Repositories
+- [docs/schema-architecture.md](docs/schema-architecture.md): schema pipeline, validation, variable polymorphism
+- [docs/conditional-fields.md](docs/conditional-fields.md): conditional fields and how RJSF renders them
+- [docs/multi-project.md](docs/multi-project.md): workspace, persistence and import
+- [docs/experiment-type-multi-select.md](docs/experiment-type-multi-select.md): experiment type rules
+- [docs/cf-standard-names.md](docs/cf-standard-names.md): CF standard name picker and vocabulary
 
-- [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol) - Source schema definition and protocol specification
+Releases follow [RELEASE_PROCESS.md](RELEASE_PROCESS.md). PRs target `dev`.
+
+## Credits
+
+Developed by [Submarine Scientific](https://www.submarine.earth) with support from the
+[Carbon to Sea Initiative](https://www.carbontosea.org). Questions: [data@carbontosea.org](mailto:data@carbontosea.org).
+
+## License
+
+[Apache 2.0](LICENSE)

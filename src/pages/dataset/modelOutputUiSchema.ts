@@ -48,9 +48,6 @@ const modelOutputUiSchema = {
     "ui:widget": "CustomSelectWidget",
     "ui:enumNames": enumNames.DataAccessibility,
     "ui:descriptionModal": true,
-    "ui:valueNotice": {
-      open_access: "Open access datasets need either a data access link or a data access date.",
-    },
   },
   data_access_link: {
     ...halfWidthStyle,

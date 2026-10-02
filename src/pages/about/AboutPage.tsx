@@ -54,13 +54,10 @@ export default function AboutPage() {
                   >
                     Github
                   </Anchor>
-                  . For advanced technical users, the formal JSON Schema specification for the OAE
-                  Data Protocol is published{" "}
-                  <Anchor
-                    href="https://github.com/submarine-mrv/oae-data-protocol/blob/main/project/jsonschema/oae_data_protocol.schema.json"
-                    target="_blank"
-                  >
-                    here
+                  . Technical documentation for the OAE Data Protocol schema, including the formal
+                  JSON Schema, is at{" "}
+                  <Anchor href="https://schema.oaedata.org" target="_blank">
+                    schema.oaedata.org
                   </Anchor>
                   .
                   <br />

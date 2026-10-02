@@ -166,10 +166,19 @@ export const MODEL_NESTED_CONDITIONAL_FIELDS: NestedConditionalFieldPair[] = [
   },
 ];
 
+// Conditional field pairs for every dataset type.
+export const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
+  {
+    triggerField: "data_accessibility",
+    triggerValue: "scheduled_access",
+    customField: "data_access_date",
+  },
+];
+
 // Conditional field pairs for model output dataset forms.
 // simulation_type is multivalued — mcdr_forcing_description should appear
 // when "perturbation" is one of the selected values.
-export const DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
+export const MODEL_OUTPUT_DATASET_CONDITIONAL_FIELDS: ConditionalFieldPair[] = [
   {
     triggerField: "simulation_type",
     triggerValue: "perturbation",

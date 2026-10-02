@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { AuthProvider } from "@/auth/AuthContext";
 import DocumentTitle from "@/components/DocumentTitle";
+import RestorePrompt from "@/components/RestorePrompt";
 import { AppStateProvider } from "@/contexts/AppStateContext";
 import { theme } from "@/theme";
 import { emptyProjectState, type ProjectState } from "@/workspace/types";
@@ -43,6 +44,7 @@ export default function App() {
       <AuthProvider>
         <WorkspaceProvider>
           <ActiveProjectSession />
+          <RestorePrompt />
         </WorkspaceProvider>
       </AuthProvider>
     </MantineProvider>

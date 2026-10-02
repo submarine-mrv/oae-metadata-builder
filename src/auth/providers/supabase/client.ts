@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import { authEnabled, authProvider } from "../../config";
 
-const authDisabled = import.meta.env.VITE_AUTH_ENABLED !== "true";
-const url = authDisabled ? "http://127.0.0.1:54321" : import.meta.env.VITE_SUPABASE_URL;
-const publishableKey = authDisabled
-  ? "auth-disabled"
-  : import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabaseEnabled = authEnabled && authProvider === "supabase";
+const url = supabaseEnabled ? import.meta.env.VITE_SUPABASE_URL : "http://127.0.0.1:54321";
+const publishableKey = supabaseEnabled
+  ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  : "supabase-disabled";
 
 if (!url || !publishableKey) {
   throw new Error(

@@ -13,6 +13,7 @@ import {
   DATASET_CONDITIONAL_FIELDS,
   EXPERIMENT_CONDITIONAL_FIELDS,
   MODEL_NESTED_CONDITIONAL_FIELDS,
+  MODEL_OUTPUT_DATASET_CONDITIONAL_FIELDS,
 } from "@/utils/conditionalFields";
 import { cleanDatasetFormDataForType, isModelOutputType } from "@/utils/datasetFields";
 import {
@@ -104,8 +105,9 @@ export function parseDataset(raw: unknown, rootSchema: JSONSchema): DraftDataset
     data = cleanDatasetFormDataForType(data, datasetType);
   }
 
+  data = cleanupConditionalFields(data, DATASET_CONDITIONAL_FIELDS);
   if (isModelOutput) {
-    data = cleanupConditionalFields(data, DATASET_CONDITIONAL_FIELDS);
+    data = cleanupConditionalFields(data, MODEL_OUTPUT_DATASET_CONDITIONAL_FIELDS);
   }
 
   if (data.variables !== undefined) {
