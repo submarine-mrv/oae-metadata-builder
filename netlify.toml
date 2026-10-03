@@ -4,7 +4,7 @@
 
 # Newest Node that Netlify offers is 24; .mise.toml and CI run 26.
 [build.environment]
-  NODE_VERSION = "26"
+  NODE_VERSION = "24"
 
 # SPA fallback: client-side routes (e.g. /project) must serve index.html on refresh.
 [[redirects]]
