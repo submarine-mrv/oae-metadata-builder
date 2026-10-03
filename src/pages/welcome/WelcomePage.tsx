@@ -32,11 +32,12 @@ export default function WelcomePage() {
             >
               OAE Data Management Protocol
             </Anchor>
-            . These files are what projects submit to the{" "}
+            . The exported JSON files can be uploaded alongside datasets to any scientific data
+            repository, or as part of a project submission to the{" "}
             <Anchor href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
               OAE Data Commons
             </Anchor>
-            , which uses them to generate project pages.
+            .
           </Text>
           <Text>
             New here? Read the{" "}

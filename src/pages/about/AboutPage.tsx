@@ -10,8 +10,8 @@ export default function AboutPage() {
         <Stack gap="lg">
           <Title order={1}>About the OAE Metadata Builder</Title>
           <Paper shadow="sm" p="xl" withBorder>
-            <Stack gap="xl">
-              <Stack gap="xs">
+            <Stack gap={40}>
+              <Stack gap="md">
                 <Title order={2}>What it does</Title>
                 <Text>
                   The OAE metadata builder manages metadata for Ocean Alkalinity Enhancement (OAE)
@@ -27,7 +27,7 @@ export default function AboutPage() {
                 </Text>
               </Stack>
 
-              <Stack gap="xs">
+              <Stack gap="md">
                 <Title order={2}>How it works</Title>
                 <Text>
                   The builder implements the{" "}
@@ -35,12 +35,14 @@ export default function AboutPage() {
                     OAE Data Management Protocol
                   </Anchor>
                   , a community-developed set of recommendations for producing consistent data and
-                  metadata for OAE research projects, developed in collaboration with the{" "}
+                  metadata for OAE research projects. The protocol was developed in collaboration
+                  with the{" "}
                   <Anchor href="https://www.noaa.gov/" {...external}>
                     National Oceanic and Atmospheric Administration
                   </Anchor>{" "}
-                  (NOAA). The OAE Data Commons uses the exported files to support search and
-                  discovery across OAE research.
+                  (NOAA) and ocean researchers from academia, government, non-profit, and industry.
+                  The OAE Data Commons uses the exported files to support search and discovery
+                  across OAE research.
                 </Text>
                 <Text>
                   The full source code is on{" "}
@@ -57,10 +59,6 @@ export default function AboutPage() {
                   </Anchor>
                   .
                 </Text>
-              </Stack>
-
-              <Stack gap="xs">
-                <Title order={2}>What's next</Title>
                 <Text>
                   The builder is the first of several tools for managing protocol-compliant OAE
                   metadata. Planned next are Python libraries for programmatic metadata management,
@@ -68,8 +66,8 @@ export default function AboutPage() {
                 </Text>
               </Stack>
 
-              <Stack gap="xs">
-                <Title order={2}>Credits and contact</Title>
+              <Stack gap="md">
+                <Title order={2}>Credits</Title>
                 <Text>
                   Developed by{" "}
                   <Anchor href="https://www.submarine.earth" {...external}>
