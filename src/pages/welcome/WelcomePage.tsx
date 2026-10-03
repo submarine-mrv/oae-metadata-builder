@@ -48,6 +48,10 @@ export default function WelcomePage() {
             <Anchor component={Link} to="/about">
               About page
             </Anchor>
+            . Technical documentation for the schema is available at{" "}
+            <Anchor href="https://schema.oaedata.org" target="_blank" rel="noopener noreferrer">
+              schema.oaedata.org
+            </Anchor>
             .
           </Text>
           <Text size="sm" c="dimmed">
