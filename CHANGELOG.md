@@ -6,10 +6,11 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ## [1.0.0] — 2026-10-02
 
-Built against oae-data-protocol v0.5.0.
-
-Keep several projects in the browser and pick up where you left off when you come back. Open access
-datasets now need a data access link.
+First major release of the OAE Metadata Builder, a web app for managing metadata on OAE field
+trials. Its forms are generated directly from the oae-data-protocol JSON Schema. There are separate
+forms for project, experiment and dataset metadata, and a variable editor for describing each field
+or column in a dataset. 1.0 adds multi-project support and is built against schema v0.5.0, which
+implements v1.0.0 of the OAE Data Management Protocol.
 
 ### Added
 
