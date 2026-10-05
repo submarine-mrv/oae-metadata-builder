@@ -1,77 +1,94 @@
 import { Anchor, Container, Paper, Stack, Text, Title } from "@mantine/core";
 import AppLayout from "@/components/AppLayout";
 
+const external = { target: "_blank", rel: "noopener noreferrer" } as const;
+
 export default function AboutPage() {
   return (
     <AppLayout>
       <Container size="md" py="xl">
         <Stack gap="lg">
-          <div>
-            <Title order={1}>About the OAE Metadata Builder</Title>
-          </div>
+          <Title order={1}>About the OAE Metadata Builder</Title>
           <Paper shadow="sm" p="xl" withBorder>
-            <Stack gap="md">
-              <div>
+            <Stack gap={40}>
+              <Stack gap="md">
+                <Title order={2}>What it does</Title>
                 <Text>
-                  The Ocean Alkalinity Enhancement (OAE) metadata builder is designed to increase
-                  the robustness and ease of implementing the{" "}
+                  The OAE metadata builder manages metadata for Ocean Alkalinity Enhancement (OAE)
+                  projects, experiments, oceanographic datasets, and ocean models in a single
+                  web-based interface. It exports standardized JSON metadata files that are fully
+                  compliant with the OAE Data Protocol. The files are meant to be uploaded alongside
+                  datasets to any scientific data repository, or as part of a project submission to
+                  the{" "}
+                  <Anchor underline="always" href="https://oaedata.org" {...external}>
+                    OAE Data Commons
+                  </Anchor>
+                  .
+                </Text>
+              </Stack>
+
+              <Stack gap="md">
+                <Title order={2}>How it works</Title>
+                <Text>
+                  The builder implements the{" "}
                   <Anchor
+                    underline="always"
                     href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
-                    target="_blank"
+                    {...external}
                   >
                     OAE Data Management Protocol
                   </Anchor>
-                  , a community developed set of recommendations for producing consistent data and
-                  metadata for Ocean Alkalinity Enhancement (OAE) research projects in collaboration
+                  , a community-developed set of recommendations for producing consistent data and
+                  metadata for OAE research projects. The protocol was developed in collaboration
                   with the{" "}
-                  <Anchor href="https://www.noaa.gov/" target="_blank">
+                  <Anchor underline="always" href="https://www.noaa.gov/" {...external}>
                     National Oceanic and Atmospheric Administration
                   </Anchor>{" "}
-                  (NOAA). The metadata builder was developed by{" "}
-                  <Anchor href="https://www.submarine.earth" target="_blank">
-                    Submarine Scientific
-                  </Anchor>{" "}
-                  with support from the{" "}
-                  <Anchor href="https://www.carbontosea.org/" target="_blank">
-                    Carbon to Sea Initiative
-                  </Anchor>
-                  .
-                  <br />
-                  <br />
-                  The metadata builder allows users to manage complex metadata for OAE projects,
-                  experiments, oceanographic datasets, and ocean models through a single web-based
-                  interface, and export standardized JSON metadata files that are fully compliant
-                  with the OAE Data Protocol. These metadata files are intended to be uploaded
-                  alongside datasets to any scientific data repository, and will be used by the OAE
-                  Data Commons to enhance search and discovery across the field of ocean alkalinity
-                  enhancement research.
-                  <br />
-                  <br />
-                  The full open-source code for the metadata builder is available on{" "}
+                  (NOAA) and ocean researchers from academia, government, non-profit, and industry.
+                  The OAE Data Commons uses the exported files to support search and discovery
+                  across OAE research.
+                </Text>
+                <Text>
+                  The full source code is on{" "}
                   <Anchor
+                    underline="always"
                     href="https://github.com/submarine-mrv/oae-metadata-builder"
-                    target="_blank"
+                    {...external}
                   >
-                    Github
+                    GitHub
                   </Anchor>
-                  . Technical documentation for the OAE Data Protocol schema, including the formal
-                  JSON Schema, is at{" "}
-                  <Anchor href="https://schema.oaedata.org" target="_blank">
+                  . Technical documentation for the protocol schema, including the formal JSON
+                  Schema, is at{" "}
+                  <Anchor underline="always" href="https://schema.oaedata.org" {...external}>
                     schema.oaedata.org
                   </Anchor>
                   .
-                  <br />
-                  <br />
-                  The metadata builder is the first of several tools under development to support
-                  researchers in managing protocol-compliant OAE metadata. Future plans include
-                  direct metadata management via software tooling such as Python libraries, as well
-                  as AI integration via MCP Servers.
-                  <br />
-                  <br />
-                  If you have questions or concerns, please email{" "}
-                  <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>
                 </Text>
-              </div>
+                <Text>
+                  The builder is the first of several tools for managing protocol-compliant OAE
+                  metadata. Planned next are Python libraries for programmatic metadata management,
+                  plus agent skills and other agentic tooling for AI-assisted metadata work.
+                </Text>
+              </Stack>
+
+              <Stack gap="md">
+                <Title order={2}>Credits</Title>
+                <Text>
+                  Developed by{" "}
+                  <Anchor underline="always" href="https://www.submarine.earth" {...external}>
+                    Submarine Scientific
+                  </Anchor>{" "}
+                  with support from the{" "}
+                  <Anchor underline="always" href="https://www.carbontosea.org/" {...external}>
+                    Carbon to Sea Initiative
+                  </Anchor>
+                  . If you have questions, please email{" "}
+                  <Anchor underline="always" href="mailto:data@carbontosea.org">
+                    data@carbontosea.org
+                  </Anchor>
+                  .
+                </Text>
+              </Stack>
             </Stack>
           </Paper>
         </Stack>

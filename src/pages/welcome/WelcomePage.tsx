@@ -23,28 +23,44 @@ export default function WelcomePage() {
         <Stack gap="lg" py="xl">
           <Title order={1}>Welcome to the OAE Metadata Builder</Title>
           <Text>
-            The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
-            (OAE) projects, experiments, and datasets in compliance with the{" "}
+            The metadata builder produces metadata for Ocean Alkalinity Enhancement (OAE) projects,
+            experiments, and datasets in compliance with the{" "}
             <Anchor
+              underline="always"
               href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
               target="_blank"
               rel="noopener noreferrer"
             >
               OAE Data Management Protocol
             </Anchor>
+            . The exported JSON files can be uploaded alongside datasets to any scientific data
+            repository, or as part of a project submission to the{" "}
+            <Anchor
+              underline="always"
+              href="https://oaedata.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OAE Data Commons
+            </Anchor>
             .
           </Text>
           <Text>
             New here? Read the{" "}
-            <Anchor component={Link} to="/how-to">
+            <Anchor underline="always" component={Link} to="/how-to">
               how-to guide
             </Anchor>{" "}
             or the{" "}
-            <Anchor component={Link} to="/about">
+            <Anchor underline="always" component={Link} to="/about">
               About page
             </Anchor>
-            . Technical documentation for the schema is at{" "}
-            <Anchor href="https://schema.oaedata.org" target="_blank" rel="noopener noreferrer">
+            . Technical documentation for the schema is available at{" "}
+            <Anchor
+              underline="always"
+              href="https://schema.oaedata.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               schema.oaedata.org
             </Anchor>
             .
