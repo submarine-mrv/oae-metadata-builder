@@ -20,7 +20,7 @@ export default function AboutPage() {
                   compliant with the OAE Data Protocol. The files are meant to be uploaded alongside
                   datasets to any scientific data repository, or as part of a project submission to
                   the{" "}
-                  <Anchor href="https://oaedata.org" {...external}>
+                  <Anchor underline="always" href="https://oaedata.org" {...external}>
                     OAE Data Commons
                   </Anchor>
                   .
@@ -31,13 +31,17 @@ export default function AboutPage() {
                 <Title order={2}>How it works</Title>
                 <Text>
                   The builder implements the{" "}
-                  <Anchor href="https://www.carbontosea.org/oae-data-protocol/1-0-0/" {...external}>
+                  <Anchor
+                    underline="always"
+                    href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
+                    {...external}
+                  >
                     OAE Data Management Protocol
                   </Anchor>
                   , a community-developed set of recommendations for producing consistent data and
                   metadata for OAE research projects. The protocol was developed in collaboration
                   with the{" "}
-                  <Anchor href="https://www.noaa.gov/" {...external}>
+                  <Anchor underline="always" href="https://www.noaa.gov/" {...external}>
                     National Oceanic and Atmospheric Administration
                   </Anchor>{" "}
                   (NOAA) and ocean researchers from academia, government, non-profit, and industry.
@@ -47,6 +51,7 @@ export default function AboutPage() {
                 <Text>
                   The full source code is on{" "}
                   <Anchor
+                    underline="always"
                     href="https://github.com/submarine-mrv/oae-metadata-builder"
                     {...external}
                   >
@@ -54,7 +59,7 @@ export default function AboutPage() {
                   </Anchor>
                   . Technical documentation for the protocol schema, including the formal JSON
                   Schema, is at{" "}
-                  <Anchor href="https://schema.oaedata.org" {...external}>
+                  <Anchor underline="always" href="https://schema.oaedata.org" {...external}>
                     schema.oaedata.org
                   </Anchor>
                   .
@@ -70,15 +75,18 @@ export default function AboutPage() {
                 <Title order={2}>Credits</Title>
                 <Text>
                   Developed by{" "}
-                  <Anchor href="https://www.submarine.earth" {...external}>
+                  <Anchor underline="always" href="https://www.submarine.earth" {...external}>
                     Submarine Scientific
                   </Anchor>{" "}
                   with support from the{" "}
-                  <Anchor href="https://www.carbontosea.org/" {...external}>
+                  <Anchor underline="always" href="https://www.carbontosea.org/" {...external}>
                     Carbon to Sea Initiative
                   </Anchor>
                   . If you have questions, please email{" "}
-                  <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
+                  <Anchor underline="always" href="mailto:data@carbontosea.org">
+                    data@carbontosea.org
+                  </Anchor>
+                  .
                 </Text>
               </Stack>
             </Stack>

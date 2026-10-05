@@ -26,6 +26,7 @@ export default function WelcomePage() {
             The metadata builder produces metadata for Ocean Alkalinity Enhancement (OAE) projects,
             experiments, and datasets in compliance with the{" "}
             <Anchor
+              underline="always"
               href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
               target="_blank"
               rel="noopener noreferrer"
@@ -34,22 +35,32 @@ export default function WelcomePage() {
             </Anchor>
             . The exported JSON files can be uploaded alongside datasets to any scientific data
             repository, or as part of a project submission to the{" "}
-            <Anchor href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
+            <Anchor
+              underline="always"
+              href="https://oaedata.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               OAE Data Commons
             </Anchor>
             .
           </Text>
           <Text>
             New here? Read the{" "}
-            <Anchor component={Link} to="/how-to">
+            <Anchor underline="always" component={Link} to="/how-to">
               how-to guide
             </Anchor>{" "}
             or the{" "}
-            <Anchor component={Link} to="/about">
+            <Anchor underline="always" component={Link} to="/about">
               About page
             </Anchor>
             . Technical documentation for the schema is available at{" "}
-            <Anchor href="https://schema.oaedata.org" target="_blank" rel="noopener noreferrer">
+            <Anchor
+              underline="always"
+              href="https://schema.oaedata.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               schema.oaedata.org
             </Anchor>
             .
