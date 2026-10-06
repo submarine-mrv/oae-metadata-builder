@@ -4,9 +4,25 @@ Notable changes to the OAE Metadata Builder. Major versions change what the buil
 you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
-## [1.0.0] — 2026-10-02
+## [1.0.1] — 2026-10-05
 
 Built against oae-data-protocol v0.5.0.
+
+The welcome and About pages now point to the OAE Data Commons and say how the metadata files are used.
+
+### Updated
+
+- The welcome and About pages link to the OAE Data Commons and the schema documentation. The About
+  page is reorganized into "What it does", "How it works" and "Credits", and links on both pages are
+  underlined so they are easier to see. (#95)
+
+## [1.0.0] — 2026-10-02
+
+First major release of the OAE Metadata Builder, a web app for managing metadata on OAE field
+trials. Its forms are generated directly from the oae-data-protocol JSON Schema. There are separate
+forms for project, experiment and dataset metadata, and a variable editor for describing each field
+or column in a dataset. 1.0 adds multi-project support and is built against schema v0.5.0, which
+implements v1.0.0 of the OAE Data Management Protocol.
 
 ### Added
 
@@ -46,6 +62,10 @@ account menu or Supabase code ship. (#85)
   password. (#70)
 - A profile page for your name, organization and ORCID, with options to change your email or
   password and to delete your account. (#70)
+
+### Acknowledgements
+
+Thanks to [@jashanbhullar](https://github.com/jashanbhullar) for the login and account work (#70).
 
 ## [0.3.0] — 2026-09-08
 
