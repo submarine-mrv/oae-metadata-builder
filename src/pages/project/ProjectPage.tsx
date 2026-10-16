@@ -34,6 +34,7 @@ import { transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { validateProject } from "@/utils/validation";
+import ProjectPublicationControl from "@/workspace/ProjectPublicationControl";
 import uiSchema from "./uiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -88,14 +89,17 @@ export default function ProjectPage() {
       >
         <Container size="md" py="lg">
           <Stack gap="sm">
-            <Group align="center" gap="md">
-              <Title order={2}>Project Metadata</Title>
-              <ValidationButton
-                badgeState={validation.badgeState}
-                missingRequired={validation.missingRequired}
-                otherErrors={validation.otherErrors}
-                onClick={validation.handleClick}
-              />
+            <Group align="center" justify="space-between" gap="md">
+              <Group align="center" gap="md">
+                <Title order={2}>Project Metadata</Title>
+                <ValidationButton
+                  badgeState={validation.badgeState}
+                  missingRequired={validation.missingRequired}
+                  otherErrors={validation.otherErrors}
+                  onClick={validation.handleClick}
+                />
+              </Group>
+              <ProjectPublicationControl />
             </Group>
             <Text c="dimmed">
               Create standardized metadata for your Ocean Alkalinity Enhancement project. Click the

@@ -6,6 +6,7 @@ import { AuthProvider } from "@/auth/AuthContext";
 import DocumentTitle from "@/components/DocumentTitle";
 import { appStore } from "@/state/store";
 import { theme } from "@/theme";
+import WorkspaceSyncController from "@/workspace/WorkspaceSyncController";
 import { router } from "./router";
 
 export default function App() {
@@ -14,8 +15,10 @@ export default function App() {
       <Notifications />
       <AuthProvider>
         <Provider store={appStore}>
-          <DocumentTitle />
-          <RouterProvider router={router} />
+          <WorkspaceSyncController>
+            <DocumentTitle />
+            <RouterProvider router={router} />
+          </WorkspaceSyncController>
         </Provider>
       </AuthProvider>
     </MantineProvider>

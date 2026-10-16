@@ -44,6 +44,13 @@ function isProjectRecord(value: unknown): value is ProjectRecord {
   );
 }
 
+export function isWorkspace(value: unknown): value is Workspace {
+  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.projects)) return false;
+  if (value.activeProjectId !== null && typeof value.activeProjectId !== "string") return false;
+  if (!value.projects.every(isProjectRecord)) return false;
+  return new Set(value.projects.map((project) => project.id)).size === value.projects.length;
+}
+
 function read(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -111,7 +118,7 @@ function readWorkspace(raw: string): Workspace | null {
 type LegacySession = ProjectState & { savedAt: number; hasProject?: boolean };
 
 /** Wraps a legacy saved session as a project record, or null if it isn't one. */
-function migrateLegacySession(raw: unknown): ProjectRecord | null {
+export function migrateLegacySession(raw: unknown): ProjectRecord | null {
   if (!isRecord(raw) || typeof raw.savedAt !== "number" || !isProjectState(raw)) return null;
   // hasProject is a retired field.
   const { savedAt, hasProject: _, ...state } = raw as unknown as LegacySession;

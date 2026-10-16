@@ -31,6 +31,16 @@ export const projectStateAtom = atom(
 
 export const showJsonPreviewAtom = atom(false);
 
+export type WorkspaceSyncStatus =
+  | { state: "disabled" }
+  | { state: "syncing" }
+  | { state: "synced"; syncedAt: number }
+  | { state: "pending"; message?: string }
+  | { state: "error"; message: string };
+
+export const workspaceSyncStatusAtom = atom<WorkspaceSyncStatus>({ state: "disabled" });
+export const workspaceSyncRetryAtom = atom<(() => void) | null>(null);
+
 interface Selection {
   projectId: string;
   id: number | null;

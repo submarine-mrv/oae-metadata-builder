@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Badge,
   Box,
   Button,
   Group,
@@ -28,7 +29,13 @@ import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportFlow } from "@/hooks/useImportFlow";
 import { toggleJsonPreviewAtom } from "@/state/actions";
-import { projectCountAtom, projectStateAtom, showJsonPreviewAtom } from "@/state/atoms";
+import {
+  projectCountAtom,
+  projectStateAtom,
+  showJsonPreviewAtom,
+  workspaceSyncRetryAtom,
+  workspaceSyncStatusAtom,
+} from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 
 const TABS = [
@@ -41,6 +48,8 @@ const TABS = [
 export default function Navigation() {
   const { client, user } = useAuth();
   const showJsonPreview = useAtomValue(showJsonPreviewAtom);
+  const syncStatus = useAtomValue(workspaceSyncStatusAtom);
+  const retryWorkspaceSync = useAtomValue(workspaceSyncRetryAtom);
   const toggleJsonPreview = useSetAtom(toggleJsonPreviewAtom);
   const hasProjects = useAtomValue(projectCountAtom) > 0;
   const store = useStore();
@@ -74,6 +83,24 @@ export default function Navigation() {
     "/how-to": "how-to",
   };
   const currentTab = pathToTab[pathname] ?? "";
+  const syncStatusLabel =
+    syncStatus.state === "syncing"
+      ? "Syncing"
+      : syncStatus.state === "synced"
+        ? "Synced"
+        : syncStatus.state === "pending"
+          ? "Pending"
+          : syncStatus.state === "error"
+            ? "Sync error"
+            : null;
+  const syncStatusColor =
+    syncStatus.state === "synced"
+      ? "green"
+      : syncStatus.state === "error"
+        ? "red"
+        : syncStatus.state === "pending"
+          ? "yellow"
+          : "blue";
 
   const isMobile = useMediaQuery("(max-width: 768px)", undefined, {
     getInitialValueInEffect: false,
@@ -144,6 +171,41 @@ export default function Navigation() {
 
           {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
           <Group gap="xs" justify="flex-end" style={{ gridColumn: isCompact ? 2 : 3 }}>
+            {syncStatusLabel && (
+              <Group
+                gap={4}
+                wrap="nowrap"
+                role="status"
+                aria-live="polite"
+                aria-label={
+                  syncStatus.state === "pending" || syncStatus.state === "error"
+                    ? syncStatus.message
+                    : syncStatusLabel
+                }
+              >
+                <Badge
+                  color={syncStatusColor}
+                  variant="light"
+                  title={
+                    syncStatus.state === "pending" || syncStatus.state === "error"
+                      ? syncStatus.message
+                      : undefined
+                  }
+                >
+                  {syncStatusLabel}
+                </Badge>
+                {syncStatus.state === "error" && retryWorkspaceSync && (
+                  <Button
+                    variant="subtle"
+                    size="compact-xs"
+                    onClick={retryWorkspaceSync}
+                    aria-label="Retry workspace sync"
+                  >
+                    Retry
+                  </Button>
+                )}
+              </Group>
+            )}
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>
