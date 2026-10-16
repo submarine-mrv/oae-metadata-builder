@@ -38,7 +38,9 @@ You delete a whole project from its `/projects` card or the overview. `DeletePro
 
 ## Persistence
 
-One localStorage key, `oae-metadata-builder-workspace`, holds the whole `Workspace`. `WorkspaceStore` (`src/workspace/storage.ts`) is the interface a cloud store would replace. `startPersistence` (`src/state/persistence.ts`) subscribes to `workspaceAtom`. Edits save after a 2 s debounce. Create, delete, switch and import save at once. A pending edit is flushed on `pagehide` and when the page becomes hidden.
+One localStorage key, `oae-metadata-builder-workspace`, holds the whole `Workspace`. `WorkspaceStore` (`src/workspace/storage.ts`) remains the local source and recovery copy. `startPersistence` (`src/state/persistence.ts`) subscribes to `workspaceAtom`. Edits save after a 2 s debounce. Create, delete, switch and import save at once. A pending edit is flushed on `pagehide` and when the page becomes hidden.
+
+When `VITE_AUTH_ENABLED=true` and a user is authenticated, `WorkspaceSyncController` also syncs the latest complete workspace snapshot to that user's private Supabase session row. It runs automatically in the background; the header shows sync state and offers retry after errors. Offline edits stay local and the latest snapshot is uploaded when connectivity returns. On account changes, local workspace snapshots are separated by account, and signing out restores the guest workspace. See [workspace-cloud-sync.md](./workspace-cloud-sync.md) for the sync and merge contract.
 
 Loading keeps whatever it can read:
 
@@ -51,7 +53,7 @@ Backups are never deleted. If storage is full the backup can fail. Dropped recor
 
 ## Open tabs
 
-Each tab keeps its own copy of the workspace and saves the whole of it, so two open tabs overwrite each other's changes. See `docs/multi-tab-editing.md` for the options under review.
+Each tab keeps its own working copy. In local-only mode, two tabs can still overwrite each other's localStorage changes. Authenticated cloud sync uses revision checks and merges stale snapshots, but is not real-time collaboration. See `docs/multi-tab-editing.md` for the remaining options under review.
 
 ## Names, ids and titles
 
@@ -74,4 +76,3 @@ A file with duplicate experiment ids is blocked in both modes.
 `applyImport` (`src/utils/applyImport.ts`) builds the result for both modes. It drops a dataset link whose experiment isn't in the result. `getSelectedItems` renumbers dataset links to match the ticked experiments. A dataset linked to an unticked experiment imports unlinked.
 
 The app owns `project_id` and `experiment_id` on imported records and ignores the file's values.
-
