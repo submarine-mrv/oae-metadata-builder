@@ -345,7 +345,10 @@ function discriminateVariableUnions(schema, configs) {
       continue;
     }
 
+    // LinkML pairs any_of with `range: Any` so gen-doc has a range. The Any ref
+    // adds no constraint, and resolveRef() would follow it and lose the union.
     const { anyOf, ...rest } = target;
+    if (rest.$ref === "#/$defs/Any") delete rest.$ref;
     parent[lastKey] = {
       ...rest,
       oneOf: anyOf,
