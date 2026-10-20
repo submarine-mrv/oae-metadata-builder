@@ -62,3 +62,10 @@ without anyone touching it. `fixConditionalFields()` handles both. The `ModelOut
 `simulation_type` patch in `bundle-schema.mjs` originally only handled the root shape and silently
 stopped applying when `Dataset` gained rules, which made `mcdr_forcing_description` required for
 every model dataset. It now searches both shapes and throws if it fails to find exactly one match.
+
+## Variable modal
+
+Variables don't go through RJSF, so none of the above applies to them. A field in
+`variableModalConfig.ts` can set `visibleWhen: { path, in }` to render only while the value at
+`path` is one of `in`. When a change hides a field, `clearHiddenFields()` drops its value. The pH
+calibration fields use this to show dye details only when `standard_used` is `dye`.

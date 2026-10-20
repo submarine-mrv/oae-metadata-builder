@@ -26,6 +26,7 @@ export interface JSONSchema {
   pattern?: string;
   default?: unknown;
   const?: unknown;
+  discriminator?: { propertyName: string };
 }
 
 export interface FieldMetadata {
@@ -119,6 +120,10 @@ export function getFieldSchema(
     // Handle anyOf/oneOf - try to find a schema that has this property
     if (currentSchema.anyOf || currentSchema.oneOf) {
       const options = currentSchema.anyOf || currentSchema.oneOf || [];
+      // A discriminator splits its values across branches; offer all of them.
+      if (currentSchema.discriminator?.propertyName === part && i === parts.length - 1) {
+        return mergeDiscriminatorOptions(options, part, rootSchema);
+      }
       let found = false;
       for (const option of options) {
         const resolved = resolveRef(option, rootSchema);
@@ -145,6 +150,23 @@ export function getFieldSchema(
   // Return without resolving - let caller decide whether to resolve
   // This preserves property-level metadata (title, description) for $ref fields
   return currentSchema;
+}
+
+/** The discriminator property with every branch's values combined into one enum. */
+function mergeDiscriminatorOptions(
+  options: JSONSchema[],
+  part: string,
+  rootSchema: JSONSchema,
+): JSONSchema | null {
+  const props = options
+    .map((option) => resolveRef(option, rootSchema).properties?.[part])
+    .filter((prop): prop is JSONSchema => !!prop);
+  if (props.length === 0) return null;
+  const values = props.flatMap(
+    (prop) => prop.enum ?? (prop.const !== undefined ? [prop.const] : []),
+  );
+  const { const: _const, ...first } = props[0];
+  return { ...first, enum: [...new Set(values)] as (string | number | boolean)[] };
 }
 
 /**

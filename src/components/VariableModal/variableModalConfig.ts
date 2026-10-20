@@ -57,7 +57,7 @@ import {
 } from "@tabler/icons-react";
 import Ajv2019 from "ajv/dist/2019";
 import type { ComponentType } from "react";
-import type { JSONSchema } from "@/components/schemaUtils";
+import { getNestedValue, type JSONSchema, setNestedValue } from "@/components/schemaUtils";
 
 // Icon type from tabler icons
 type IconProps = { size?: number | string; stroke?: number };
@@ -191,6 +191,7 @@ export function normalizeFieldConfig(field: string | FieldConfig): FieldConfig {
     rows: field.rows,
     gateLabel: field.gateLabel,
     newRowAfter: field.newRowAfter ?? false,
+    visibleWhen: field.visibleWhen,
   };
 }
 
@@ -340,6 +341,33 @@ export interface FieldConfig {
   gateLabel?: string;
   /** Force a new row after this field (fills remaining space with empty col) */
   newRowAfter?: boolean;
+  /** Show the field only while the value at `path` is one of `in`. */
+  visibleWhen?: { path: string; in: string[] };
+}
+
+/** Whether a field's `visibleWhen` condition holds for this form data. */
+export function isFieldVisible(field: FieldConfig, formData: Record<string, unknown>): boolean {
+  if (!field.visibleWhen) return true;
+  const value = getNestedValue(formData, field.visibleWhen.path);
+  return typeof value === "string" && field.visibleWhen.in.includes(value);
+}
+
+/**
+ * Clears fields whose `visibleWhen` condition stopped holding in this change.
+ * Fields already hidden before the change are left alone.
+ */
+export function clearHiddenFields(
+  prev: Record<string, unknown>,
+  next: Record<string, unknown>,
+  fields: FieldConfig[],
+): Record<string, unknown> {
+  let result = next;
+  for (const field of fields) {
+    if (!isFieldVisible(field, prev) || isFieldVisible(field, next)) continue;
+    if (getNestedValue(result, field.path) === undefined) continue;
+    result = setNestedValue(result, field.path, undefined);
+  }
+  return result;
 }
 
 export interface AccordionSection {
@@ -745,6 +773,8 @@ const TA_DIC: HierarchyLayer = {
   },
 };
 
+const PH_STANDARD_USED = "analyzing_instrument.calibration.standard_used";
+
 /** MeasuredPHFields ∪ DiscretePHVariable ∪ ContinuousPHVariable */
 const PH: HierarchyLayer = {
   name: "PHVariable",
@@ -769,23 +799,31 @@ const PH: HierarchyLayer = {
     calibration: {
       fields: [
         {
-          path: "analyzing_instrument.calibration.dye_type_and_manufacturer",
+          path: "analyzing_instrument.calibration.standard_used",
+          inputType: "enum_with_other",
+        },
+        {
+          path: "analyzing_instrument.calibration.standard_type_and_production",
           placeholderText: "e.g., m-cresol purple from Sigma-Aldrich",
+          visibleWhen: { path: PH_STANDARD_USED, in: ["dye", "tris", "other"] },
         },
         {
           path: "analyzing_instrument.calibration.dye_purified",
           span: 6,
           inputType: "boolean_select",
+          visibleWhen: { path: PH_STANDARD_USED, in: ["dye"] },
         },
         {
           path: "analyzing_instrument.calibration.correction_for_unpurified_dye",
           span: 6,
           placeholderText: "Correction method applied",
+          visibleWhen: { path: PH_STANDARD_USED, in: ["dye"] },
         },
         {
           path: "analyzing_instrument.calibration.dye_correction_method",
           inputType: "textarea",
           placeholderText: "Method used to correct for dye effects",
+          visibleWhen: { path: PH_STANDARD_USED, in: ["dye"] },
         },
         {
           path: "analyzing_instrument.calibration.ph_of_standards",
@@ -1570,6 +1608,36 @@ function dropRequired(value: unknown): unknown {
   return Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, dropRequired(v)]));
 }
 
+// removeAdditional strips inside every oneOf branch it tries, so a discriminated
+// union (the pH calibration on standard_used) would lose the later branch's fields.
+// An if/else chain on the tag tries one branch only; a missing tag falls to the last.
+function discriminatorsToConditionals(value: unknown, defs: Record<string, JSONSchema>): unknown {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((v) => discriminatorsToConditionals(v, defs));
+  const { discriminator, oneOf, ...rest } = value as Record<string, unknown>;
+  const mapped = Object.fromEntries(
+    Object.entries(rest).map(([k, v]) => [k, discriminatorsToConditionals(v, defs)]),
+  );
+  const propertyName = (discriminator as { propertyName?: string } | undefined)?.propertyName;
+  if (!propertyName || !Array.isArray(oneOf)) {
+    return oneOf === undefined ? mapped : { ...mapped, oneOf };
+  }
+  const branches = oneOf as JSONSchema[];
+  let chain: JSONSchema = branches[branches.length - 1];
+  for (const branch of branches.slice(0, -1).reverse()) {
+    const ref = branch.$ref?.split("/").pop();
+    const tag = ref ? defs[ref]?.properties?.[propertyName] : undefined;
+    const values = tag?.enum ?? (tag?.const !== undefined ? [tag.const] : []);
+    chain = {
+      if: { properties: { [propertyName]: { enum: values } }, required: [propertyName] },
+      // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
+      then: branch,
+      else: chain,
+    } as JSONSchema;
+  }
+  return { ...mapped, ...chain };
+}
+
 /**
  * Strips fields from a variable that are not valid for its schema_class.
  *
@@ -1608,7 +1676,10 @@ export function stripExtraVariableFields(
 
   let validate = classCache.get(schemaClass);
   if (!validate) {
-    const stripSchema = dropRequired({ ...defs[schemaClass], $defs: defs });
+    const stripSchema = discriminatorsToConditionals(
+      dropRequired({ ...defs[schemaClass], $defs: defs }),
+      defs,
+    );
     validate = stripAjv.compile(stripSchema as object);
     classCache.set(schemaClass, validate);
   }

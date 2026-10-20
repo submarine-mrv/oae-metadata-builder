@@ -75,8 +75,8 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
   "Model output variables" below.
 - Each concrete class already pins its **nested** `analyzing_instrument` / `calibration` to the
   correct subtype, with `additionalProperties: false` at each level:
-  - `DiscretePHVariable` → `PHInstrument` → `PHCalibration` (has `dye_type_and_manufacturer`,
-    `ph_of_standards`, …)
+  - `DiscretePHVariable` → `PHInstrument` → `DyeCalibration` or `PHCalibration`, chosen by
+    `standard_used` (dye fields exist only on `DyeCalibration`)
   - `DiscreteCO2Variable` → `CO2GasDetector` → `DiscreteCO2Calibration` (has `standard_gas_info`)
   - `DiscreteMeasuredVariable` → base `AnalyzingInstrument` → base `Calibration` (generic only)
 
@@ -129,6 +129,12 @@ every branch and, on failure, emit a wall of merged errors — which is why a ha
 `discriminator: { propertyName: "schema_class" }`, and AJV runs with `discriminator: true`
 (`validation.ts`). AJV routes each variable to the one branch its `schema_class` names, so errors
 are targeted and `datasetValidation.ts` is gone — `validateDataset` does it in a single pass.
+
+`PHInstrument.calibration` is the one nested union. Its branches split `standard_used` (`dye` vs
+`tris`/`other`), so the bundler discriminates it on that property the same way. AJV's
+discriminator needs the property required, which is why the protocol requires `standard_used`.
+`stripExtraVariableFields` can't use the discriminator, since it drops `required`, so it rewrites
+the union as an if/else on `standard_used`. A missing standard strips as `PHCalibration`.
 
 ## 5. The direction: parse, don't validate
 

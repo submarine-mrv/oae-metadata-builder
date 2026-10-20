@@ -35,6 +35,9 @@ const ENUM_OVERRIDES: Record<string, string> = {
   acoustic_doppler_current_profiler: "Acoustic Doppler Current Profiler (ADCP)",
   isotope_ratio_mass_spectrometers: "Isotope Ratio Mass Spectrometers (IRMS)",
 
+  // PHCalibrationStandard
+  tris: "TRIS",
+
   // Researcher ID Type
   orcid: "ORCID",
   researcher_id: "ResearcherID",

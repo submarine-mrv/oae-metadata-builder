@@ -445,6 +445,13 @@ decorated = discriminateVariableUnions(decorated, [
     defName: "FieldDataset",
     fieldPath: "properties.variables.items",
     propertyName: "schema_class"
+  },
+  // PHCalibration allows tris/other and DyeCalibration allows dye. Without the
+  // discriminator, removeAdditional strips dye fields while trying PHCalibration.
+  {
+    defName: "PHInstrument",
+    fieldPath: "properties.calibration",
+    propertyName: "standard_used"
   }
 ]);
 

@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import bundled from "@/schema/schema.bundled.json";
-import { fieldExistsInSchema, type JSONSchema, resolveRef } from "../../schemaUtils";
+import {
+  fieldExistsInSchema,
+  getFieldSchema,
+  type JSONSchema,
+  resolveRef,
+} from "../../schemaUtils";
 import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
 import {
   buildSectionFields,
+  clearHiddenFields,
   FIELD_TO_MODEL_VARIABLE_TYPE,
   getAccordionConfig,
   getSchemaKey,
   getSchemaKeyForUI,
+  isFieldVisible,
   MODEL_TO_FIELD_VARIABLE_TYPE,
   MODEL_VARIABLE_TYPE_OPTIONS,
   MODEL_VARIABLE_TYPE_SHORT_LABELS,
@@ -167,7 +174,7 @@ describe("getAccordionConfig", () => {
     // fieldExistsInSchema() since CalculatedVariable has no analyzing_instrument.
   });
 
-  it("preserves calibration field ordering for pH: shared top → dye → shared bottom", () => {
+  it("preserves calibration field ordering for pH: shared top → standard → shared bottom", () => {
     const sections = getAccordionConfig("DiscretePHVariable");
     const cal = sections.find((s) => s.key === "calibration")!;
     const paths = cal.fields.map((f) => (typeof f === "string" ? f : (f as FieldConfig).path));
@@ -176,8 +183,8 @@ describe("getAccordionConfig", () => {
     const techIdx = paths.indexOf("analyzing_instrument.calibration.technique_description");
     const locIdx = paths.indexOf("analyzing_instrument.calibration.calibration_location");
 
-    // Dye fields (pH-specific) come after location
-    const dyeIdx = paths.indexOf("analyzing_instrument.calibration.dye_type_and_manufacturer");
+    // Standard fields (pH-specific) come after location
+    const dyeIdx = paths.indexOf("analyzing_instrument.calibration.standard_used");
 
     // Shared bottom fields come last
     const freqIdx = paths.indexOf("analyzing_instrument.calibration.frequency");
@@ -202,7 +209,7 @@ describe("getAccordionConfig", () => {
     const sections = getAccordionConfig("DiscreteSedimentVariable");
     const cal = sections.find((s) => s.key === "calibration")!;
     const paths = cal.fields.map((f) => (typeof f === "string" ? f : (f as FieldConfig).path));
-    expect(paths).not.toContain("analyzing_instrument.calibration.dye_type_and_manufacturer");
+    expect(paths).not.toContain("analyzing_instrument.calibration.standard_type_and_production");
     expect(paths).not.toContain("analyzing_instrument.calibration.calibration_temperature");
   });
 
@@ -565,5 +572,71 @@ describe("ModelOutputVariable", () => {
       expect(MODEL_VARIABLE_TYPE_VALUES.has(modelType)).toBe(true);
       expect(VARIABLE_TYPE_OPTIONS.some((opt) => opt.value === fieldType)).toBe(true);
     }
+  });
+});
+
+describe("visibleWhen", () => {
+  const dyeOnly: FieldConfig = {
+    path: "calibration.dye_purified",
+    visibleWhen: { path: "calibration.standard_used", in: ["dye"] },
+  };
+  const anyStandard: FieldConfig = {
+    path: "calibration.standard_type_and_production",
+    visibleWhen: { path: "calibration.standard_used", in: ["dye", "tris", "other"] },
+  };
+
+  it("shows a field only while the condition value matches", () => {
+    expect(isFieldVisible(dyeOnly, { calibration: { standard_used: "dye" } })).toBe(true);
+    expect(isFieldVisible(dyeOnly, { calibration: { standard_used: "tris" } })).toBe(false);
+    expect(isFieldVisible(dyeOnly, {})).toBe(false);
+    expect(isFieldVisible({ path: "x" }, {})).toBe(true);
+  });
+
+  it("clears fields that a change hides and keeps those still visible", () => {
+    const prev = {
+      calibration: {
+        standard_used: "dye",
+        dye_purified: true,
+        standard_type_and_production: "mCP",
+      },
+    };
+    const next = { calibration: { ...prev.calibration, standard_used: "tris" } };
+
+    const result = clearHiddenFields(prev, next, [dyeOnly, anyStandard]);
+
+    expect(result).toEqual({
+      calibration: {
+        standard_used: "tris",
+        dye_purified: undefined,
+        standard_type_and_production: "mCP",
+      },
+    });
+  });
+
+  it("leaves data alone when the change hides nothing", () => {
+    const prev = { calibration: { standard_used: "dye" } };
+    const next = { calibration: { standard_used: "dye", dye_purified: false } };
+    expect(clearHiddenFields(prev, next, [dyeOnly])).toBe(next);
+  });
+});
+
+describe("pH calibration standard", () => {
+  const rootSchema = bundled as unknown as JSONSchema;
+  const phSchema = resolveRef({ $ref: "#/$defs/DiscretePHVariable" }, rootSchema);
+
+  it("offers every standard across the calibration branches", () => {
+    const field = getFieldSchema(
+      "analyzing_instrument.calibration.standard_used",
+      phSchema,
+      rootSchema,
+    );
+    expect(field?.enum).toEqual(["dye", "tris", "other"]);
+    expect(field?.const).toBeUndefined();
+  });
+
+  it("resolves dye fields through the DyeCalibration branch", () => {
+    expect(
+      fieldExistsInSchema("analyzing_instrument.calibration.dye_purified", phSchema, rootSchema),
+    ).toBe(true);
   });
 });

@@ -40,9 +40,11 @@ import SchemaField from "./SchemaField";
 import StandardIdentifierField from "./StandardIdentifierField";
 import UnitsField from "./UnitsField";
 import {
+  clearHiddenFields,
   getAccordionConfig,
   getPlaceholderOverride,
   getSchemaKeyForUI,
+  isFieldVisible,
   MODEL_DATA_PROTOCOL_URL,
   MODEL_VARIABLE_TYPE_OPTIONS,
   MODEL_VARIABLE_TYPE_SHORT_LABELS,
@@ -405,9 +407,18 @@ export default function VariableModal({
   };
 
   // Handle form data changes from SchemaField
-  const handleFormChange = useCallback((newFormData: Record<string, unknown>) => {
-    setFormData(newFormData);
-  }, []);
+  const conditionalFields = useMemo(
+    () =>
+      visibleAccordions.flatMap((section) => section.visibleFields.filter((f) => f.visibleWhen)),
+    [visibleAccordions],
+  );
+
+  const handleFormChange = useCallback(
+    (newFormData: Record<string, unknown>) => {
+      setFormData((prev) => clearHiddenFields(prev, newFormData, conditionalFields));
+    },
+    [conditionalFields],
+  );
 
   const handleSave = () => {
     if (!schemaKey) return;
@@ -448,8 +459,9 @@ export default function VariableModal({
       return { filled: 0, total: 0, allOptional: true, complete: false };
     }
 
-    const requiredFields = section.visibleFields.filter((field) =>
-      isFieldRequired(field.path, variableSchema, rootSchema),
+    const requiredFields = section.visibleFields.filter(
+      (field) =>
+        isFieldVisible(field, formData) && isFieldRequired(field.path, variableSchema, rootSchema),
     );
 
     if (requiredFields.length === 0) {
@@ -593,6 +605,7 @@ export default function VariableModal({
                   <Accordion.Panel>
                     <Grid gutter="sm">
                       {section.visibleFields.flatMap((field): React.ReactElement[] => {
+                        if (!isFieldVisible(field, formData)) return [];
                         // Compute effective placeholder with override support
                         const effectivePlaceholder =
                           getPlaceholderOverride(
