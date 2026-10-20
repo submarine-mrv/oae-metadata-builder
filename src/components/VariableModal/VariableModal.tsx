@@ -461,7 +461,8 @@ export default function VariableModal({
 
     const requiredFields = section.visibleFields.filter(
       (field) =>
-        isFieldVisible(field, formData) && isFieldRequired(field.path, variableSchema, rootSchema),
+        isFieldVisible(field, formData) &&
+        isFieldRequired(field.path, variableSchema, rootSchema, formData),
     );
 
     if (requiredFields.length === 0) {

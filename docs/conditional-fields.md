@@ -69,3 +69,8 @@ Variables don't go through RJSF, so none of the above applies to them. A field i
 `variableModalConfig.ts` can set `visibleWhen: { path, in }` to render only while the value at
 `path` is one of `in`. When a change hides a field, `clearHiddenFields()` drops its value. The pH
 calibration fields use this to show dye details only when `standard_used` is `dye`.
+
+Required markers in the modal come from `isFieldRequired()`. Under a union (the pH calibration),
+a field counts as required only if every branch that has it requires it. Under an optional object
+(a generic variable's calibration), a field counts as required only once that object has data,
+since that's when JSON Schema applies its `required`.

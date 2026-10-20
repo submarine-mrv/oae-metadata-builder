@@ -202,37 +202,61 @@ function resolveWithAllOf(schema: JSONSchema, rootSchema: JSONSchema): JSONSchem
   return merged;
 }
 
-/**
- * Checks if a field is required at its nesting level.
- * For "analyzing_instrument.calibration.dye_purified":
- * - Checks if "dye_purified" is in PHCalibration.required
- *
- * Note: This doesn't check if parent objects are required.
- */
-export function isFieldRequired(
+/** Whether `fieldName` is required by a parent schema, which may be a union. */
+function requiredByParent(parent: JSONSchema, fieldName: string, rootSchema: JSONSchema): boolean {
+  const resolved = resolveWithAllOf(parent, rootSchema);
+  const options = resolved.anyOf || resolved.oneOf;
+  if (!options) return resolved.required?.includes(fieldName) ?? false;
+  // Required only if every branch that defines the field requires it.
+  const branches = options
+    .map((option) => resolveWithAllOf(option, rootSchema))
+    .filter((branch) => branch.properties?.[fieldName]);
+  return branches.length > 0 && branches.every((b) => b.required?.includes(fieldName));
+}
+
+/** Required by its immediate parent, ignoring whether the parent is required. */
+function isRequiredAtLevel(
   fieldPath: string,
   variableSchema: JSONSchema,
   rootSchema: JSONSchema,
 ): boolean {
   const parts = fieldPath.split(".");
   const fieldName = parts[parts.length - 1];
-
-  // If it's a top-level field, check variableSchema.required (with allOf merge)
   if (parts.length === 1) {
-    const resolved = resolveWithAllOf(variableSchema, rootSchema);
-    return resolved.required?.includes(fieldName) ?? false;
+    return resolveWithAllOf(variableSchema, rootSchema).required?.includes(fieldName) ?? false;
   }
+  const parent = getFieldSchema(parts.slice(0, -1).join("."), variableSchema, rootSchema);
+  return parent ? requiredByParent(parent, fieldName, rootSchema) : false;
+}
 
-  // For nested fields, we need to get the parent schema and check its required array
-  const parentPath = parts.slice(0, -1).join(".");
-  const parentSchema = getFieldSchema(parentPath, variableSchema, rootSchema);
+/** Whether a value counts as filled in: empty strings, arrays and objects don't. */
+export function hasValue(value: unknown): boolean {
+  if (value === undefined || value === null || value === "") return false;
+  if (Array.isArray(value)) return value.some(hasValue);
+  if (typeof value === "object") return Object.values(value).some(hasValue);
+  return true;
+}
 
-  if (!parentSchema) {
-    return false;
+/**
+ * Checks if a field is required. With `formData`, a field under an optional
+ * object (e.g. a generic variable's calibration) counts as required only once
+ * that object has data, matching how JSON Schema applies `required`.
+ */
+export function isFieldRequired(
+  fieldPath: string,
+  variableSchema: JSONSchema,
+  rootSchema: JSONSchema,
+  formData?: Record<string, unknown>,
+): boolean {
+  if (!isRequiredAtLevel(fieldPath, variableSchema, rootSchema)) return false;
+  if (!formData) return true;
+  const parts = fieldPath.split(".");
+  for (let i = 1; i < parts.length; i++) {
+    const ancestor = parts.slice(0, i).join(".");
+    if (isRequiredAtLevel(ancestor, variableSchema, rootSchema)) continue;
+    if (!hasValue(getNestedValue(formData, ancestor))) return false;
   }
-
-  const resolvedParent = resolveWithAllOf(parentSchema, rootSchema);
-  return resolvedParent.required?.includes(fieldName) ?? false;
+  return true;
 }
 
 /**
@@ -242,6 +266,7 @@ export function getFieldMetadata(
   fieldPath: string,
   variableSchema: JSONSchema,
   rootSchema: JSONSchema,
+  formData?: Record<string, unknown>,
 ): FieldMetadata | null {
   const fieldSchema = getFieldSchema(fieldPath, variableSchema, rootSchema);
   if (!fieldSchema) {
@@ -270,7 +295,7 @@ export function getFieldMetadata(
     title: propertyTitle || resolved.title || fieldPath.split(".").pop() || fieldPath,
     description: propertyDescription || resolved.description,
     type,
-    required: isFieldRequired(fieldPath, variableSchema, rootSchema),
+    required: isFieldRequired(fieldPath, variableSchema, rootSchema, formData),
     enum: resolved.enum,
     format: resolved.format,
     schema: resolved,
