@@ -324,9 +324,9 @@ function inlineEnumArrayItems(schema, configs) {
 function discriminateVariableUnions(schema, configs) {
   for (const { defName, fieldPath, propertyName } of configs) {
     const classDef = schema.$defs?.[defName];
+    // Without the discriminator, AJV's removeAdditional strips fields across branches.
     if (!classDef) {
-      console.warn(`⚠️  discriminateVariableUnions: $defs.${defName} not found`);
-      continue;
+      throw new Error(`discriminateVariableUnions: $defs.${defName} not found`);
     }
 
     // Navigate to the parent of the target node (e.g. properties.variables.items)
@@ -339,10 +339,9 @@ function discriminateVariableUnions(schema, configs) {
     const target = parent?.[lastKey];
 
     if (!target || !Array.isArray(target.anyOf)) {
-      console.warn(
-        `⚠️  discriminateVariableUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
+      throw new Error(
+        `discriminateVariableUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
       );
-      continue;
     }
 
     // LinkML pairs any_of with `range: Any` so gen-doc has a range. The Any ref

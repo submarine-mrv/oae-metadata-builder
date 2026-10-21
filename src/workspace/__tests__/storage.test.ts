@@ -218,6 +218,21 @@ describe("localStorageWorkspaceStore", () => {
     expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBe(LEGACY_SESSION);
   });
 
+  it("migrates every stored project and saves the result", () => {
+    const ws = twoProjectFixture();
+    const legacy = ws.projects.map((p, i) => ({
+      ...p,
+      state: { ...p.state, projectData: { research_project: `Project ${i}` } },
+    }));
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, projects: legacy }));
+
+    const loaded = localStorageWorkspaceStore.load();
+
+    const names = loaded?.projects.map((p) => p.state.projectData);
+    expect(names).toEqual([{ name: "Project 0" }, { name: "Project 1" }]);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string)).toEqual(loaded);
+  });
+
   it("ignores a malformed legacy session", () => {
     localStorage.setItem(LEGACY_SESSION_KEY, '{"hasProject":true}');
     expect(localStorageWorkspaceStore.load()).toBeNull();

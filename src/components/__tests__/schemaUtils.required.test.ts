@@ -18,6 +18,24 @@ describe("isFieldRequired", () => {
     expect(isFieldRequired(cal("dye_purified"), ph, rootSchema, {})).toBe(false);
   });
 
+  it("requires the custom standard once the standard is other", () => {
+    const ph = variable("DiscretePHVariable");
+    const custom = cal("standard_used_custom");
+    const withStandard = (standard_used: string) => ({
+      analyzing_instrument: { calibration: { standard_used } },
+    });
+    expect(isFieldRequired(custom, ph, rootSchema, {})).toBe(false);
+    expect(isFieldRequired(custom, ph, rootSchema, withStandard("tris"))).toBe(false);
+    expect(isFieldRequired(custom, ph, rootSchema, withStandard("other"))).toBe(true);
+  });
+
+  it("reads required fields from the selected pH calibration class", () => {
+    const ph = variable("DiscretePHVariable");
+    const data = { analyzing_instrument: { calibration: { standard_used: "dye" } } };
+    expect(isFieldRequired(cal("technique_description"), ph, rootSchema, data)).toBe(true);
+    expect(isFieldRequired(cal("dye_purified"), ph, rootSchema, data)).toBe(false);
+  });
+
   it("requires calibration fields of a required calibration with no data yet", () => {
     const ta = variable("DiscreteTAVariable");
     expect(isFieldRequired(cal("crm_manufacturer"), ta, rootSchema, {})).toBe(true);

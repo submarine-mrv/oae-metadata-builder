@@ -57,7 +57,7 @@ import {
 } from "@tabler/icons-react";
 import Ajv2019 from "ajv/dist/2019";
 import type { ComponentType } from "react";
-import { getNestedValue, type JSONSchema, setNestedValue } from "@/components/schemaUtils";
+import { getNestedValue, type JSONSchema } from "@/components/schemaUtils";
 
 // Icon type from tabler icons
 type IconProps = { size?: number | string; stroke?: number };
@@ -350,24 +350,6 @@ export function isFieldVisible(field: FieldConfig, formData: Record<string, unkn
   if (!field.visibleWhen) return true;
   const value = getNestedValue(formData, field.visibleWhen.path);
   return typeof value === "string" && field.visibleWhen.in.includes(value);
-}
-
-/**
- * Clears fields whose `visibleWhen` condition stopped holding in this change.
- * Fields already hidden before the change are left alone.
- */
-export function clearHiddenFields(
-  prev: Record<string, unknown>,
-  next: Record<string, unknown>,
-  fields: FieldConfig[],
-): Record<string, unknown> {
-  let result = next;
-  for (const field of fields) {
-    if (!isFieldVisible(field, prev) || isFieldVisible(field, next)) continue;
-    if (getNestedValue(result, field.path) === undefined) continue;
-    result = setNestedValue(result, field.path, undefined);
-  }
-  return result;
 }
 
 export interface AccordionSection {

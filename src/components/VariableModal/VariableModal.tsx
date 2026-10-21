@@ -40,7 +40,6 @@ import SchemaField from "./SchemaField";
 import StandardIdentifierField from "./StandardIdentifierField";
 import UnitsField from "./UnitsField";
 import {
-  clearHiddenFields,
   getAccordionConfig,
   getPlaceholderOverride,
   getSchemaKeyForUI,
@@ -407,18 +406,10 @@ export default function VariableModal({
   };
 
   // Handle form data changes from SchemaField
-  const conditionalFields = useMemo(
-    () =>
-      visibleAccordions.flatMap((section) => section.visibleFields.filter((f) => f.visibleWhen)),
-    [visibleAccordions],
-  );
-
-  const handleFormChange = useCallback(
-    (newFormData: Record<string, unknown>) => {
-      setFormData((prev) => clearHiddenFields(prev, newFormData, conditionalFields));
-    },
-    [conditionalFields],
-  );
+  // Hidden fields keep their values while the modal is open; save strips what the schema rejects.
+  const handleFormChange = useCallback((newFormData: Record<string, unknown>) => {
+    setFormData(newFormData);
+  }, []);
 
   const handleSave = () => {
     if (!schemaKey) return;
@@ -459,18 +450,20 @@ export default function VariableModal({
       return { filled: 0, total: 0, allOptional: true, complete: false };
     }
 
-    const requiredFields = section.visibleFields.filter(
-      (field) =>
-        isFieldVisible(field, formData) &&
-        isFieldRequired(field.path, variableSchema, rootSchema, formData),
-    );
+    // An enum_with_other field also renders its `_custom` input.
+    const requiredFields = section.visibleFields
+      .filter((field) => isFieldVisible(field, formData))
+      .flatMap((field) =>
+        field.inputType === "enum_with_other" ? [field.path, `${field.path}_custom`] : [field.path],
+      )
+      .filter((path) => isFieldRequired(path, variableSchema, rootSchema, formData));
 
     if (requiredFields.length === 0) {
       return { filled: 0, total: 0, allOptional: true, complete: true };
     }
 
-    const filled = requiredFields.filter((field) => {
-      const value = getNestedValue(formData, field.path);
+    const filled = requiredFields.filter((path) => {
+      const value = getNestedValue(formData, path);
       return value !== undefined && value !== null && value !== "";
     }).length;
 

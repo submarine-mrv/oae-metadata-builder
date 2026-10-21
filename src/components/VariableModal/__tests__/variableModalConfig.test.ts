@@ -9,7 +9,6 @@ import {
 import type { FieldConfig, HierarchyLayer } from "../variableModalConfig";
 import {
   buildSectionFields,
-  clearHiddenFields,
   FIELD_TO_MODEL_VARIABLE_TYPE,
   getAccordionConfig,
   getSchemaKey,
@@ -580,43 +579,12 @@ describe("visibleWhen", () => {
     path: "calibration.dye_purified",
     visibleWhen: { path: "calibration.standard_used", in: ["dye"] },
   };
-  const anyStandard: FieldConfig = {
-    path: "calibration.standard_type_and_production",
-    visibleWhen: { path: "calibration.standard_used", in: ["dye", "tris", "other"] },
-  };
 
   it("shows a field only while the condition value matches", () => {
     expect(isFieldVisible(dyeOnly, { calibration: { standard_used: "dye" } })).toBe(true);
     expect(isFieldVisible(dyeOnly, { calibration: { standard_used: "tris" } })).toBe(false);
     expect(isFieldVisible(dyeOnly, {})).toBe(false);
     expect(isFieldVisible({ path: "x" }, {})).toBe(true);
-  });
-
-  it("clears fields that a change hides and keeps those still visible", () => {
-    const prev = {
-      calibration: {
-        standard_used: "dye",
-        dye_purified: true,
-        standard_type_and_production: "mCP",
-      },
-    };
-    const next = { calibration: { ...prev.calibration, standard_used: "tris" } };
-
-    const result = clearHiddenFields(prev, next, [dyeOnly, anyStandard]);
-
-    expect(result).toEqual({
-      calibration: {
-        standard_used: "tris",
-        dye_purified: undefined,
-        standard_type_and_production: "mCP",
-      },
-    });
-  });
-
-  it("leaves data alone when the change hides nothing", () => {
-    const prev = { calibration: { standard_used: "dye" } };
-    const next = { calibration: { standard_used: "dye", dye_purified: false } };
-    expect(clearHiddenFields(prev, next, [dyeOnly])).toBe(next);
   });
 });
 

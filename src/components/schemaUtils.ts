@@ -29,6 +29,9 @@ export interface JSONSchema {
   discriminator?: { propertyName: string };
 }
 
+/** The rule keywords isFieldRequired reads; kept off JSONSchema so JSON imports still cast to it. */
+type RuleSchema = JSONSchema & { if?: RuleSchema; then?: RuleSchema; contains?: RuleSchema };
+
 export interface FieldMetadata {
   title: string;
   description?: string;
@@ -202,13 +205,75 @@ function resolveWithAllOf(schema: JSONSchema, rootSchema: JSONSchema): JSONSchem
   return merged;
 }
 
+/** Whether a value satisfies the `const`/`enum`/`contains` checks the schema's rules use. */
+function matchesValue(condition: RuleSchema, value: unknown): boolean {
+  if (condition.const !== undefined && value !== condition.const) return false;
+  if (condition.enum && !condition.enum.includes(value as string | number | boolean)) return false;
+  if (condition.contains) {
+    const contains = condition.contains;
+    if (!Array.isArray(value) || !value.some((item) => matchesValue(contains, item))) return false;
+  }
+  return true;
+}
+
+/** Evaluates an `if` against form data. A missing property never matches. */
+function matchesIf(condition: RuleSchema, data: Record<string, unknown>): boolean {
+  const props = condition.properties ?? {};
+  for (const key of new Set([...(condition.required ?? []), ...Object.keys(props)])) {
+    if (!hasValue(data[key])) return false;
+    if (props[key] && !matchesValue(props[key], data[key])) return false;
+  }
+  return true;
+}
+
+/** Fields an `if/then` rule (at the root or inside allOf) requires for this data. */
+function requiredByRules(
+  schema: JSONSchema,
+  data: Record<string, unknown>,
+  rootSchema: JSONSchema,
+): string[] {
+  const rules: RuleSchema[] = [
+    schema,
+    ...(schema.allOf ?? []).map((branch) => resolveRef(branch, rootSchema)),
+  ];
+  return rules.flatMap((rule) =>
+    rule.if && rule.then?.required && matchesIf(rule.if, data) ? rule.then.required : [],
+  );
+}
+
+/** The union branch a discriminated parent selects for this data, if any. */
+function selectedBranch(
+  parent: JSONSchema,
+  options: JSONSchema[],
+  data: Record<string, unknown> | undefined,
+  rootSchema: JSONSchema,
+): JSONSchema | undefined {
+  const tag = parent.discriminator?.propertyName;
+  if (!tag || !data || !hasValue(data[tag])) return undefined;
+  return options
+    .map((option) => resolveWithAllOf(option, rootSchema))
+    .find((branch) => {
+      const prop = branch.properties?.[tag];
+      return prop !== undefined && matchesValue(prop, data[tag]);
+    });
+}
+
 /** Whether `fieldName` is required by a parent schema, which may be a union. */
-function requiredByParent(parent: JSONSchema, fieldName: string, rootSchema: JSONSchema): boolean {
+function requiredByParent(
+  parent: JSONSchema,
+  fieldName: string,
+  rootSchema: JSONSchema,
+  data?: Record<string, unknown>,
+): boolean {
   const resolved = resolveWithAllOf(parent, rootSchema);
   const options = resolved.anyOf || resolved.oneOf;
-  if (!options) return resolved.required?.includes(fieldName) ?? false;
-  // Required only if every branch that defines the field requires it.
-  const branches = options
+  const schema = options ? selectedBranch(resolved, options, data, rootSchema) : resolved;
+  if (schema) {
+    if (schema.required?.includes(fieldName)) return true;
+    return data ? requiredByRules(schema, data, rootSchema).includes(fieldName) : false;
+  }
+  // No branch selected: required only if every branch that defines the field requires it.
+  const branches = (options ?? [])
     .map((option) => resolveWithAllOf(option, rootSchema))
     .filter((branch) => branch.properties?.[fieldName]);
   return branches.length > 0 && branches.every((b) => b.required?.includes(fieldName));
@@ -219,14 +284,18 @@ function isRequiredAtLevel(
   fieldPath: string,
   variableSchema: JSONSchema,
   rootSchema: JSONSchema,
+  formData?: Record<string, unknown>,
 ): boolean {
   const parts = fieldPath.split(".");
   const fieldName = parts[parts.length - 1];
-  if (parts.length === 1) {
-    return resolveWithAllOf(variableSchema, rootSchema).required?.includes(fieldName) ?? false;
-  }
-  const parent = getFieldSchema(parts.slice(0, -1).join("."), variableSchema, rootSchema);
-  return parent ? requiredByParent(parent, fieldName, rootSchema) : false;
+  const parentPath = parts.slice(0, -1).join(".");
+  const parent =
+    parts.length === 1 ? variableSchema : getFieldSchema(parentPath, variableSchema, rootSchema);
+  if (!parent) return false;
+  const parentData = parts.length === 1 ? formData : getNestedValue(formData ?? {}, parentPath);
+  const isObject = parentData && typeof parentData === "object" && !Array.isArray(parentData);
+  const data = isObject ? (parentData as Record<string, unknown>) : formData ? {} : undefined;
+  return requiredByParent(parent, fieldName, rootSchema, data);
 }
 
 /** Whether a value counts as filled in: empty strings, arrays and objects don't. */
@@ -240,7 +309,8 @@ export function hasValue(value: unknown): boolean {
 /**
  * Checks if a field is required. With `formData`, a field under an optional
  * object (e.g. a generic variable's calibration) counts as required only once
- * that object has data, matching how JSON Schema applies `required`.
+ * that object has data, matching how JSON Schema applies `required`. Form data
+ * also selects the discriminated union branch and applies `if/then` rules.
  */
 export function isFieldRequired(
   fieldPath: string,
@@ -248,12 +318,12 @@ export function isFieldRequired(
   rootSchema: JSONSchema,
   formData?: Record<string, unknown>,
 ): boolean {
-  if (!isRequiredAtLevel(fieldPath, variableSchema, rootSchema)) return false;
+  if (!isRequiredAtLevel(fieldPath, variableSchema, rootSchema, formData)) return false;
   if (!formData) return true;
   const parts = fieldPath.split(".");
   for (let i = 1; i < parts.length; i++) {
     const ancestor = parts.slice(0, i).join(".");
-    if (isRequiredAtLevel(ancestor, variableSchema, rootSchema)) continue;
+    if (isRequiredAtLevel(ancestor, variableSchema, rootSchema, formData)) continue;
     if (!hasValue(getNestedValue(formData, ancestor))) return false;
   }
   return true;
