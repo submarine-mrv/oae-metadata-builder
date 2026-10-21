@@ -130,9 +130,11 @@ every branch and, on failure, emit a wall of merged errors — which is why a ha
 (`validation.ts`). AJV routes each variable to the one branch its `schema_class` names, so errors
 are targeted and `datasetValidation.ts` is gone — `validateDataset` does it in a single pass.
 
-`PHInstrument.calibration` is the one nested union. Its branches split `standard_used` (`dye` vs
-`tris`/`other`), so the bundler discriminates it on that property the same way. AJV's
-discriminator needs the property required, which is why the protocol requires `standard_used`.
+`PHInstrument.calibration` is the one nested union. `DyeCalibration` extends `PHCalibration`
+and narrows `standard_used` to `dye`, while `PHCalibration` allows every standard. AJV needs each
+tag value in exactly one branch, so the bundler gives a value to the first branch that lists it:
+in the bundle, `DyeCalibration` keeps `dye` and `PHCalibration` keeps `tris`/`other`. AJV's
+discriminator also needs the property required, which is why the protocol requires `standard_used`.
 `stripExtraVariableFields` can't use the discriminator, since it drops `required`, so it rewrites
 the union as an if/else on `standard_used`. A missing standard strips as `PHCalibration`.
 

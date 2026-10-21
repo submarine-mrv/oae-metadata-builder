@@ -321,6 +321,29 @@ function inlineEnumArrayItems(schema, configs) {
 //
 // Any validator that compiles the resulting union must set Ajv's
 // `discriminator: true` option.
+//
+// Ajv needs each tag value to belong to exactly one branch, inline as `enum` or
+// `const`. When a subclass narrows its parent's tag (DyeCalibration takes "dye"
+// from PHCalibration's full list), the value goes to the first branch listing it.
+function assignTagValues(schema, branches, propertyName) {
+  const claimed = new Set();
+  for (const branch of branches) {
+    const name = branch.$ref?.replace("#/$defs/", "");
+    const def = schema.$defs[name];
+    const prop = def?.properties?.[propertyName];
+    if (!prop) throw new Error(`assignTagValues: ${name} has no ${propertyName}`);
+    const target = prop.$ref ? schema.$defs[prop.$ref.replace("#/$defs/", "")] : prop;
+    const values = target.const !== undefined ? [target.const] : (target.enum ?? []);
+    const own = values.filter((value) => !claimed.has(value));
+    if (own.length === 0) throw new Error(`assignTagValues: ${name} has no ${propertyName} values left`);
+    for (const value of own) claimed.add(value);
+    if (prop.$ref || own.length < values.length) {
+      const { $ref, ...rest } = prop;
+      def.properties[propertyName] = { ...rest, type: "string", enum: own };
+    }
+  }
+}
+
 function discriminateVariableUnions(schema, configs) {
   for (const { defName, fieldPath, propertyName } of configs) {
     const classDef = schema.$defs?.[defName];
@@ -348,6 +371,7 @@ function discriminateVariableUnions(schema, configs) {
     // adds no constraint, and resolveRef() would follow it and lose the union.
     const { anyOf, ...rest } = target;
     if (rest.$ref === "#/$defs/Any") delete rest.$ref;
+    assignTagValues(schema, anyOf, propertyName);
     parent[lastKey] = {
       ...rest,
       oneOf: anyOf,
@@ -448,8 +472,8 @@ decorated = discriminateVariableUnions(decorated, [
     fieldPath: "properties.variables.items",
     propertyName: "schema_class"
   },
-  // PHCalibration allows tris/other and DyeCalibration allows dye. Without the
-  // discriminator, removeAdditional strips dye fields while trying PHCalibration.
+  // DyeCalibration (listed first) takes "dye"; PHCalibration keeps tris/other. Without
+  // the discriminator, removeAdditional strips dye fields while trying PHCalibration.
   {
     defName: "PHInstrument",
     fieldPath: "properties.calibration",
