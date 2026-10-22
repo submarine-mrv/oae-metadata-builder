@@ -5,6 +5,10 @@
  * in order by `migrateFormData`, which is called at load boundaries (project
  * load and file import) — NOT on every form change.
  *
+ * Migrations detect the old shape instead of checking a version: stored
+ * projects carry no protocol version, and a file's `version` can be wrong.
+ * Gate a migration on version only if its old shape is also valid today.
+ *
  * When adding a new migration:
  *   1. Write a pure function: (data) => data (return same ref if no change)
  *   2. Add it to the MIGRATIONS array below
