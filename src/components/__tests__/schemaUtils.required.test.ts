@@ -32,6 +32,7 @@ const rootSchema = {
       properties: { kind: { enum: ["b", "other"] }, shared: {}, a_required: {}, kind_custom: {} },
       required: ["kind", "shared"],
       if: { properties: { kind: { const: "other" } }, required: ["kind"] },
+      // biome-ignore lint/suspicious/noThenProperty: JSON Schema "then" keyword, not a PromiseLike
       then: { required: ["kind_custom"] },
     },
     Extra: {
