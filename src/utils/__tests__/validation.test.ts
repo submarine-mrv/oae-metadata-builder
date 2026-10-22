@@ -7,7 +7,7 @@ describe("Validation", () => {
     it("should validate valid project data", () => {
       const validData = {
         project_id: "test-project-001",
-        research_project: "Test OAE Research Project",
+        name: "Test OAE Project Name",
         description: "A comprehensive test project for OAE research",
         mcdr_pathway: "ocean_alkalinity_enhancement",
         sea_names: ["http://vocab.nerc.ac.uk/collection/C16/current/26/"],

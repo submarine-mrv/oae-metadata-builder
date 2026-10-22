@@ -43,6 +43,7 @@ import {
   getAccordionConfig,
   getPlaceholderOverride,
   getSchemaKeyForUI,
+  isFieldVisible,
   MODEL_DATA_PROTOCOL_URL,
   MODEL_VARIABLE_TYPE_OPTIONS,
   MODEL_VARIABLE_TYPE_SHORT_LABELS,
@@ -405,6 +406,7 @@ export default function VariableModal({
   };
 
   // Handle form data changes from SchemaField
+  // Hidden fields keep their values while the modal is open; save strips what the schema rejects.
   const handleFormChange = useCallback((newFormData: Record<string, unknown>) => {
     setFormData(newFormData);
   }, []);
@@ -448,16 +450,20 @@ export default function VariableModal({
       return { filled: 0, total: 0, allOptional: true, complete: false };
     }
 
-    const requiredFields = section.visibleFields.filter((field) =>
-      isFieldRequired(field.path, variableSchema, rootSchema),
-    );
+    // An enum_with_other field also renders its `_custom` input.
+    const requiredFields = section.visibleFields
+      .filter((field) => isFieldVisible(field, formData))
+      .flatMap((field) =>
+        field.inputType === "enum_with_other" ? [field.path, `${field.path}_custom`] : [field.path],
+      )
+      .filter((path) => isFieldRequired(path, variableSchema, rootSchema, formData));
 
     if (requiredFields.length === 0) {
       return { filled: 0, total: 0, allOptional: true, complete: true };
     }
 
-    const filled = requiredFields.filter((field) => {
-      const value = getNestedValue(formData, field.path);
+    const filled = requiredFields.filter((path) => {
+      const value = getNestedValue(formData, path);
       return value !== undefined && value !== null && value !== "";
     }).length;
 
@@ -593,6 +599,7 @@ export default function VariableModal({
                   <Accordion.Panel>
                     <Grid gutter="sm">
                       {section.visibleFields.flatMap((field): React.ReactElement[] => {
+                        if (!isFieldVisible(field, formData)) return [];
                         // Compute effective placeholder with override support
                         const effectivePlaceholder =
                           getPlaceholderOverride(

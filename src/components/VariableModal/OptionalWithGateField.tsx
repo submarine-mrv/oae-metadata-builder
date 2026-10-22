@@ -41,7 +41,7 @@ export default function OptionalWithGateField({
   gateLabel,
 }: OptionalWithGateFieldProps) {
   // Get metadata for the field
-  const fieldMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
+  const fieldMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema, formData);
 
   // Local UI state for the gate checkbox — not persisted in form data
   // Initialize as checked if there's already a value for this field

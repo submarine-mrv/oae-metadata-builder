@@ -29,6 +29,30 @@ function isSpatialCoverageError(e: RJSFValidationError): boolean {
   );
 }
 
+/** Moves a discriminator error onto the tag field: required when unset, invalid otherwise. */
+function discriminatorAsFieldError(e: RJSFValidationError): RJSFValidationError {
+  const { tag, tagValue } = (e.params ?? {}) as { tag?: string; tagValue?: unknown };
+  if (!tag) return e;
+  const property = `${e.property ?? ""}.${tag}`;
+  if (tagValue === undefined || tagValue === null || tagValue === "") {
+    return {
+      ...e,
+      name: "required",
+      property,
+      params: { missingProperty: tag },
+      message: "Field is required",
+      stack: `${property} is a required property`,
+    };
+  }
+  return {
+    ...e,
+    name: "enum",
+    property,
+    message: "Invalid value",
+    stack: `${property} is invalid`,
+  };
+}
+
 /**
  * Transform RJSF validation errors to provide better user-facing messages
  * @param errors - Array of validation errors from RJSF
@@ -38,6 +62,11 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
   return errors
     .filter((e) => !isIfThenEnvelopeError(e))
     .map((e) => {
+      // AJV reports a missing or unknown discriminator tag on the parent object.
+      if (e.name === "discriminator") {
+        e = discriminatorAsFieldError(e);
+      }
+
       // Normalize ALL "required" error messages.
       //
       // RJSF interpolates a field title into the message via a fragile

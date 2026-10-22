@@ -14,7 +14,7 @@ export default function ProjectSwitcher() {
   const { state } = useAppState();
   const navigate = useNavigate();
 
-  // Live from the editing session, so the title follows the Research Project name as it's typed.
+  // Live from the editing session, so the title follows the Project Name as it's typed.
   const activeName = projectDisplayName(state);
 
   const handleNew = () => {

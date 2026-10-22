@@ -291,42 +291,121 @@ function inlineEnumArrayItems(schema, configs) {
   return schema;
 }
 
-// Converts a polymorphic variable union from a bare `anyOf` into a discriminated
-// `oneOf` keyed on `schema_class`. Each variable subclass pins `schema_class` to a
-// single-value enum (LinkML designates_type).
+// Converts a polymorphic union from a bare `anyOf` into a discriminated `oneOf`.
+// Two unions use it: FieldDataset variables on `schema_class`, and
+// PHInstrument.calibration on `standard_used`.
 //
-// What this does and does NOT buy: that per-class enum tag alone already makes the
-// branches mutually exclusive, so validation *correctness* (accept/reject) does not
-// need a discriminator. What Ajv's `discriminator` keyword adds is error *routing* —
-// on failure it reports only the matching branch's errors instead of an 18-way
-// oneOf wall. That clean routing is the point: it lets one AJV pass validate a
-// dataset's variables inline with usable per-variable errors, replacing the
-// per-variable manual routing the app would otherwise do by hand.
+// For variables, each subclass pins `schema_class` to a single-value enum (LinkML
+// designates_type), so the branches are already mutually exclusive and validation
+// *correctness* (accept/reject) does not need a discriminator. For the calibration
+// union, PHCalibration and DyeCalibration share `standard_used` values, and
+// partitionDiscriminatorValues is what makes the branches exclusive.
+//
+// What Ajv's `discriminator` keyword adds is error *routing*: on failure it reports
+// only the matching branch's errors. For variables that replaces an 18-way oneOf
+// wall, which lets one AJV pass validate a dataset's variables inline with usable
+// per-variable errors instead of the app routing each variable by hand.
 //
 // `discriminator` is an OpenAPI/AJV extension, NOT standard JSON Schema. The
 // standards-track long-term replacement is JSON Schema's `propertyDependencies`
-// keyword (value-keyed subschema selection — the same routing without the
+// keyword (value-keyed subschema selection, the same routing without the
 // extension): proposed in json-schema-org/json-schema-spec#1082, merged to the
 // draft-next branch in PR #1143, slated for the next stable release (JSON Schema
 // v1, ~2026). This transform can be retired once that ships AND LinkML emits it.
 //
 // Why this lives downstream and not in LinkML: the JSON Schema generator hardcodes
 // `anyOf` for type-designator/descendant unions and emits neither `discriminator`
-// nor `propertyDependencies` — `designates_type` only emits the per-class
+// nor `propertyDependencies`. `designates_type` only emits the per-class
 // `schema_class` enum tag, with no generator flag to change this. Upstream tracking
 // of the type-designator JSON Schema gaps: https://github.com/linkml/linkml/issues/1681
 // (attempted in https://github.com/linkml/linkml/pull/1617). Being an app-internal
 // validation concern, it also belongs in this bundle, not the protocol's published
 // interoperability schema.
 //
-// Any validator that compiles the resulting union must set Ajv's
+// Any validator that compiles the resulting unions must set Ajv's
 // `discriminator: true` option.
-function discriminateVariableUnions(schema, configs) {
-  for (const { defName, fieldPath, propertyName } of configs) {
+//
+// "#/$defs/PHCalibration" → "PHCalibration"
+const nameFromRef = (ref) => ref.replace("#/$defs/", "");
+
+// The discriminator values a branch allows: an inline `const` or `enum`, or a referenced enum.
+function allowedValues(schema, branchName, propertyName) {
+  const prop = schema.$defs[branchName]?.properties?.[propertyName];
+  if (!prop) return null;
+  const source = prop.$ref ? schema.$defs[nameFromRef(prop.$ref)] : prop;
+  return source.const !== undefined ? [source.const] : (source.enum ?? []);
+}
+
+// Throws unless `partition` gives every allowed value to exactly one branch that allows it.
+function checkPartition(fail, allowed, partition) {
+  // Every branch in the union has an entry, and every entry is a branch in the union.
+  for (const branch of Object.keys(allowed)) {
+    if (!(branch in partition)) fail(`partition has no entry for ${branch}`);
+  }
+  for (const branch of Object.keys(partition)) {
+    if (!(branch in allowed)) fail(`partition names ${branch}, which isn't in the union`);
+  }
+
+  // Each value goes to one branch, and only to a branch that allows it.
+  const owner = {};
+  for (const [branch, values] of Object.entries(partition)) {
+    for (const value of values) {
+      if (!allowed[branch].includes(value)) fail(`${branch} doesn't allow "${value}"`);
+      if (owner[value]) fail(`"${value}" is given to ${owner[value]} and ${branch}`);
+      owner[value] = branch;
+    }
+  }
+
+  // No value is dropped.
+  for (const value of Object.values(allowed).flat()) {
+    if (!owner[value]) fail(`partition doesn't assign "${value}"`);
+  }
+}
+
+// Ajv needs each discriminator value to belong to exactly one branch, inline as `enum` or
+// `const`. Branches share values when a subclass narrows its parent's list (DyeCalibration
+// keeps only "dye" from PHCalibration's full list). A union with shared values must give a
+// `partition` saying which branch owns each value; the build fails otherwise.
+function partitionDiscriminatorValues(schema, label, branches, propertyName, partition) {
+  const fail = (message) => {
+    throw new Error(`partitionDiscriminatorValues: ${label}: ${message}`);
+  };
+
+  // 1. What each branch allows, e.g. { DyeCalibration: ["dye"], PHCalibration: ["dye", "tris", "other"] }.
+  const allowed = {};
+  for (const branch of branches) {
+    const name = nameFromRef(branch.$ref);
+    allowed[name] = allowedValues(schema, name, propertyName) ?? fail(`${name} has no ${propertyName}`);
+  }
+
+  // 2. Values more than one branch allows.
+  const all = Object.values(allowed).flat();
+  const shared = [...new Set(all.filter((value, i) => all.indexOf(value) !== i))];
+
+  // 3. Each branch's values: its own list when nothing is shared, otherwise the partition.
+  if (partition) {
+    checkPartition(fail, allowed, partition);
+  } else if (shared.length > 0) {
+    fail(`branches share ${shared.map((v) => `"${v}"`).join(", ")}. Add a partition to this union's config.`);
+  }
+  const owned = partition ?? allowed;
+
+  // 4. Write each branch's values inline where they changed or were a $ref.
+  for (const [name, values] of Object.entries(owned)) {
+    const prop = schema.$defs[name].properties[propertyName];
+    if (prop.$ref || values.length < allowed[name].length) {
+      const { $ref, ...rest } = prop;
+      schema.$defs[name].properties[propertyName] = { ...rest, type: "string", enum: values };
+    }
+  }
+}
+
+function discriminateUnions(schema, configs) {
+  for (const { defName, fieldPath, propertyName, partition } of configs) {
     const classDef = schema.$defs?.[defName];
+    // Without the discriminator, AJV's removeAdditional strips fields across branches.
     if (!classDef) {
-      console.warn(`⚠️  discriminateVariableUnions: $defs.${defName} not found`);
-      continue;
+      throw new Error(`discriminateUnions: $defs.${defName} not found`);
     }
 
     // Navigate to the parent of the target node (e.g. properties.variables.items)
@@ -339,13 +418,16 @@ function discriminateVariableUnions(schema, configs) {
     const target = parent?.[lastKey];
 
     if (!target || !Array.isArray(target.anyOf)) {
-      console.warn(
-        `⚠️  discriminateVariableUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
+      throw new Error(
+        `discriminateUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
       );
-      continue;
     }
 
+    // LinkML pairs any_of with `range: Any` so gen-doc has a range. The Any ref
+    // adds no constraint, and resolveRef() would follow it and lose the union.
     const { anyOf, ...rest } = target;
+    if (rest.$ref === "#/$defs/Any") delete rest.$ref;
+    partitionDiscriminatorValues(schema, `${defName}.${fieldPath}`, anyOf, propertyName, partition);
     parent[lastKey] = {
       ...rest,
       oneOf: anyOf,
@@ -439,12 +521,20 @@ console.log(
   `✓ Patched ModelOutputDataset simulation_type conditional to require contains "perturbation"`
 );
 
-// Discriminate the polymorphic variables union on schema_class.
-decorated = discriminateVariableUnions(decorated, [
+// Discriminate the variables union on schema_class and pH calibration on standard_used.
+decorated = discriminateUnions(decorated, [
   {
     defName: "FieldDataset",
     fieldPath: "properties.variables.items",
     propertyName: "schema_class"
+  },
+  // Without the discriminator, removeAdditional strips dye fields while trying PHCalibration.
+  // DyeCalibration narrows PHCalibration's standard_used to dye, so both list "dye".
+  {
+    defName: "PHInstrument",
+    fieldPath: "properties.calibration",
+    propertyName: "standard_used",
+    partition: { DyeCalibration: ["dye"], PHCalibration: ["tris", "other"] }
   }
 ]);
 

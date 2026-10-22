@@ -20,7 +20,7 @@ function twoProjectFixture(): Workspace {
 
 const LEGACY_SESSION = JSON.stringify({
   savedAt: 1234,
-  projectData: { project_id: "P1", research_project: "Old project" },
+  projectData: { project_id: "P1", name: "Old project" },
   experiments: [],
   datasets: [],
   nextExperimentId: 3,
@@ -181,7 +181,7 @@ describe("localStorageWorkspaceStore", () => {
       JSON.stringify({
         savedAt: 1234,
         hasProject: true,
-        projectData: { project_id: "P1", research_project: "Old project" },
+        projectData: { project_id: "P1", name: "Old project" },
         experiments: [],
         datasets: [],
         nextExperimentId: 3,
@@ -192,7 +192,7 @@ describe("localStorageWorkspaceStore", () => {
     const ws = localStorageWorkspaceStore.load();
     expect(ws).not.toBeNull();
     expect(ws?.projects).toHaveLength(1);
-    expect(ws?.projects[0].state.projectData.research_project).toBe("Old project");
+    expect(ws?.projects[0].state.projectData.name).toBe("Old project");
     expect(ws?.projects[0].state).not.toHaveProperty("hasProject");
     expect(ws?.projects[0].createdAt).toBe(1234);
     expect(ws?.activeProjectId).toBe(ws?.projects[0].id);
@@ -216,6 +216,37 @@ describe("localStorageWorkspaceStore", () => {
     localStorage.setItem(LEGACY_SESSION_KEY, LEGACY_SESSION);
     expect(localStorageWorkspaceStore.load()).toEqual(ws);
     expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBe(LEGACY_SESSION);
+  });
+
+  it("migrates every stored project and saves the result", () => {
+    const ws = twoProjectFixture();
+    const legacy = ws.projects.map((p, i) => ({
+      ...p,
+      state: { ...p.state, projectData: { research_project: `Project ${i}` } },
+    }));
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, projects: legacy }));
+
+    const loaded = localStorageWorkspaceStore.load();
+
+    const names = loaded?.projects.map((p) => p.state.projectData);
+    expect(names).toEqual([{ name: "Project 0" }, { name: "Project 1" }]);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string)).toEqual(loaded);
+  });
+
+  it("leaves an already-current workspace untouched on load", () => {
+    const ws = twoProjectFixture();
+    ws.projects[0].state.projectData = { name: "A" };
+    ws.projects[1].state.projectData = {
+      name: "B",
+      spatial_coverage: { geo: { box: "32 -125 42 -114" } },
+    };
+    const raw = JSON.stringify(ws);
+    localStorage.setItem(WORKSPACE_KEY, raw);
+    const setItem = vi.spyOn(Object.getPrototypeOf(localStorage) as Storage, "setItem");
+
+    expect(localStorageWorkspaceStore.load()).toEqual(ws);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe(raw);
   });
 
   it("ignores a malformed legacy session", () => {

@@ -14,7 +14,7 @@ const projectUiSchema = {
     expandable: false,
   },
   "ui:order": [
-    "research_project",
+    "name",
     "project_id",
     "description",
     "mcdr_pathway",
@@ -137,9 +137,8 @@ const projectUiSchema = {
   colocated_operations: {
     "ui:widget": "textarea",
   },
-  research_project: {
+  name: {
     ...halfWidthStyle,
-    "ui:title": "Research Project",
   },
   funding: {
     "ui:options": {

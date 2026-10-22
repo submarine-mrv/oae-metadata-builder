@@ -38,7 +38,7 @@ export default function UnitsField({
   descriptionModal = false,
   placeholderText,
 }: UnitsFieldProps) {
-  const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
+  const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema, formData);
 
   if (!metadata) {
     console.warn(`UnitsField: No metadata found for path "${fieldPath}"`);

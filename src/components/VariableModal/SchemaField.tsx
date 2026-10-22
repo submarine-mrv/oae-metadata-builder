@@ -47,7 +47,7 @@ export default function SchemaField({
   rows,
 }: SchemaFieldProps) {
   // Get field metadata from schema
-  const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
+  const metadata = getFieldMetadata(fieldPath, variableSchema, rootSchema, formData);
   const currentValue = getNestedValue(formData, fieldPath);
   const schemaConst = metadata?.schema?.const;
 
