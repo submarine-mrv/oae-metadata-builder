@@ -36,9 +36,9 @@ export default function EnumWithOtherField({
   placeholderText,
 }: EnumWithOtherFieldProps) {
   // Get metadata for the enum field
-  const enumMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema);
+  const enumMetadata = getFieldMetadata(fieldPath, variableSchema, rootSchema, formData);
   const customFieldPath = `${fieldPath}_custom`;
-  const customMetadata = getFieldMetadata(customFieldPath, variableSchema, rootSchema);
+  const customMetadata = getFieldMetadata(customFieldPath, variableSchema, rootSchema, formData);
 
   if (!enumMetadata) {
     console.warn(`EnumWithOtherField: No metadata found for path "${fieldPath}"`);

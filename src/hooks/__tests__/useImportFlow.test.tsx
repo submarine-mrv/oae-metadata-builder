@@ -11,7 +11,7 @@ const navigate = vi.fn();
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const payload = {
-  projectData: { project_id: "P1", research_project: "Imported" },
+  projectData: { project_id: "P1", name: "Imported" },
   experiments: [],
   datasets: [],
 };
@@ -66,7 +66,7 @@ describe("useImportFlow", () => {
     act(() => result.current.flow.previewProps.onImportModeChange("merge"));
     act(() => result.current.flow.previewProps.onImport());
     expect(result.current.ws.projects).toHaveLength(1);
-    expect(result.current.app.state.projectData.research_project).toBe("Imported");
+    expect(result.current.app.state.projectData.name).toBe("Imported");
     expect(navigate).toHaveBeenCalledWith({ to: "/overview" });
   });
 
@@ -83,7 +83,7 @@ describe("useImportFlow", () => {
       result.current.app.updateExperiment(second, { experiment_id: "E1" });
     });
     vi.mocked(importMetadata).mockResolvedValueOnce({
-      projectData: { project_id: "P1", research_project: "Imported" },
+      projectData: { project_id: "P1", name: "Imported" },
       experiments: [{ formData: { experiment_id: "E1", name: "Exp" } }],
       datasets: [{ formData: { name: "DS", experiment_id: "E1" } }],
     } as unknown as ImportResult);

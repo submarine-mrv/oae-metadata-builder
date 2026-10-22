@@ -61,7 +61,7 @@ Two open tabs overwrite each other. Each tab saves its own copy of the workspace
 
 ## Names, ids and titles
 
-The display name is the Research Project field (`projectData.research_project`), falling back to "Unnamed Project" when it is empty or not text. Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
+The display name is the Project Name field (`projectData.name`), falling back to "Unnamed Project" when it is empty or not text. Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
 
 `DocumentTitle` sets the tab title on every route: "Kiel trial · OAE Metadata Builder" once the project is named, "OAE Metadata Builder" otherwise.
 
@@ -81,4 +81,4 @@ A file with duplicate experiment ids is blocked in both modes.
 
 The app owns `project_id` and `experiment_id` on imported records, so `applyImport` ignores the file's values. Every experiment and dataset gets the resulting project's `project_id`, and a dataset has an `experiment_id` only when it is linked to an experiment in that project.
 
-`parseProjectState` (`src/utils/parseProjectState.ts`) parses and migrates a saved project when `AppStateProvider` loads it.
+`localStorageWorkspaceStore.load` runs the form data migrations on every stored project and saves the result, so the project list shows current field names. `parseProjectState` (`src/utils/parseProjectState.ts`) parses and migrates a saved project again when `AppStateProvider` loads it.

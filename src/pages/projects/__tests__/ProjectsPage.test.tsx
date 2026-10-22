@@ -22,12 +22,12 @@ function Seed() {
   const { createProject, importAsNewProject, projects } = useWorkspace();
   const seedTwo = () => {
     importAsNewProject({
-      project: { research_project: "Old trial" },
+      project: { name: "Old trial" },
       experiments: [{ experiment_id: "E1" }, { experiment_id: "E2" }],
       datasets: [{ formData: { name: "DS" } }],
     });
     importAsNewProject({
-      project: { research_project: "Current trial" },
+      project: { name: "Current trial" },
       experiments: [],
       datasets: [],
     });

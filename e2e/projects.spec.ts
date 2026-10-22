@@ -25,7 +25,7 @@ test.describe("Multiple projects", () => {
     await firstProject.click();
     await expect(page).toHaveURL(/\/project$/);
     await expect(switcher).toHaveText("Unnamed Project");
-    await page.getByLabel(/Research Project/).fill("Kiel trial");
+    await page.getByLabel(/Project Name/).fill("Kiel trial");
     await expect(page).toHaveTitle("Kiel trial · OAE Metadata Builder");
     await expect(switcher).toHaveText("Kiel trial");
 
@@ -86,7 +86,7 @@ test.describe("Multiple projects", () => {
     // Deleting from the overview with two projects lands on the other one's overview.
     await firstProject.click();
     await expect(page).toHaveURL(/\/project$/);
-    await page.getByLabel(/Research Project/).fill("Bergen trial");
+    await page.getByLabel(/Project Name/).fill("Bergen trial");
     await expect(switcher).toHaveText("Bergen trial");
     await switcher.click();
     await page.getByRole("menuitem", { name: "New project" }).click();

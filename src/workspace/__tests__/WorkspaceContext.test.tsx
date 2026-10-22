@@ -18,9 +18,9 @@ describe("WorkspaceProvider", () => {
     vi.useRealTimers();
   });
 
-  const named = (research_project: string) => ({
+  const named = (name: string) => ({
     ...emptyProjectState(),
-    projectData: { project_id: "", research_project },
+    projectData: { project_id: "", name },
   });
 
   it("starts with no projects and no active project when storage is empty", () => {
@@ -33,7 +33,7 @@ describe("WorkspaceProvider", () => {
   it("summarises a project whose name isn't text", () => {
     const state = {
       ...emptyProjectState(),
-      projectData: { project_id: "", research_project: ["WCOA"] },
+      projectData: { project_id: "", name: ["WCOA"] },
     } as unknown as ProjectState;
     const project = newProjectRecord(state, 100);
     localStorage.setItem(
@@ -141,16 +141,12 @@ describe("WorkspaceProvider", () => {
 
     act(() => result.current.updateProject(id, named("Named")));
     expect(result.current.projects[0].name).toBe("Named");
-    expect(
-      localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project,
-    ).toBeUndefined();
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.name).toBeUndefined();
 
     act(() => {
       vi.advanceTimersByTime(2000);
     });
-    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project).toBe(
-      "Named",
-    );
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.name).toBe("Named");
   });
 
   it("flushes an unsaved edit on pagehide", () => {
@@ -164,9 +160,7 @@ describe("WorkspaceProvider", () => {
     act(() => {
       window.dispatchEvent(new Event("pagehide"));
     });
-    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project).toBe(
-      "Flushed",
-    );
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.name).toBe("Flushed");
   });
 
   it("flushes an unsaved edit when the page becomes hidden", () => {
@@ -186,16 +180,14 @@ describe("WorkspaceProvider", () => {
       // Removes the own property so the prototype getter applies again.
       delete (document as { visibilityState?: unknown }).visibilityState;
     }
-    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.research_project).toBe(
-      "Hidden",
-    );
+    expect(localStorageWorkspaceStore.load()?.projects[0].state.projectData.name).toBe("Hidden");
   });
 
   it("drops a link to an experiment that isn't in the new project", () => {
     const { result } = renderHook(() => useWorkspace(), { wrapper });
     act(() => {
       result.current.importAsNewProject({
-        project: { project_id: "P2", research_project: "Imported" },
+        project: { project_id: "P2", name: "Imported" },
         experiments: [],
         datasets: [
           {
@@ -207,7 +199,7 @@ describe("WorkspaceProvider", () => {
     });
     const active = result.current.activeProject;
     expect(active).not.toBeNull();
-    expect(active?.state.projectData.research_project).toBe("Imported");
+    expect(active?.state.projectData.name).toBe("Imported");
     expect(active?.state.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
     expect(result.current.projects).toHaveLength(1);
   });

@@ -1,3 +1,4 @@
+import { migrateFormData } from "@/utils/migrations";
 import { newProjectRecord, type ProjectRecord, type ProjectState, type Workspace } from "./types";
 import { mostRecent } from "./workspace";
 
@@ -82,6 +83,33 @@ function backup(raw: string): boolean {
   return write(`${BACKUP_KEY_PREFIX}${Date.now()}`, raw);
 }
 
+function migrateEntities<T extends { formData: Record<string, unknown> }>(entities: T[]): T[] {
+  let changed = false;
+  const next = entities.map((entity) => {
+    const formData = migrateFormData(entity.formData);
+    if (formData === entity.formData) return entity;
+    changed = true;
+    return { ...entity, formData };
+  });
+  return changed ? next : entities;
+}
+
+/** Runs form data migrations on a stored project; the same record when nothing changed. */
+function migrateRecord(record: ProjectRecord): ProjectRecord {
+  const { state } = record;
+  const projectData = migrateFormData(state.projectData);
+  const experiments = migrateEntities(state.experiments);
+  const datasets = migrateEntities(state.datasets);
+  if (
+    projectData === state.projectData &&
+    experiments === state.experiments &&
+    datasets === state.datasets
+  ) {
+    return record;
+  }
+  return { ...record, state: { ...state, projectData, experiments, datasets } };
+}
+
 /** Unreadable project records whose backup failed; saves keep them so they aren't lost. */
 let quarantined: unknown[] = [];
 
@@ -93,8 +121,11 @@ function readWorkspace(raw: string): Workspace | null {
   const stored = parseJson(raw);
   if (!isRecord(stored) || stored.version !== 1 || !Array.isArray(stored.projects)) return null;
 
-  const projects = stored.projects.filter(isProjectRecord);
-  const dropped = projects.length < stored.projects.length;
+  const readable = stored.projects.filter(isProjectRecord);
+  const dropped = readable.length < stored.projects.length;
+  // Migrate every project, not just the active one, so the project list shows current fields.
+  const projects = readable.map(migrateRecord);
+  const migrated = projects.some((p, i) => p !== readable[i]);
   const activeProjectId = projects.some((p) => p.id === stored.activeProjectId)
     ? (stored.activeProjectId as string)
     : (mostRecent(projects)?.id ?? null);
@@ -102,7 +133,7 @@ function readWorkspace(raw: string): Workspace | null {
 
   const backedUp = dropped && backup(raw);
   quarantined = dropped && !backedUp ? stored.projects.filter((p) => !isProjectRecord(p)) : [];
-  const repaired = dropped || activeProjectId !== stored.activeProjectId;
+  const repaired = dropped || migrated || activeProjectId !== stored.activeProjectId;
   // Overwrite only once any dropped records are backed up.
   if (repaired && (!dropped || backedUp)) write(WORKSPACE_KEY, JSON.stringify(workspace));
   return workspace;
@@ -132,7 +163,8 @@ export const localStorageWorkspaceStore: WorkspaceStore = {
     }
 
     const legacyRaw = read(LEGACY_SESSION_KEY);
-    const legacy = legacyRaw ? migrateLegacySession(parseJson(legacyRaw)) : null;
+    const session = legacyRaw ? migrateLegacySession(parseJson(legacyRaw)) : null;
+    const legacy = session && migrateRecord(session);
     if (!legacy) return null;
     const workspace: Workspace = { version: 1, activeProjectId: legacy.id, projects: [legacy] };
     if (write(WORKSPACE_KEY, JSON.stringify(workspace))) remove(LEGACY_SESSION_KEY);

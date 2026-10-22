@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { migrateFormData, migratePublicComments } from "../migrations";
+import {
+  migrateFormData,
+  migratePHCalibrationStandard,
+  migratePublicComments,
+  migrateResearchProject,
+} from "../migrations";
 
 describe("migratePublicComments", () => {
   it("keeps the old text whole as one entry's description", () => {
@@ -93,5 +98,77 @@ describe("migrateFormData", () => {
 
   it("passes through non-objects", () => {
     expect(migrateFormData(null as never)).toBeNull();
+  });
+
+  it("returns the same reference for current-format data", () => {
+    const data = { name: "A", spatial_coverage: { geo: { box: "32 -125 42 -114" } } };
+    expect(migrateFormData(data)).toBe(data);
+  });
+});
+
+describe("migrateResearchProject", () => {
+  it("renames research_project to name", () => {
+    expect(migrateResearchProject({ project_id: "P1", research_project: "Kiel trial" })).toEqual({
+      project_id: "P1",
+      name: "Kiel trial",
+    });
+  });
+
+  it("keeps an existing name and drops research_project", () => {
+    expect(migrateResearchProject({ name: "New", research_project: "Old" })).toEqual({
+      name: "New",
+    });
+  });
+
+  it("fills an empty name from research_project", () => {
+    expect(migrateResearchProject({ name: " ", research_project: "Old" })).toEqual({ name: "Old" });
+  });
+
+  it("returns the same object when there is nothing to migrate", () => {
+    const data = { name: "Kiel trial" };
+    expect(migrateResearchProject(data)).toBe(data);
+  });
+});
+
+describe("migratePHCalibrationStandard", () => {
+  const withCalibration = (calibration: Record<string, unknown>) => ({
+    variables: [{ schema_class: "DiscretePHVariable", analyzing_instrument: { calibration } }],
+  });
+  const calibrationOf = (data: Record<string, any>) =>
+    data.variables[0].analyzing_instrument.calibration;
+
+  it("renames the dye type field and marks the standard as dye", () => {
+    const result = migratePHCalibrationStandard(
+      withCalibration({ dye_type_and_manufacturer: "mCP" }),
+    );
+    expect(calibrationOf(result)).toEqual({
+      standard_type_and_production: "mCP",
+      standard_used: "dye",
+    });
+  });
+
+  it("marks the standard as dye when only a dye field is set", () => {
+    const result = migratePHCalibrationStandard(withCalibration({ dye_purified: false }));
+    expect(calibrationOf(result)).toEqual({ dye_purified: false, standard_used: "dye" });
+  });
+
+  it("keeps a standard the user already chose", () => {
+    const result = migratePHCalibrationStandard(
+      withCalibration({ standard_used: "tris", dye_type_and_manufacturer: "x" }),
+    );
+    expect(calibrationOf(result)).toEqual({
+      standard_used: "tris",
+      standard_type_and_production: "x",
+    });
+  });
+
+  it("leaves calibrations without dye data alone", () => {
+    const data = withCalibration({ ph_of_standards: "7.0" });
+    expect(migratePHCalibrationStandard(data)).toBe(data);
+  });
+
+  it("runs as part of migrateFormData", () => {
+    const result = migrateFormData(withCalibration({ dye_correction_method: "Liu 2011" }));
+    expect(calibrationOf(result).standard_used).toBe("dye");
   });
 });

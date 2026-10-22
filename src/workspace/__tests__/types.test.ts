@@ -14,24 +14,24 @@ describe("projectDisplayName", () => {
     expect(
       projectDisplayName({
         ...emptyProjectState(),
-        projectData: { project_id: "", research_project: "   " },
+        projectData: { project_id: "", name: "   " },
       }),
     ).toBe(UNNAMED_PROJECT);
   });
 
-  it("uses the trimmed Research Project name", () => {
+  it("uses the trimmed Project Name", () => {
     const state = {
       ...emptyProjectState(),
-      projectData: { project_id: "", research_project: "  Kiel trial " },
+      projectData: { project_id: "", name: "  Kiel trial " },
     };
     expect(projectDisplayName(state)).toBe("Kiel trial");
   });
 
   it("treats a non-text name as unnamed", () => {
-    for (const research_project of [["WCOA"], 42]) {
+    for (const name of [["WCOA"], 42]) {
       const state = {
         ...emptyProjectState(),
-        projectData: { project_id: "", research_project },
+        projectData: { project_id: "", name },
       } as unknown as ProjectState;
       expect(projectDisplayName(state)).toBe(UNNAMED_PROJECT);
     }
@@ -46,7 +46,7 @@ describe("documentTitle", () => {
   it("leads with the project name once it has one", () => {
     const state = {
       ...emptyProjectState(),
-      projectData: { project_id: "", research_project: "Kiel trial" },
+      projectData: { project_id: "", name: "Kiel trial" },
     };
     expect(documentTitle(state)).toBe("Kiel trial · OAE Metadata Builder");
   });
