@@ -4,6 +4,32 @@ Notable changes to the OAE Metadata Builder. Major versions change what the buil
 you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
+## [1.1.0] — 2026-10-22
+
+Built against oae-data-protocol v0.6.0.
+
+Protocol v0.6.0 renames the project's Research Project field to Project Name and adds a Standard used
+choice to discrete pH calibration. Projects saved in the browser and imported files from earlier
+versions are upgraded when they load. A pH calibration without dye details needs a standard picked
+before it validates.
+
+### Updated
+
+- The project's Research Project field is now Project Name (`name`). Saved projects and imported
+  files that use `research_project` are upgraded on load, and the Projects page shows their names.
+  (#100)
+- Discrete pH calibration asks which standard was used: Dye, TRIS or Other. Dye adds the dye
+  purification and correction fields, and Other asks you to name the standard. "Type of dye and
+  manufacturer information" is now "Standard type and production" and applies to every standard. A
+  calibration with dye details from an earlier version is set to Dye on load. (#100)
+- In the variable editor, choosing Other marks the custom standard as required, and a missing or
+  unknown standard shows as "Field is required" or "Invalid value" on the Standard used field. (#100)
+
+### Fixed
+
+- Calibration fields on generic variables no longer show as required until you start filling in the
+  calibration. (#100)
+
 ## [1.0.1] — 2026-10-05
 
 Built against oae-data-protocol v0.5.0.
