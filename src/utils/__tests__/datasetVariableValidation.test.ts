@@ -78,7 +78,7 @@ describe("validateDataset — polymorphic variables", () => {
 
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.every((e) => e.name === "variable")).toBe(true);
-    expect(errors.some((e) => /must be in oneOf/.test(e.message ?? ""))).toBe(true);
+    expect(errors.some((e) => /schema_class: Invalid value/.test(e.message ?? ""))).toBe(true);
   });
 
   it("does not flag CO2-specific fields against a pH variable (no cross-branch leakage)", () => {
@@ -124,5 +124,34 @@ describe("validateDataset — polymorphic variables", () => {
     // ...labeled for the right variable (no cross-contamination between buckets).
     expect(byIndex?.get(0)?.every((e) => e.message?.startsWith("Variable 'pH_total':"))).toBe(true);
     expect(byIndex?.get(1)?.every((e) => e.message?.startsWith("Variable 'xco2':"))).toBe(true);
+  });
+});
+
+describe("validateDataset — pH calibration standard", () => {
+  const phWithCalibration = (calibration: Record<string, unknown>) => ({
+    ...baseDataset,
+    variables: [
+      {
+        schema_class: "DiscretePHVariable",
+        dataset_variable_name: "pH_total",
+        analyzing_instrument: { calibration },
+      },
+    ],
+  });
+
+  it("reports a missing standard as a required field", () => {
+    const messages = variableErrors(phWithCalibration({})).map((e) => e.message);
+    expect(messages).toContain(
+      "Variable 'pH_total': analyzing_instrument.calibration.standard_used: Field is required",
+    );
+  });
+
+  it("reports an unknown standard as an invalid value", () => {
+    const messages = variableErrors(phWithCalibration({ standard_used: "litmus" })).map(
+      (e) => e.message,
+    );
+    expect(messages).toContain(
+      "Variable 'pH_total': analyzing_instrument.calibration.standard_used: Invalid value",
+    );
   });
 });

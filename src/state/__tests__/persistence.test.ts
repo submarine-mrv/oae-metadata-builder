@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkspaceStore } from "@/workspace/storage";
 import { emptyProjectState, newProjectRecord, type Workspace } from "@/workspace/types";
 import { addProject, deleteProject, switchProject } from "@/workspace/workspace";
+import { deleteAllProjectsAtom } from "../actions";
 import { projectStateAtom, workspaceAtom } from "../atoms";
 import { SAVE_DEBOUNCE_MS, startPersistence } from "../persistence";
 
@@ -18,12 +19,12 @@ function memoryStore() {
   return store;
 }
 
-const named = (research_project: string) => ({
+const named = (name: string) => ({
   ...emptyProjectState(),
-  projectData: { project_id: "", research_project },
+  projectData: { project_id: "", name },
 });
 
-const savedName = (ws: Workspace | null) => ws?.projects[0]?.state.projectData.research_project;
+const savedName = (ws: Workspace | null) => ws?.projects[0]?.state.projectData.name;
 
 describe("startPersistence", () => {
   let stop: () => void = () => {};
@@ -69,6 +70,14 @@ describe("startPersistence", () => {
     store.set(workspaceAtom, (ws) => deleteProject(ws, id));
     expect(workspaceStore.saved()?.projects.map((p) => p.id)).toEqual([second.id]);
     expect(workspaceStore.save).toHaveBeenCalledTimes(4);
+  });
+
+  it("saves deleting every project immediately", () => {
+    const { store, workspaceStore } = startWithProject();
+    store.set(workspaceAtom, (ws) => addProject(ws, newProjectRecord()));
+    store.set(deleteAllProjectsAtom);
+    expect(workspaceStore.saved()?.projects).toEqual([]);
+    expect(workspaceStore.saved()?.activeProjectId).toBeNull();
   });
 
   it("saves an edit after the debounce", () => {

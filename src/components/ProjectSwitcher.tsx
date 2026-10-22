@@ -16,7 +16,7 @@ export default function ProjectSwitcher() {
   const switchProject = useSetAtom(switchProjectAtom);
   const navigate = useNavigate();
 
-  // Follows the Research Project name as it's typed.
+  // Follows the Project Name as it's typed.
   const activeName = useAtomValue(projectNameAtom);
 
   const handleNew = () => {

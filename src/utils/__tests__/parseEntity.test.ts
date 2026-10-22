@@ -136,7 +136,7 @@ describe("parseDataset", () => {
         experiment_id: "exp-1",
         dataset_type: "model_output",
         data_accessibility: "open_access",
-        // Open access needs a link or an access date as of protocol 0.4.0.
+        // Open access needs a link.
         data_access_link: "https://doi.org/10.25921/example",
         data_submitter: { name: "A Researcher", email: "researcher@example.org" },
         filenames: ["output.nc"],
@@ -394,6 +394,25 @@ describe("parseDataset", () => {
       rootSchema,
     );
     expect(kept.mcdr_forcing_description).toBe("still here");
+  });
+
+  it.each([
+    "cast",
+    "model_output",
+  ])("keeps data_access_date only for scheduled access on a %s dataset", (dataset_type) => {
+    for (const data_accessibility of ["open_access", "conditional_access", undefined]) {
+      const parsed = parseDataset(
+        { dataset_type, data_accessibility, data_access_date: "2027-06-01" },
+        rootSchema,
+      );
+      expect(parsed.data_access_date).toBeUndefined();
+    }
+
+    const kept = parseDataset(
+      { dataset_type, data_accessibility: "scheduled_access", data_access_date: "2027-06-01" },
+      rootSchema,
+    );
+    expect(kept.data_access_date).toBe("2027-06-01");
   });
 
   it("degrades non-object input to an empty draft", () => {

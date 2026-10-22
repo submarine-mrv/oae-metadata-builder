@@ -3,7 +3,7 @@
 import { atom, type WritableAtom } from "jotai";
 import { applyImport, type ImportSelection } from "@/utils/applyImport";
 import { emptyProjectState, newProjectRecord, type ProjectState } from "@/workspace/types";
-import { addProject, deleteProject, switchProject } from "@/workspace/workspace";
+import { addProject, deleteProject, emptyWorkspace, switchProject } from "@/workspace/workspace";
 import {
   activeDatasetIdAtom,
   activeExperimentIdAtom,
@@ -71,6 +71,10 @@ export const switchProjectAtom = atom(null, (_get, set, id: string) => {
 
 export const deleteProjectAtom = atom(null, (_get, set, id: string) => {
   set(workspaceAtom, (ws) => deleteProject(ws, id));
+});
+
+export const deleteAllProjectsAtom = atom(null, (_get, set) => {
+  set(workspaceAtom, emptyWorkspace());
 });
 
 // =============================================================================

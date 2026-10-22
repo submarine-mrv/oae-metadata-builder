@@ -170,15 +170,17 @@ describe("stripExtraVariableFields — real bundled schema", () => {
     >;
 
   it("preserves pH-specific calibration fields on a DiscretePHVariable", () => {
-    // DiscretePHVariable -> PHInstrument -> PHCalibration, which legitimately
-    // carries dye_type_and_manufacturer + ph_of_standards.
+    // DiscretePHVariable -> PHInstrument -> DyeCalibration, which legitimately
+    // carries dye fields + ph_of_standards.
     const phVar = {
       schema_class: "DiscretePHVariable",
       long_name: "pH (total scale)",
       dataset_variable_name: "pH",
       analyzing_instrument: {
         calibration: {
-          dye_type_and_manufacturer: "m-cresol purple, Sigma-Aldrich",
+          standard_used: "dye",
+          standard_type_and_production: "m-cresol purple, Sigma-Aldrich",
+          dye_purified: true,
           ph_of_standards: "7.0, 10.0",
         },
       },
@@ -189,8 +191,35 @@ describe("stripExtraVariableFields — real bundled schema", () => {
 
     expect(result.schema_class).toBe("DiscretePHVariable");
     expect(result.long_name).toBe("pH (total scale)");
-    expect(cal.dye_type_and_manufacturer).toBe("m-cresol purple, Sigma-Aldrich");
+    expect(cal.standard_type_and_production).toBe("m-cresol purple, Sigma-Aldrich");
+    expect(cal.dye_purified).toBe(true);
     expect(cal.ph_of_standards).toBe("7.0, 10.0");
+  });
+
+  it("drops dye fields from a pH calibration whose standard is not dye", () => {
+    const phVar = {
+      schema_class: "DiscretePHVariable",
+      analyzing_instrument: {
+        calibration: { standard_used: "tris", dye_purified: true, ph_of_standards: "7.0" },
+      },
+    };
+
+    const cal = calibrationOf(stripExtraVariableFields(phVar, rootSchema));
+
+    expect(cal).toEqual({ standard_used: "tris", ph_of_standards: "7.0" });
+  });
+
+  it("strips a pH calibration with no standard as a non-dye calibration", () => {
+    const phVar = {
+      schema_class: "DiscretePHVariable",
+      analyzing_instrument: {
+        calibration: { dye_purified: true, junk: 1, ph_of_standards: "7.0" },
+      },
+    };
+
+    const cal = calibrationOf(stripExtraVariableFields(phVar, rootSchema));
+
+    expect(cal).toEqual({ ph_of_standards: "7.0" });
   });
 
   it("drops orphaned pH calibration fields when schema_class is DiscreteCO2Variable, keeping CO2 fields", () => {
@@ -203,7 +232,7 @@ describe("stripExtraVariableFields — real bundled schema", () => {
       dataset_variable_name: "xCO2",
       analyzing_instrument: {
         calibration: {
-          dye_type_and_manufacturer: "leftover from pH",
+          standard_type_and_production: "leftover from pH",
           standard_gas_info: { manufacturer: "NOAA" },
         },
       },
@@ -212,7 +241,7 @@ describe("stripExtraVariableFields — real bundled schema", () => {
     const result = stripExtraVariableFields(switchedVar, rootSchema);
     const cal = calibrationOf(result);
 
-    expect(cal).not.toHaveProperty("dye_type_and_manufacturer");
+    expect(cal).not.toHaveProperty("standard_type_and_production");
     expect(cal).toHaveProperty("standard_gas_info");
     expect((cal.standard_gas_info as Record<string, unknown>).manufacturer).toBe("NOAA");
   });

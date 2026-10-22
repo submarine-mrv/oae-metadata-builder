@@ -468,7 +468,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -894,7 +895,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "temperature_correction_method": {
                     "description": "How the temperature effect was corrected.",
@@ -1080,7 +1082,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -1244,7 +1247,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -1411,7 +1415,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -1594,7 +1599,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "taxonomic_code_system": {
                     "$ref": "#/$defs/TaxonomicCodeSystem",
@@ -1778,7 +1784,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -1987,7 +1994,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -2089,23 +2097,11 @@
                         ]
                     },
                     "then": {
-                        "anyOf": [
-                            {
-                                "properties": {
-                                    "data_access_link": {}
-                                },
-                                "required": [
-                                    "data_access_link"
-                                ]
-                            },
-                            {
-                                "properties": {
-                                    "data_access_date": {}
-                                },
-                                "required": [
-                                    "data_access_date"
-                                ]
-                            }
+                        "properties": {
+                            "data_access_link": {}
+                        },
+                        "required": [
+                            "data_access_link"
                         ]
                     }
                 }
@@ -2118,20 +2114,20 @@
                     "type": "string"
                 },
                 "data_access_date": {
-                    "description": "The date by when this dataset will be openly available on a public repository if it is not currently.",
+                    "description": "The date by when this dataset will be openly available on a public repository. Only used when data_accessibility is scheduled_access; leave empty otherwise.",
                     "format": "date",
                     "title": "Data Access Date",
                     "type": "string"
                 },
                 "data_access_link": {
-                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
+                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Required for open access, optional otherwise.",
                     "pattern": "^https?://.+",
-                    "title": "Data access link",
+                    "title": "Data Access Link",
                     "type": "string"
                 },
                 "data_accessibility": {
                     "$ref": "#/$defs/DataAccessibility",
-                    "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
+                    "description": "Level of access to this dataset. Open Access data are freely available now, without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date; choose it for any data that are not openly available yet.",
                     "title": "Data Accessibility"
                 },
                 "data_submitter": {
@@ -2413,7 +2409,8 @@
                     "type": "number"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "storage_method": {
                     "description": "How the samples were stored before the measurement.",
@@ -2603,7 +2600,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -2758,7 +2756,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -2924,7 +2923,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "temperature_correction_method": {
                     "description": "Method used to correct pH for temperature.",
@@ -3103,7 +3103,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "taxonomic_code_system": {
                     "$ref": "#/$defs/TaxonomicCodeSystem",
@@ -3276,7 +3277,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -3456,7 +3458,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "titration_cell_type": {
                     "$ref": "#/$defs/TitrationCellType",
@@ -3574,6 +3577,110 @@
                 }
             },
             "title": "DosingLocation",
+            "type": "object"
+        },
+        "DyeCalibration": {
+            "additionalProperties": false,
+            "description": "pH instrument calibration with an indicator dye standard.",
+            "if": {
+                "properties": {
+                    "standard_used": {
+                        "const": "other"
+                    }
+                },
+                "required": [
+                    "standard_used"
+                ]
+            },
+            "properties": {
+                "calibration_certificates": {
+                    "description": "Information about calibration certificates. Ideally, the certificate should be made available in a PDF file with filename listed here.",
+                    "title": "Calibration certificate information",
+                    "type": "string"
+                },
+                "calibration_location": {
+                    "$ref": "#/$defs/CalibrationLocation",
+                    "description": "Factory calibration, lab calibration, or field calibration.",
+                    "title": "Calibration location"
+                },
+                "calibration_temperature": {
+                    "description": "Temperature at which calibration was performed.",
+                    "title": "Calibration temperature",
+                    "type": "string"
+                },
+                "correction_for_unpurified_dye": {
+                    "description": "Correction method applied if dye was not purified.",
+                    "title": "Correction for unpurified dye",
+                    "type": "string"
+                },
+                "dye_correction_method": {
+                    "description": "Method used to correct for dye effects.",
+                    "title": "Dye correction method",
+                    "type": "string"
+                },
+                "dye_purified": {
+                    "description": "Whether the dye has been purified.",
+                    "title": "Dye purified",
+                    "type": "boolean"
+                },
+                "frequency": {
+                    "description": "How often the instrument was calibrated.",
+                    "title": "Frequency of calibration",
+                    "type": "string"
+                },
+                "last_calibration_date": {
+                    "description": "Date and time of most recent calibration in UTC.",
+                    "format": "date-time",
+                    "title": "Last calibration date (UTC)",
+                    "type": "string"
+                },
+                "method_reference": {
+                    "description": "Citation or reference for the calibration method.",
+                    "title": "Calibration method reference",
+                    "type": "string"
+                },
+                "ph_of_standards": {
+                    "description": "pH values of the calibration standards used.",
+                    "title": "pH of standards",
+                    "type": "string"
+                },
+                "standard_type_and_production": {
+                    "description": "Details on the standard (e.g., type of dye used) and how or where it was produced.",
+                    "title": "Standard type and production",
+                    "type": "string"
+                },
+                "standard_used": {
+                    "description": "Type of standard used to calibrate the pH measurement.",
+                    "enum": [
+                        "dye"
+                    ],
+                    "title": "Standard used",
+                    "type": "string"
+                },
+                "standard_used_custom": {
+                    "description": "Name of the standard used, when it is not in the list.",
+                    "title": "Standard used (custom)",
+                    "type": "string"
+                },
+                "technique_description": {
+                    "description": "Details of the calibration technique used.",
+                    "title": "Calibration technique description",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "standard_used",
+                "technique_description"
+            ],
+            "then": {
+                "properties": {
+                    "standard_used_custom": {}
+                },
+                "required": [
+                    "standard_used_custom"
+                ]
+            },
+            "title": "DyeCalibration",
             "type": "object"
         },
         "EquilibrationStatus": {
@@ -3781,23 +3888,11 @@
                         ]
                     },
                     "then": {
-                        "anyOf": [
-                            {
-                                "properties": {
-                                    "data_access_link": {}
-                                },
-                                "required": [
-                                    "data_access_link"
-                                ]
-                            },
-                            {
-                                "properties": {
-                                    "data_access_date": {}
-                                },
-                                "required": [
-                                    "data_access_date"
-                                ]
-                            }
+                        "properties": {
+                            "data_access_link": {}
+                        },
+                        "required": [
+                            "data_access_link"
                         ]
                     }
                 }
@@ -3821,20 +3916,20 @@
                     ]
                 },
                 "data_access_date": {
-                    "description": "The date by when this dataset will be openly available on a public repository if it is not currently.",
+                    "description": "The date by when this dataset will be openly available on a public repository. Only used when data_accessibility is scheduled_access; leave empty otherwise.",
                     "format": "date",
                     "title": "Data Access Date",
                     "type": "string"
                 },
                 "data_access_link": {
-                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
+                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Required for open access, optional otherwise.",
                     "pattern": "^https?://.+",
-                    "title": "Data access link",
+                    "title": "Data Access Link",
                     "type": "string"
                 },
                 "data_accessibility": {
                     "$ref": "#/$defs/DataAccessibility",
-                    "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
+                    "description": "Level of access to this dataset. Open Access data are freely available now, without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date; choose it for any data that are not openly available yet.",
                     "title": "Data Accessibility"
                 },
                 "data_product_type": {
@@ -4215,7 +4310,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "uncertainty": {
                     "description": "It is recommended to provide uncertainty for each data point in the data file. Else provide a single value representative of the dataset.\nIf uncertainty is provided as a variable, please list the column header name here.",
@@ -5475,23 +5571,11 @@
                         ]
                     },
                     "then": {
-                        "anyOf": [
-                            {
-                                "properties": {
-                                    "data_access_link": {}
-                                },
-                                "required": [
-                                    "data_access_link"
-                                ]
-                            },
-                            {
-                                "properties": {
-                                    "data_access_date": {}
-                                },
-                                "required": [
-                                    "data_access_date"
-                                ]
-                            }
+                        "properties": {
+                            "data_access_link": {}
+                        },
+                        "required": [
+                            "data_access_link"
                         ]
                     }
                 }
@@ -5504,20 +5588,20 @@
                     "type": "string"
                 },
                 "data_access_date": {
-                    "description": "The date by when this dataset will be openly available on a public repository if it is not currently.",
+                    "description": "The date by when this dataset will be openly available on a public repository. Only used when data_accessibility is scheduled_access; leave empty otherwise.",
                     "format": "date",
                     "title": "Data Access Date",
                     "type": "string"
                 },
                 "data_access_link": {
-                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Optional, and applicable for any accessibility type.",
+                    "description": "URL to access this dataset, if it is already archived or published elsewhere. DOIs are preferred if available (e.g., https://doi.org/10.25921/xxxx-xxx). Required for open access, optional otherwise.",
                     "pattern": "^https?://.+",
-                    "title": "Data access link",
+                    "title": "Data Access Link",
                     "type": "string"
                 },
                 "data_accessibility": {
                     "$ref": "#/$defs/DataAccessibility",
-                    "description": "Level of access to this dataset. Open Access data are freely available without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date.",
+                    "description": "Level of access to this dataset. Open Access data are freely available now, without restriction. Conditional Access data are available upon request, subject to review. Scheduled Access data will become openly available after a specified date; choose it for any data that are not openly available yet.",
                     "title": "Data Accessibility"
                 },
                 "data_submitter": {
@@ -5659,7 +5743,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "units": {
                     "description": "Unit of measurement for this variable.",
@@ -5777,7 +5862,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "units": {
                     "description": "Unit of measurement for this variable.",
@@ -5842,7 +5928,17 @@
         },
         "PHCalibration": {
             "additionalProperties": false,
-            "description": "pH instrument calibration with dye information.",
+            "description": "pH instrument calibration. Use this class directly for TRIS or other standards, and DyeCalibration when standard_used is dye.",
+            "if": {
+                "properties": {
+                    "standard_used": {
+                        "const": "other"
+                    }
+                },
+                "required": [
+                    "standard_used"
+                ]
+            },
             "properties": {
                 "calibration_certificates": {
                     "description": "Information about calibration certificates. Ideally, the certificate should be made available in a PDF file with filename listed here.",
@@ -5857,26 +5953,6 @@
                 "calibration_temperature": {
                     "description": "Temperature at which calibration was performed.",
                     "title": "Calibration temperature",
-                    "type": "string"
-                },
-                "correction_for_unpurified_dye": {
-                    "description": "Correction method applied if dye was not purified.",
-                    "title": "Correction for unpurified dye",
-                    "type": "string"
-                },
-                "dye_correction_method": {
-                    "description": "Method used to correct for dye effects.",
-                    "title": "Dye correction method",
-                    "type": "string"
-                },
-                "dye_purified": {
-                    "description": "Whether the dye has been purified.",
-                    "title": "Dye purified",
-                    "type": "boolean"
-                },
-                "dye_type_and_manufacturer": {
-                    "description": "Type of indicator dye and any detailed information about it, e.g., its manufacturer.",
-                    "title": "Type of dye and manufacturer information",
                     "type": "string"
                 },
                 "frequency": {
@@ -5900,6 +5976,21 @@
                     "title": "pH of standards",
                     "type": "string"
                 },
+                "standard_type_and_production": {
+                    "description": "Details on the standard (e.g., type of dye used) and how or where it was produced.",
+                    "title": "Standard type and production",
+                    "type": "string"
+                },
+                "standard_used": {
+                    "$ref": "#/$defs/PHCalibrationStandard",
+                    "description": "Type of standard used to calibrate the pH measurement.",
+                    "title": "Standard used"
+                },
+                "standard_used_custom": {
+                    "description": "Name of the standard used, when it is not in the list.",
+                    "title": "Standard used (custom)",
+                    "type": "string"
+                },
                 "technique_description": {
                     "description": "Details of the calibration technique used.",
                     "title": "Calibration technique description",
@@ -5907,10 +5998,29 @@
                 }
             },
             "required": [
+                "standard_used",
                 "technique_description"
             ],
+            "then": {
+                "properties": {
+                    "standard_used_custom": {}
+                },
+                "required": [
+                    "standard_used_custom"
+                ]
+            },
             "title": "PHCalibration",
             "type": "object"
+        },
+        "PHCalibrationStandard": {
+            "description": "Standard used to calibrate a pH measurement.",
+            "enum": [
+                "dye",
+                "tris",
+                "other"
+            ],
+            "title": "PHCalibrationStandard",
+            "type": "string"
         },
         "PHInstrument": {
             "additionalProperties": false,
@@ -5922,7 +6032,15 @@
                     "type": "string"
                 },
                 "calibration": {
-                    "$ref": "#/$defs/PHCalibration",
+                    "$ref": "#/$defs/Any",
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/DyeCalibration"
+                        },
+                        {
+                            "$ref": "#/$defs/PHCalibration"
+                        }
+                    ],
                     "description": "pH calibration information for this instrument.",
                     "title": "Calibration"
                 },
@@ -6261,6 +6379,11 @@
                     "description": "The Marine Carbon Dioxide Removal (MCDR) pathway being studied.",
                     "title": "MCDR Pathway"
                 },
+                "name": {
+                    "description": "Name of the project the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",
+                    "title": "Project Name",
+                    "type": "string"
+                },
                 "physical_site_description": {
                     "description": "Provide information to help characterize the field site and provide context when interpreting the data. For example, descriptions of tidal patterns, climatological conditions, notable geological characteristics, the geographical and marine setting (coastal, intertidal, island region, sheltered environment), and characteristic meteorological events. If possible based on the file type of this submission, please include useful maps or figures here.\nLinks to relevant datasets, cruise reports, etc may be provided here.",
                     "title": "Physical Site Description",
@@ -6289,11 +6412,6 @@
                     },
                     "title": "Project Lead(s)",
                     "type": "array"
-                },
-                "research_project": {
-                    "description": "Project, which the data collection is part of. For example, West Coast Ocean Acidification (WCOA) Project.",
-                    "title": "Research Project",
-                    "type": "string"
                 },
                 "sea_names": {
                     "description": "Names of the seas where the data collection takes place, See Controlled Vocabularies section for definitions.",
@@ -6329,13 +6447,13 @@
                 }
             },
             "required": [
+                "name",
                 "project_id",
                 "description",
                 "temporal_coverage",
                 "spatial_coverage",
                 "project_leads",
-                "mcdr_pathway",
-                "research_project"
+                "mcdr_pathway"
             ],
             "title": "Project",
             "type": "object"
@@ -6681,7 +6799,8 @@
                     "type": "string"
                 },
                 "standard_identifier": {
-                    "$ref": "#/$defs/VocabularyItemReference"
+                    "$ref": "#/$defs/VocabularyItemReference",
+                    "description": "A term from a community vocabulary that identifies this variable. CF standard names (NERC P07) are recommended."
                 },
                 "units": {
                     "description": "Unit of measurement for this variable.",
@@ -7142,5 +7261,5 @@
     },
     "title": "OAE Data Protocol - Technical Documentation",
     "type": "object",
-    "version": "0.4.0"
+    "version": "0.6.0"
 }

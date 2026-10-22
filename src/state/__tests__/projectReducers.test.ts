@@ -67,8 +67,8 @@ describe("updateProjectData", () => {
 
   it("leaves experiments and datasets alone when project_id is unchanged", () => {
     const prev = seeded();
-    const next = updateProjectData(prev, { project_id: "P", research_project: "R" });
-    expect(next.projectData.research_project).toBe("R");
+    const next = updateProjectData(prev, { project_id: "P", name: "R" });
+    expect(next.projectData.name).toBe("R");
     expect(next.experiments).toBe(prev.experiments);
     expect(next.datasets).toBe(prev.datasets);
   });

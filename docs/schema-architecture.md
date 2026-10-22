@@ -10,7 +10,7 @@
 ```
 LinkML (oae-data-protocol)
   └─ just gen-all ─→ JSON Schema (Draft 2019-09)
-       └─ make schema ─→ oae-form/schemas/schema.json   (verbatim copy, git-hash tracked)
+       └─ make schema ─→ oae-metadata-builder/schemas/schema.json   (verbatim copy, git-hash tracked)
             └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json
                  ├─ AJV validation        (runtime authority)
                  ├─ RJSF rendering         (project / experiment / dataset forms)
@@ -75,8 +75,8 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
   "Model output variables" below.
 - Each concrete class already pins its **nested** `analyzing_instrument` / `calibration` to the
   correct subtype, with `additionalProperties: false` at each level:
-  - `DiscretePHVariable` → `PHInstrument` → `PHCalibration` (has `dye_type_and_manufacturer`,
-    `ph_of_standards`, …)
+  - `DiscretePHVariable` → `PHInstrument` → `DyeCalibration` or `PHCalibration`, chosen by
+    `standard_used` (dye fields exist only on `DyeCalibration`)
   - `DiscreteCO2Variable` → `CO2GasDetector` → `DiscreteCO2Calibration` (has `standard_gas_info`)
   - `DiscreteMeasuredVariable` → base `AnalyzingInstrument` → base `Calibration` (generic only)
 
@@ -85,7 +85,7 @@ their specific ones. The type-specific fields *are* valid against their `schema_
 to "expand" or "complete" the nested polymorphism.
 
 Corollary: `oae_data_protocol.validation.schema.json` (generated with
-`include_range_class_descendants=True`) is intentionally **not** used in oae-form. For these nested
+`include_range_class_descendants=True`) is intentionally **not** used in the builder. For these nested
 slots it is *looser* than the form schema (it turns `analyzing_instrument` into an `anyOf` of all
 instrument subtypes). It exists for other programmatic-validation use cases, not the builder.
 
@@ -129,6 +129,15 @@ every branch and, on failure, emit a wall of merged errors — which is why a ha
 `discriminator: { propertyName: "schema_class" }`, and AJV runs with `discriminator: true`
 (`validation.ts`). AJV routes each variable to the one branch its `schema_class` names, so errors
 are targeted and `datasetValidation.ts` is gone — `validateDataset` does it in a single pass.
+
+`PHInstrument.calibration` is the one nested union. `DyeCalibration` extends `PHCalibration`
+and narrows `standard_used` to `dye`, while `PHCalibration` allows every standard. AJV needs each
+tag value in exactly one branch, so the union's config in `bundle-schema.mjs` sets a `partition`:
+`DyeCalibration` keeps `dye` and `PHCalibration` keeps `tris`/`other`. The build fails if any
+discriminated union has shared values and no partition. AJV's
+discriminator also needs the property required, which is why the protocol requires `standard_used`.
+`stripExtraVariableFields` can't use the discriminator, since it drops `required`, so it rewrites
+the union as an if/else on `standard_used`. A missing standard strips as `PHCalibration`.
 
 ## 5. The direction: parse, don't validate
 

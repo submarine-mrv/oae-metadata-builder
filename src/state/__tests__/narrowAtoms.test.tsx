@@ -18,8 +18,8 @@ const useNavigate = vi.fn(() => vi.fn());
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => useNavigate() }));
 
 describe("narrow atoms", () => {
-  it("summarises a non-string research_project as Unnamed Project", () => {
-    const projectData = { project_id: "", research_project: ["WCOA"] } as unknown as DraftProject;
+  it("summarises a non-string name as Unnamed Project", () => {
+    const projectData = { project_id: "", name: ["WCOA"] } as unknown as DraftProject;
     const store = createTestStore(workspaceWithProject({ ...emptyProjectState(), projectData }));
 
     expect(store.get(projectSummariesAtom)[0].name).toBe(UNNAMED_PROJECT);
@@ -41,7 +41,7 @@ describe("narrow atoms", () => {
     store.set(addExperimentAtom);
     const experiments = store.get(experimentsAtom);
 
-    store.set(updateProjectDataAtom, { project_id: "", research_project: "Kiel" });
+    store.set(updateProjectDataAtom, { project_id: "", name: "Kiel" });
 
     expect(store.get(experimentsAtom)).toBe(experiments);
     expect(store.get(projectNameAtom)).toBe("Kiel");
@@ -92,7 +92,7 @@ describe("ProjectSwitcher render count", () => {
     const before = renders();
 
     act(() => {
-      store.set(updateProjectDataAtom, { project_id: "", research_project: "Kiel" });
+      store.set(updateProjectDataAtom, { project_id: "", name: "Kiel" });
     });
 
     expect(renders()).toBeGreaterThan(before);

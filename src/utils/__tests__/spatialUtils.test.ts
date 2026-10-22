@@ -499,6 +499,28 @@ describe("migrateFormDataBoxStrings", () => {
     const result = migrateFormDataBoxStrings(data);
     expect(result.grid_details[0].spatial_coverage.geo.box).toBe("32 -125 42 -114");
   });
+
+  it("returns the same reference when nothing needs migrating", () => {
+    const data = {
+      name: "Current",
+      spatial_coverage: { geo: { box: "32 -125 42 -114" } },
+      grid_details: [{ spatial_coverage: { geo: { box: "32 -125 42 -114" } } }, "x"],
+      nested: { tracer: { depth: 5 } },
+    };
+    expect(migrateFormDataBoxStrings(data)).toBe(data);
+  });
+
+  it("copies only the branch that changed", () => {
+    const untouched = { tracer: { depth: 5 } };
+    const data = {
+      nested: untouched,
+      grid_details: [{ spatial_coverage: { geo: { box: "-125 32 -114 42" } } }],
+    };
+    const result = migrateFormDataBoxStrings(data);
+    expect(result).not.toBe(data);
+    expect(result.nested).toBe(untouched);
+    expect(result.grid_details[0].spatial_coverage.geo.box).toBe("32 -125 42 -114");
+  });
 });
 
 // ── resolveBoxFromClicks: drag gestures ─────────────────────────────

@@ -1,3 +1,4 @@
+import { authEnabled, authProvider } from "./config";
 import { MemoryAuthClient } from "./memoryClient";
 import type { AuthClient } from "./types";
 
@@ -77,10 +78,10 @@ function createSupabaseAuthClient(): AuthClient {
 }
 
 export function createAuthClient(): AuthClient {
-  if (import.meta.env.VITE_AUTH_ENABLED !== "true") return new MemoryAuthClient();
-  const provider = import.meta.env.VITE_AUTH_PROVIDER ?? "supabase";
-  if (provider !== "supabase") {
-    throw new Error(`Unsupported auth provider: ${provider}`);
+  // With auth off the app stays signed out; no UI or route can reach a sign-in.
+  if (!authEnabled || authProvider === "memory") return new MemoryAuthClient();
+  if (authProvider !== "supabase") {
+    throw new Error(`Unsupported auth provider: ${authProvider}`);
   }
   return createSupabaseAuthClient();
 }

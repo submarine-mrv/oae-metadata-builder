@@ -24,27 +24,50 @@ export default function WelcomePage() {
         <Stack gap="lg" py="xl">
           <Title order={1}>Welcome to the OAE Metadata Builder</Title>
           <Text>
-            The metadata builder allows you to manage metadata for Ocean Alkalinity Enhancement
-            (OAE) projects, experiments, and datasets in compliance with the{" "}
+            The metadata builder produces metadata for Ocean Alkalinity Enhancement (OAE) projects,
+            experiments, and datasets in compliance with the{" "}
             <Anchor
+              underline="always"
               href="https://www.carbontosea.org/oae-data-protocol/1-0-0/"
               target="_blank"
               rel="noopener noreferrer"
             >
               OAE Data Management Protocol
             </Anchor>
-            .
-          </Text>
-          <Text>
-            If you have questions or concerns, please contact{" "}
-            <Anchor href="mailto:data@carbontosea.org">data@carbontosea.org</Anchor>.
-          </Text>
-          <Text>
-            For more information, visit the{" "}
-            <Anchor component={Link} to="/about">
-              About page
+            . The exported JSON files can be uploaded alongside datasets to any scientific data
+            repository, or as part of a project submission to the{" "}
+            <Anchor
+              underline="always"
+              href="https://oaedata.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OAE Data Commons
             </Anchor>
             .
+          </Text>
+          <Text>
+            New here? Read the{" "}
+            <Anchor underline="always" component={Link} to="/how-to">
+              how-to guide
+            </Anchor>{" "}
+            or the{" "}
+            <Anchor underline="always" component={Link} to="/about">
+              About page
+            </Anchor>
+            . Technical documentation for the schema is available at{" "}
+            <Anchor
+              underline="always"
+              href="https://schema.oaedata.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              schema.oaedata.org
+            </Anchor>
+            .
+          </Text>
+          <Text size="sm" c="dimmed">
+            Your work is saved in this browser only. Export a project to keep a copy.
           </Text>
           <Group mt="md">
             <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>

@@ -4,60 +4,10 @@ import type { RJSFValidationError } from "@rjsf/utils";
 import { MESSAGES } from "@/constants/messages";
 
 /**
- * "At least one of A, B" rules arrive from the bundler as
- * `then: { not: { properties: { A: false, B: false } } }` (see
- * rewriteEitherOrRules in bundle-schema.mjs), and AJV reports a failure as one
- * `not` error on the object with no field attached. The field pair is read
- * back out of the schema at the error's own schemaPath, so the transform fans
- * the error out to exactly the fields that rule names and nothing else.
- */
-const EITHER_OR_PATH = /\/then\/not$/;
-
-function resolveSchemaPath(schema: unknown, schemaPath: string): unknown {
-  if (!schema || !schemaPath.startsWith("#")) return undefined;
-  let node: unknown = schema;
-  for (const raw of schemaPath.slice(1).split("/").filter(Boolean)) {
-    const key = raw.replace(/~1/g, "/").replace(/~0/g, "~");
-    if (node === null || typeof node !== "object") return undefined;
-    node = (node as Record<string, unknown>)[key];
-  }
-  return node;
-}
-
-/** An either/or `not` error resolved against the schema, or null if it is not one. */
-function eitherOrRuleFor(
-  e: RJSFValidationError,
-  schema: unknown,
-): { fields: string[]; message: string } | null {
-  if (e.name !== "not" || !EITHER_OR_PATH.test(e.schemaPath ?? "")) return null;
-  const node = resolveSchemaPath(schema, e.schemaPath ?? "") as
-    | { properties?: Record<string, unknown> }
-    | undefined;
-  const fields = Object.keys(node?.properties ?? {});
-  if (fields.length !== 2) return null;
-
-  // The data-access pair has its own wording; any other pair gets one built
-  // from the field titles, falling back to the property names.
-  const isDataAccess = fields.includes("data_access_link") && fields.includes("data_access_date");
-  const titles = (schema as { properties?: Record<string, { title?: string }> })?.properties;
-  const titleOf = (f: string) => titles?.[f]?.title ?? f;
-  const message = isDataAccess
-    ? MESSAGES.validation.dataAccessEitherOr
-    : `Either ${titleOf(fields[0])} or ${titleOf(fields[1])} must be provided.`;
-  return { fields, message };
-}
-
-/** Errors produced by the fan-out below carry this marker so a second pass leaves them alone. */
-const EITHER_OR_MARKER = "eitherOr";
-const isEitherOrError = (e: RJSFValidationError) =>
-  (e.params as Record<string, unknown> | undefined)?.[EITHER_OR_MARKER] === true;
-
-/**
  * AJV reports an if/then rule twice: the concrete failure inside `then` (a
  * required property, say) and a wrapper saying the data 'must match "then"
  * schema'. The wrapper names no field and repeats nothing useful, so it is
- * dropped for every rule, not only the data-access one. The scheduled-access
- * rule was the visible case: "Field is required" on the date, plus that line.
+ * dropped.
  */
 function isIfThenEnvelopeError(e: RJSFValidationError): boolean {
   return e.name === "if" && e.params?.failingKeyword === "then";
@@ -79,34 +29,44 @@ function isSpatialCoverageError(e: RJSFValidationError): boolean {
   );
 }
 
+/** Moves a discriminator error onto the tag field: required when unset, invalid otherwise. */
+function discriminatorAsFieldError(e: RJSFValidationError): RJSFValidationError {
+  const { tag, tagValue } = (e.params ?? {}) as { tag?: string; tagValue?: unknown };
+  if (!tag) return e;
+  const property = `${e.property ?? ""}.${tag}`;
+  if (tagValue === undefined || tagValue === null || tagValue === "") {
+    return {
+      ...e,
+      name: "required",
+      property,
+      params: { missingProperty: tag },
+      message: "Field is required",
+      stack: `${property} is a required property`,
+    };
+  }
+  return {
+    ...e,
+    name: "enum",
+    property,
+    message: "Invalid value",
+    stack: `${property} is invalid`,
+  };
+}
+
 /**
  * Transform RJSF validation errors to provide better user-facing messages
  * @param errors - Array of validation errors from RJSF
  * @returns Transformed errors with improved messaging
  */
-export function transformFormErrors(
-  errors: RJSFValidationError[],
-  schema?: unknown,
-): RJSFValidationError[] {
+export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidationError[] {
   return errors
     .filter((e) => !isIfThenEnvelopeError(e))
-    .flatMap((e) => {
-      // One rule, two fields: both inputs turn red carrying one sentence
-      // rather than either reading as plainly required. Required-class, so
-      // the form hides it until Validate like the others.
-      const rule = eitherOrRuleFor(e, schema);
-      if (rule) {
-        return rule.fields.map((field) => ({
-          ...e,
-          name: "required",
-          property: `.${field}`,
-          params: { ...e.params, missingProperty: field, [EITHER_OR_MARKER]: true },
-          message: rule.message,
-        }));
-      }
-      return [e];
-    })
     .map((e) => {
+      // AJV reports a missing or unknown discriminator tag on the parent object.
+      if (e.name === "discriminator") {
+        e = discriminatorAsFieldError(e);
+      }
+
       // Normalize ALL "required" error messages.
       //
       // RJSF interpolates a field title into the message via a fragile
@@ -126,9 +86,7 @@ export function transformFormErrors(
         const isSpatialCov = isSpatialCoverageError(e);
         const isExperimentId =
           e.params?.missingProperty === "experiment_id" || e.property === ".experiment_id";
-        // The either/or errors are fanned out above with their own wording and
-        // must not be flattened back into a plain "required".
-        if (!isSpatialCov && !isExperimentId && !isEitherOrError(e)) {
+        if (!isSpatialCov && !isExperimentId) {
           e = { ...e, message: "Field is required" };
         }
       }

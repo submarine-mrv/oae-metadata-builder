@@ -34,7 +34,11 @@ The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu 
 
 ## Deleting
 
-You delete a whole project from its `/projects` card or the overview. `DeleteProjectModal` confirms first. Deleting the active project activates the most recently edited one left. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place.
+You delete a whole project from its `/projects` card or the overview. `DeleteProjectModal` confirms first. Deleting the active project activates the most recently edited one left. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place. The restore prompt's Start fresh deletes every project at once.
+
+## Restore prompt
+
+`RestorePrompt` (`src/components/RestorePrompt.tsx`) runs on the first load of a tab. With saved projects it offers Restore session or Start fresh. Start fresh asks to confirm, then `deleteAllProjectsAtom` empties the workspace, which saves at once, and the welcome screen shows. A `sessionStorage` key marks the tab as asked, so reloads in the same tab don't ask again; a new tab does. A reload that leaves the prompt unanswered asks again.
 
 ## Persistence
 
@@ -55,7 +59,7 @@ Each tab keeps its own copy of the workspace and saves the whole of it, so two o
 
 ## Names, ids and titles
 
-The display name is the Research Project field, or "Unnamed Project" when it is empty. Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
+The display name is the Project Name field (`projectData.name`), falling back to "Unnamed Project" when it is empty or not text. Nothing stores it. Project ids are `crypto.randomUUID()`. `updatedAt` changes whenever a project's state changes.
 
 `DocumentTitle` sets the tab title on every route: "Kiel trial · OAE Metadata Builder" once the project is named, "OAE Metadata Builder" otherwise.
 
@@ -75,3 +79,4 @@ A file with duplicate experiment ids is blocked in both modes.
 
 The app owns `project_id` and `experiment_id` on imported records and ignores the file's values.
 
+`localStorageWorkspaceStore.load` runs the form data migrations on every stored project and saves the result, so the project list shows current field names. `hydrate` then parses and migrates each project again through `parseProjectState`.

@@ -5,6 +5,7 @@ import {
   addDatasetAtom,
   addExperimentAtom,
   createProjectAtom,
+  deleteAllProjectsAtom,
   deleteDatasetAtom,
   deleteExperimentAtom,
   deleteProjectAtom,
@@ -28,9 +29,9 @@ import {
   workspaceAtom,
 } from "../atoms";
 
-const named = (research_project: string): ProjectState => ({
+const named = (name: string): ProjectState => ({
   ...emptyProjectState(),
-  projectData: { project_id: "", research_project },
+  projectData: { project_id: "", name },
 });
 
 const byId = (store: ReturnType<typeof createStore>, id: string) =>
@@ -66,10 +67,20 @@ describe("workspace actions", () => {
     expect(store.get(activeProjectAtom)).toBeNull();
   });
 
+  it("deletes every project at once", () => {
+    const store = createStore();
+    store.set(createProjectAtom);
+    store.set(createProjectAtom);
+    store.set(deleteAllProjectsAtom);
+    expect(store.get(workspaceAtom).projects).toHaveLength(0);
+    expect(store.get(workspaceAtom).activeProjectId).toBeNull();
+    expect(store.get(activeProjectAtom)).toBeNull();
+  });
+
   it("imports as a new project and drops a link to an experiment that isn't in it", () => {
     const store = createStore();
     const id = store.set(importAsNewProjectAtom, {
-      project: { project_id: "P2", research_project: "Imported" },
+      project: { project_id: "P2", name: "Imported" },
       experiments: [],
       datasets: [
         {
@@ -80,7 +91,7 @@ describe("workspace actions", () => {
     });
     const active = store.get(activeProjectAtom);
     expect(active?.id).toBe(id);
-    expect(active?.state.projectData.research_project).toBe("Imported");
+    expect(active?.state.projectData.name).toBe("Imported");
     expect(active?.state.datasets[0].linking?.linkedExperimentInternalId).toBeNull();
     expect(store.get(workspaceAtom).projects).toHaveLength(1);
   });
@@ -249,12 +260,12 @@ describe("project actions", () => {
   it("importSelectedData merges into the active project", () => {
     const { store, b, untouched } = setup();
     store.set(importSelectedDataAtom, {
-      project: { project_id: "P9", research_project: "Merged" },
+      project: { project_id: "P9", name: "Merged" },
       experiments: [{ experiment_id: "E1" }],
       datasets: [],
     });
 
-    expect(byId(store, b)?.state.projectData.research_project).toBe("Merged");
+    expect(byId(store, b)?.state.projectData.name).toBe("Merged");
     expect(store.get(projectStateAtom).experiments).toHaveLength(1);
     untouched();
   });

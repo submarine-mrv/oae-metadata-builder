@@ -30,9 +30,6 @@ export default defineConfig({
 
   // Shared settings for all projects
   use: {
-    // Base URL for the application
-    baseURL: "http://localhost:3000",
-
     // Collect trace when retrying the failed test
     trace: "on-first-retry",
 
@@ -46,9 +43,17 @@ export default defineConfig({
 
   // Configure projects for major browsers
   projects: [
+    // Login-flow tests, against the server with the in-memory auth provider.
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3000" },
+      testMatch: /\/auth\.spec\.ts$/,
+    },
+    // Everything else, against the server with auth off, as production runs today.
+    {
+      name: "chromium-no-auth",
+      use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3001" },
+      testIgnore: /\/auth\.spec\.ts$/,
     },
     // Can add more browsers later if needed:
     // {
@@ -61,15 +66,24 @@ export default defineConfig({
     // },
   ],
 
-  // Run your local dev server before starting the tests
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    // Locally an already-running dev server is reused as-is, so its own env
-    // (not the one below) applies. Stop it, or run with CI=1, when that matters.
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000, // 2 minutes for dev server to start
-    // e2e never needs a Supabase project; the in-memory auth client stands in.
-    env: { VITE_AUTH_ENABLED: "false" },
-  },
+  // Run your local dev servers before starting the tests
+  webServer: [
+    {
+      command: "npm run dev",
+      url: "http://localhost:3000",
+      // Locally an already-running dev server is reused as-is, so its own env
+      // (not the one below) applies. Stop it, or run with CI=1, when that matters.
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000, // 2 minutes for dev server to start
+      // e2e never needs a Supabase project; the in-memory auth client stands in.
+      env: { VITE_AUTH_ENABLED: "true", VITE_AUTH_PROVIDER: "memory" },
+    },
+    {
+      command: "npm run dev -- --port 3001 --strictPort",
+      url: "http://localhost:3001",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+      env: { VITE_AUTH_ENABLED: "false" },
+    },
+  ],
 });
