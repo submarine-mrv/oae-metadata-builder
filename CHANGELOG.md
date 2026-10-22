@@ -4,6 +4,16 @@ Notable changes to the OAE Metadata Builder. Major versions change what the buil
 you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
+## Unreleased
+
+### Updated
+
+- The builder keeps its working data in one store (Jotai) that the forms read and write directly,
+  instead of copying each project into the page being edited. Typing in a form no longer redraws the
+  header and other parts of the page that didn't change. (#82)
+- After you delete the experiment or dataset that was open, its page shows the first remaining one
+  instead of "No Experiment Selected". (#82)
+
 ## [1.1.0] — 2026-10-22
 
 Built against oae-data-protocol v0.6.0.
