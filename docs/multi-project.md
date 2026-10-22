@@ -51,7 +51,7 @@ Backups are never deleted. If storage is full the backup can fail. Dropped recor
 
 ## Open tabs
 
-Each tab keeps its own copy of the workspace and saves the whole of it, so two open tabs overwrite each other's changes. See `docs/multi-tab-editing.md` for the options under review.
+Each tab keeps its own copy of the workspace and saves the whole of it, so two open tabs overwrite each other's changes. See `docs/multi-tab-editing.md` for the details and the alternatives.
 
 ## Names, ids and titles
 

@@ -1,6 +1,6 @@
 # State management for the metadata builder: Jotai vs Zustand
 
-> **Status:** Implemented in PR #82; see `docs/multi-project.md` for the current design. Two points differ from the plan below. The routed page still remounts on project switch, keyed on the project id, so page-local UI state starts fresh; the forms themselves read and write the store. Multi-tab sync is deferred; see `docs/multi-tab-editing.md`.
+> **Status:** Implemented in PR #82; see `docs/multi-project.md` for the current design. Two points differ from the plan below. The routed page still remounts on project switch, keyed on the project id, so page-local UI state starts fresh; the forms themselves read and write the store. Open tabs are not coordinated; see `docs/multi-tab-editing.md`.
 
 Written 2026-09-22 while auditing PR #81 (multiple projects), for review in PR #82. Recommendation: **Jotai**. This note compares the two and describes the pattern either would follow. It is a review aid and will be removed once the choice is made.
 
