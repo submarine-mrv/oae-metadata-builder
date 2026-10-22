@@ -325,6 +325,43 @@ function inlineEnumArrayItems(schema, configs) {
 // Any validator that compiles the resulting unions must set Ajv's
 // `discriminator: true` option.
 //
+// "#/$defs/PHCalibration" → "PHCalibration"
+const nameFromRef = (ref) => ref.replace("#/$defs/", "");
+
+// The discriminator values a branch allows: an inline `const` or `enum`, or a referenced enum.
+function allowedValues(schema, branchName, propertyName) {
+  const prop = schema.$defs[branchName]?.properties?.[propertyName];
+  if (!prop) return null;
+  const source = prop.$ref ? schema.$defs[nameFromRef(prop.$ref)] : prop;
+  return source.const !== undefined ? [source.const] : (source.enum ?? []);
+}
+
+// Throws unless `partition` gives every allowed value to exactly one branch that allows it.
+function checkPartition(fail, allowed, partition) {
+  // Every branch in the union has an entry, and every entry is a branch in the union.
+  for (const branch of Object.keys(allowed)) {
+    if (!(branch in partition)) fail(`partition has no entry for ${branch}`);
+  }
+  for (const branch of Object.keys(partition)) {
+    if (!(branch in allowed)) fail(`partition names ${branch}, which isn't in the union`);
+  }
+
+  // Each value goes to one branch, and only to a branch that allows it.
+  const owner = {};
+  for (const [branch, values] of Object.entries(partition)) {
+    for (const value of values) {
+      if (!allowed[branch].includes(value)) fail(`${branch} doesn't allow "${value}"`);
+      if (owner[value]) fail(`"${value}" is given to ${owner[value]} and ${branch}`);
+      owner[value] = branch;
+    }
+  }
+
+  // No value is dropped.
+  for (const value of Object.values(allowed).flat()) {
+    if (!owner[value]) fail(`partition doesn't assign "${value}"`);
+  }
+}
+
 // Ajv needs each discriminator value to belong to exactly one branch, inline as `enum` or
 // `const`. Branches share values when a subclass narrows its parent's list (DyeCalibration
 // keeps only "dye" from PHCalibration's full list). A union with shared values must give a
@@ -334,52 +371,31 @@ function partitionDiscriminatorValues(schema, label, branches, propertyName, par
     throw new Error(`partitionDiscriminatorValues: ${label}: ${message}`);
   };
 
-  const allowed = new Map();
+  // 1. What each branch allows, e.g. { DyeCalibration: ["dye"], PHCalibration: ["dye", "tris", "other"] }.
+  const allowed = {};
   for (const branch of branches) {
-    const name = branch.$ref?.replace("#/$defs/", "");
-    const prop = schema.$defs[name]?.properties?.[propertyName];
-    if (!prop) fail(`${name} has no ${propertyName}`);
-    const target = prop.$ref ? schema.$defs[prop.$ref.replace("#/$defs/", "")] : prop;
-    allowed.set(name, target.const !== undefined ? [target.const] : (target.enum ?? []));
+    const name = nameFromRef(branch.$ref);
+    allowed[name] = allowedValues(schema, name, propertyName) ?? fail(`${name} has no ${propertyName}`);
   }
 
-  const owners = new Map();
-  for (const [name, values] of allowed) {
-    for (const value of values) owners.set(value, [...(owners.get(value) ?? []), name]);
-  }
+  // 2. Values more than one branch allows.
+  const all = Object.values(allowed).flat();
+  const shared = [...new Set(all.filter((value, i) => all.indexOf(value) !== i))];
 
-  if (!partition) {
-    const shared = [...owners].filter(([, names]) => names.length > 1);
-    if (shared.length > 0) {
-      const list = shared.map(([value, names]) => `"${value}" (${names.join(", ")})`).join("; ");
-      fail(`branches share ${list}. Add a partition to this union's config.`);
-    }
-  } else {
-    const named = Object.keys(partition);
-    for (const name of allowed.keys()) {
-      if (!named.includes(name)) fail(`partition has no entry for ${name}`);
-    }
-    const assigned = new Map();
-    for (const [name, values] of Object.entries(partition)) {
-      if (!allowed.has(name)) fail(`partition names ${name}, which isn't in the union`);
-      for (const value of values) {
-        if (!allowed.get(name).includes(value)) fail(`${name} doesn't allow "${value}"`);
-        if (assigned.has(value)) fail(`"${value}" is given to ${assigned.get(value)} and ${name}`);
-        assigned.set(value, name);
-      }
-    }
-    for (const value of owners.keys()) {
-      if (!assigned.has(value)) fail(`partition doesn't assign "${value}"`);
-    }
+  // 3. Each branch's values: its own list when nothing is shared, otherwise the partition.
+  if (partition) {
+    checkPartition(fail, allowed, partition);
+  } else if (shared.length > 0) {
+    fail(`branches share ${shared.map((v) => `"${v}"`).join(", ")}. Add a partition to this union's config.`);
   }
+  const owned = partition ?? allowed;
 
-  for (const [name, values] of allowed) {
-    const own = partition ? partition[name] : values;
-    const def = schema.$defs[name];
-    const prop = def.properties[propertyName];
-    if (prop.$ref || own.length < values.length) {
+  // 4. Write each branch's values inline where they changed or were a $ref.
+  for (const [name, values] of Object.entries(owned)) {
+    const prop = schema.$defs[name].properties[propertyName];
+    if (prop.$ref || values.length < allowed[name].length) {
       const { $ref, ...rest } = prop;
-      def.properties[propertyName] = { ...rest, type: "string", enum: own };
+      schema.$defs[name].properties[propertyName] = { ...rest, type: "string", enum: values };
     }
   }
 }
