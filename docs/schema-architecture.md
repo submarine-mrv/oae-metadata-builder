@@ -132,8 +132,9 @@ are targeted and `datasetValidation.ts` is gone — `validateDataset` does it in
 
 `PHInstrument.calibration` is the one nested union. `DyeCalibration` extends `PHCalibration`
 and narrows `standard_used` to `dye`, while `PHCalibration` allows every standard. AJV needs each
-tag value in exactly one branch, so the bundler gives a value to the first branch that lists it:
-in the bundle, `DyeCalibration` keeps `dye` and `PHCalibration` keeps `tris`/`other`. AJV's
+tag value in exactly one branch, so the union's config in `bundle-schema.mjs` sets a `partition`:
+`DyeCalibration` keeps `dye` and `PHCalibration` keeps `tris`/`other`. The build fails if any
+discriminated union has shared values and no partition. AJV's
 discriminator also needs the property required, which is why the protocol requires `standard_used`.
 `stripExtraVariableFields` can't use the discriminator, since it drops `required`, so it rewrites
 the union as an if/else on `standard_used`. A missing standard strips as `PHCalibration`.

@@ -326,20 +326,57 @@ function inlineEnumArrayItems(schema, configs) {
 // `discriminator: true` option.
 //
 // Ajv needs each discriminator value to belong to exactly one branch, inline as `enum` or
-// `const`. When a subclass narrows its parent's values (DyeCalibration takes "dye"
-// from PHCalibration's full list), the value goes to the first branch listing it.
-function partitionDiscriminatorValues(schema, branches, propertyName) {
-  const claimed = new Set();
+// `const`. Branches share values when a subclass narrows its parent's list (DyeCalibration
+// keeps only "dye" from PHCalibration's full list). A union with shared values must give a
+// `partition` saying which branch owns each value; the build fails otherwise.
+function partitionDiscriminatorValues(schema, label, branches, propertyName, partition) {
+  const fail = (message) => {
+    throw new Error(`partitionDiscriminatorValues: ${label}: ${message}`);
+  };
+
+  const allowed = new Map();
   for (const branch of branches) {
     const name = branch.$ref?.replace("#/$defs/", "");
-    const def = schema.$defs[name];
-    const prop = def?.properties?.[propertyName];
-    if (!prop) throw new Error(`partitionDiscriminatorValues: ${name} has no ${propertyName}`);
+    const prop = schema.$defs[name]?.properties?.[propertyName];
+    if (!prop) fail(`${name} has no ${propertyName}`);
     const target = prop.$ref ? schema.$defs[prop.$ref.replace("#/$defs/", "")] : prop;
-    const values = target.const !== undefined ? [target.const] : (target.enum ?? []);
-    const own = values.filter((value) => !claimed.has(value));
-    if (own.length === 0) throw new Error(`partitionDiscriminatorValues: ${name} has no ${propertyName} values left`);
-    for (const value of own) claimed.add(value);
+    allowed.set(name, target.const !== undefined ? [target.const] : (target.enum ?? []));
+  }
+
+  const owners = new Map();
+  for (const [name, values] of allowed) {
+    for (const value of values) owners.set(value, [...(owners.get(value) ?? []), name]);
+  }
+
+  if (!partition) {
+    const shared = [...owners].filter(([, names]) => names.length > 1);
+    if (shared.length > 0) {
+      const list = shared.map(([value, names]) => `"${value}" (${names.join(", ")})`).join("; ");
+      fail(`branches share ${list}. Add a partition to this union's config.`);
+    }
+  } else {
+    const named = Object.keys(partition);
+    for (const name of allowed.keys()) {
+      if (!named.includes(name)) fail(`partition has no entry for ${name}`);
+    }
+    const assigned = new Map();
+    for (const [name, values] of Object.entries(partition)) {
+      if (!allowed.has(name)) fail(`partition names ${name}, which isn't in the union`);
+      for (const value of values) {
+        if (!allowed.get(name).includes(value)) fail(`${name} doesn't allow "${value}"`);
+        if (assigned.has(value)) fail(`"${value}" is given to ${assigned.get(value)} and ${name}`);
+        assigned.set(value, name);
+      }
+    }
+    for (const value of owners.keys()) {
+      if (!assigned.has(value)) fail(`partition doesn't assign "${value}"`);
+    }
+  }
+
+  for (const [name, values] of allowed) {
+    const own = partition ? partition[name] : values;
+    const def = schema.$defs[name];
+    const prop = def.properties[propertyName];
     if (prop.$ref || own.length < values.length) {
       const { $ref, ...rest } = prop;
       def.properties[propertyName] = { ...rest, type: "string", enum: own };
@@ -348,7 +385,7 @@ function partitionDiscriminatorValues(schema, branches, propertyName) {
 }
 
 function discriminateUnions(schema, configs) {
-  for (const { defName, fieldPath, propertyName } of configs) {
+  for (const { defName, fieldPath, propertyName, partition } of configs) {
     const classDef = schema.$defs?.[defName];
     // Without the discriminator, AJV's removeAdditional strips fields across branches.
     if (!classDef) {
@@ -374,7 +411,7 @@ function discriminateUnions(schema, configs) {
     // adds no constraint, and resolveRef() would follow it and lose the union.
     const { anyOf, ...rest } = target;
     if (rest.$ref === "#/$defs/Any") delete rest.$ref;
-    partitionDiscriminatorValues(schema, anyOf, propertyName);
+    partitionDiscriminatorValues(schema, `${defName}.${fieldPath}`, anyOf, propertyName, partition);
     parent[lastKey] = {
       ...rest,
       oneOf: anyOf,
@@ -475,12 +512,13 @@ decorated = discriminateUnions(decorated, [
     fieldPath: "properties.variables.items",
     propertyName: "schema_class"
   },
-  // DyeCalibration (listed first) takes "dye"; PHCalibration keeps tris/other. Without
-  // the discriminator, removeAdditional strips dye fields while trying PHCalibration.
+  // Without the discriminator, removeAdditional strips dye fields while trying PHCalibration.
+  // DyeCalibration narrows PHCalibration's standard_used to dye, so both list "dye".
   {
     defName: "PHInstrument",
     fieldPath: "properties.calibration",
-    propertyName: "standard_used"
+    propertyName: "standard_used",
+    partition: { DyeCalibration: ["dye"], PHCalibration: ["tris", "other"] }
   }
 ]);
 
