@@ -291,35 +291,38 @@ function inlineEnumArrayItems(schema, configs) {
   return schema;
 }
 
-// Converts a polymorphic variable union from a bare `anyOf` into a discriminated
-// `oneOf` keyed on `schema_class`. Each variable subclass pins `schema_class` to a
-// single-value enum (LinkML designates_type).
+// Converts a polymorphic union from a bare `anyOf` into a discriminated `oneOf`.
+// Two unions use it: FieldDataset variables on `schema_class`, and
+// PHInstrument.calibration on `standard_used`.
 //
-// What this does and does NOT buy: that per-class enum tag alone already makes the
-// branches mutually exclusive, so validation *correctness* (accept/reject) does not
-// need a discriminator. What Ajv's `discriminator` keyword adds is error *routing* —
-// on failure it reports only the matching branch's errors instead of an 18-way
-// oneOf wall. That clean routing is the point: it lets one AJV pass validate a
-// dataset's variables inline with usable per-variable errors, replacing the
-// per-variable manual routing the app would otherwise do by hand.
+// For variables, each subclass pins `schema_class` to a single-value enum (LinkML
+// designates_type), so the branches are already mutually exclusive and validation
+// *correctness* (accept/reject) does not need a discriminator. For the calibration
+// union, PHCalibration and DyeCalibration share `standard_used` values, and
+// partitionDiscriminatorValues is what makes the branches exclusive.
+//
+// What Ajv's `discriminator` keyword adds is error *routing*: on failure it reports
+// only the matching branch's errors. For variables that replaces an 18-way oneOf
+// wall, which lets one AJV pass validate a dataset's variables inline with usable
+// per-variable errors instead of the app routing each variable by hand.
 //
 // `discriminator` is an OpenAPI/AJV extension, NOT standard JSON Schema. The
 // standards-track long-term replacement is JSON Schema's `propertyDependencies`
-// keyword (value-keyed subschema selection — the same routing without the
+// keyword (value-keyed subschema selection, the same routing without the
 // extension): proposed in json-schema-org/json-schema-spec#1082, merged to the
 // draft-next branch in PR #1143, slated for the next stable release (JSON Schema
 // v1, ~2026). This transform can be retired once that ships AND LinkML emits it.
 //
 // Why this lives downstream and not in LinkML: the JSON Schema generator hardcodes
 // `anyOf` for type-designator/descendant unions and emits neither `discriminator`
-// nor `propertyDependencies` — `designates_type` only emits the per-class
+// nor `propertyDependencies`. `designates_type` only emits the per-class
 // `schema_class` enum tag, with no generator flag to change this. Upstream tracking
 // of the type-designator JSON Schema gaps: https://github.com/linkml/linkml/issues/1681
 // (attempted in https://github.com/linkml/linkml/pull/1617). Being an app-internal
 // validation concern, it also belongs in this bundle, not the protocol's published
 // interoperability schema.
 //
-// Any validator that compiles the resulting union must set Ajv's
+// Any validator that compiles the resulting unions must set Ajv's
 // `discriminator: true` option.
 //
 // Ajv needs each discriminator value to belong to exactly one branch, inline as `enum` or
@@ -344,12 +347,12 @@ function partitionDiscriminatorValues(schema, branches, propertyName) {
   }
 }
 
-function discriminateVariableUnions(schema, configs) {
+function discriminateUnions(schema, configs) {
   for (const { defName, fieldPath, propertyName } of configs) {
     const classDef = schema.$defs?.[defName];
     // Without the discriminator, AJV's removeAdditional strips fields across branches.
     if (!classDef) {
-      throw new Error(`discriminateVariableUnions: $defs.${defName} not found`);
+      throw new Error(`discriminateUnions: $defs.${defName} not found`);
     }
 
     // Navigate to the parent of the target node (e.g. properties.variables.items)
@@ -363,7 +366,7 @@ function discriminateVariableUnions(schema, configs) {
 
     if (!target || !Array.isArray(target.anyOf)) {
       throw new Error(
-        `discriminateVariableUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
+        `discriminateUnions: ${defName}.${fieldPath} has no anyOf to discriminate`
       );
     }
 
@@ -465,8 +468,8 @@ console.log(
   `✓ Patched ModelOutputDataset simulation_type conditional to require contains "perturbation"`
 );
 
-// Discriminate the polymorphic variables union on schema_class.
-decorated = discriminateVariableUnions(decorated, [
+// Discriminate the variables union on schema_class and pH calibration on standard_used.
+decorated = discriminateUnions(decorated, [
   {
     defName: "FieldDataset",
     fieldPath: "properties.variables.items",

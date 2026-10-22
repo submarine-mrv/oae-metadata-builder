@@ -233,6 +233,22 @@ describe("localStorageWorkspaceStore", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) as string)).toEqual(loaded);
   });
 
+  it("leaves an already-current workspace untouched on load", () => {
+    const ws = twoProjectFixture();
+    ws.projects[0].state.projectData = { name: "A" };
+    ws.projects[1].state.projectData = {
+      name: "B",
+      spatial_coverage: { geo: { box: "32 -125 42 -114" } },
+    };
+    const raw = JSON.stringify(ws);
+    localStorage.setItem(WORKSPACE_KEY, raw);
+    const setItem = vi.spyOn(Object.getPrototypeOf(localStorage) as Storage, "setItem");
+
+    expect(localStorageWorkspaceStore.load()).toEqual(ws);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe(raw);
+  });
+
   it("ignores a malformed legacy session", () => {
     localStorage.setItem(LEGACY_SESSION_KEY, '{"hasProject":true}');
     expect(localStorageWorkspaceStore.load()).toBeNull();

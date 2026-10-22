@@ -99,6 +99,11 @@ describe("migrateFormData", () => {
   it("passes through non-objects", () => {
     expect(migrateFormData(null as never)).toBeNull();
   });
+
+  it("returns the same reference for current-format data", () => {
+    const data = { name: "A", spatial_coverage: { geo: { box: "32 -125 42 -114" } } };
+    expect(migrateFormData(data)).toBe(data);
+  });
 });
 
 describe("migrateResearchProject", () => {
