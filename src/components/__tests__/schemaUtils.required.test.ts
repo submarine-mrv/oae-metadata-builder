@@ -1,65 +1,77 @@
 import { describe, expect, it } from "vitest";
-import bundled from "@/schema/schema.bundled.json";
-import { hasValue, isFieldRequired, type JSONSchema, resolveRef } from "../schemaUtils";
+import { hasValue, isFieldRequired, type JSONSchema } from "../schemaUtils";
 
-const rootSchema = bundled as unknown as JSONSchema;
-const variable = (cls: string) => resolveRef({ $ref: `#/$defs/${cls}` }, rootSchema);
-const cal = (field: string) => `analyzing_instrument.calibration.${field}`;
+// A required instrument whose calibration is a discriminated union, plus an optional `extra`.
+const rootSchema = {
+  $defs: {
+    Variable: {
+      type: "object",
+      properties: {
+        instrument: { $ref: "#/$defs/Instrument" },
+        extra: { $ref: "#/$defs/Extra" },
+      },
+      required: ["instrument"],
+    },
+    Instrument: {
+      type: "object",
+      properties: {
+        calibration: {
+          oneOf: [{ $ref: "#/$defs/CalA" }, { $ref: "#/$defs/CalB" }],
+          discriminator: { propertyName: "kind" },
+        },
+      },
+      required: ["calibration"],
+    },
+    CalA: {
+      type: "object",
+      properties: { kind: { enum: ["a"] }, shared: {}, a_required: {} },
+      required: ["kind", "shared", "a_required"],
+    },
+    CalB: {
+      type: "object",
+      properties: { kind: { enum: ["b", "other"] }, shared: {}, a_required: {}, kind_custom: {} },
+      required: ["kind", "shared"],
+      if: { properties: { kind: { const: "other" } }, required: ["kind"] },
+      then: { required: ["kind_custom"] },
+    },
+    Extra: {
+      type: "object",
+      properties: { detail: {}, note: {} },
+      required: ["detail"],
+    },
+  },
+} as unknown as JSONSchema;
+
+const variable = rootSchema.$defs?.Variable as JSONSchema;
+const required = (path: string, formData?: Record<string, unknown>) =>
+  isFieldRequired(path, variable, rootSchema, formData);
+const withKind = (kind: string) => ({ instrument: { calibration: { kind } } });
 
 describe("isFieldRequired", () => {
-  it("requires fields that every pH calibration class requires", () => {
-    const ph = variable("DiscretePHVariable");
-    expect(isFieldRequired(cal("technique_description"), ph, rootSchema, {})).toBe(true);
-    expect(isFieldRequired(cal("standard_used"), ph, rootSchema, {})).toBe(true);
+  it("requires a field only when every union branch that defines it requires it", () => {
+    expect(required("instrument.calibration.shared", {})).toBe(true);
+    expect(required("instrument.calibration.a_required", {})).toBe(false);
   });
 
-  it("leaves fields optional when only one pH calibration class has them", () => {
-    const ph = variable("DiscretePHVariable");
-    expect(isFieldRequired(cal("dye_purified"), ph, rootSchema, {})).toBe(false);
+  it("uses the selected branch's required list once the discriminator is set", () => {
+    expect(required("instrument.calibration.a_required", withKind("a"))).toBe(true);
+    expect(required("instrument.calibration.a_required", withKind("b"))).toBe(false);
   });
 
-  it("requires the custom standard once the standard is other", () => {
-    const ph = variable("DiscretePHVariable");
-    const custom = cal("standard_used_custom");
-    const withStandard = (standard_used: string) => ({
-      analyzing_instrument: { calibration: { standard_used } },
-    });
-    expect(isFieldRequired(custom, ph, rootSchema, {})).toBe(false);
-    expect(isFieldRequired(custom, ph, rootSchema, withStandard("tris"))).toBe(false);
-    expect(isFieldRequired(custom, ph, rootSchema, withStandard("other"))).toBe(true);
+  it("applies if/then rules against the current data", () => {
+    expect(required("instrument.calibration.kind_custom", {})).toBe(false);
+    expect(required("instrument.calibration.kind_custom", withKind("b"))).toBe(false);
+    expect(required("instrument.calibration.kind_custom", withKind("other"))).toBe(true);
   });
 
-  it("reads required fields from the selected pH calibration class", () => {
-    const ph = variable("DiscretePHVariable");
-    const data = { analyzing_instrument: { calibration: { standard_used: "dye" } } };
-    expect(isFieldRequired(cal("technique_description"), ph, rootSchema, data)).toBe(true);
-    expect(isFieldRequired(cal("dye_purified"), ph, rootSchema, data)).toBe(false);
-  });
-
-  it("requires calibration fields of a required calibration with no data yet", () => {
-    const ta = variable("DiscreteTAVariable");
-    expect(isFieldRequired(cal("crm_manufacturer"), ta, rootSchema, {})).toBe(true);
-  });
-
-  it("requires fields under an optional calibration only once it has data", () => {
-    const generic = variable("DiscreteMeasuredVariable");
-    const path = cal("technique_description");
-    expect(isFieldRequired(path, generic, rootSchema, {})).toBe(false);
-    expect(
-      isFieldRequired(path, generic, rootSchema, {
-        analyzing_instrument: { calibration: { frequency: "" } },
-      }),
-    ).toBe(false);
-    expect(
-      isFieldRequired(path, generic, rootSchema, {
-        analyzing_instrument: { calibration: { frequency: "weekly" } },
-      }),
-    ).toBe(true);
+  it("ignores required fields under an optional object until it has data", () => {
+    expect(required("extra.detail", {})).toBe(false);
+    expect(required("extra.detail", { extra: { note: "" } })).toBe(false);
+    expect(required("extra.detail", { extra: { note: "x" } })).toBe(true);
   });
 
   it("ignores ancestors when no form data is given", () => {
-    const generic = variable("DiscreteMeasuredVariable");
-    expect(isFieldRequired(cal("technique_description"), generic, rootSchema)).toBe(true);
+    expect(required("extra.detail")).toBe(true);
   });
 });
 
