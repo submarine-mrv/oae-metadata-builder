@@ -787,7 +787,6 @@ const PH: HierarchyLayer = {
         {
           path: "analyzing_instrument.calibration.standard_type_and_production",
           placeholderText: "e.g., m-cresol purple from Sigma-Aldrich",
-          visibleWhen: { path: PH_STANDARD_USED, in: ["dye", "tris", "other"] },
         },
         {
           path: "analyzing_instrument.calibration.dye_purified",
