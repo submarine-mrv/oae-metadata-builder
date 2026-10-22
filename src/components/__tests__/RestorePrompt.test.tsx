@@ -1,39 +1,39 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useAtomValue } from "jotai";
 import { beforeEach, describe, expect, it } from "vitest";
-import { WORKSPACE_KEY } from "@/workspace/storage";
-import { emptyProjectState, newProjectRecord } from "@/workspace/types";
-import { useWorkspace, WorkspaceProvider } from "@/workspace/WorkspaceContext";
+import { projectCountAtom } from "@/state/atoms";
+import { createTestStore, StoreWrapper } from "@/state/testing";
+import { emptyProjectState, newProjectRecord, type Workspace } from "@/workspace/types";
 import RestorePrompt, { RESTORE_PROMPTED_KEY } from "../RestorePrompt";
 
 function Probe() {
-  const { projects } = useWorkspace();
-  return <output>{projects.length}</output>;
+  return <output>{useAtomValue(projectCountAtom)}</output>;
 }
+
+/** The saved workspace each render loads, as on a page load. */
+let saved: Workspace | undefined;
 
 function seed(count: number) {
   const projects = Array.from({ length: count }, () => newProjectRecord(emptyProjectState()));
-  localStorage.setItem(
-    WORKSPACE_KEY,
-    JSON.stringify({ version: 1, activeProjectId: projects[0]?.id ?? null, projects }),
-  );
+  saved = { version: 1, activeProjectId: projects[0]?.id ?? null, projects };
 }
 
 function renderPrompt() {
   return render(
     <MantineProvider>
-      <WorkspaceProvider>
+      <StoreWrapper store={createTestStore(saved)}>
         <Probe />
         <RestorePrompt />
-      </WorkspaceProvider>
+      </StoreWrapper>
     </MantineProvider>,
   );
 }
 
 describe("RestorePrompt", () => {
   beforeEach(() => {
-    localStorage.clear();
+    saved = undefined;
     sessionStorage.clear();
   });
 

@@ -1,33 +1,34 @@
 import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
 
 /**
- * Set project_id on every experiment. project_id is always synced from the
- * project. Records that already match are returned unchanged.
+ * Set project_id on every experiment or dataset. project_id is always synced
+ * from the project. Records that already match are returned unchanged.
  */
-export function propagateProjectIdToExperiments(
-  experiments: ExperimentRecord[],
+export function propagateProjectId<T extends ExperimentRecord | DatasetRecord>(
+  records: T[],
   projectId: string | undefined,
-): ExperimentRecord[] {
+): T[] {
   const id = projectId || "";
-  return experiments.map((exp) =>
-    exp.formData.project_id === id
-      ? exp
-      : { ...exp, formData: { ...exp.formData, project_id: id }, updatedAt: Date.now() },
+  return records.map((r) =>
+    r.formData.project_id === id
+      ? r
+      : { ...r, formData: { ...r.formData, project_id: id }, updatedAt: Date.now() },
   );
 }
 
-/**
- * Set project_id on every dataset. project_id is always synced from the
- * project. Records that already match are returned unchanged.
- */
-export function propagateProjectIdToDatasets(
+/** Set experiment_id on the datasets linked to the given experiment. Other datasets are returned unchanged. */
+export function propagateExperimentIdToDatasets(
   datasets: DatasetRecord[],
-  projectId: string | undefined,
+  experimentInternalId: number,
+  experimentId: string | undefined,
 ): DatasetRecord[] {
-  const id = projectId || "";
   return datasets.map((ds) =>
-    ds.formData.project_id === id
+    ds.linking?.linkedExperimentInternalId !== experimentInternalId
       ? ds
-      : { ...ds, formData: { ...ds.formData, project_id: id }, updatedAt: Date.now() },
+      : {
+          ...ds,
+          formData: { ...ds.formData, experiment_id: experimentId || undefined },
+          updatedAt: Date.now(),
+        },
   );
 }

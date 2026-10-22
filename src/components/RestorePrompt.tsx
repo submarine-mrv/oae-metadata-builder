@@ -1,7 +1,9 @@
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { deleteAllProjectsAtom } from "@/state/actions";
+import { projectSummariesAtom } from "@/state/atoms";
 import { formatRelativeTime } from "@/utils/relativeTime";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 /** Set once a tab has been asked, so reloads in the same tab don't ask again. */
 export const RESTORE_PROMPTED_KEY = "oae-metadata-builder-restore-prompted";
@@ -28,7 +30,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
  * On the first load of a tab with saved projects, offers to restore them or start fresh. Starting fresh deletes every project after a confirm step.
  */
 export default function RestorePrompt() {
-  const { projects, deleteAllProjects } = useWorkspace();
+  const projects = useAtomValue(projectSummariesAtom);
+  const deleteAllProjects = useSetAtom(deleteAllProjectsAtom);
   const [opened, setOpened] = useState(() => projects.length > 0 && !alreadyPrompted());
   const [confirming, setConfirming] = useState(false);
 

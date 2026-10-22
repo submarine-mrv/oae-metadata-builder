@@ -1,14 +1,19 @@
 import { Button, Container, Group, SimpleGrid, Stack, Title } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { type ProjectSummary, useWorkspace } from "@/workspace/WorkspaceContext";
+import { createProjectAtom, deleteProjectAtom, switchProjectAtom } from "@/state/actions";
+import { type ProjectSummary, projectSummariesAtom } from "@/state/atoms";
 import DeleteProjectModal from "./DeleteProjectModal";
 import ProjectCard from "./ProjectCard";
 
 export default function ProjectsPage() {
-  const { projects, switchProject, createProject, deleteProject } = useWorkspace();
+  const projects = useAtomValue(projectSummariesAtom);
+  const switchProject = useSetAtom(switchProjectAtom);
+  const createProject = useSetAtom(createProjectAtom);
+  const deleteProject = useSetAtom(deleteProjectAtom);
   const navigate = useNavigate();
   const [pendingDelete, setPendingDelete] = useState<ProjectSummary | null>(null);
 

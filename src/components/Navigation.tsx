@@ -20,16 +20,17 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useAtomValue, useSetAtom, useStore } from "jotai";
 import { authEnabled } from "@/auth/config";
 import { useAuth } from "@/auth/useAuth";
 import DownloadModal from "@/components/DownloadModal";
 import ImportFlow from "@/components/ImportFlow";
 import ProjectSwitcher from "@/components/ProjectSwitcher";
-import { useAppState } from "@/contexts/AppStateContext";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportFlow } from "@/hooks/useImportFlow";
+import { toggleJsonPreviewAtom } from "@/state/actions";
+import { projectCountAtom, projectStateAtom, showJsonPreviewAtom } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -40,16 +41,17 @@ const TABS = [
 
 export default function Navigation() {
   const { client, user } = useAuth();
-  const { state, toggleJsonPreview } = useAppState();
-  const hasProjects = useWorkspace().projects.length > 0;
+  const showJsonPreview = useAtomValue(showJsonPreviewAtom);
+  const toggleJsonPreview = useSetAtom(toggleJsonPreviewAtom);
+  const hasProjects = useAtomValue(projectCountAtom) > 0;
+  const store = useStore();
   const navigate = useNavigate();
   const importFlow = useImportFlow();
 
   const { showModal, sections, openModal, closeModal, handleDownload, handleSectionToggle } =
     useDownloadModal({
-      projectData: state.projectData,
-      experiments: state.experiments,
-      datasets: state.datasets,
+      // Read on open and download, so the header doesn't re-render on every edit.
+      getData: () => store.get(projectStateAtom),
       defaultSelection: "all",
     });
 
@@ -248,7 +250,7 @@ export default function Navigation() {
                     >
                       <Switch
                         label="JSON Preview"
-                        checked={state.showJsonPreview}
+                        checked={showJsonPreview}
                         onChange={toggleJsonPreview}
                         onClick={(e) => e.stopPropagation()}
                       />

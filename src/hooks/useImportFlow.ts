@@ -1,12 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useAtomValue, useSetAtom, useStore } from "jotai";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
-import { useAppState } from "@/contexts/AppStateContext";
 import { EMPTY_BASELINE, type ImportBaseline, useImportPreview } from "@/hooks/useImportPreview";
+import { importAsNewProjectAtom, importSelectedDataAtom } from "@/state/actions";
+import { projectCountAtom, projectNameAtom, projectStateAtom } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
-import { projectDisplayName } from "@/workspace/types";
-import { useWorkspace } from "@/workspace/WorkspaceContext";
 
 export type ImportMode = "new" | "merge";
 
@@ -15,10 +15,12 @@ export type ImportMode = "new" | "merge";
  * Render the returned `inputProps` and `previewProps` through `ImportFlow`.
  */
 export function useImportFlow() {
-  const { state, importSelectedData } = useAppState();
-  const { projects, importAsNewProject } = useWorkspace();
+  const store = useStore();
+  const importSelectedData = useSetAtom(importSelectedDataAtom);
+  const importAsNewProject = useSetAtom(importAsNewProjectAtom);
+  const currentProjectName = useAtomValue(projectNameAtom);
   const navigate = useNavigate();
-  const canMerge = projects.length > 0;
+  const canMerge = useAtomValue(projectCountAtom) > 0;
   const [mode, setMode] = useState<ImportMode>("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const effectiveMode: ImportMode = canMerge ? mode : "new";
@@ -26,10 +28,11 @@ export function useImportFlow() {
   const preview = useImportPreview();
 
   // A new project starts empty, so nothing in the file can clash with or link to the current one.
-  const baselineFor = (m: ImportMode): ImportBaseline =>
-    m === "merge"
-      ? { projectData: state.projectData, experiments: state.experiments }
-      : EMPTY_BASELINE;
+  const baselineFor = (m: ImportMode): ImportBaseline => {
+    if (m !== "merge") return EMPTY_BASELINE;
+    const { projectData, experiments } = store.get(projectStateAtom);
+    return { projectData, experiments };
+  };
 
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 
@@ -60,7 +63,7 @@ export function useImportFlow() {
     if (effectiveMode === "new") {
       importAsNewProject(selected);
     } else {
-      importSelectedData(selected.project, selected.experiments, selected.datasets);
+      importSelectedData(selected);
     }
     // Entity pages hold local form data that a merge would leave stale.
     navigate({ to: "/overview" });
@@ -93,7 +96,7 @@ export function useImportFlow() {
         preview.rebase(baselineFor(canMerge ? m : "new"));
       },
       canMerge,
-      currentProjectName: projectDisplayName(state),
+      currentProjectName,
     },
   };
 }

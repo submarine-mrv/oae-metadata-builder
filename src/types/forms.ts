@@ -155,21 +155,6 @@ export interface DatasetRecord {
   updatedAt: number;
 }
 
-/**
- * Main application state
- */
-export interface AppFormState {
-  projectData: DraftProject;
-  experiments: ExperimentRecord[];
-  datasets: DatasetRecord[];
-  activeExperimentId: number | null;
-  activeDatasetId: number | null;
-  nextExperimentId: number;
-  nextDatasetId: number;
-  triggerValidation: boolean;
-  showJsonPreview: boolean;
-}
-
 // =============================================================================
 // Export/Import Types
 // =============================================================================

@@ -1,8 +1,9 @@
 import { Box, Button, Group, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { useAppState } from "@/contexts/AppStateContext";
+import { showJsonPreviewAtom } from "@/state/atoms";
 
 interface JsonPreviewSidebarProps {
   /** The data object to display as JSON */
@@ -15,10 +16,10 @@ const MAX_WIDTH = 800;
 
 /**
  * A resizable sidebar that displays JSON data.
- * Visibility is controlled via AppStateContext (showJsonPreview).
+ * Visibility is controlled by `showJsonPreviewAtom`.
  */
 export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
-  const { state, setShowJsonPreview } = useAppState();
+  const [showJsonPreview, setShowJsonPreview] = useAtom(showJsonPreviewAtom);
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
@@ -46,7 +47,7 @@ export default function JsonPreviewSidebar({ data }: JsonPreviewSidebarProps) {
     };
   }, [isResizing]);
 
-  if (!state.showJsonPreview || isMobile) {
+  if (!showJsonPreview || isMobile) {
     return null;
   }
 
