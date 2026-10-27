@@ -7,7 +7,7 @@ import type {
   ImportResult,
 } from "@/types/forms";
 import { trackEvent } from "@/utils/analytics";
-import { migrateFormData } from "@/utils/migrations";
+import { migrateDataset, migrateExperiment, migrateProject } from "@/utils/migrations";
 import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
 import { getBaseSchema, getProtocolMetadata } from "./schemaViews";
 
@@ -131,13 +131,13 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         // migrate legacy bounding box format (W S E N → S W N E) and parse at
         // the import boundary so stored data always carries the entity
         // invariants (model exclusivity, type-scoped fields, clean variables).
-        const { experiments: _, ...rawProjectData } = migrateFormData(projectDataRaw);
+        const { experiments: _, ...rawProjectData } = migrateProject(projectDataRaw);
         const projectData = parseProject(rawProjectData);
 
         // Convert experiment data to ExperimentRecords
         const experiments: ExperimentRecord[] = experimentsData.map(
           (raw: unknown, index: number) => {
-            const expData = parseExperiment(migrateFormData(asImportRecord(raw)));
+            const expData = parseExperiment(migrateExperiment(asImportRecord(raw)));
             return {
               id: index + 1, // Will be reassigned based on nextExperimentId
               name:
@@ -154,7 +154,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
         // Convert dataset data to DatasetRecords
         const datasets: DatasetRecord[] = datasetsData.map((raw: unknown, index: number) => {
           const dsData = parseDataset(
-            migrateFormData(asImportRecord(raw)),
+            migrateDataset(asImportRecord(raw)),
             getBaseSchema() as JSONSchema,
           );
           return {

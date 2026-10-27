@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  migrateFormData,
+  migrateDataset,
+  migrateExperiment,
   migratePHCalibrationStandard,
+  migrateProject,
   migratePublicComments,
   migrateResearchProject,
 } from "../migrations";
@@ -80,14 +82,14 @@ describe("migratePublicComments", () => {
   });
 });
 
-describe("migrateFormData", () => {
+describe("migrateExperiment", () => {
   it("runs the public comments migration at load boundaries", () => {
-    const result = migrateFormData({ public_comments: "a.pdf, b.pdf" });
+    const result = migrateExperiment({ public_comments: "a.pdf, b.pdf" });
     expect(result.public_comments).toHaveLength(1);
   });
 
   it("runs box-string and public-comment migrations together", () => {
-    const result = migrateFormData({
+    const result = migrateExperiment({
       public_comments: "a.pdf",
       spatial_coverage: { geo: { box: "-124.5 47.2 -122.3 48.2" } },
     });
@@ -95,14 +97,21 @@ describe("migrateFormData", () => {
     expect(result.public_comments).toEqual([{ description: "a.pdf", comment_type: "other" }]);
     expect(result.spatial_coverage.geo.box).toBe("47.2 -124.5 48.2 -122.3");
   });
+});
 
+describe("migrateProject", () => {
   it("passes through non-objects", () => {
-    expect(migrateFormData(null as never)).toBeNull();
+    expect(migrateProject(null as never)).toBeNull();
   });
 
   it("returns the same reference for current-format data", () => {
     const data = { name: "A", spatial_coverage: { geo: { box: "32 -125 42 -114" } } };
-    expect(migrateFormData(data)).toBe(data);
+    expect(migrateProject(data)).toBe(data);
+  });
+
+  it("does not run experiment migrations", () => {
+    const data = { name: "A", public_comments: "a.pdf" };
+    expect(migrateProject(data)).toBe(data);
   });
 });
 
@@ -167,8 +176,8 @@ describe("migratePHCalibrationStandard", () => {
     expect(migratePHCalibrationStandard(data)).toBe(data);
   });
 
-  it("runs as part of migrateFormData", () => {
-    const result = migrateFormData(withCalibration({ dye_correction_method: "Liu 2011" }));
+  it("runs as part of migrateDataset", () => {
+    const result = migrateDataset(withCalibration({ dye_correction_method: "Liu 2011" }));
     expect(calibrationOf(result).standard_used).toBe("dye");
   });
 });
