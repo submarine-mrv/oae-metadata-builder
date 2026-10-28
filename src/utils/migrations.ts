@@ -1,9 +1,10 @@
 /**
  * Form data migrations — normalize data from older app versions on load.
  *
- * Each migration function handles one specific format change. They are run
- * in order by `migrateFormData`, which is called at load boundaries (project
- * load and file import) — NOT on every form change.
+ * Each migration function handles one specific format change for one entity.
+ * `migrateProject`, `migrateExperiment` and `migrateDataset` run them in order
+ * at load boundaries (workspace load, project load, file import), not on every
+ * form change.
  *
  * Migrations detect the old shape instead of checking a version: stored
  * projects carry no protocol version, and a file's `version` can be wrong.
@@ -11,7 +12,7 @@
  *
  * When adding a new migration:
  *   1. Write a pure function: (data) => data (return same ref if no change)
- *   2. Add it to the MIGRATIONS array below
+ *   2. Add it to the entity's list below (PROJECT_, EXPERIMENT_ or DATASET_MIGRATIONS)
  *   3. Add tests in __tests__/migrations.test.ts
  */
 
@@ -108,25 +109,30 @@ export function migratePHCalibrationStandard(data: Record<string, any>): Record<
   return changed ? { ...data, variables: next } : data;
 }
 
-// Ordered list of migrations to apply. Each takes a form data object and
-// returns the (possibly updated) object. Return the same reference if no
-// changes are needed to avoid unnecessary re-renders.
-const MIGRATIONS: Array<(data: Record<string, any>) => Record<string, any>> = [
+type Migration = (data: Record<string, any>) => Record<string, any>;
+
+// Each entity runs only its own migrations, in order. Return the same reference
+// when nothing changes, so callers can tell whether to write back.
+const PROJECT_MIGRATIONS: Migration[] = [
+  migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
+  migrateResearchProject, // 0.6.0: research_project → name
+];
+const EXPERIMENT_MIGRATIONS: Migration[] = [
   migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
   migratePublicComments, // 0.4.0: old text → one [{ description, comment_type }]
-  migrateResearchProject, // 0.6.0: project research_project → name
+];
+const DATASET_MIGRATIONS: Migration[] = [
   migratePHCalibrationStandard, // 0.6.0: pH calibration standard_used, dye type rename
 ];
 
-/**
- * Run all registered migrations on a form data object.
- * Called at load boundaries: project load and JSON file import.
- */
-export function migrateFormData<T extends Record<string, any>>(data: T): T {
+function runMigrations<T extends Record<string, any>>(migrations: Migration[], data: T): T {
   if (!data || typeof data !== "object") return data;
-  let result: Record<string, any> = data;
-  for (const migrate of MIGRATIONS) {
-    result = migrate(result);
-  }
-  return result as T;
+  return migrations.reduce<Record<string, any>>((result, migrate) => migrate(result), data) as T;
 }
+
+export const migrateProject = <T extends Record<string, any>>(data: T): T =>
+  runMigrations(PROJECT_MIGRATIONS, data);
+export const migrateExperiment = <T extends Record<string, any>>(data: T): T =>
+  runMigrations(EXPERIMENT_MIGRATIONS, data);
+export const migrateDataset = <T extends Record<string, any>>(data: T): T =>
+  runMigrations(DATASET_MIGRATIONS, data);

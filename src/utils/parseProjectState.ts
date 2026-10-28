@@ -1,7 +1,7 @@
 import type { JSONSchema } from "@/components/schemaUtils";
 import type { ExperimentRecord } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
-import { migrateFormData } from "./migrations";
+import { migrateDataset, migrateExperiment, migrateProject } from "./migrations";
 import { parseDataset, parseExperiment, parseProject } from "./parseEntity";
 import { getBaseSchema } from "./schemaViews";
 
@@ -17,14 +17,14 @@ export function parseProjectState(saved: ProjectState): ProjectState {
     const { experiment_types: _, ...record } = exp as ExperimentRecord & {
       experiment_types?: unknown;
     };
-    return { ...record, formData: parseExperiment(migrateFormData(exp.formData)) };
+    return { ...record, formData: parseExperiment(migrateExperiment(exp.formData)) };
   });
   const datasets = saved.datasets.map((ds) => ({
     ...ds,
-    formData: parseDataset(migrateFormData(ds.formData), getBaseSchema() as unknown as JSONSchema),
+    formData: parseDataset(migrateDataset(ds.formData), getBaseSchema() as unknown as JSONSchema),
   }));
   return {
-    projectData: parseProject(migrateFormData(saved.projectData)),
+    projectData: parseProject(migrateProject(saved.projectData)),
     experiments,
     datasets,
     nextExperimentId: saved.nextExperimentId,

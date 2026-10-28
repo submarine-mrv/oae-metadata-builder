@@ -1,4 +1,4 @@
-import { migrateFormData } from "@/utils/migrations";
+import { migrateDataset, migrateExperiment, migrateProject } from "@/utils/migrations";
 import { newProjectRecord, type ProjectRecord, type ProjectState, type Workspace } from "./types";
 import { mostRecent } from "./workspace";
 
@@ -83,10 +83,13 @@ function backup(raw: string): boolean {
   return write(`${BACKUP_KEY_PREFIX}${Date.now()}`, raw);
 }
 
-function migrateEntities<T extends { formData: Record<string, unknown> }>(entities: T[]): T[] {
+function migrateEntityList<T extends { formData: Record<string, unknown> }>(
+  entities: T[],
+  migrate: (data: T["formData"]) => T["formData"],
+): T[] {
   let changed = false;
   const next = entities.map((entity) => {
-    const formData = migrateFormData(entity.formData);
+    const formData = migrate(entity.formData);
     if (formData === entity.formData) return entity;
     changed = true;
     return { ...entity, formData };
@@ -94,12 +97,12 @@ function migrateEntities<T extends { formData: Record<string, unknown> }>(entiti
   return changed ? next : entities;
 }
 
-/** Runs form data migrations on a stored project; the same record when nothing changed. */
-function migrateRecord(record: ProjectRecord): ProjectRecord {
+/** Migrates a stored project's project, experiments and datasets; the same record when nothing changed. */
+function migrateProjectRecord(record: ProjectRecord): ProjectRecord {
   const { state } = record;
-  const projectData = migrateFormData(state.projectData);
-  const experiments = migrateEntities(state.experiments);
-  const datasets = migrateEntities(state.datasets);
+  const projectData = migrateProject(state.projectData);
+  const experiments = migrateEntityList(state.experiments, migrateExperiment);
+  const datasets = migrateEntityList(state.datasets, migrateDataset);
   if (
     projectData === state.projectData &&
     experiments === state.experiments &&
@@ -124,7 +127,7 @@ function readWorkspace(raw: string): Workspace | null {
   const readable = stored.projects.filter(isProjectRecord);
   const dropped = readable.length < stored.projects.length;
   // Migrate every project, not just the active one, so the project list shows current fields.
-  const projects = readable.map(migrateRecord);
+  const projects = readable.map(migrateProjectRecord);
   const migrated = projects.some((p, i) => p !== readable[i]);
   const activeProjectId = projects.some((p) => p.id === stored.activeProjectId)
     ? (stored.activeProjectId as string)
@@ -164,7 +167,7 @@ export const localStorageWorkspaceStore: WorkspaceStore = {
 
     const legacyRaw = read(LEGACY_SESSION_KEY);
     const session = legacyRaw ? migrateLegacySession(parseJson(legacyRaw)) : null;
-    const legacy = session && migrateRecord(session);
+    const legacy = session && migrateProjectRecord(session);
     if (!legacy) return null;
     const workspace: Workspace = { version: 1, activeProjectId: legacy.id, projects: [legacy] };
     if (write(WORKSPACE_KEY, JSON.stringify(workspace))) remove(LEGACY_SESSION_KEY);

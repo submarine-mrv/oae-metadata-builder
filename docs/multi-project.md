@@ -79,4 +79,4 @@ A file with duplicate experiment ids is blocked in both modes.
 
 The app owns `project_id` and `experiment_id` on imported records and ignores the file's values.
 
-`localStorageWorkspaceStore.load` runs the form data migrations on every stored project and saves the result, so the project list shows current field names. `hydrate` then parses and migrates each project again through `parseProjectState`.
+`localStorageWorkspaceStore.load` runs `migrateProject`, `migrateExperiment` and `migrateDataset` (`src/utils/migrations.ts`) on every stored project and saves the result, so the project list shows current field names. `hydrate` then parses and migrates each project again through `parseProjectState`.
