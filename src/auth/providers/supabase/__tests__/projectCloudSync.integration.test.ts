@@ -86,9 +86,11 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       });
       store.set(workspaceAtom, (workspace) => addProject(addProject(workspace, first), second));
       await sync.flush();
-      expect((await client.load()).map((row) => row.project.id).sort()).toEqual(
-        [first.id, second.id].sort(),
-      );
+      expect(
+        (await client.load())
+          .map((row) => ("project" in row ? row.project.id : row.projectId))
+          .sort(),
+      ).toEqual([first.id, second.id].sort());
 
       const device = createStore();
       const deviceSync = startProjectCloudSync(device, createProjectCloudClient(owner.user.id));
@@ -108,7 +110,9 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         }),
       );
       await deviceSync.flush();
-      const saved = (await client.load()).find((row) => row.project.id === first.id);
+      const saved = (await client.load())
+        .filter((row) => "project" in row)
+        .find((row) => row.project.id === first.id);
       expect(saved?.project.state.projectData).toMatchObject({
         name: "device two",
         description: "device one",
@@ -145,9 +149,13 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       await deviceSync.remove(first.id);
       device.set(workspaceAtom, (workspace) => deleteProject(workspace, first.id));
       await deviceSync.flush();
-      expect((await client.load()).map((row) => row.project.id)).toEqual([second.id]);
+      expect(
+        (await client.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
+      ).toEqual([second.id]);
       auth.session = other;
-      expect((await isolated.load()).map((row) => row.project.id)).toEqual([first.id]);
+      expect(
+        (await isolated.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
+      ).toEqual([first.id]);
     });
   },
 );

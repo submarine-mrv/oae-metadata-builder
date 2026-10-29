@@ -57,7 +57,7 @@ describe("owner-bound project Supabase client", () => {
     const client = createProjectCloudClient("owner");
     const rows = await client.load();
     expect(mocks.eq).toHaveBeenCalledWith("user_id", "owner");
-    expect(rows[0].project.id).toBe(project.id);
+    expect(rows[0]).toMatchObject({ project: { id: project.id } });
     expect(await mocks.options?.accessToken()).toBe("owner-token");
   });
 
@@ -71,6 +71,38 @@ describe("owner-bound project Supabase client", () => {
       p_expected_hash: "previous",
       p_client_updated_at: expect.any(String),
     });
+  });
+
+  it("reports future projects without parsing their state or hiding supported projects", async () => {
+    mocks.rows.push({
+      project_id: "future",
+      state: { id: "future", schemaVersion: 2, state: { futureField: true } },
+      state_hash: "future-hash",
+    });
+    expect(await createProjectCloudClient("owner").load()).toEqual([
+      { project, hash: "hash" },
+      { projectId: "future", schemaVersion: 2 },
+    ]);
+  });
+
+  it("rejects newer local formats before sending a write", async () => {
+    await expect(
+      createProjectCloudClient("owner").save({ ...project, schemaVersion: 2 }, "next", "hash"),
+    ).rejects.toThrow("Reload");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("surfaces server downgrade protection as a reload-required error", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        message: "Version downgrade",
+        details: "metadata_builder_schema_version_downgrade",
+      },
+    });
+    await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toThrow(
+      "Reload",
+    );
   });
 
   it("deletes only the requested project and expected revision", async () => {

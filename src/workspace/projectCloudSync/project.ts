@@ -5,11 +5,23 @@ import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import { type ProjectSyncStatus, projectSyncStatusAtom } from "../syncState";
 import { mostRecent } from "../workspace";
-import { errorMessage, hashProject, parseCloudProject } from "./helper";
-import type { ProjectCloudClient, RemoteProject } from "./types";
+import {
+  checkProjectVersion,
+  errorMessage,
+  hashProject,
+  parseCloudProject,
+  UnsupportedProjectVersionError,
+} from "./helper";
+import type { ProjectCloudClient, ProjectSaveResult, RemoteProject } from "./types";
 
 export function startProjectCloudSync(store: AppStore, client: ProjectCloudClient) {
   const acknowledged = new Map<string, RemoteProject>();
+  const unsupported = new Map<string, UnsupportedProjectVersionError>();
+  const versionError = () => unsupported.values().next().value;
+  const settledStatus = () => {
+    const error = versionError();
+    status(error ? { state: "error", message: error.message } : { state: "synced" });
+  };
   let stopped = false;
   let ready = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -40,10 +52,18 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       const project = currentProject(id);
       const previous = acknowledged.get(id);
-      if (!project || previous?.project === project) return;
+      if (unsupported.has(id) || !project || previous?.project === project) return;
+      checkProjectVersion(project);
       const hash = await hashProject(project);
       assertActive();
-      const result = await client.save(project, hash, previous?.hash ?? null);
+      let result: ProjectSaveResult;
+      try {
+        result = await client.save(project, hash, previous?.hash ?? null);
+      } catch (error) {
+        if (!(error instanceof UnsupportedProjectVersionError)) throw error;
+        unsupported.set(id, error);
+        return;
+      }
       assertActive();
       if (result.saved) {
         if (!result.hash) throw new Error("The cloud did not acknowledge the saved project.");
@@ -73,6 +93,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
 
   const remove = async (id: string) => {
     assertActive();
+    if (unsupported.has(id)) throw unsupported.get(id);
     const previous = acknowledged.get(id);
     if (!previous) return;
     const result = await client.remove(id, previous.hash);
@@ -88,7 +109,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (stopped) return Promise.reject(new Error("Project sync is no longer active."));
     if (!ready) return Promise.reject(new Error("Cloud projects have not finished loading."));
     if (inFlight) return inFlight;
-    if (!dirty()) return Promise.resolve();
+    if (!dirty()) {
+      const error = versionError();
+      return error ? Promise.reject(error) : Promise.resolve();
+    }
     inFlight = Promise.resolve().then(async () => {
       try {
         while (dirty()) {
@@ -103,10 +127,12 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
             await writeProject(project.id);
           }
           for (const id of acknowledged.keys()) {
-            if (!currentProject(id)) await remove(id);
+            if (!unsupported.has(id) && !currentProject(id)) await remove(id);
           }
+          const error = versionError();
+          if (error) throw error;
         }
-        status({ state: "synced" });
+        settledStatus();
       } catch (error) {
         // A failed attempt (including offline) is an error; pending means debounce only.
         status({
@@ -128,10 +154,15 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   };
   const schedule = () => {
     if (!ready || stopped || !dirty()) return;
-    status({
-      state: "pending",
-      message: "Unsaved edits are only in memory until cloud sync succeeds.",
-    });
+    const error = versionError();
+    status(
+      error
+        ? { state: "error", message: error.message }
+        : {
+            state: "pending",
+            message: "Unsaved edits are only in memory until cloud sync succeeds.",
+          },
+    );
     cancelTimer();
     timer = setTimeout(backgroundFlush, SAVE_DEBOUNCE_MS);
   };
@@ -155,10 +186,18 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     try {
       const rows = await client.load();
       assertActive();
-      const projects = rows.map(({ project, hash }) => {
+      const projects = rows.flatMap((row) => {
+        if ("projectId" in row) {
+          unsupported.set(
+            row.projectId,
+            new UnsupportedProjectVersionError(row.projectId, row.schemaVersion),
+          );
+          return [];
+        }
+        const { project, hash } = row;
         const parsed = parseCloudProject(project);
         acknowledged.set(parsed.id, { project: parsed, hash });
-        return parsed;
+        return [parsed];
       });
       if (new Set(projects.map((project) => project.id)).size !== projects.length) {
         throw new Error("The cloud returned duplicate project records.");
@@ -169,7 +208,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         projects,
       });
       ready = true;
-      status({ state: "synced" });
+      settledStatus();
     } catch (error) {
       status({ state: "error", message: errorMessage(error) });
       throw error;
