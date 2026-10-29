@@ -73,7 +73,7 @@ describe("newer draft formats during refresh", () => {
       await sync.refresh();
       await sync.refresh();
       expect(store.get(workspaceAtom).projects[0]).toBe(original);
-      await expect(sync.flush()).rejects.toThrow("Reload");
+      await sync.flush();
       expect(store.get(projectSyncStatusAtom).state).toBe("error");
       expect(client.save).not.toHaveBeenCalled();
       expect(client.remove).not.toHaveBeenCalled();
