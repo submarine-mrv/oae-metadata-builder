@@ -58,6 +58,9 @@ test.describe("Multiple projects", () => {
     await switcher.click();
     await page.getByRole("menuitem", { name: /All projects/ }).click();
     await expect(page).toHaveURL(/\/projects$/);
+    await expect(page.getByRole("button", { name: "All projects", exact: true })).toBeVisible();
+    await expect(switcher).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(2);
     await page.getByRole("button", { name: "Open Kiel trial" }).click();
     await expect(page).toHaveURL(/\/overview$/);
@@ -69,16 +72,21 @@ test.describe("Multiple projects", () => {
     await waitForRoute(switcher);
     await expect(switcher).toHaveText("Kiel trial");
 
-    // Delete the unnamed one from the list; the crumb still names the remaining project.
+    // Deleting from All projects keeps the remaining project unselected.
     await page.goto("/projects");
     await page.getByRole("button", { name: "Delete Unnamed Project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(1);
-    await expect(switcher).toHaveText("Kiel trial");
+    await expect(page.getByRole("button", { name: "All projects", exact: true })).toBeVisible();
+    await expect(switcher).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
 
-    // Delete the last one: the list is gone and the welcome screen is back.
+    // Deleting the last project leaves an empty list; overview shows the welcome screen.
     await page.getByRole("button", { name: "Delete Kiel trial" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
+    await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/projects$/);
+    await page.goto("/overview");
     await expect(page).toHaveURL(/\/overview$/);
     await expect(firstProject).toBeVisible();
     await expect(switcher).toHaveCount(0);
