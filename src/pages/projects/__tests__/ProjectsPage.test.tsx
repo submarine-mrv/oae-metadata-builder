@@ -86,6 +86,8 @@ describe("ProjectsPage", () => {
     });
     store.set(projectSyncActionsAtom, {
       flush: vi.fn(),
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
       migrateLocalProjects: vi.fn(),
       stop: vi.fn(),
       remove,

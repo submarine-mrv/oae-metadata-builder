@@ -20,6 +20,8 @@ describe("local project consent", () => {
     const store = createStore();
     store.set(projectSyncActionsAtom, {
       flush: vi.fn(),
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
       remove: vi.fn(),
       stop: vi.fn(),
       migrateLocalProjects: migrate,
