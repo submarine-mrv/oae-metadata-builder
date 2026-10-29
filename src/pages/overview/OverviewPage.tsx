@@ -46,6 +46,7 @@ import {
 } from "@/state/atoms";
 import { formStatus } from "@/utils/formStatus";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
+import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 export default function OverviewPage() {
   const projectData = useAtomValue(projectDataAtom);
@@ -64,6 +65,7 @@ export default function OverviewPage() {
   const deleteProject = useSetAtom(deleteProjectAtom);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const navigate = useNavigate();
+  const transition = useProjectTransition();
 
   const projectStatus = formStatus(projectData, validateProject);
   const projectCompletion = projectStatus.percentage;
@@ -75,8 +77,11 @@ export default function OverviewPage() {
   };
 
   const confirmDeleteProject = () => {
-    if (activeSummary) deleteProject(activeSummary.id);
-    setConfirmingDelete(false);
+    if (!activeSummary) return;
+    transition(() => {
+      deleteProject(activeSummary.id);
+      setConfirmingDelete(false);
+    }, activeSummary.id);
   };
 
   const handleCreateExperiment = () => {

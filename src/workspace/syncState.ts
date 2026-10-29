@@ -2,7 +2,26 @@ import { atom } from "jotai";
 
 export type ProjectSyncStatus =
   | { state: "disabled" | "loading" | "syncing" | "synced" }
-  | { state: "pending" | "error"; message: string };
+  | { state: "pending"; message: string }
+  | { state: "error"; message: string; projectId?: string };
+
+export class ProjectConflictError extends Error {
+  constructor(
+    public readonly projectId: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ProjectConflictError";
+  }
+}
+
+export function projectSyncErrorStatus(error: unknown): ProjectSyncStatus {
+  return {
+    state: "error",
+    message: error instanceof Error ? error.message : "Could not sync this project.",
+    ...(error instanceof ProjectConflictError ? { projectId: error.projectId } : {}),
+  };
+}
 
 export interface ProjectSyncActions {
   flush(): Promise<void>;

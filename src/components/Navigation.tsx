@@ -36,6 +36,8 @@ import {
   showJsonPreviewAtom,
 } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
+import { ProjectSyncIndicator } from "@/workspace/sync";
+import { projectSyncStatusAtom } from "@/workspace/syncState";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -91,9 +93,17 @@ export default function Navigation() {
   });
 
   const handleSignOut = async () => {
-    await client.signOut();
-    trackEvent("auth_logout");
-    await navigate({ to: "/overview" });
+    try {
+      await client.signOut();
+      trackEvent("auth_logout");
+      await navigate({ to: "/overview" });
+    } catch (error) {
+      store.set(projectSyncStatusAtom, {
+        state: "error",
+        message:
+          error instanceof Error ? error.message : "Could not save projects before signing out.",
+      });
+    }
   };
 
   return (
@@ -151,6 +161,7 @@ export default function Navigation() {
 
           {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
           <Group gap="xs" justify="flex-end" style={{ gridColumn: isCompact ? 2 : 3 }}>
+            <ProjectSyncIndicator />
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>

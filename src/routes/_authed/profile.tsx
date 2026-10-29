@@ -171,8 +171,17 @@ function ProfilePage({ error }: { error?: string }) {
 
   async function logout() {
     setLogoutPending(true);
-    await client.signOut();
-    await navigate({ to: "/auth/login", search: { error: undefined, returnTo: undefined } });
+    try {
+      await client.signOut();
+      await navigate({ to: "/auth/login", search: { error: undefined, returnTo: undefined } });
+    } catch (error) {
+      setLogoutPending(false);
+      notifications.show({
+        color: "red",
+        message:
+          error instanceof Error ? error.message : "Could not save projects before signing out.",
+      });
+    }
   }
 
   function openDeleteModal() {
@@ -188,7 +197,18 @@ function ProfilePage({ error }: { error?: string }) {
     }
     setDeleteError(null);
     setDeletePending(true);
-    const result = await client.deleteAccount();
+    let result: Awaited<ReturnType<typeof client.deleteAccount>>;
+    try {
+      result = await client.deleteAccount();
+    } catch (error) {
+      setDeletePending(false);
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Could not save projects before deleting the account.",
+      );
+      return;
+    }
     if (result.error) {
       setDeletePending(false);
       setDeleteError("We could not delete your account. Please try again.");
