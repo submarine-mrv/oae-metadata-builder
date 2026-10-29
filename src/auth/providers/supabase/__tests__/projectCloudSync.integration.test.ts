@@ -295,7 +295,9 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       expect(
         (await readTree(renamed.state.projectData.project_id)).map((rows) => rows.length),
       ).toEqual([0, 0, 0]);
-      expect((await drafts.load()).some((row) => row.project.id === project.id)).toBe(true);
+      expect(
+        (await drafts.load()).some((row) => "project" in row && row.project.id === project.id),
+      ).toBe(true);
       await publication.publish(renamed.id, buildProjectPublicationPayload(renamed));
       expect(
         (await readTree(renamed.state.projectData.project_id)).map((rows) => rows.length),
