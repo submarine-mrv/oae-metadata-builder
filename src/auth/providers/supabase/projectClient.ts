@@ -1,10 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/auth/providers/supabase/client";
 import {
+  checkProjectVersion,
   type ProjectCloudClient,
   type ProjectSaveResult,
   parseCloudProject,
+  readRemoteProject,
+  UnsupportedProjectVersionError,
 } from "@/workspace/projectCloudSync";
+import { PROJECT_SCHEMA_VERSION } from "@/workspace/types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -68,21 +72,24 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         ) {
           throw new Error("Supabase returned an invalid cloud project row.");
         }
-        return {
-          project: parseCloudProject(row.state, row.project_id),
-          hash: row.state_hash,
-        };
+        return readRemoteProject(row.state, row.project_id, row.state_hash);
       });
     },
     async save(project, hash, expectedHash) {
+      checkProjectVersion(project);
       const { data, error } = await client.rpc("save_metadata_builder_session", {
         p_project_id: project.id,
-        p_state: project,
+        p_state: { ...project, schemaVersion: project.schemaVersion ?? PROJECT_SCHEMA_VERSION },
         p_state_hash: hash,
         p_expected_hash: expectedHash,
         p_client_updated_at: new Date().toISOString(),
       });
-      if (error) throw new Error(`Could not save this cloud project: ${error.message}`);
+      if (error) {
+        if (error.details === "metadata_builder_schema_version_downgrade") {
+          throw new UnsupportedProjectVersionError(project.id);
+        }
+        throw new Error(`Could not save this cloud project: ${error.message}`);
+      }
       return parseResult(data, project.id);
     },
     async remove(projectId, expectedHash) {

@@ -1,3 +1,14 @@
-export { parseCloudProject } from "./helper";
+export {
+  checkProjectVersion,
+  parseCloudProject,
+  readRemoteProject,
+  UnsupportedProjectVersionError,
+} from "./helper";
 export { startProjectCloudSync } from "./project";
-export type { ProjectCloudClient, ProjectSaveResult, RemoteProject } from "./types";
+export type {
+  CloudProject,
+  ProjectCloudClient,
+  ProjectSaveResult,
+  RemoteProject,
+  UnsupportedCloudProject,
+} from "./types";

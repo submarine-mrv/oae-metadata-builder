@@ -1,9 +1,54 @@
 import { parseProjectState } from "@/utils/parseProjectState";
 import { isProjectRecord } from "../storage";
-import type { ProjectRecord } from "../types";
+import { PROJECT_SCHEMA_VERSION, type ProjectRecord } from "../types";
+import type { CloudProject } from "./types";
+
+export class UnsupportedProjectVersionError extends Error {
+  constructor(
+    public readonly projectId: string,
+    public readonly schemaVersion?: number,
+  ) {
+    super(
+      `Project "${projectId}" uses a newer draft format${schemaVersion === undefined ? "" : ` (version ${schemaVersion})`}. Reload the Metadata Builder before syncing this project.`,
+    );
+    this.name = "UnsupportedProjectVersionError";
+  }
+}
+
+/** Check the version before any state validation or migration can drop future fields. */
+export function checkProjectVersion(value: unknown, projectId?: string): number {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("id" in value) ||
+    typeof value.id !== "string" ||
+    !value.id.trim() ||
+    (projectId !== undefined && value.id !== projectId)
+  ) {
+    throw new Error("The cloud project has an invalid or unsupported format.");
+  }
+  const version = "schemaVersion" in value ? value.schemaVersion : 1;
+  if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 1) {
+    throw new Error("The cloud project has an invalid schema version.");
+  }
+  if (version > PROJECT_SCHEMA_VERSION) {
+    throw new UnsupportedProjectVersionError(value.id, version);
+  }
+  return version;
+}
+
+export function readRemoteProject(value: unknown, projectId: string, hash: string): CloudProject {
+  try {
+    return { project: parseCloudProject(value, projectId), hash };
+  } catch (error) {
+    if (!(error instanceof UnsupportedProjectVersionError)) throw error;
+    return { projectId: error.projectId, schemaVersion: error.schemaVersion };
+  }
+}
 
 /** Validate and migrate stored drafts before they enter the editing atoms. */
 export function parseCloudProject(value: unknown, projectId?: string): ProjectRecord {
+  checkProjectVersion(value, projectId);
   if (
     !isProjectRecord(value) ||
     !value.id.trim() ||
@@ -30,11 +75,17 @@ export function parseCloudProject(value: unknown, projectId?: string): ProjectRe
   ) {
     throw new Error("The cloud project has an invalid or unsupported format.");
   }
-  return { ...value, state: parseProjectState(value.state) };
+  return {
+    ...value,
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    state: parseProjectState(value.state),
+  };
 }
 
 export async function hashProject(project: ProjectRecord): Promise<string> {
-  const bytes = new TextEncoder().encode(JSON.stringify(project));
+  const bytes = new TextEncoder().encode(
+    JSON.stringify({ ...project, schemaVersion: project.schemaVersion ?? PROJECT_SCHEMA_VERSION }),
+  );
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

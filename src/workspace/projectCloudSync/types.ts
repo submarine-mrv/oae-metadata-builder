@@ -5,6 +5,13 @@ export interface RemoteProject {
   hash: string;
 }
 
+export interface UnsupportedCloudProject {
+  projectId: string;
+  schemaVersion?: number;
+}
+
+export type CloudProject = RemoteProject | UnsupportedCloudProject;
+
 export interface ProjectSaveResult {
   saved: boolean;
   project: ProjectRecord | null;
@@ -12,7 +19,7 @@ export interface ProjectSaveResult {
 }
 
 export interface ProjectCloudClient {
-  load(): Promise<RemoteProject[]>;
+  load(): Promise<CloudProject[]>;
   save(
     project: ProjectRecord,
     hash: string,
