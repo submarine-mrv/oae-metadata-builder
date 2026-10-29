@@ -69,7 +69,7 @@ describe("draft schema versions", () => {
           projectData: { name: "edited" },
         }),
       );
-      await expect(sync.flush()).rejects.toThrow("Reload");
+      await sync.flush();
       expect(save).toHaveBeenCalledTimes(1);
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({ id: project.id }),

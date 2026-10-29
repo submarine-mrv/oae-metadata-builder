@@ -36,6 +36,11 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   };
   const currentProject = (id: string) =>
     store.get(workspaceAtom).projects.find((project) => project.id === id);
+  const pendingVersionError = () => {
+    for (const [id, error] of unsupported) {
+      if (currentProject(id) !== acknowledged.get(id)?.project) return error;
+    }
+  };
   const dirty = () =>
     ready &&
     (store
@@ -110,8 +115,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (!ready) return Promise.reject(new Error("Cloud projects have not finished loading."));
     if (inFlight) return inFlight;
     if (!dirty()) {
-      const error = versionError();
-      return error ? Promise.reject(error) : Promise.resolve();
+      settledStatus();
+      return Promise.resolve();
     }
     inFlight = Promise.resolve().then(async () => {
       try {
@@ -129,7 +134,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           for (const id of acknowledged.keys()) {
             if (!unsupported.has(id) && !currentProject(id)) await remove(id);
           }
-          const error = versionError();
+          const error = pendingVersionError();
           if (error) throw error;
         }
         settledStatus();
