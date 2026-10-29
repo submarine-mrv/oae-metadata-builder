@@ -1,7 +1,8 @@
 # Private project cloud sync
 
-The project synchronization engine is available for integration; the app still
-uses guest browser persistence at this stage.
+Signed-in Supabase users now edit private cloud projects directly from Jotai.
+Guests and the memory auth provider retain browser persistence. Enable with
+`VITE_AUTH_ENABLED=true` and a Supabase URL/publishable key.
 
 - One owner-isolated `metadata_builder_sessions` row stores each project.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
@@ -17,6 +18,20 @@ uses guest browser persistence at this stage.
   Cleanup removes only an acknowledged, unchanged source.
 - Stop removes listeners/timers and ignores late responses after account changes.
 
-Run the cloud engine, merge, storage, and Supabase client tests plus
+The login-only cloud icon beside Import shows pending, saved, or failed state.
+Hover for details and click for a notification with retry. Notifications appear
+bottom-right and dismiss automatically.
+
+After login, a prompt offers to import local projects or explicitly clear their
+copies. Imports remove only acknowledged, unchanged sources. Errors retain the
+sources and allow retry or continuing without deleting local copies. Regular
+file import remains available.
+
+Authenticated drafts stay in memory, not localStorage. Project transitions and
+sign-out await saves. Interrupted account-specific drafts can be recovered or
+exported after signing back in; recovery moves snapshots into Jotai once, so a
+failed save retries the live draft rather than importing it again.
+
+Run the workspace, project page, import, and auth lifecycle tests plus
 `npm run build`. The opt-in local Supabase integration test uses disposable users.
-Application activation, consent UI, and cross-window refresh are later layers.
+Cross-window refresh and explicit conflict discard are the next layer.

@@ -4,20 +4,21 @@ import { RouterProvider } from "@tanstack/react-router";
 import { Provider } from "jotai";
 import { AuthProvider } from "@/auth/AuthContext";
 import DocumentTitle from "@/components/DocumentTitle";
-import RestorePrompt from "@/components/RestorePrompt";
 import { appStore } from "@/state/store";
 import { theme } from "@/theme";
+import ProjectPersistenceController from "@/workspace/ProjectPersistenceController";
 import { router } from "./router";
 
 export default function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="light">
-      <Notifications />
+      <Notifications position="bottom-right" autoClose={5000} />
       <AuthProvider>
         <Provider store={appStore}>
-          <DocumentTitle />
-          <RouterProvider router={router} />
-          <RestorePrompt />
+          <ProjectPersistenceController>
+            <DocumentTitle />
+            <RouterProvider router={router} />
+          </ProjectPersistenceController>
         </Provider>
       </AuthProvider>
     </MantineProvider>

@@ -13,8 +13,8 @@ Schema documentation is at [schema.oaedata.org](https://schema.oaedata.org).
 
 - Builds the project, experiment and dataset forms from the protocol's JSON Schema, so a schema
   release changes the forms without UI code changes for most fields.
-- Holds several projects. Your work is saved in your browser's local storage; export a project to
-  keep a copy or move it to another machine.
+- Holds several projects. Guests save in this browser; signed-in Supabase users save privately
+  to their account. Export a project to keep a copy.
 - Imports exported files, as a new project or merged into the current one.
 - Validates when you ask it to, with errors on each field and a summary list.
 - Provides map pickers for spatial coverage, ISO 8601 date ranges, controlled vocabularies (NERC sea
@@ -83,6 +83,7 @@ the other specs against a second server with auth off (port 3001).
 - [docs/schema-architecture.md](docs/schema-architecture.md): schema pipeline, validation, variable polymorphism
 - [docs/conditional-fields.md](docs/conditional-fields.md): conditional fields and how RJSF renders them
 - [docs/multi-project.md](docs/multi-project.md): workspace, persistence and import
+- [docs/workspace-cloud-sync.md](docs/workspace-cloud-sync.md): private cloud saves and local-project migration
 - [docs/experiment-type-multi-select.md](docs/experiment-type-multi-select.md): experiment type rules
 - [docs/cf-standard-names.md](docs/cf-standard-names.md): CF standard name picker and vocabulary
 

@@ -1,3 +1,5 @@
+import { appStore } from "@/state/store";
+import { projectSyncActionsAtom } from "@/workspace/syncState";
 import { authEnabled, authProvider } from "./config";
 import { MemoryAuthClient } from "./memoryClient";
 import type { AuthClient } from "./types";
@@ -48,6 +50,7 @@ function createSupabaseAuthClient(): AuthClient {
       return withAdapter((client) => client.signInWithOtp(input));
     },
     async signOut(scope) {
+      await appStore.get(projectSyncActionsAtom)?.flush();
       return withAdapter((client) => client.signOut(scope));
     },
     async sendPasswordReset(email, redirectTo) {
@@ -72,7 +75,13 @@ function createSupabaseAuthClient(): AuthClient {
       return withAdapter((client) => client.updateProfile(patch));
     },
     async deleteAccount() {
-      return withAdapter((client) => client.deleteAccount());
+      await appStore.get(projectSyncActionsAtom)?.flush();
+      const result = await withAdapter((client) => client.deleteAccount());
+      if (!result.error) {
+        appStore.get(projectSyncActionsAtom)?.stop();
+        appStore.set(projectSyncActionsAtom, null);
+      }
+      return result;
     },
   } as AuthClient;
 }

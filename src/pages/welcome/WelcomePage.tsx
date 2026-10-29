@@ -1,21 +1,27 @@
 import { Anchor, Button, Container, Group, Stack, Text, Title } from "@mantine/core";
 import { IconFileImport, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import AppLayout from "@/components/AppLayout";
 import ImportFlow from "@/components/ImportFlow";
 import { useImportFlow } from "@/hooks/useImportFlow";
 import { createProjectAtom } from "@/state/actions";
+import { projectSyncActionsAtom } from "@/workspace/syncState";
+import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 /** Shown at /overview while the workspace has no projects. */
 export default function WelcomePage() {
   const createProject = useSetAtom(createProjectAtom);
   const navigate = useNavigate();
   const importFlow = useImportFlow();
+  const transition = useProjectTransition();
+  const cloud = useAtomValue(projectSyncActionsAtom) !== null;
 
   const handleCreate = () => {
-    createProject();
-    navigate({ to: "/project" });
+    transition(() => {
+      createProject();
+      navigate({ to: "/project" });
+    });
   };
 
   return (
@@ -67,7 +73,9 @@ export default function WelcomePage() {
             .
           </Text>
           <Text size="sm" c="dimmed">
-            Your work is saved in this browser only. Export a project to keep a copy.
+            {cloud
+              ? "Your projects are saved privately to your account after cloud acknowledgement."
+              : "Your work is saved in this browser only. Export a project to keep a copy."}
           </Text>
           <Group mt="md">
             <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>

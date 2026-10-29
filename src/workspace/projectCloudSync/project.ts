@@ -4,7 +4,7 @@ import type { AppStore } from "@/state/store";
 import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import { type ProjectSyncStatus, projectSyncStatusAtom } from "../syncState";
-import { mostRecent } from "../workspace";
+import { deleteProject, mostRecent } from "../workspace";
 import {
   checkProjectVersion,
   errorMessage,
@@ -258,6 +258,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     async remove(id: string) {
       await flush();
       await remove(id);
+      store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
     },
     hasPendingChanges: dirty,
     stop() {

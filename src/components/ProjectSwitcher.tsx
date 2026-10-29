@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import { createProjectAtom, switchProjectAtom } from "@/state/actions";
 import { activeProjectIdAtom, projectMenuAtom, projectNameAtom } from "@/state/atoms";
+import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 /**
  * The active project after the brand name, as a breadcrumb: "OAE Metadata Builder / Kiel trial ▾".
@@ -15,18 +16,23 @@ export default function ProjectSwitcher() {
   const createProject = useSetAtom(createProjectAtom);
   const switchProject = useSetAtom(switchProjectAtom);
   const navigate = useNavigate();
+  const transition = useProjectTransition();
 
   // Follows the Project Name as it's typed.
   const activeName = useAtomValue(projectNameAtom);
 
   const handleNew = () => {
-    createProject();
-    navigate({ to: "/project" });
+    transition(() => {
+      createProject();
+      navigate({ to: "/project" });
+    });
   };
 
   const handleSwitch = (id: string) => {
-    if (id !== activeProjectId) switchProject(id);
-    navigate({ to: "/overview" });
+    transition(() => {
+      if (id !== activeProjectId) switchProject(id);
+      navigate({ to: "/overview" });
+    });
   };
 
   return (
@@ -84,7 +90,7 @@ export default function ProjectSwitcher() {
           </Menu.Item>
           <Menu.Item
             leftSection={<IconFolders size={16} />}
-            onClick={() => navigate({ to: "/projects" })}
+            onClick={() => transition(() => navigate({ to: "/projects" }))}
           >
             All projects…
           </Menu.Item>
