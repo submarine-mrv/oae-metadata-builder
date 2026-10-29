@@ -3,6 +3,7 @@ import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addExperimentAtom,
+  clearActiveProjectAtom,
   createProjectAtom,
   replaceExperimentFormDataAtom,
 } from "@/state/actions";
@@ -54,6 +55,18 @@ describe("useImportFlow", () => {
     expect(projects()[0].name).toBe("Imported");
     expect(navigate).toHaveBeenCalledWith({ to: "/overview" });
     expect(result.current.previewProps.opened).toBe(false);
+  });
+
+  it("imports as new from All projects without merging into an unselected project", async () => {
+    const { result, store, projects } = renderFlow();
+    act(() => {
+      store.set(createProjectAtom);
+      store.set(clearActiveProjectAtom);
+    });
+    await pickFile(result);
+    expect(result.current.previewProps.canMerge).toBe(false);
+    act(() => result.current.previewProps.onImport());
+    expect(projects()).toHaveLength(2);
   });
 
   it("with a project, merge mode imports into the current session and opens the overview", async () => {

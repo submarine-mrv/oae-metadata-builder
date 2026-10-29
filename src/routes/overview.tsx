@@ -1,11 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import OverviewPage from "@/pages/overview/OverviewPage";
 import WelcomePage from "@/pages/welcome/WelcomePage";
-import { projectCountAtom } from "@/state/atoms";
+import { activeProjectIdAtom, projectCountAtom } from "@/state/atoms";
 
 function OverviewRoute() {
-  return useAtomValue(projectCountAtom) === 0 ? <WelcomePage /> : <OverviewPage />;
+  const count = useAtomValue(projectCountAtom);
+  const activeId = useAtomValue(activeProjectIdAtom);
+  if (count === 0) return <WelcomePage />;
+  return activeId ? <OverviewPage /> : <Navigate to="/projects" replace />;
 }
 
 export const Route = createFileRoute("/overview")({

@@ -29,7 +29,12 @@ import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportFlow } from "@/hooks/useImportFlow";
 import { toggleJsonPreviewAtom } from "@/state/actions";
-import { projectCountAtom, projectStateAtom, showJsonPreviewAtom } from "@/state/atoms";
+import {
+  activeProjectIdAtom,
+  projectCountAtom,
+  projectStateAtom,
+  showJsonPreviewAtom,
+} from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 
 const TABS = [
@@ -44,6 +49,7 @@ export default function Navigation() {
   const showJsonPreview = useAtomValue(showJsonPreviewAtom);
   const toggleJsonPreview = useSetAtom(toggleJsonPreviewAtom);
   const hasProjects = useAtomValue(projectCountAtom) > 0;
+  const hasActiveProject = useAtomValue(activeProjectIdAtom) !== null;
   const store = useStore();
   const navigate = useNavigate();
   const importFlow = useImportFlow();
@@ -130,7 +136,7 @@ export default function Navigation() {
           </Group>
 
           {/* Navigation tabs, centred */}
-          {!isCompact && hasProjects && (
+          {!isCompact && hasActiveProject && (
             <SegmentedControl
               style={{
                 backgroundColor: "var(--brand-sunlight)",
@@ -155,7 +161,7 @@ export default function Navigation() {
                 >
                   Import
                 </Button>
-                {hasProjects && (
+                {hasActiveProject && (
                   <Button
                     variant="outline"
                     leftSection={<IconDownload size={16} />}
@@ -217,7 +223,7 @@ export default function Navigation() {
                     >
                       Import
                     </Menu.Item>
-                    {hasProjects && (
+                    {hasActiveProject && (
                       <Menu.Item leftSection={<IconDownload size={16} />} onClick={openModal}>
                         Export
                       </Menu.Item>
@@ -263,7 +269,7 @@ export default function Navigation() {
         </Box>
 
         {/* Tabs on their own full-width row when the top row is too narrow */}
-        {isCompact && hasProjects && (
+        {isCompact && hasActiveProject && (
           <SegmentedControl
             style={{
               backgroundColor: "var(--brand-sunlight)",

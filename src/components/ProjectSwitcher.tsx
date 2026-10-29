@@ -43,7 +43,7 @@ export default function ProjectSwitcher() {
             size="compact-md"
             px={6}
             rightSection={<IconChevronDown size={14} />}
-            aria-label={`Current project: ${activeName}`}
+            aria-label={activeProjectId ? `Current project: ${activeName}` : "All projects"}
           >
             {/* Ellipsis needs a block box; the button label itself is a flex row. */}
             <Text
@@ -53,7 +53,7 @@ export default function ProjectSwitcher() {
               truncate
               style={{ display: "block", maxWidth: 200 }}
             >
-              {activeName}
+              {activeProjectId ? activeName : "All projects"}
             </Text>
           </Button>
         </Menu.Target>
