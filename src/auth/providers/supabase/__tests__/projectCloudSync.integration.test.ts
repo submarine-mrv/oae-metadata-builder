@@ -157,5 +157,63 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         (await isolated.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
       ).toEqual([first.id]);
     });
+
+    it("protects a newer draft from an old device even with the latest hash", async () => {
+      auth.session = owner;
+      const client = createProjectCloudClient(owner.user.id);
+      const first = newProjectRecord();
+      const second = newProjectRecord();
+      await client.save(first, "version-one", null);
+      await client.save(second, "supported", null);
+      const store = createStore();
+      const sync = startProjectCloudSync(store, client);
+      stops.push(sync.stop);
+      await sync.load();
+
+      const newer = createClient(url, key, {
+        accessToken: async () => owner.access_token,
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const future = {
+        id: first.id,
+        schemaVersion: 2,
+        newEnvelopeField: { keep: true },
+        state: { newDraftField: ["must survive"], nextExperimentId: "new representation" },
+      };
+      const upgraded = await newer.rpc("save_metadata_builder_session", {
+        p_project_id: first.id,
+        p_state: future,
+        p_state_hash: "version-two",
+        p_expected_hash: "version-one",
+      });
+      expect(upgraded.error).toBeNull();
+      for (const project of [first, second]) {
+        store.set(workspaceAtom, (workspace) =>
+          updateProject(workspace, project.id, {
+            ...project.state,
+            projectData: { name: "old device edit" },
+          }),
+        );
+      }
+      await expect(sync.flush()).rejects.toThrow("Reload");
+      await expect(client.save(first, "old-with-latest-hash", "version-two")).rejects.toThrow(
+        "Reload",
+      );
+      const stored = await newer
+        .from("metadata_builder_sessions")
+        .select("state, state_hash")
+        .eq("project_id", first.id)
+        .single();
+      expect(stored.error).toBeNull();
+      expect(stored.data).toEqual({ state: future, state_hash: "version-two" });
+      const supported = await newer
+        .from("metadata_builder_sessions")
+        .select("state")
+        .eq("project_id", second.id)
+        .single();
+      expect(supported.error).toBeNull();
+      expect(supported.data?.state.state.projectData.name).toBe("old device edit");
+      expect(await client.load()).toContainEqual({ projectId: first.id, schemaVersion: 2 });
+    });
   },
 );
