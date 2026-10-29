@@ -41,6 +41,8 @@ function setup(project = publicationProject(), flush = vi.fn().mockResolvedValue
   const store = createTestStore({ version: 1, activeProjectId: project.id, projects: [project] });
   store.set(projectSyncActionsAtom, {
     flush,
+    refresh: vi.fn(),
+    discardProjectChanges: vi.fn(),
     stop: vi.fn(),
     migrateLocalProjects: vi.fn(),
     remove: vi.fn(),
