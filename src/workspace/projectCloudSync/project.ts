@@ -180,8 +180,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     // Explicit consent is handled by the UI. Retain every source until its save is acknowledged.
     await flush();
     const sources = readLocalProjectSources();
-    if (!sources.length)
-      throw new Error("There are no readable local projects to migrate.");
+    if (!sources.length) throw new Error("There are no readable local projects to migrate.");
     for (const source of sources) {
       assertActive();
       const incoming = parseCloudProject(source.project);
