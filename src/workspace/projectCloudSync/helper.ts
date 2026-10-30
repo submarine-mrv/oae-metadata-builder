@@ -3,13 +3,17 @@ import { isProjectRecord } from "../storage";
 import { PROJECT_SCHEMA_VERSION, type ProjectRecord } from "../types";
 import type { CloudProject } from "./types";
 
+/** A cloud project this build must not parse, save or delete: a newer draft format, or unreadable. */
 export class UnsupportedProjectVersionError extends Error {
   constructor(
     public readonly projectId: string,
     public readonly schemaVersion?: number,
+    public readonly reason?: string,
   ) {
     super(
-      `Project "${projectId}" uses a newer draft format${schemaVersion === undefined ? "" : ` (version ${schemaVersion})`}. Reload the Metadata Builder before syncing this project.`,
+      reason
+        ? `Project "${projectId}" could not be read and was set aside: ${reason}`
+        : `Project "${projectId}" uses a newer draft format${schemaVersion === undefined ? "" : ` (version ${schemaVersion})`}. Reload the Metadata Builder before syncing this project.`,
     );
     this.name = "UnsupportedProjectVersionError";
   }
@@ -41,8 +45,11 @@ export function readRemoteProject(value: unknown, projectId: string, hash: strin
   try {
     return { project: parseCloudProject(value, projectId), hash };
   } catch (error) {
-    if (!(error instanceof UnsupportedProjectVersionError)) throw error;
-    return { projectId: error.projectId, schemaVersion: error.schemaVersion };
+    if (error instanceof UnsupportedProjectVersionError) {
+      return { projectId: error.projectId, schemaVersion: error.schemaVersion };
+    }
+    // One unreadable row must not block every other project from loading.
+    return { projectId, reason: errorMessage(error) };
   }
 }
 

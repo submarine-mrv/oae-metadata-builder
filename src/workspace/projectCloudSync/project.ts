@@ -4,7 +4,7 @@ import type { AppStore } from "@/state/store";
 import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import { type ProjectSyncStatus, projectSyncStatusAtom } from "../syncState";
-import { mostRecent } from "../workspace";
+import { deleteProject, mostRecent } from "../workspace";
 import {
   checkProjectVersion,
   errorMessage,
@@ -107,6 +107,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       throw new Error("This project changed on another device. Reload before deleting it.");
     }
     acknowledged.delete(id);
+    // Drop it locally too, or a flush in between would re-create the row.
+    store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
   };
 
   const flush = (): Promise<void> => {
@@ -195,7 +197,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         if ("projectId" in row) {
           unsupported.set(
             row.projectId,
-            new UnsupportedProjectVersionError(row.projectId, row.schemaVersion),
+            new UnsupportedProjectVersionError(row.projectId, row.schemaVersion, row.reason),
           );
           return [];
         }

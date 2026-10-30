@@ -306,6 +306,42 @@ describe("project cloud synchronization", () => {
     expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["B"]);
   });
 
+  it("sets aside an unreadable cloud row and still loads and saves the rest", async () => {
+    const store = createStore();
+    const { client } = clientWith([project("two")]);
+    vi.mocked(client.load).mockResolvedValue([
+      { projectId: "broken", reason: "The cloud project has an invalid or unsupported format." },
+      { project: project("two"), hash: "two" },
+    ]);
+    const sync = startProjectCloudSync(store, client);
+    stop = sync.stop;
+    await sync.load();
+    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["two"]);
+    expect(store.get(projectSyncStatusAtom)).toMatchObject({
+      state: "error",
+      message: expect.stringContaining('Project "broken" could not be read'),
+    });
+    const record = store.get(workspaceAtom).projects[0];
+    store.set(workspaceAtom, (workspace) =>
+      updateProject(workspace, "two", {
+        ...record.state,
+        projectData: { ...record.state.projectData, name: "edited" },
+      }),
+    );
+    await sync.flush();
+    expect(client.save).toHaveBeenCalledTimes(1);
+    expect(client.remove).not.toHaveBeenCalled();
+  });
+
+  it("drops a deleted project locally as soon as the cloud confirms", async () => {
+    const { store, rows, sync, client } = await setup([project(), project("two")]);
+    await sync.remove("one");
+    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["two"]);
+    expect([...rows.keys()]).toEqual(["two"]);
+    await sync.flush();
+    expect(client.save).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed or mismatched cloud records", () => {
     expect(() => parseCloudProject({})).toThrow("invalid");
     expect(() => parseCloudProject(project(), "other")).toThrow("invalid");

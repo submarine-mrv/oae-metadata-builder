@@ -135,10 +135,31 @@ describe("owner-bound project Supabase client", () => {
     await expect(client.save(project, "next", null)).rejects.toThrow("save denied");
   });
 
+  it("keeps a committed save even when the echoed state would fail client validation", async () => {
+    const client = createProjectCloudClient("owner");
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          result_saved: true,
+          result_state: { ...project, state: { ...project.state, nextExperimentId: 0 } },
+          result_state_hash: "next",
+        },
+      ],
+      error: null,
+    });
+    await expect(client.save(project, "next", null)).resolves.toMatchObject({
+      saved: true,
+      hash: "next",
+      project: { id: project.id },
+    });
+  });
+
   it("rejects malformed, mismatched and partial responses", async () => {
     const client = createProjectCloudClient("owner");
     mocks.rows = [{ project_id: "different", state: project, state_hash: "hash" }];
-    await expect(client.load()).rejects.toThrow("invalid");
+    await expect(client.load()).resolves.toEqual([
+      { projectId: "different", reason: expect.stringContaining("invalid") },
+    ]);
     mocks.rpc.mockResolvedValue({
       data: [{ result_saved: true, result_state: null, result_state_hash: "hash" }],
       error: null,

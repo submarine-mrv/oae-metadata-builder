@@ -8,6 +8,8 @@ export interface RemoteProject {
 export interface UnsupportedCloudProject {
   projectId: string;
   schemaVersion?: number;
+  /** Set when the row failed validation rather than being a newer format. */
+  reason?: string;
 }
 
 export type CloudProject = RemoteProject | UnsupportedCloudProject;

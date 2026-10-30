@@ -27,7 +27,10 @@ describe("draft schema versions", () => {
       projectId: "future",
       schemaVersion: 2,
     });
-    expect(() => readRemoteProject(future, "wrong", "hash")).toThrow("invalid");
+    expect(readRemoteProject(future, "wrong", "hash")).toEqual({
+      projectId: "wrong",
+      reason: expect.stringContaining("invalid"),
+    });
   });
 
   it.each([
