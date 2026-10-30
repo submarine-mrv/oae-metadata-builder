@@ -3,7 +3,13 @@ import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
 import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
-import { type ProjectSyncStatus, projectSyncStatusAtom } from "../syncState";
+import {
+  type ProjectSyncStatus,
+  projectSyncStatusAtom,
+  type RemoteDeletion,
+  remoteDeletionsAtom,
+} from "../syncState";
+import { type ProjectRecord, projectDisplayName } from "../types";
 import { deleteProject, mostRecent } from "../workspace";
 import {
   checkProjectVersion,
@@ -21,6 +27,31 @@ const MAX_RETRY_MS = 60_000;
 class ContentionError extends Error {}
 /** A request to the cloud failed; retrying it unchanged may succeed. */
 class RequestError extends Error {}
+/** Several projects failed in one flush; the others still saved. */
+class FlushFailures extends Error {
+  constructor(readonly failures: unknown[]) {
+    super(errorMessage(failures[0]));
+  }
+}
+
+const retryable = (error: unknown) =>
+  error instanceof ContentionError || error instanceof RequestError;
+
+/** Entities in `before` that `after` no longer has. */
+function removedEntities(before: ProjectRecord, after: ProjectRecord): RemoteDeletion[] {
+  const gone = <T extends { id: number; name: string }>(from: T[], to: T[]) =>
+    from.filter((entity) => !to.some((kept) => kept.id === entity.id));
+  return [
+    ...gone(before.state.experiments, after.state.experiments).map((entity) => ({
+      type: "experiment" as const,
+      name: entity.name,
+    })),
+    ...gone(before.state.datasets, after.state.datasets).map((entity) => ({
+      type: "dataset" as const,
+      name: entity.name,
+    })),
+  ];
+}
 
 /** Random 0.5–3s: breaks lockstep with another writer without widening the save window. */
 const contentionDelay = () => 500 + Math.random() * 2_500;
@@ -66,6 +97,12 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       .projects.some((project) => acknowledged.get(project.id)?.project !== project) ||
       [...acknowledged.keys()].some((id) => !currentProject(id)));
 
+  const noteDeletions = (deletions: RemoteDeletion[]) => {
+    if (deletions.length && !stopped) {
+      store.set(remoteDeletionsAtom, (previous) => [...previous, ...deletions]);
+    }
+  };
+
   const assertActive = () => {
     if (stopped) throw new Error("The account changed before project sync completed.");
   };
@@ -96,26 +133,25 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         return;
       }
       if (!result.project || !result.hash) {
-        throw new Error(
-          "This project was deleted on another device. Export your edits to keep them.",
-        );
+        // Deleted elsewhere: the delete wins over local edits.
+        acknowledged.delete(id);
+        store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
+        noteDeletions([{ type: "project", name: projectDisplayName(project.state) }]);
+        return;
       }
       const remote = parseCloudProject(result.project, id);
+      const latest = currentProject(id) ?? project;
+      const merged = previous
+        ? reconcileProjectRecord(latest, remote, previous.project)
+        : mergeProjectRecord(latest, remote);
       store.set(workspaceAtom, (workspace) => ({
         ...workspace,
-        projects: workspace.projects.map((latest) =>
-          latest.id === id
-            ? previous
-              ? reconcileProjectRecord(latest, remote, previous.project)
-              : mergeProjectRecord(latest, remote)
-            : latest,
-        ),
+        projects: workspace.projects.map((record) => (record.id === id ? merged : record)),
       }));
+      noteDeletions(removedEntities(latest, merged));
       acknowledged.set(id, { project: remote, hash: result.hash });
     }
-    throw new ContentionError(
-      "This project keeps changing on another device. Retry sync to continue.",
-    );
+    throw new ContentionError("This project keeps changing elsewhere. Retry sync to continue.");
   };
 
   const remove = async (id: string) => {
@@ -123,15 +159,21 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (unsupported.has(id)) throw unsupported.get(id);
     const previous = acknowledged.get(id);
     if (!previous) return;
-    let result: ProjectSaveResult;
-    try {
-      result = await client.remove(id, previous.hash);
-    } catch (error) {
-      throw new RequestError(errorMessage(error), { cause: error });
-    }
-    assertActive();
-    if (!result.saved) {
-      throw new Error("This project changed on another device. Reload before deleting it.");
+    let expected = previous.hash;
+    for (let attempt = 0; ; attempt++) {
+      let result: ProjectSaveResult;
+      try {
+        result = await client.remove(id, expected);
+      } catch (error) {
+        throw new RequestError(errorMessage(error), { cause: error });
+      }
+      assertActive();
+      // Gone already counts as deleted. Edited elsewhere: the delete wins, so retry at its hash.
+      if (result.saved || !result.hash) break;
+      if (attempt === 3) {
+        throw new ContentionError("This project keeps changing elsewhere. Retrying the delete.");
+      }
+      expected = result.hash;
     }
     acknowledged.delete(id);
     // Drop it locally too, or a flush in between would re-create the row.
@@ -157,30 +199,47 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
             );
           }
           status({ state: "syncing" });
+          // One project's failure must not hold back saves and deletes for the others.
+          const failures: unknown[] = [];
+          const attempt = async (work: () => Promise<void>) => {
+            try {
+              await work();
+            } catch (error) {
+              assertActive();
+              failures.push(error);
+            }
+          };
           for (const project of store.get(workspaceAtom).projects) {
-            await writeProject(project.id);
+            await attempt(() => writeProject(project.id));
           }
-          for (const id of acknowledged.keys()) {
-            if (!unsupported.has(id) && !currentProject(id)) await remove(id);
+          for (const id of [...acknowledged.keys()]) {
+            if (!unsupported.has(id) && !currentProject(id)) await attempt(() => remove(id));
           }
-          const error = pendingVersionError();
-          if (error) throw error;
+          const versionError = pendingVersionError();
+          if (versionError) failures.push(versionError);
+          if (failures.length) throw new FlushFailures(failures);
         }
         failingSince = null;
         requestFailures = 0;
         settledStatus();
-      } catch (error) {
-        const retryIn =
-          error instanceof ContentionError
+      } catch (caught) {
+        const failures = caught instanceof FlushFailures ? caught.failures : [caught];
+        // Show what needs the user first; anything retryable still gets its timer.
+        const error = failures.find((failure) => !retryable(failure)) ?? failures[0];
+        const retryIn = failures.some((failure) => failure instanceof RequestError)
+          ? requestDelay(requestFailures++)
+          : failures.some(retryable)
             ? contentionDelay()
-            : error instanceof RequestError
-              ? requestDelay(requestFailures++)
-              : null;
-        if (retryIn === null || stopped) {
-          // Conflicts, newer drafts and offline need the user or the online event, not a timer.
+            : null;
+        if (retryIn !== null && !stopped) {
+          failingSince ??= Date.now();
+          cancelTimer();
+          timer = setTimeout(backgroundFlush, retryIn);
+        }
+        if (!retryable(error) || failingSince === null) {
+          // Conflicts, newer drafts and offline need the user or the online event.
           status({ state: "error", message: errorMessage(error) });
         } else {
-          failingSince ??= Date.now();
           status(
             Date.now() - failingSince < SUSTAINED_FAILURE_MS
               ? {
@@ -191,12 +250,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
                   state: "error",
                   message:
                     error instanceof ContentionError
-                      ? "Another tab or device keeps saving this project. Your changes are safe in this tab and will keep retrying."
+                      ? "This project keeps being saved elsewhere. Your changes are safe in this tab and will keep retrying."
                       : `Can't reach the cloud right now. Your changes are safe in this tab and will keep retrying. (${errorMessage(error)})`,
                 },
           );
-          cancelTimer();
-          timer = setTimeout(backgroundFlush, retryIn);
         }
         throw error;
       } finally {

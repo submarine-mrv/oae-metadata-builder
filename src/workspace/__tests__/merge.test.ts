@@ -60,6 +60,31 @@ describe("project import reconciliation", () => {
     expect(merged.state.experiments[0].formData.description).toBe("remote");
   });
 
+  describe("deletes win over concurrent edits", () => {
+    const experiment = (description: string) => ({
+      id: 1,
+      name: "E",
+      formData: { experiment_id: "E", description },
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const withExperiments = (experiments: ReturnType<typeof experiment>[]) =>
+      newProjectRecord({ ...emptyProjectState(), experiments, nextExperimentId: 2 }, 1);
+    const base = withExperiments([experiment("original")]);
+
+    it("drops an entity deleted elsewhere even though it was edited here", () => {
+      const local = { ...withExperiments([experiment("edited here")]), id: base.id };
+      const remote = { ...withExperiments([]), id: base.id };
+      expect(reconcileProjectRecord(local, remote, base).state.experiments).toEqual([]);
+    });
+
+    it("keeps an entity deleted here even though it was edited elsewhere", () => {
+      const local = { ...withExperiments([]), id: base.id };
+      const remote = { ...withExperiments([experiment("edited elsewhere")]), id: base.id };
+      expect(reconcileProjectRecord(local, remote, base).state.experiments).toEqual([]);
+    });
+  });
+
   it("preserves distinct equal datasets and distinguishes their experiment links", () => {
     const target = newProjectRecord({
       ...emptyProjectState(),

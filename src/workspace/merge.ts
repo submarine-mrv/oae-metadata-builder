@@ -113,14 +113,18 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   for (const original of base) {
     const a = local.find((entity) => entity.id === original.id);
     const b = remote.find((entity) => entity.id === original.id);
-    const localChanged = !a || !equalData(content(a), content(original));
-    const remoteChanged = !b || !equalData(content(b), content(original));
-    if (localChanged && remoteChanged && (!a || !b || !equalData(content(a), content(b)))) {
-      if (a || b) conflict(`entity "${original.name}"`);
-    }
-    if (!b) {
+    if (!a || !b) {
+      // Deletes win on either side, even over an edit: drop it and never import it back.
       target = target.filter((entity) => entity.id !== original.id);
-    } else if (remoteChanged && !localChanged) {
+      incoming = incoming.filter((entity) => entity.id !== original.id);
+      continue;
+    }
+    const localChanged = !equalData(content(a), content(original));
+    const remoteChanged = !equalData(content(b), content(original));
+    if (localChanged && remoteChanged && !equalData(content(a), content(b))) {
+      conflict(`entity "${original.name}"`);
+    }
+    if (remoteChanged && !localChanged) {
       target = target.map((entity) => (entity.id === original.id ? b : entity));
     }
     // Baseline records are reconciled by stable identity, not imported again as new datasets.

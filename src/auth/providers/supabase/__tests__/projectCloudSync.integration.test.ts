@@ -145,7 +145,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       });
       expect(anonWrite.error).not.toBeNull();
       auth.session = owner;
-      await expect(sync.remove(first.id)).rejects.toThrow("changed on another device");
+      await sync.remove(first.id);
       await deviceSync.remove(first.id);
       device.set(workspaceAtom, (workspace) => deleteProject(workspace, first.id));
       await deviceSync.flush();

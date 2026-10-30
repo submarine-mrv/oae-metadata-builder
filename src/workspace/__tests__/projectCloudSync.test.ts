@@ -9,7 +9,7 @@ import {
   startProjectCloudSync,
 } from "../projectCloudSync";
 import { WORKSPACE_KEY } from "../storage";
-import { projectSyncStatusAtom } from "../syncState";
+import { projectSyncStatusAtom, remoteDeletionsAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { addProject, deleteProject, switchProject, updateProject } from "../workspace";
 
@@ -192,12 +192,38 @@ describe("project cloud synchronization", () => {
     });
   });
 
-  it("surfaces a remotely deleted project instead of silently recreating it", async () => {
-    const { rows, sync, edit } = await setup();
+  it("follows a delete made elsewhere, even over local edits, and records a notice", async () => {
+    const { rows, store, sync, edit } = await setup([project(), project("two")]);
     rows.delete("one");
     edit("keep me");
-    await expect(sync.flush()).rejects.toThrow("deleted on another device");
-    expect(sync.hasPendingChanges()).toBe(true);
+    await sync.flush();
+    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["two"]);
+    expect([...rows.keys()]).toEqual(["two"]);
+    expect(store.get(remoteDeletionsAtom)).toEqual([{ type: "project", name: "keep me" }]);
+    expect(sync.hasPendingChanges()).toBe(false);
+  });
+
+  it("deletes a project even if it was edited elsewhere", async () => {
+    const { rows, store, sync } = await setup();
+    rows.set("one", { project: project(), hash: "changed" });
+    await sync.remove("one");
+    expect(rows.size).toBe(0);
+    expect(store.get(workspaceAtom).projects).toHaveLength(0);
+  });
+
+  it("keeps saving other projects when one has a conflict", async () => {
+    const { client, rows, store, sync, edit } = await setup([project(), project("two")]);
+    const theirs = project();
+    theirs.state = {
+      ...theirs.state,
+      projectData: { ...theirs.state.projectData, name: "theirs" },
+    };
+    vi.mocked(client.save).mockResolvedValueOnce({ saved: false, project: theirs, hash: "theirs" });
+    edit("mine");
+    edit("two edited", "two");
+    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+    expect(rows.get("two")?.project.state.projectData.name).toBe("two edited");
+    expect(store.get(projectSyncStatusAtom).state).toBe("error");
   });
 
   it("bounds retries for repeatedly conflicting saves", async () => {
@@ -218,13 +244,6 @@ describe("project cloud synchronization", () => {
     expect([...rows.keys()]).toEqual(["two"]);
     expect(client.remove).toHaveBeenCalledWith("one", "one");
     expect(client.save).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not delete a project changed on another device", async () => {
-    const { rows, store, sync } = await setup();
-    rows.set("one", { project: project(), hash: "changed" });
-    await expect(sync.remove("one")).rejects.toThrow("changed on another device");
-    expect(store.get(workspaceAtom).projects).toHaveLength(1);
   });
 
   it("does not upload local projects until explicit migration", async () => {
