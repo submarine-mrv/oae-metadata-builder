@@ -3,12 +3,14 @@ import { notifications } from "@mantine/notifications";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createStore, Provider } from "jotai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { exportMetadata } from "@/utils/exportImport";
 import { WORKSPACE_KEY } from "../storage";
 import LocalProjectMigration from "../sync/LocalProjectMigration";
 import { projectSyncActionsAtom } from "../syncState";
 import { newProjectRecord } from "../types";
 
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
+vi.mock("@/utils/exportImport", () => ({ exportMetadata: vi.fn() }));
 
 describe("local project consent", () => {
   beforeEach(() => {
@@ -22,6 +24,7 @@ describe("local project consent", () => {
       flush: vi.fn(),
       refresh: vi.fn(),
       discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
       remove: vi.fn(),
       stop: vi.fn(),
       migrateLocalProjects: migrate,
@@ -64,6 +67,20 @@ describe("local project consent", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
     expect(localStorage.getItem("oae-auth")).toBe("untouched");
     expect(migrate).not.toHaveBeenCalled();
+  });
+
+  it("exports local projects before the user chooses whether to import or clear them", async () => {
+    const project = seed();
+    setup();
+    await screen.findByRole("dialog");
+    fireEvent.click(screen.getByRole("button", { name: "Export local projects" }));
+    expect(exportMetadata).toHaveBeenCalledWith(
+      project.state.projectData,
+      project.state.experiments,
+      project.state.datasets,
+    );
+    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(localStorage.getItem(WORKSPACE_KEY)).toContain(project.id);
   });
 
   it("imports only after consent and sends a success notification", async () => {

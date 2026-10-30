@@ -2,6 +2,7 @@ import { Alert, Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { exportMetadata } from "@/utils/exportImport";
 import { type LocalProjectSource, readLocalProjectSources } from "../storage";
 import { projectSyncActionsAtom } from "../syncState";
 
@@ -74,6 +75,22 @@ export default function LocalProjectMigration() {
         </Text>
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">
+          <Button
+            variant="light"
+            disabled={busy || !projects?.length}
+            onClick={() => {
+              if (!projects) return;
+              for (const source of projects) {
+                exportMetadata(
+                  source.project.state.projectData,
+                  source.project.state.experiments,
+                  source.project.state.datasets,
+                );
+              }
+            }}
+          >
+            Export local projects
+          </Button>
           {error && (
             <Button
               variant="subtle"

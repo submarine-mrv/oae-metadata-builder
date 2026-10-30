@@ -66,12 +66,30 @@ describe("auth-aware project persistence", () => {
     await interrupt("second-unsaved");
     fireEvent.click(screen.getByRole("button", { name: "Recover unsaved projects" }));
     await waitFor(() =>
-      expect(store.get(workspaceAtom).projects.map((p) => p.id)).toEqual([
+      expect(store.get(workspaceAtom).projects.map((p) => p.state.projectData.name)).toEqual([
         "cloud-A",
         "first-unsaved",
         "second-unsaved",
       ]),
     );
+    expect(
+      store
+        .get(workspaceAtom)
+        .projects.slice(1)
+        .map((record) => record.id),
+    ).not.toContain("first-unsaved");
+    expect(
+      store
+        .get(workspaceAtom)
+        .projects.slice(1)
+        .map((record) => record.id),
+    ).not.toContain("second-unsaved");
+    expect(
+      store
+        .get(workspaceAtom)
+        .projects.slice(1)
+        .every((record) => record.importedFrom?.kind === "interrupted-recovery"),
+    ).toBe(true);
     await waitFor(() =>
       expect(
         screen.queryByRole("button", { name: "Recover unsaved projects" }),
@@ -251,7 +269,11 @@ describe("auth-aware project persistence", () => {
     const recover = await screen.findByRole("button", { name: "Recover unsaved projects" });
     fireEvent.click(recover);
     await waitFor(() => expect(mocks.save).toHaveBeenCalled());
-    expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("unsaved-A");
+    expect(
+      store
+        .get(workspaceAtom)
+        .projects.some((project) => project.state.projectData.name === "unsaved-A"),
+    ).toBe(true);
     await waitFor(() =>
       expect(
         screen.queryByText("An account change interrupted unsaved project edits"),
@@ -302,22 +324,30 @@ describe("auth-aware project persistence", () => {
         message: "Save unavailable",
       }),
     );
-    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual([
-      "cloud-A",
-      "unsaved",
-    ]);
+    expect(
+      store.get(workspaceAtom).projects.map((record) => record.state.projectData.name),
+    ).toEqual(["cloud-A", "cloud-A", "unsaved"]);
     expect(
       screen.queryByRole("button", { name: "Recover unsaved projects" }),
     ).not.toBeInTheDocument();
-    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(1);
+    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(0);
+    expect(
+      store
+        .get(workspaceAtom)
+        .projects.some(
+          (record) =>
+            record.id !== "cloud-A" &&
+            record.importedFrom?.kind === "interrupted-recovery" &&
+            record.state.datasets.length === 1,
+        ),
+    ).toBe(true);
     await act(async () => {
       await store.get(projectSyncActionsAtom)?.flush();
     });
-    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual([
-      "cloud-A",
-      "unsaved",
-    ]);
+    expect(
+      store.get(workspaceAtom).projects.map((record) => record.state.projectData.name),
+    ).toEqual(["cloud-A", "cloud-A", "unsaved"]);
     expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
-    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(1);
+    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(0);
   });
 });

@@ -9,6 +9,7 @@ import {
   projectSyncErrorStatus,
   projectSyncStatusAtom,
 } from "../syncState";
+import { forkProjectRecord } from "../types";
 import { deleteProject, mostRecent } from "../workspace";
 import {
   checkProjectVersion,
@@ -144,6 +145,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (!ready) return Promise.reject(new Error("Cloud projects have not finished loading."));
     if (inFlight) return inFlight;
     inFlight = serialize(async () => {
+      const failures: { error: unknown; projectId?: string }[] = [];
       try {
         while (dirty()) {
           assertActive();
@@ -154,16 +156,34 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           }
           status({ state: "syncing" });
           for (const project of store.get(workspaceAtom).projects) {
-            await writeProject(project.id);
+            try {
+              await writeProject(project.id);
+            } catch (error) {
+              failures.push({ error, projectId: project.id });
+            }
           }
           for (const id of acknowledged.keys()) {
-            if (!unsupported.has(id) && !currentProject(id)) await remove(id);
+            if (!unsupported.has(id) && !currentProject(id)) {
+              try {
+                await remove(id);
+              } catch (error) {
+                failures.push({ error, projectId: id });
+              }
+            }
           }
+          if (failures.length) break;
           const error = pendingVersionError();
-          if (error) throw error;
+          if (error) failures.push({ error, projectId: error.projectId });
+          if (failures.length) break;
         }
-        const error = pendingVersionError();
-        if (error) throw error;
+        if (failures.length) {
+          const { error, projectId } = failures[0];
+          status({
+            ...projectSyncErrorStatus(error),
+            ...(projectId ? { projectId } : {}),
+          });
+          throw error;
+        }
         settledStatus();
       } catch (error) {
         // A failed attempt (including offline) is an error; pending means debounce only.
@@ -184,6 +204,12 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   const schedule = () => {
     if (!ready || stopped || applyingRemote || !dirty()) return;
     const error = versionError();
+    const currentStatus = store.get(projectSyncStatusAtom);
+    if (currentStatus.state === "error" && currentStatus.projectId) {
+      cancelTimer();
+      timer = setTimeout(backgroundFlush, SAVE_DEBOUNCE_MS);
+      return;
+    }
     status(
       error
         ? { state: "error", message: error.message }
@@ -291,21 +317,21 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       const incoming = parseCloudProject(source.project);
       const workspace = store.get(workspaceAtom);
-      const publicId = incoming.state.projectData.project_id;
       const existing = workspace.projects.find(
         (project) =>
-          project.id === incoming.id ||
-          (typeof publicId === "string" &&
-            publicId.trim() !== "" &&
-            project.state.projectData.project_id === publicId),
+          project.importedFrom?.kind === "local-migration" &&
+          project.importedFrom.sourceProjectId === incoming.id,
       );
-      const merged = existing ? mergeProjectRecord(existing, incoming) : incoming;
+      const imported =
+        existing ??
+        forkProjectRecord(incoming, {
+          kind: "local-migration",
+          sourceProjectId: incoming.id,
+        });
       store.set(workspaceAtom, {
         ...workspace,
-        projects: existing
-          ? workspace.projects.map((project) => (project.id === existing.id ? merged : project))
-          : [...workspace.projects, merged],
-        activeProjectId: workspace.activeProjectId ?? merged.id,
+        projects: existing ? workspace.projects : [...workspace.projects, imported],
+        activeProjectId: workspace.activeProjectId ?? imported.id,
       });
       await flush();
       assertActive();
@@ -317,6 +343,47 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     load,
     flush,
     refresh,
+    async keepProjectChanges(id: string) {
+      const original = currentProject(id);
+      if (!original) throw new Error("This project is no longer available in this tab.");
+      await serialize(async () => {
+        try {
+          const snapshot = parseRemoteProjects(await client.load());
+          assertActive();
+          const future = snapshot.unsupported.get(id);
+          if (future) {
+            unsupported.set(id, future);
+            throw future;
+          }
+          if (currentProject(id) !== original) {
+            throw new Error("This project changed while resolving the conflict. Review it again.");
+          }
+          const project = currentProject(id);
+          if (!project) throw new Error("This project is no longer available in this tab.");
+          const hash = await hashProject(project);
+          assertActive();
+          const latest = snapshot.remote.get(id);
+          const result = await client.save(project, hash, latest?.hash ?? null);
+          assertActive();
+          if (!result.saved || !result.hash || !result.project) {
+            throw new ProjectConflictError(
+              id,
+              "The cloud project changed again. Review the latest version before overwriting it.",
+            );
+          }
+          parseCloudProject(result.project, id);
+          acknowledged.set(id, { project, hash: result.hash });
+          unsupported.delete(id);
+          settledStatus();
+        } catch (error) {
+          status({
+            ...projectSyncErrorStatus(error),
+            ...(error instanceof UnsupportedProjectVersionError ? {} : { projectId: id }),
+          });
+          throw error;
+        }
+      });
+    },
     async discardProjectChanges(id: string) {
       const original = currentProject(id);
       await serialize(async () => {
@@ -366,12 +433,24 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       });
     },
     migrateLocalProjects,
+    getPendingProjects() {
+      return store
+        .get(workspaceAtom)
+        .projects.filter((project) => acknowledged.get(project.id)?.project !== project);
+    },
     async remove(id: string) {
-      await flush();
       await serialize(async () => {
-        await remove(id);
-        // Commit locally in the same operation so a queued refresh cannot resurrect this row.
-        store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
+        try {
+          if (acknowledged.has(id) && currentProject(id)) await writeProject(id);
+          await remove(id);
+          // Commit locally in the same operation so a queued refresh cannot resurrect this row.
+          store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
+          if (dirty()) schedule();
+          else settledStatus();
+        } catch (error) {
+          status(projectSyncErrorStatus(error));
+          throw error;
+        }
       });
     },
     hasPendingChanges: dirty,

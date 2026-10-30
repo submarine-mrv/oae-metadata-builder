@@ -16,9 +16,28 @@ export interface ProjectRecord {
   /** Absent on drafts saved before version protection; interpreted as version 1. */
   schemaVersion?: number;
   id: string;
+  importedFrom?: {
+    kind: "local-migration" | "interrupted-recovery";
+    sourceProjectId: string;
+    snapshotId?: string;
+  };
   createdAt: number;
   updatedAt: number;
   state: ProjectState;
+}
+
+export function forkProjectRecord(
+  project: ProjectRecord,
+  importedFrom: NonNullable<ProjectRecord["importedFrom"]>,
+): ProjectRecord {
+  const now = Date.now();
+  return {
+    ...project,
+    id: crypto.randomUUID(),
+    importedFrom,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 export interface Workspace {

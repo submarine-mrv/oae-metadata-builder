@@ -553,6 +553,74 @@ describe("project cloud synchronization", () => {
     });
   });
 
+  it("saves unrelated projects even when one project has a merge conflict", async () => {
+    const { store, rows, client, sync, edit } = await setup([project(), project("two")]);
+    rows.set("one", {
+      project: {
+        ...project(),
+        state: {
+          ...project().state,
+          projectData: { project_id: "one", name: "Remote winner" },
+        },
+      },
+      hash: "remote-one",
+    });
+    edit("Local conflict", "one");
+    edit("Independent edit", "two");
+
+    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+
+    expect(store.get(projectSyncStatusAtom)).toMatchObject({
+      state: "error",
+      projectId: "one",
+    });
+    expect(rows.get("two")?.project.state.projectData.name).toBe("Independent edit");
+    expect(client.save).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the local version only after fetching the latest hash and cancels a CAS race", async () => {
+    const { rows, client, sync, edit } = await setup();
+    rows.set("one", {
+      project: {
+        ...project(),
+        state: {
+          ...project().state,
+          projectData: { project_id: "one", name: "Remote winner" },
+        },
+      },
+      hash: "remote-one",
+    });
+    edit("Local winner");
+    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+
+    await sync.keepProjectChanges("one");
+    expect(vi.mocked(client.save).mock.calls.at(-1)?.[2]).toBe("remote-one");
+    expect(rows.get("one")?.project.state.projectData.name).toBe("Local winner");
+    expect(sync.hasPendingChanges()).toBe(false);
+
+    const saved = rows.get("one");
+    if (!saved) throw new Error("Missing saved cloud project");
+    rows.set("one", {
+      project: {
+        ...saved.project,
+        state: {
+          ...saved.project.state,
+          projectData: { ...saved.project.state.projectData, name: "Other remote edit" },
+        },
+      },
+      hash: "external",
+    });
+    edit("Second local edit");
+    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+    vi.mocked(client.save).mockResolvedValueOnce({
+      saved: false,
+      project: rows.get("one")?.project ?? null,
+      hash: "concurrent-change",
+    });
+    await expect(sync.keepProjectChanges("one")).rejects.toThrow("changed again");
+    expect(rows.get("one")?.project.state.projectData.name).toBe("Other remote edit");
+  });
+
   it("surfaces a remotely deleted project instead of silently recreating it", async () => {
     const { rows, sync, edit } = await setup();
     rows.delete("one");
@@ -588,6 +656,31 @@ describe("project cloud synchronization", () => {
     expect(store.get(workspaceAtom).projects).toHaveLength(1);
   });
 
+  it("deletes an unrelated project while another project has a sync conflict", async () => {
+    const { rows, store, sync, edit } = await setup([project(), project("two")]);
+    rows.set("one", {
+      project: {
+        ...project(),
+        state: {
+          ...project().state,
+          projectData: { project_id: "one", name: "Remote winner" },
+        },
+      },
+      hash: "remote-one",
+    });
+    edit("Local conflict", "one");
+    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+
+    await sync.remove("two");
+
+    expect(rows.has("two")).toBe(false);
+    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["one"]);
+    expect(store.get(projectSyncStatusAtom)).toMatchObject({
+      state: "error",
+      projectId: "one",
+    });
+  });
+
   it("does not upload local projects until explicit migration", async () => {
     const local = project("local");
     localStorage.setItem(
@@ -600,9 +693,14 @@ describe("project cloud synchronization", () => {
     );
     const { rows, sync, store } = await setup();
     expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["one"]);
-    expect(rows.has("local")).toBe(false);
+    expect(rows.has(local.id)).toBe(false);
     await sync.migrateLocalProjects();
-    expect(rows.has("local")).toBe(true);
+    const imported = [...rows.values()].find(
+      (row) => row.project.importedFrom?.sourceProjectId === local.id,
+    );
+    expect(imported).toBeDefined();
+    expect(imported?.project.id).not.toBe(local.id);
+    expect(imported?.project.importedFrom?.kind).toBe("local-migration");
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
   });
 
@@ -621,14 +719,22 @@ describe("project cloud synchronization", () => {
     if (!save) throw new Error("Missing test save implementation");
     vi.mocked(client.save).mockImplementationOnce(save).mockRejectedValueOnce(new Error("failed"));
     await expect(sync.migrateLocalProjects()).rejects.toThrow("failed");
-    expect(rows.has("local")).toBe(true);
+    expect(
+      [...rows.values()].some(
+        (row) => row.project.importedFrom?.sourceProjectId === originals[0].id,
+      ),
+    ).toBe(true);
     expect(
       JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects.map(
         (record: ProjectRecord) => record.id,
       ),
     ).toEqual(["second"]);
     await sync.migrateLocalProjects();
-    expect(rows.has("second")).toBe(true);
+    expect(
+      [...rows.values()].some(
+        (row) => row.project.importedFrom?.sourceProjectId === originals[1].id,
+      ),
+    ).toBe(true);
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
   });
 

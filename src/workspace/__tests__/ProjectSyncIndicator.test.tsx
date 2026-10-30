@@ -68,6 +68,7 @@ describe("cloud status indicator", () => {
     store.set(projectSyncActionsAtom, {
       refresh,
       discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
       flush,
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
@@ -96,6 +97,7 @@ describe("cloud status indicator", () => {
       flush: vi.fn(),
       refresh: vi.fn(),
       discardProjectChanges: discard,
+      keepProjectChanges: vi.fn(),
       stop: vi.fn(),
       remove: vi.fn(),
       migrateLocalProjects: vi.fn(),

@@ -19,12 +19,14 @@ describe("explicit project conflict resolution", () => {
     const store = createStore();
     const project = newProjectRecord();
     const discard = vi.fn().mockResolvedValue(undefined);
+    const keep = vi.fn().mockResolvedValue(undefined);
     const close = vi.fn();
     store.set(workspaceAtom, { version: 1, activeProjectId: project.id, projects: [project] });
     store.set(projectSyncActionsAtom, {
       flush: vi.fn(),
       refresh: vi.fn(),
       discardProjectChanges: discard,
+      keepProjectChanges: keep,
       migrateLocalProjects: vi.fn(),
       remove: vi.fn(),
       stop: vi.fn(),
@@ -36,7 +38,7 @@ describe("explicit project conflict resolution", () => {
         </Provider>
       </MantineProvider>,
     );
-    return { store, project, discard, close };
+    return { store, project, discard, keep, close };
   }
 
   it("warns before discarding and exports the latest unsaved project without changing it", async () => {
@@ -80,5 +82,16 @@ describe("explicit project conflict resolution", () => {
         color: "green",
       }),
     );
+  });
+
+  it("requires confirmation to keep the local version and surfaces a lost CAS race", async () => {
+    const { keep, close } = setup();
+    keep.mockRejectedValueOnce(new Error("The cloud project changed again."));
+    fireEvent.click(await screen.findByRole("button", { name: "Keep my version" }));
+    expect(keep).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm overwrite" }));
+    expect(await screen.findByText("The cloud project changed again.")).toBeVisible();
+    expect(keep).toHaveBeenCalledOnce();
+    expect(close).not.toHaveBeenCalled();
   });
 });

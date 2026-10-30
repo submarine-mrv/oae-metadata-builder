@@ -27,6 +27,7 @@ export interface ProjectSyncActions {
   flush(): Promise<void>;
   refresh(): Promise<void>;
   discardProjectChanges(projectId: string): Promise<void>;
+  keepProjectChanges(projectId: string): Promise<void>;
   migrateLocalProjects(): Promise<void>;
   remove(projectId: string): Promise<void>;
   stop(): void;

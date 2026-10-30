@@ -16,6 +16,7 @@ export default function ProjectConflictResolution({
   const store = useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingKeep, setConfirmingKeep] = useState(false);
   const project = useAtomValue(workspaceAtom).projects.find((record) => record.id === projectId);
 
   const discard = async () => {
@@ -38,6 +39,26 @@ export default function ProjectConflictResolution({
     }
   };
 
+  const keepMine = async () => {
+    const sync = store.get(projectSyncActionsAtom);
+    if (!sync || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await sync.keepProjectChanges(projectId);
+      onClose();
+      notifications.show({
+        title: "Your project version was saved",
+        message: "The latest cloud version was replaced with your local project.",
+        color: "green",
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save your project version.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Modal
       opened
@@ -54,6 +75,12 @@ export default function ProjectConflictResolution({
           was deleted remotely. Other projects are not changed.
         </Text>
         {error && <Alert color="red">{error}</Alert>}
+        {confirmingKeep && (
+          <Alert color="yellow" title="Replace the latest cloud version?">
+            Your local draft will overwrite the current cloud draft. A concurrent cloud edit cancels
+            the overwrite so you can review it again.
+          </Alert>
+        )}
         <Group justify="flex-end">
           <Button variant="default" disabled={busy} onClick={onClose}>
             Cancel
@@ -75,6 +102,19 @@ export default function ProjectConflictResolution({
               }}
             >
               Export unsaved project
+            </Button>
+          )}
+          {!confirmingKeep ? (
+            <Button
+              variant="light"
+              disabled={busy || !project}
+              onClick={() => setConfirmingKeep(true)}
+            >
+              Keep my version
+            </Button>
+          ) : (
+            <Button color="orange" loading={busy} onClick={() => void keepMine()}>
+              Confirm overwrite
             </Button>
           )}
           <Button color="red" loading={busy} onClick={() => void discard()}>
