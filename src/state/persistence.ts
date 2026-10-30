@@ -18,7 +18,11 @@ function isStructural(a: Workspace, b: Workspace): boolean {
  * after a 2 s debounce. Pending edits are flushed when the page is hidden or
  * unloaded. Returns a function that stops saving and removes the listeners.
  */
-export function startPersistence(store: AppStore, workspaceStore: WorkspaceStore): () => void {
+export function startPersistence(
+  store: AppStore,
+  workspaceStore: WorkspaceStore,
+  flushOnStop = false,
+): () => void {
   let synced = store.get(workspaceAtom);
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -56,6 +60,7 @@ export function startPersistence(store: AppStore, workspaceStore: WorkspaceStore
   document.addEventListener("visibilitychange", onVisibilityChange);
 
   return () => {
+    if (flushOnStop) flush();
     unsubscribe();
     cancel();
     window.removeEventListener("pagehide", flush);

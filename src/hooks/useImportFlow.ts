@@ -7,6 +7,7 @@ import { importAsNewProjectAtom, importSelectedDataAtom } from "@/state/actions"
 import { activeProjectIdAtom, projectNameAtom, projectStateAtom } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
+import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 export type ImportMode = "new" | "merge";
 
@@ -26,6 +27,7 @@ export function useImportFlow() {
   const effectiveMode: ImportMode = canMerge ? mode : "new";
 
   const preview = useImportPreview();
+  const transition = useProjectTransition();
 
   // A new project starts empty, so nothing in the file can clash with or link to the current one.
   const baselineFor = (m: ImportMode): ImportBaseline => {
@@ -60,20 +62,22 @@ export function useImportFlow() {
   const onImport = () => {
     if (preview.state.duplicateExperimentIdError !== null) return;
     const selected = preview.getSelectedItems();
-    if (effectiveMode === "new") {
-      importAsNewProject(selected);
-    } else {
-      importSelectedData(selected);
-    }
-    // Entity pages hold local form data that a merge would leave stale.
-    navigate({ to: "/overview" });
-    trackEvent("metadata_import", {
-      project: selected.project ? 1 : 0,
-      experiments: selected.experiments.length,
-      datasets: selected.datasets.length,
-      mode: effectiveMode,
+    transition(() => {
+      if (effectiveMode === "new") {
+        importAsNewProject(selected);
+      } else {
+        importSelectedData(selected);
+      }
+      // Entity pages hold local form data that a merge would leave stale.
+      navigate({ to: "/overview" });
+      trackEvent("metadata_import", {
+        project: selected.project ? 1 : 0,
+        experiments: selected.experiments.length,
+        datasets: selected.datasets.length,
+        mode: effectiveMode,
+      });
+      preview.closePreview();
     });
-    preview.closePreview();
   };
 
   return {

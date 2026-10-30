@@ -4,8 +4,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { createProjectAtom, deleteProjectAtom, switchProjectAtom } from "@/state/actions";
+import { createProjectAtom, switchProjectAtom } from "@/state/actions";
 import { type ProjectSummary, projectSummariesAtom } from "@/state/atoms";
+import { useProjectTransition } from "@/workspace/useProjectTransition";
 import DeleteProjectModal from "./DeleteProjectModal";
 import ProjectCard from "./ProjectCard";
 
@@ -13,23 +14,29 @@ export default function ProjectsPage() {
   const projects = useAtomValue(projectSummariesAtom);
   const switchProject = useSetAtom(switchProjectAtom);
   const createProject = useSetAtom(createProjectAtom);
-  const deleteProject = useSetAtom(deleteProjectAtom);
   const navigate = useNavigate();
+  const transition = useProjectTransition();
   const [pendingDelete, setPendingDelete] = useState<ProjectSummary | null>(null);
 
   const openProject = (id: string) => {
-    switchProject(id);
-    navigate({ to: "/overview" });
+    transition(() => {
+      switchProject(id);
+      navigate({ to: "/overview" });
+    });
   };
 
   const newProject = () => {
-    createProject();
-    navigate({ to: "/project" });
+    transition(() => {
+      createProject();
+      navigate({ to: "/project" });
+    });
   };
 
   const confirmDelete = () => {
-    if (pendingDelete) deleteProject(pendingDelete.id);
-    setPendingDelete(null);
+    if (!pendingDelete) return;
+    transition(() => {
+      setPendingDelete(null);
+    }, pendingDelete.id);
   };
 
   return (

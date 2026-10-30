@@ -16,13 +16,13 @@ State lives in Jotai atoms in `src/state/`. `workspaceAtom` holds the one copy o
 
 A project opens with its first experiment and first dataset selected. The project, experiment and dataset forms are bound to the store: each takes `formData` from its record and writes every change back through an action, after running it through the entity's `parse*` function. `__root.tsx` keys the routed page on the active project id, so page-local UI state such as an open error list starts fresh after a switch.
 
-`hydrate` in `store.ts` loads the saved workspace at startup and runs each project through `parseProjectState` (`src/utils/parseProjectState.ts`), which parses and migrates old data.
+`ProjectPersistenceController` chooses the persistence lifecycle after auth resolves. For guests, `hydrate` in `store.ts` loads the saved workspace and runs each project through `parseProjectState` (`src/utils/parseProjectState.ts`), which parses and migrates old data. Authenticated sessions load private cloud projects instead; see [private project cloud sync](./workspace-cloud-sync.md).
 
 ## Empty workspace and routing
 
-Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is also `null` while viewing All projects, without deleting any project.
+Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null`.
 
-With no selected project, `/overview` renders `WelcomePage` (`src/pages/welcome/`). `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment` and `/dataset`, redirecting to `/projects` when projects exist but none is selected, or `/overview` when empty. `/projects` remains accessible without a selection.
+`/overview` renders `WelcomePage` (`src/pages/welcome/`) with two actions: "Create your first project" and "Import from file". `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment`, `/dataset` and `/projects`. With no projects it redirects to `/overview` with `replace`, so Back doesn't return to the empty route.
 
 Creating a project, from anywhere, lands on `/project`.
 
@@ -30,7 +30,7 @@ Creating a project, from anywhere, lands on `/project`.
 
 While the workspace is empty, the header shows the brand, Import and the menu. Once a project exists it adds the project crumb, the section tabs and Export. Below 1280px the tabs move to a second row, and at 768px and below Import and Export move into the menu.
 
-The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu lists every project, then "New project" and "All projects…". Entering `/projects` clears the selection and hides project tabs and Export. Picking a project opens its `/overview`, whose H1 is the project name.
+The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu lists every project, then "New project" and "All projects…". `/projects` (`src/pages/projects/`) shows one card per project, newest edit first, with counts, the last edit and an "Active" badge. Picking a project from either opens its `/overview`, whose H1 is the project name.
 
 ## Deleting
 
@@ -38,11 +38,13 @@ You delete a whole project from its `/projects` card or the overview. `DeletePro
 
 ## Restore prompt
 
-`RestorePrompt` (`src/components/RestorePrompt.tsx`) runs on the first load of a tab. With saved projects it offers Restore session or Start fresh. Start fresh asks to confirm, then `deleteAllProjectsAtom` empties the workspace, which saves at once, and the welcome screen shows. A `sessionStorage` key marks the tab as asked, so reloads in the same tab don't ask again; a new tab does. A reload that leaves the prompt unanswered asks again.
+`RestorePrompt` (`src/components/RestorePrompt.tsx`) runs for guests on the first load of a tab. With saved projects it offers Restore session or Start fresh. Start fresh asks to confirm, then `deleteAllProjectsAtom` empties the workspace, which saves at once, and the welcome screen shows. A `sessionStorage` key marks the tab as asked, so reloads in the same tab don't ask again; a new tab does. A reload that leaves the prompt unanswered asks again.
 
-## Persistence
+## Guest persistence
 
-One localStorage key, `oae-metadata-builder-workspace`, holds the whole `Workspace`. `WorkspaceStore` (`src/workspace/storage.ts`) is the interface a cloud store would replace. `startPersistence` (`src/state/persistence.ts`) subscribes to `workspaceAtom`. Edits save after a 2 s debounce. Create, delete, switch and import save at once. A pending edit is flushed on `pagehide` and when the page becomes hidden.
+One localStorage key, `oae-metadata-builder-workspace`, holds the guest `Workspace`. `startPersistence` (`src/state/persistence.ts`) subscribes to `workspaceAtom` only in guest mode. Edits save after a 2 s debounce. Create, delete, switch and import save at once. A pending edit is flushed on `pagehide`, when the page becomes hidden, and before leaving the guest persistence lifecycle.
+
+Authenticated editing instead synchronizes changed project records directly from Jotai to private Supabase sessions, without local project snapshots. Existing local projects are offered through an explicit migration action. See [private project cloud sync](./workspace-cloud-sync.md) for conditional saves, account isolation and memory-only offline limitations.
 
 Loading keeps whatever it can read:
 
@@ -55,7 +57,7 @@ Backups are never deleted. If storage is full the backup can fail. Dropped recor
 
 ## Open tabs
 
-Each tab keeps its own copy of the workspace and saves the whole of it, so two open tabs overwrite each other's changes. See `docs/multi-tab-editing.md` for the details and the alternatives.
+In guest mode, each tab keeps its own copy of the workspace and saves the whole of it, so two open tabs overwrite each other's changes. See `docs/multi-tab-editing.md` for the details and the alternatives. Authenticated sessions use per-project conditional cloud saves with conflict reconciliation instead.
 
 ## Names, ids and titles
 
@@ -69,7 +71,7 @@ Analytics (`src/utils/analytics.ts`) sets a fixed `page_title` per route with `g
 
 `useImportFlow` (`src/hooks/useImportFlow.ts`) owns the file picker, preview and confirm, for the header and the welcome screen.
 
-The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project is selected. Both open `/overview` afterwards.
+The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project exists. Both open `/overview` afterwards.
 
 `useImportPreview` compares the file against a baseline. A new project resolves against an empty baseline, so nothing conflicts and datasets link only to experiments in the file. Merge resolves against the current project: imported project fields override existing ones, an experiment with a matching `experiment_id` is replaced, and datasets are always added. Switching mode re-analyzes the file with `rebase` and keeps ticked items.
 
