@@ -69,6 +69,10 @@ export const switchProjectAtom = atom(null, (_get, set, id: string) => {
   set(workspaceAtom, (ws) => switchProject(ws, id));
 });
 
+export const clearActiveProjectAtom = atom(null, (_get, set) => {
+  set(workspaceAtom, (ws) => (ws.activeProjectId === null ? ws : { ...ws, activeProjectId: null }));
+});
+
 export const deleteProjectAtom = atom(null, (_get, set, id: string) => {
   set(workspaceAtom, (ws) => deleteProject(ws, id));
 });

@@ -4,7 +4,7 @@ import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { EMPTY_BASELINE, type ImportBaseline, useImportPreview } from "@/hooks/useImportPreview";
 import { importAsNewProjectAtom, importSelectedDataAtom } from "@/state/actions";
-import { projectCountAtom, projectNameAtom, projectStateAtom } from "@/state/atoms";
+import { activeProjectIdAtom, projectNameAtom, projectStateAtom } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
 
@@ -20,7 +20,7 @@ export function useImportFlow() {
   const importAsNewProject = useSetAtom(importAsNewProjectAtom);
   const currentProjectName = useAtomValue(projectNameAtom);
   const navigate = useNavigate();
-  const canMerge = useAtomValue(projectCountAtom) > 0;
+  const canMerge = useAtomValue(activeProjectIdAtom) !== null;
   const [mode, setMode] = useState<ImportMode>("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const effectiveMode: ImportMode = canMerge ? mode : "new";
@@ -67,7 +67,6 @@ export function useImportFlow() {
     }
     // Entity pages hold local form data that a merge would leave stale.
     navigate({ to: "/overview" });
-    // On confirm, not on file selection: the preview can still be cancelled.
     trackEvent("metadata_import", {
       project: selected.project ? 1 : 0,
       experiments: selected.experiments.length,

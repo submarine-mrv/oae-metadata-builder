@@ -7,10 +7,10 @@ test.describe("Multiple projects", () => {
   }) => {
     await page.goto("/overview");
     const switcher = page.getByRole("button", { name: /Current project:/ });
-    const firstProject = page.getByRole("button", { name: "Create your first project" });
+    const createFirstProject = page.getByRole("button", { name: "Create your first project" });
 
     // Empty workspace: welcome screen; no switcher, Export or tabs.
-    await waitForRoute(firstProject);
+    await waitForRoute(createFirstProject);
     await expect(page.getByRole("link", { name: "OAE Metadata Builder" })).toBeVisible();
     await expect(switcher).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
@@ -22,7 +22,7 @@ test.describe("Multiple projects", () => {
     await expect(page).toHaveURL(/\/overview$/);
 
     // First project lands on the form; the crumb and tab title follow the name as it's typed.
-    await firstProject.click();
+    await createFirstProject.click();
     await expect(page).toHaveURL(/\/project$/);
     await expect(switcher).toHaveText("Unnamed Project");
     await page.getByLabel(/Project Name/).fill("Kiel trial");
@@ -58,6 +58,9 @@ test.describe("Multiple projects", () => {
     await switcher.click();
     await page.getByRole("menuitem", { name: /All projects/ }).click();
     await expect(page).toHaveURL(/\/projects$/);
+    await expect(page.getByRole("button", { name: "All projects", exact: true })).toBeVisible();
+    await expect(switcher).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(2);
     await page.getByRole("button", { name: "Open Kiel trial" }).click();
     await expect(page).toHaveURL(/\/overview$/);
@@ -69,22 +72,24 @@ test.describe("Multiple projects", () => {
     await waitForRoute(switcher);
     await expect(switcher).toHaveText("Kiel trial");
 
-    // Delete the unnamed one from the list; the crumb still names the remaining project.
+    // Deleting from All projects keeps the remaining project unselected.
     await page.goto("/projects");
     await page.getByRole("button", { name: "Delete Unnamed Project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(1);
-    await expect(switcher).toHaveText("Kiel trial");
+    await expect(page.getByRole("button", { name: "All projects", exact: true })).toBeVisible();
+    await expect(switcher).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
 
-    // Delete the last one: the list is gone and the welcome screen is back.
+    // Deleting the last project redirects to the overview welcome screen.
     await page.getByRole("button", { name: "Delete Kiel trial" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
     await expect(page).toHaveURL(/\/overview$/);
-    await expect(firstProject).toBeVisible();
+    await expect(createFirstProject).toBeVisible();
     await expect(switcher).toHaveCount(0);
 
     // Deleting from the overview with two projects lands on the other one's overview.
-    await firstProject.click();
+    await createFirstProject.click();
     await expect(page).toHaveURL(/\/project$/);
     await page.getByLabel(/Project Name/).fill("Bergen trial");
     await expect(switcher).toHaveText("Bergen trial");
@@ -101,6 +106,6 @@ test.describe("Multiple projects", () => {
     // Deleting the last one from its overview returns to the welcome screen.
     await page.getByRole("button", { name: "Delete project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
-    await expect(firstProject).toBeVisible();
+    await expect(createFirstProject).toBeVisible();
   });
 });

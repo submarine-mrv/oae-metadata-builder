@@ -1,11 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useAtomValue } from "jotai";
 import ProjectsPage from "@/pages/projects/ProjectsPage";
-import RequireProject from "@/workspace/RequireProject";
+import { projectCountAtom } from "@/state/atoms";
+
+function ProjectsRoute() {
+  return useAtomValue(projectCountAtom) === 0 ? (
+    <Navigate to="/overview" replace />
+  ) : (
+    <ProjectsPage />
+  );
+}
 
 export const Route = createFileRoute("/projects")({
-  component: () => (
-    <RequireProject>
-      <ProjectsPage />
-    </RequireProject>
-  ),
+  component: ProjectsRoute,
 });
