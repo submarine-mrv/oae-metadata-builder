@@ -22,7 +22,7 @@ A project opens with its first experiment and first dataset selected. The projec
 
 Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is also `null` while viewing All projects, without deleting any project.
 
-With no selected project, `/overview` renders `WelcomePage` (`src/pages/welcome/`). `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment` and `/dataset`, redirecting to `/projects` when projects exist but none is selected, or `/overview` when empty. `/projects` remains accessible without a selection.
+With no selected project, `/overview` renders `WelcomePage` (`src/pages/welcome/`). `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment` and `/dataset`, redirecting to `/projects` when projects exist but none is selected, or `/overview` when empty. `/projects` needs no selection but also redirects to `/overview` when empty.
 
 Creating a project, from anywhere, lands on `/project`.
 
