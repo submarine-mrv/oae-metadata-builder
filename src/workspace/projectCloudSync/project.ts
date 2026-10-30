@@ -14,6 +14,22 @@ import {
 } from "./helper";
 import type { ProjectCloudClient, ProjectSaveResult, RemoteProject } from "./types";
 
+const SUSTAINED_FAILURE_MS = 30_000;
+const MAX_RETRY_MS = 60_000;
+
+/** Other writers kept saving between our merge and resave. */
+class ContentionError extends Error {}
+/** A request to the cloud failed; retrying it unchanged may succeed. */
+class RequestError extends Error {}
+
+/** Random 0.5–3s: breaks lockstep with another writer without widening the save window. */
+const contentionDelay = () => 500 + Math.random() * 2_500;
+/** 5s doubling to 60s, jittered so failed clients don't retry together. */
+const requestDelay = (failures: number) => {
+  const ceiling = Math.min(MAX_RETRY_MS, 5_000 * 2 ** failures);
+  return ceiling / 2 + Math.random() * (ceiling / 2);
+};
+
 export function startProjectCloudSync(store: AppStore, client: ProjectCloudClient) {
   const acknowledged = new Map<string, RemoteProject>();
   const unsupported = new Map<string, UnsupportedProjectVersionError>();
@@ -26,6 +42,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   let ready = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight: Promise<void> | null = null;
+  let failingSince: number | null = null;
+  let requestFailures = 0;
 
   const status = (value: ProjectSyncStatus) => {
     if (!stopped) store.set(projectSyncStatusAtom, value);
@@ -65,7 +83,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       try {
         result = await client.save(project, hash, previous?.hash ?? null);
       } catch (error) {
-        if (!(error instanceof UnsupportedProjectVersionError)) throw error;
+        if (!(error instanceof UnsupportedProjectVersionError)) {
+          throw new RequestError(errorMessage(error), { cause: error });
+        }
         unsupported.set(id, error);
         return;
       }
@@ -93,7 +113,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       }));
       acknowledged.set(id, { project: remote, hash: result.hash });
     }
-    throw new Error("This project keeps changing on another device. Retry sync to continue.");
+    throw new ContentionError(
+      "This project keeps changing on another device. Retry sync to continue.",
+    );
   };
 
   const remove = async (id: string) => {
@@ -101,7 +123,12 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (unsupported.has(id)) throw unsupported.get(id);
     const previous = acknowledged.get(id);
     if (!previous) return;
-    const result = await client.remove(id, previous.hash);
+    let result: ProjectSaveResult;
+    try {
+      result = await client.remove(id, previous.hash);
+    } catch (error) {
+      throw new RequestError(errorMessage(error), { cause: error });
+    }
     assertActive();
     if (!result.saved) {
       throw new Error("This project changed on another device. Reload before deleting it.");
@@ -139,13 +166,38 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           const error = pendingVersionError();
           if (error) throw error;
         }
+        failingSince = null;
+        requestFailures = 0;
         settledStatus();
       } catch (error) {
-        // A failed attempt (including offline) is an error; pending means debounce only.
-        status({
-          state: "error",
-          message: errorMessage(error),
-        });
+        const retryIn =
+          error instanceof ContentionError
+            ? contentionDelay()
+            : error instanceof RequestError
+              ? requestDelay(requestFailures++)
+              : null;
+        if (retryIn === null || stopped) {
+          // Conflicts, newer drafts and offline need the user or the online event, not a timer.
+          status({ state: "error", message: errorMessage(error) });
+        } else {
+          failingSince ??= Date.now();
+          status(
+            Date.now() - failingSince < SUSTAINED_FAILURE_MS
+              ? {
+                  state: "pending",
+                  message: "Unsaved edits are only in memory until cloud sync succeeds.",
+                }
+              : {
+                  state: "error",
+                  message:
+                    error instanceof ContentionError
+                      ? "Another tab or device keeps saving this project. Your changes are safe in this tab and will keep retrying."
+                      : `Can't reach the cloud right now. Your changes are safe in this tab and will keep retrying. (${errorMessage(error)})`,
+                },
+          );
+          cancelTimer();
+          timer = setTimeout(backgroundFlush, retryIn);
+        }
         throw error;
       } finally {
         inFlight = null;

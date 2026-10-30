@@ -136,7 +136,7 @@ describe("project cloud synchronization", () => {
     edit("unsaved");
     vi.mocked(client.save).mockRejectedValueOnce(new Error("network failed"));
     await expect(sync.flush()).rejects.toThrow("network failed");
-    expect(store.get(projectSyncStatusAtom)).toEqual({ state: "error", message: "network failed" });
+    expect(store.get(projectSyncStatusAtom).state).toBe("pending");
     expect(sync.hasPendingChanges()).toBe(true);
     expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
     await sync.flush();
