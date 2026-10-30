@@ -4,7 +4,7 @@ export {
   readRemoteProject,
   UnsupportedProjectVersionError,
 } from "./helper";
-export { startProjectCloudSync } from "./project";
+export { PROJECT_REFRESH_INTERVAL_MS, startProjectCloudSync } from "./project";
 export type {
   CloudProject,
   ProjectCloudClient,

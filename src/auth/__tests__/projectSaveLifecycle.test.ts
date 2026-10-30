@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { appStore } from "@/state/store";
-import { projectSyncActionsAtom } from "@/workspace/syncState";
+import { ProjectConflictError, projectSyncActionsAtom } from "@/workspace/syncState";
 
 const adapter = vi.hoisted(() => ({
   signOut: vi.fn(),
@@ -21,6 +21,9 @@ describe("authenticated project save lifecycle", () => {
     adapter.deleteAccount.mockResolvedValue({});
     appStore.set(projectSyncActionsAtom, {
       flush,
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
       stop,
       remove: vi.fn(),
       migrateLocalProjects: vi.fn(),
@@ -43,6 +46,12 @@ describe("authenticated project save lifecycle", () => {
     flush.mockRejectedValue(new Error("not saved"));
     await expect(createAuthClient().signOut()).rejects.toThrow("not saved");
     expect(adapter.signOut).not.toHaveBeenCalled();
+  });
+
+  it("allows sign-out after a project conflict without deleting the preserved draft", async () => {
+    flush.mockRejectedValue(new ProjectConflictError("project", "Conflict"));
+    await createAuthClient().signOut();
+    expect(adapter.signOut).toHaveBeenCalledOnce();
   });
 
   it("flushes before account deletion and does not flush deleted rows at local sign-out", async () => {

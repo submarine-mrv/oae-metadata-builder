@@ -8,12 +8,11 @@ import { workspaceAtom } from "@/state/atoms";
 import { startPersistence } from "@/state/persistence";
 import { hydrate } from "@/state/store";
 import { exportMetadata } from "@/utils/exportImport";
-import { mergeProjectRecord } from "./merge";
 import { startProjectCloudSync } from "./projectCloudSync";
 import { localStorageWorkspaceStore } from "./storage";
 import { LocalProjectMigration } from "./sync";
 import { projectSyncActionsAtom, projectSyncErrorStatus, projectSyncStatusAtom } from "./syncState";
-import type { Workspace } from "./types";
+import { forkProjectRecord, type Workspace } from "./types";
 import { emptyWorkspace } from "./workspace";
 
 export default function ProjectPersistenceController({ children }: { children: ReactNode }) {
@@ -24,7 +23,9 @@ export default function ProjectPersistenceController({ children }: { children: R
   const syncStatus = useAtomValue(projectSyncStatusAtom);
   const [prepared, setPrepared] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
-  const [recovery, setRecovery] = useState<Record<string, Workspace[]>>({});
+  const [recovery, setRecovery] = useState<Record<string, { id: string; workspace: Workspace }[]>>(
+    {},
+  );
   const recovering = useRef(false);
   const preparationKey = identity === null ? null : `${identity}:${retry}`;
 
@@ -63,10 +64,18 @@ export default function ProjectPersistenceController({ children }: { children: R
     return () => {
       cancelled = true;
       if (cloud?.hasPendingChanges()) {
-        const snapshot = store.get(workspaceAtom);
+        const workspace = store.get(workspaceAtom);
+        const projects = cloud.getPendingProjects();
+        const activeProjectId = projects.some((project) => project.id === workspace.activeProjectId)
+          ? workspace.activeProjectId
+          : (projects[0]?.id ?? null);
+        const snapshot: Workspace = { ...workspace, activeProjectId, projects };
         setRecovery((previous) => ({
           ...previous,
-          [identity]: [...(previous[identity] ?? []), snapshot],
+          [identity]: [
+            ...(previous[identity] ?? []),
+            { id: crypto.randomUUID(), workspace: snapshot },
+          ],
         }));
       }
       cloud?.stop();
@@ -94,10 +103,17 @@ export default function ProjectPersistenceController({ children }: { children: R
     try {
       const current = store.get(workspaceAtom);
       const projects = [...current.projects];
-      for (const project of snapshots.flatMap((snapshot) => snapshot.projects)) {
-        const index = projects.findIndex((record) => record.id === project.id);
-        if (index < 0) projects.push(project);
-        else projects[index] = mergeProjectRecord(projects[index], project);
+      for (const snapshot of snapshots) {
+        for (const source of snapshot.workspace.projects) {
+          const project = forkProjectRecord(source, {
+            kind: "interrupted-recovery",
+            sourceProjectId: source.id,
+            snapshotId: snapshot.id,
+          });
+          const index = projects.findIndex((record) => record.id === project.id);
+          if (index < 0) projects.push(project);
+          else projects[index] = project;
+        }
       }
       store.set(workspaceAtom, {
         ...current,
@@ -140,7 +156,7 @@ export default function ProjectPersistenceController({ children }: { children: R
                     variant="light"
                     onClick={() => {
                       for (const project of recovery[identity].flatMap(
-                        (snapshot) => snapshot.projects,
+                        (snapshot) => snapshot.workspace.projects,
                       )) {
                         exportMetadata(
                           project.state.projectData,

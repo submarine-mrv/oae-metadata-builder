@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
 import { createTestStore, makeWrapper } from "@/state/testing";
-import { projectSyncActionsAtom, projectSyncStatusAtom } from "../syncState";
+import { ProjectConflictError, projectSyncActionsAtom, projectSyncStatusAtom } from "../syncState";
 import { newProjectRecord } from "../types";
 import { useProjectTransition } from "../useProjectTransition";
 
@@ -28,6 +28,9 @@ describe("project transition save boundary", () => {
     );
     store.set(projectSyncActionsAtom, {
       flush,
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
       remove: vi.fn(),
@@ -44,6 +47,9 @@ describe("project transition save boundary", () => {
     const store = createTestStore();
     store.set(projectSyncActionsAtom, {
       flush: vi.fn().mockRejectedValue(new Error("not saved")),
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
       remove: vi.fn(),
@@ -66,6 +72,9 @@ describe("project transition save boundary", () => {
     const remove = vi.fn().mockRejectedValue(new Error("remote conflict"));
     store.set(projectSyncActionsAtom, {
       flush: vi.fn().mockResolvedValue(undefined),
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
       remove,
@@ -81,6 +90,27 @@ describe("project transition save boundary", () => {
         color: "red",
       }),
     );
+  });
+
+  it("allows navigating to another project after a project-scoped conflict", async () => {
+    const store = createTestStore();
+    const action = vi.fn();
+    store.set(projectSyncActionsAtom, {
+      flush: vi.fn().mockRejectedValue(new ProjectConflictError("project-a", "Conflict")),
+      refresh: vi.fn(),
+      discardProjectChanges: vi.fn(),
+      keepProjectChanges: vi.fn(),
+      stop: vi.fn(),
+      migrateLocalProjects: vi.fn(),
+      remove: vi.fn(),
+    });
+    const { result } = renderHook(useProjectTransition, { wrapper: makeWrapper(store) });
+    act(() => result.current(action));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(store.get(projectSyncStatusAtom)).toMatchObject({
+      state: "error",
+      projectId: "project-a",
+    });
   });
 
   it("deletes a guest project once before invoking the completion action", () => {
