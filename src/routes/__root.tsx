@@ -3,9 +3,11 @@ import { useAtomValue } from "jotai";
 import { Fragment } from "react";
 import type { AuthStore } from "@/auth/authStore";
 import { activeProjectIdAtom } from "@/state/atoms";
+import { useProjectListSelection } from "@/workspace/useProjectListSelection";
 
 /** Remounts the routed page on project switch, so page-local UI state such as an open error list starts fresh. */
 function ProjectScopedOutlet() {
+  useProjectListSelection();
   const activeProjectId = useAtomValue(activeProjectIdAtom);
   return (
     <Fragment key={activeProjectId ?? "empty"}>

@@ -47,6 +47,7 @@ export function updateProject(
 }
 
 export function activeProject(workspace: Workspace): ProjectRecord | null {
+  if (workspace.activeProjectId === null) return null;
   return (
     workspace.projects.find((p) => p.id === workspace.activeProjectId) ??
     workspace.projects[0] ??

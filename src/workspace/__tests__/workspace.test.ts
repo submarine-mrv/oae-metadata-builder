@@ -80,6 +80,9 @@ describe("addProject", () => {
 });
 
 describe("activeProject", () => {
+  it("keeps an explicit empty selection even when projects exist", () => {
+    expect(activeProject({ ...twoProjects(), activeProjectId: null })).toBeNull();
+  });
   it("returns the active record, falls back to the first, and is null when empty", () => {
     const ws = twoProjects();
     expect(activeProject(ws)?.id).toBe(ws.projects[0].id);

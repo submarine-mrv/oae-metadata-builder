@@ -20,9 +20,9 @@ A project opens with its first experiment and first dataset selected. The projec
 
 ## Empty workspace and routing
 
-Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is then `null`.
+Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is also `null` while viewing All projects, without deleting any project.
 
-`/overview` renders `WelcomePage` (`src/pages/welcome/`) with two actions: "Create your first project" and "Import from file". `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment`, `/dataset` and `/projects`. With no projects it redirects to `/overview` with `replace`, so Back doesn't return to the empty route.
+With no selected project, `/overview` renders `WelcomePage` (`src/pages/welcome/`). `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment` and `/dataset`, redirecting to `/projects` when projects exist but none is selected, or `/overview` when empty. `/projects` remains accessible without a selection.
 
 Creating a project, from anywhere, lands on `/project`.
 
@@ -30,7 +30,7 @@ Creating a project, from anywhere, lands on `/project`.
 
 While the workspace is empty, the header shows the brand, Import and the menu. Once a project exists it adds the project crumb, the section tabs and Export. Below 1280px the tabs move to a second row, and at 768px and below Import and Export move into the menu.
 
-The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu lists every project, then "New project" and "All projects…". `/projects` (`src/pages/projects/`) shows one card per project, newest edit first, with counts, the last edit and an "Active" badge. Picking a project from either opens its `/overview`, whose H1 is the project name.
+The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu lists every project, then "New project" and "All projects…". Entering `/projects` clears the selection and hides project tabs and Export. Picking a project opens its `/overview`, whose H1 is the project name.
 
 ## Deleting
 
@@ -69,7 +69,7 @@ Analytics (`src/utils/analytics.ts`) sets a fixed `page_title` per route with `g
 
 `useImportFlow` (`src/hooks/useImportFlow.ts`) owns the file picker, preview and confirm, for the header and the welcome screen.
 
-The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project exists. Both open `/overview` afterwards.
+The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project is selected. Both open `/overview` afterwards.
 
 `useImportPreview` compares the file against a baseline. A new project resolves against an empty baseline, so nothing conflicts and datasets link only to experiments in the file. Merge resolves against the current project: imported project fields override existing ones, an experiment with a matching `experiment_id` is replaced, and datasets are always added. Switching mode re-analyzes the file with `rebase` and keeps ticked items.
 
