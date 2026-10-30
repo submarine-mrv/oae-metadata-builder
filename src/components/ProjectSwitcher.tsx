@@ -41,7 +41,9 @@ export default function ProjectSwitcher() {
             variant="subtle"
             color="hadal"
             size="compact-md"
-            px={6}
+            // Tabler's chevron has ~3.5px of built-in whitespace on its right.
+            pl={9}
+            pr={6}
             rightSection={<IconChevronDown size={14} />}
             aria-label={activeProjectId ? `Current project: ${activeName}` : "All projects"}
           >
