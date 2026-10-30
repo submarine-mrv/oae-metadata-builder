@@ -510,6 +510,19 @@ describe("useImportPreview", () => {
       expect(item("project-0")?.conflict).toBe("add-new");
     });
 
+    it("warns about replacing project metadata when merging into a project without a project_id", () => {
+      const result = openWithEmptyBaseline();
+      act(() =>
+        result.current.rebase({
+          projectData: { name: "Existing", description: "Kept?" },
+          experiments: [],
+        }),
+      );
+      const project = result.current.state.items.find((i) => i.key === "project-0");
+      expect(project?.conflict).toBe("override");
+      expect(project?.conflictReason).toBe("Replace existing project metadata");
+    });
+
     it("keeps an unticked item unticked", () => {
       const result = openWithEmptyBaseline();
       act(() => result.current.toggleItem("experiment-0"));

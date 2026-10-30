@@ -187,7 +187,8 @@ function analyze(
       : null;
 
   // Add project item
-  const hasExistingProject = Boolean(baseline.projectData?.project_id);
+  // Merging overwrites project fields whether or not the open project has a project_id.
+  const hasExistingProject = baseline !== EMPTY_BASELINE;
   const importProjectId = projectData?.project_id;
 
   if (projectData && Object.keys(projectData).length > 0) {
