@@ -59,4 +59,40 @@ npm run build
 Verify login, migration/decline, indicators, account isolation, and transitions
 against local Supabase. In two isolated windows, check polling/focus updates,
 disjoint edits, conflicts, and clean/dirty remote deletions without reloading.
-Use disposable test data; do not reset useful data. Publishing is outside this PR.
+Use disposable test data; do not reset useful data.
+
+## Project publication
+
+With Supabase authentication enabled, open **Publication** in the header to
+review and publish the active project's complete metadata tree. All project,
+experiment and dataset metadata must pass validation. The confirmation explains
+that names, emails, identifiers and access links become publicly downloadable.
+Publishing first saves the private draft and refuses to publish if that save
+fails or the reviewed content changes.
+
+- **Publish project / Update publication** atomically replaces the public tree.
+  Removed experiments and datasets disappear from the publication.
+- **Unpublish...** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
+  reads without deleting metadata or the private draft. Existing downloads and
+  already-open browser pages cannot be recalled. Unpublishing does not depend
+  on private draft saves, so a draft conflict cannot prevent hiding public data.
+- **Republish** uses the same reviewed publication action.
+- Publication is bound to the internal draft identity. Changing the editable
+  metadata project ID and publishing again replaces the previous public ID;
+  IDs belonging to another draft or owner are rejected.
+- Draft edits remain private until the next explicit publication. Unpublish
+  before deleting a published draft; deletion is blocked while it is public.
+
+The client uses owner-bound tokens and the `publish_oae_project` and
+`unpublish_oae_project` RPCs. Direct authenticated catalog mutations are denied.
+The normalized public rows retain complete source objects and the exported
+document envelope for lossless Data Commons downloads; no private workspace
+wrappers, internal counters or auth credentials are included in those documents.
+Guests, auth-disabled builds and the memory auth provider have no publication
+controls or requests.
+
+Local end-to-end verification requires the publication RPCs and Web's
+Supabase catalog reader. Publish a synthetic complete project from MB, refresh
+Web search and its detail/download, edit and update, unpublish and check a fresh
+anonymous read, then republish. Verify conflicts and failures leave the previous
+public tree intact. Do not use real private metadata for these checks.

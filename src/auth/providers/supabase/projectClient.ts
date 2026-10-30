@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import { supabase } from "@/auth/providers/supabase/client";
+import { createOwnerClient } from "@/auth/providers/supabase/ownerClient";
 import {
   checkProjectVersion,
   type ProjectCloudClient,
@@ -33,30 +32,7 @@ function parseResult(value: unknown, projectId: string): ProjectSaveResult {
 }
 
 export function createProjectCloudClient(userId: string): ProjectCloudClient {
-  // Capture an owner-checked token for each request, never a later account's token.
-  const client = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    {
-      global: {
-        fetch: (input, init) => {
-          const body = init?.body;
-          // Browsers cap outstanding keepalive bodies at 64 KiB; large drafts use normal autosave.
-          const keepalive =
-            typeof body === "string" && new TextEncoder().encode(body).byteLength <= 60_000;
-          return fetch(input, { ...init, keepalive });
-        },
-      },
-      accessToken: async () => {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw new Error(`Could not authenticate project sync: ${error.message}`);
-        if (!data.session || data.session.user.id !== userId) {
-          throw new Error("The account changed. Project sync has been stopped.");
-        }
-        return data.session.access_token;
-      },
-    },
-  );
+  const client = createOwnerClient(userId, true);
   return {
     async load() {
       const { data, error } = await client
