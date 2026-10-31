@@ -9,7 +9,12 @@ export interface ProjectState {
   nextDatasetId: number;
 }
 
+/** Bump when draft-state migrations change the persisted shape or meaning. */
+export const PROJECT_SCHEMA_VERSION = 1;
+
 export interface ProjectRecord {
+  /** Absent on drafts saved before version protection; interpreted as version 1. */
+  schemaVersion?: number;
   id: string;
   createdAt: number;
   updatedAt: number;
@@ -54,5 +59,11 @@ export function newProjectRecord(
   state: ProjectState = emptyProjectState(),
   now: number = Date.now(),
 ): ProjectRecord {
-  return { id: crypto.randomUUID(), createdAt: now, updatedAt: now, state };
+  return {
+    id: crypto.randomUUID(),
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    createdAt: now,
+    updatedAt: now,
+    state,
+  };
 }
