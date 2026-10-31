@@ -98,8 +98,14 @@ export function mergeProjectRecord(target: ProjectRecord, incoming: ProjectRecor
 
 function conflict(field: string): never {
   throw new Error(
-    `Conflicting changes to ${field} on another device. Your edits are still in memory; export them before reloading.`,
+    `Conflicting changes to ${field} elsewhere. Your edits are still in memory; export them before reloading.`,
   );
+}
+
+/** With no shared baseline, only an identical copy can be adopted safely. */
+export function adoptUnseenProject(local: ProjectRecord, remote: ProjectRecord): ProjectRecord {
+  if (!equalData(local.state, remote.state)) conflict("this project");
+  return remote;
 }
 
 function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(

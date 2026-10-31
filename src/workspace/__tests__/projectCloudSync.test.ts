@@ -234,6 +234,34 @@ describe("project cloud synchronization", () => {
     expect(client.save).toHaveBeenCalledTimes(4);
   });
 
+  it("adopts an identical copy that another tab created first", async () => {
+    const { store, rows, sync, client } = await setup();
+    const twin = project("two");
+    store.set(workspaceAtom, (workspace) => addProject(workspace, twin));
+    rows.set("two", { project: { ...twin, updatedAt: 200 }, hash: "other-tab" });
+    await sync.flush();
+    expect(client.save).toHaveBeenCalledTimes(1);
+    expect(store.get(workspaceAtom).projects.find((record) => record.id === "two")?.updatedAt).toBe(
+      200,
+    );
+    expect(sync.hasPendingChanges()).toBe(false);
+  });
+
+  it("raises a conflict when another tab created a different copy first", async () => {
+    const { store, rows, sync, client } = await setup();
+    const mine = project("two");
+    store.set(workspaceAtom, (workspace) => addProject(workspace, mine));
+    const theirs = {
+      ...mine,
+      state: { ...mine.state, projectData: { ...mine.state.projectData, name: "theirs" } },
+    };
+    rows.set("two", { project: theirs, hash: "other-tab" });
+    await expect(sync.flush()).rejects.toThrow("Conflicting changes to this project elsewhere");
+    expect(client.save).toHaveBeenCalledTimes(1);
+    expect(rows.get("two")?.project).toBe(theirs);
+    expect(sync.hasPendingChanges()).toBe(true);
+  });
+
   it("saves new projects separately and deletes only the selected remote row", async () => {
     const { store, rows, sync, client } = await setup();
     store.set(workspaceAtom, (workspace) => addProject(workspace, project("two")));

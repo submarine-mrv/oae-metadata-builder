@@ -1,7 +1,7 @@
 import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
-import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
+import { adoptUnseenProject, mergeProjectRecord, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import {
   type ProjectSyncStatus,
@@ -143,7 +143,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       const latest = currentProject(id) ?? project;
       const merged = previous
         ? reconcileProjectRecord(latest, remote, previous.project)
-        : mergeProjectRecord(latest, remote);
+        : adoptUnseenProject(latest, remote);
       store.set(workspaceAtom, (workspace) => ({
         ...workspace,
         projects: workspace.projects.map((record) => (record.id === id ? merged : record)),
