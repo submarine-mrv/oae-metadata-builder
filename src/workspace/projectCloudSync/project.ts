@@ -304,6 +304,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       const projects = rows.flatMap((row) => {
         if ("projectId" in row) {
+          if (row.reason)
+            console.warn(`Could not read cloud project ${row.projectId}:`, row.reason);
           unsupported.set(
             row.projectId,
             new UnsupportedProjectVersionError(row.projectId, row.schemaVersion, row.reason),

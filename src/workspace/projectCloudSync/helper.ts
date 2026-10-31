@@ -9,11 +9,12 @@ export class UnsupportedProjectVersionError extends Error {
     public readonly projectId: string,
     public readonly schemaVersion?: number,
     public readonly reason?: string,
+    public readonly unsavedEdits = false,
   ) {
     super(
       reason
-        ? `Project "${projectId}" could not be read and was set aside: ${reason}`
-        : `Project "${projectId}" uses a newer draft format${schemaVersion === undefined ? "" : ` (version ${schemaVersion})`}. Reload the Metadata Builder before syncing this project.`,
+        ? "One project in your account couldn't be opened. It hasn't been changed or deleted."
+        : `This project was saved by a newer version of the Metadata Builder. Reload the page to keep editing it.${unsavedEdits ? " Edits made in this tab since then can't be saved." : ""}`,
     );
     this.name = "UnsupportedProjectVersionError";
   }

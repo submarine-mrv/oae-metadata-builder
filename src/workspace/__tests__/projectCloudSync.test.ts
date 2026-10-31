@@ -325,7 +325,7 @@ describe("project cloud synchronization", () => {
     expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["B"]);
   });
 
-  it("sets aside an unreadable cloud row and still loads and saves the rest", async () => {
+  it("skips an unreadable cloud row and still loads and saves the rest", async () => {
     const store = createStore();
     const { client } = clientWith([project("two")]);
     vi.mocked(client.load).mockResolvedValue([
@@ -338,7 +338,7 @@ describe("project cloud synchronization", () => {
     expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["two"]);
     expect(store.get(projectSyncStatusAtom)).toMatchObject({
       state: "error",
-      message: expect.stringContaining('Project "broken" could not be read'),
+      message: expect.stringContaining("couldn't be opened"),
     });
     const record = store.get(workspaceAtom).projects[0];
     store.set(workspaceAtom, (workspace) =>

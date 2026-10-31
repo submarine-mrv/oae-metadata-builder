@@ -93,7 +93,7 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
       });
       if (error) {
         if (error.details === "metadata_builder_schema_version_downgrade") {
-          throw new UnsupportedProjectVersionError(project.id);
+          throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);
         }
         throw new Error(`Could not save this cloud project: ${error.message}`);
       }
