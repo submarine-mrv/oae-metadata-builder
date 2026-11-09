@@ -1,9 +1,8 @@
-import { Alert, Anchor, Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { Alert, Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useAtomValue, useStore } from "jotai";
 import { useState } from "react";
 import { workspaceAtom } from "@/state/atoms";
-import { exportMetadata } from "@/utils/exportImport";
 import { projectSyncActionsAtom } from "../syncState";
 import { projectDisplayName } from "../types";
 
@@ -58,22 +57,6 @@ export default function ProjectConflictResolution({
         <Text size="sm" c="dimmed">
           Keep mine replaces the version saved elsewhere. Use the other version drops your unsaved
           changes to {project ? `"${projectDisplayName(project.state)}"` : "this project"}.{" "}
-          {project && (
-            <Anchor
-              component="button"
-              size="sm"
-              disabled={busy}
-              onClick={() =>
-                exportMetadata(
-                  project.state.projectData,
-                  project.state.experiments,
-                  project.state.datasets,
-                )
-              }
-            >
-              Export yours first
-            </Anchor>
-          )}
         </Text>
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">

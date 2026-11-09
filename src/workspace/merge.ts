@@ -156,7 +156,7 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
       ) {
         conflict(`the type of ${kind} "${original.name}"`);
       }
-      const label = (key: string) => `${fieldLabel(kind, key)} in ${kind} "${original.name}"`;
+      const label = (key: string) => `"${fieldLabel(kind, key)}" in ${kind} "${original.name}"`;
       const merged = {
         ...a,
         ...mergeFields(details(a), details(b), details(original), label),
@@ -210,7 +210,7 @@ export function reconcileProjectRecord(
     local.state.projectData,
     remote.state.projectData,
     base.state.projectData,
-    (key) => fieldLabel("project", key),
+    (key) => `"${fieldLabel("project", key)}"`,
   );
   const experiments = reconcileEntities(
     "experiment",

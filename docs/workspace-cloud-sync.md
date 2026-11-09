@@ -30,7 +30,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices, keep mine or use the other version, and a link to export first. Other errors show the message, with Retry save unless the project has a
+with two choices: keep mine or use the other version. Other errors show the message, with Retry save unless the project has a
 newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only
