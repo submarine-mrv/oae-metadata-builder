@@ -81,6 +81,7 @@ export default function OverviewPage() {
     transition(() => {
       deleteProject(activeSummary.id);
       setConfirmingDelete(false);
+      void navigate({ to: "/projects" });
     }, activeSummary.id);
   };
 

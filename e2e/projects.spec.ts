@@ -99,8 +99,8 @@ test.describe("Multiple projects", () => {
     await page.goto("/overview");
     await page.getByRole("button", { name: "Delete project" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
-    await expect(page).toHaveURL(/\/overview$/);
-    await expect(switcher).toHaveText("Bergen trial");
+    await expect(page).toHaveURL(/\/projects$/);
+    await page.getByRole("button", { name: "Open Bergen trial" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bergen trial");
 
     // Deleting the last one from its overview returns to the welcome screen.

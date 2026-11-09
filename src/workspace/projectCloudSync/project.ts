@@ -9,6 +9,7 @@ import {
   projectSyncErrorStatus,
   projectSyncStatusAtom,
   type RemoteDeletion,
+  refreshPausesAtom,
   remoteDeletionsAtom,
 } from "../syncState";
 import { type ProjectRecord, projectDisplayName } from "../types";
@@ -20,9 +21,11 @@ import {
   parseCloudProject,
   UnsupportedProjectVersionError,
 } from "./helper";
-import type { ProjectCloudClient, ProjectSaveResult, RemoteProject } from "./types";
+import type { CloudProject, ProjectCloudClient, ProjectSaveResult, RemoteProject } from "./types";
 
 const SUSTAINED_FAILURE_MS = 30_000;
+/** How often a visible tab checks for changes made elsewhere. */
+export const REFRESH_INTERVAL_MS = 60_000;
 const MAX_RETRY_MS = 60_000;
 
 /** Other writers kept saving between our merge and resave. */
@@ -105,6 +108,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (timer !== null) clearTimeout(timer);
     timer = null;
   };
+  const paused = () => store.get(refreshPausesAtom) > 0;
   const currentProject = (id: string) =>
     store.get(workspaceAtom).projects.find((project) => project.id === id);
   const pendingVersionError = () => {
@@ -158,7 +162,14 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         // Deleted elsewhere: the delete wins over local edits.
         acknowledged.delete(id);
         store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
-        noteDeletions([{ type: "project", name: projectDisplayName(project.state) }]);
+        noteDeletions([
+          {
+            type: "project",
+            name: projectDisplayName(project.state),
+            projectId: id,
+            unsavedEdits: true,
+          },
+        ]);
         return;
       }
       const remote = parseCloudProject(result.project, id);
@@ -178,7 +189,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       noteDeletions(removedEntities(latest, merged, previous?.project));
       acknowledged.set(id, { project: remote, hash: result.hash });
     }
-    throw new ContentionError("This project keeps changing elsewhere. Retry sync to continue.");
+    throw new ContentionError(
+      "This project keeps changing. Your changes are safe in this tab, and saving will keep retrying.",
+    );
   };
 
   const remove = async (id: string) => {
@@ -198,7 +211,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       // Gone already counts as deleted. Edited elsewhere: the delete wins, so retry at its hash.
       if (result.saved || !result.hash) break;
       if (attempt === 3) {
-        throw new ContentionError("This project keeps changing elsewhere. Retrying the delete.");
+        throw new ContentionError("This project keeps changing. Retrying the delete.");
       }
       expected = result.hash;
     }
@@ -271,7 +284,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
             Date.now() - failingSince < SUSTAINED_FAILURE_MS
               ? {
                   state: "pending",
-                  message: "Unsaved edits are only in memory until cloud sync succeeds.",
+                  message: "Not saved yet. Retrying.",
                 }
               : {
                   state: "error",
@@ -279,8 +292,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
                     error instanceof OfflineError
                       ? error.message
                       : error instanceof ContentionError
-                        ? "This project keeps being saved elsewhere. Your changes are safe in this tab and will keep retrying."
-                        : `Can't reach the cloud right now. Your changes are safe in this tab and will keep retrying. (${errorMessage(error)})`,
+                        ? "This project keeps changing. Your changes are safe in this tab, and saving will keep retrying."
+                        : "Can't save right now. Your changes are safe in this tab, and saving will keep retrying.",
                 },
           );
         }
@@ -292,9 +305,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     return inFlight;
   };
 
-  // Background failures are already surfaced by flush through the status atom.
+  // Background failures are already surfaced by flush through the status atom. An open editor
+  // holding a draft pauses background saves too, since a merge would replace its data.
   const backgroundFlush = () => {
-    if (!ready || stopped) return;
+    if (!ready || stopped || paused()) return;
     void flush().catch(() => {});
   };
   const schedule = () => {
@@ -307,26 +321,197 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         ? projectSyncErrorStatus(error)
         : {
             state: "pending",
-            message: "Unsaved edits are only in memory until cloud sync succeeds.",
+            message: "Not saved yet. Retrying.",
           },
     );
     cancelTimer();
     timer = setTimeout(backgroundFlush, SAVE_DEBOUNCE_MS);
   };
-  const unsubscribe = store.sub(workspaceAtom, schedule);
-  const onHidden = () => {
-    if (document.visibilityState === "hidden") backgroundFlush();
+  /** Applies changes made elsewhere. A project with unsaved edits waits for its next save to merge. */
+  const applyRemote = (rows: CloudProject[]) => {
+    let workspace = store.get(workspaceAtom);
+    const deletions: RemoteDeletion[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if ("projectId" in row) {
+        seen.add(row.projectId);
+        if (unsupported.has(row.projectId)) continue;
+        unsupported.set(
+          row.projectId,
+          new UnsupportedProjectVersionError(row.projectId, row.schemaVersion, row.reason),
+        );
+        // Hidden like at load, unless this tab has edits the version error has to protect.
+        const local = workspace.projects.find((project) => project.id === row.projectId);
+        if (local && local === acknowledged.get(row.projectId)?.project) {
+          workspace = deleteProject(workspace, row.projectId);
+        }
+        acknowledged.delete(row.projectId);
+        continue;
+      }
+      const { project: remote, hash } = row;
+      seen.add(remote.id);
+      const known = acknowledged.get(remote.id);
+      if (known?.hash === hash) continue;
+      const local = workspace.projects.find((project) => project.id === remote.id);
+      if (!known) {
+        if (!local) {
+          workspace = { ...workspace, projects: [...workspace.projects, remote] };
+          acknowledged.set(remote.id, { project: remote, hash });
+        }
+        continue;
+      }
+      // Gone here is a delete still on its way; edited here merges on the next save.
+      if (!local || local !== known.project) continue;
+      deletions.push(...removedEntities(local, remote));
+      workspace = {
+        ...workspace,
+        projects: workspace.projects.map((project) =>
+          project.id === remote.id ? remote : project,
+        ),
+      };
+      acknowledged.set(remote.id, { project: remote, hash });
+    }
+    for (const [id, known] of acknowledged) {
+      if (seen.has(id)) continue;
+      // Deleted elsewhere: the delete wins over local edits.
+      const local = workspace.projects.find((project) => project.id === id);
+      if (local) {
+        deletions.push({
+          type: "project",
+          name: projectDisplayName(local.state),
+          projectId: id,
+          ...(local !== known.project ? { unsavedEdits: true as const } : {}),
+        });
+        workspace = deleteProject(workspace, id);
+      }
+      acknowledged.delete(id);
+    }
+    if (workspace !== store.get(workspaceAtom)) store.set(workspaceAtom, workspace);
+    noteDeletions(deletions);
   };
+
+  let refreshing: Promise<void> | null = null;
+  let lastRefresh = 0;
+  /** Checks hashes first and loads projects only when something changed. Skipped while saving. */
+  const refresh = (maxAgeMs = 0): Promise<void> => {
+    if (!ready || stopped || inFlight || paused()) return Promise.resolve();
+    if (refreshing) return refreshing;
+    if (Date.now() - lastRefresh < maxAgeMs) return Promise.resolve();
+    lastRefresh = Date.now();
+    refreshing = (async () => {
+      try {
+        const hashes = await client.hashes();
+        assertActive();
+        const changed =
+          [...hashes].some(
+            ([id, hash]) => !unsupported.has(id) && acknowledged.get(id)?.hash !== hash,
+          ) || [...acknowledged.keys()].some((id) => !hashes.has(id));
+        if (!changed) return;
+        const before = new Map(acknowledged);
+        const rows = await client.load();
+        assertActive();
+        // A save finished meanwhile, so these rows may be older than what this tab knows.
+        const saved =
+          before.size !== acknowledged.size ||
+          [...acknowledged].some(([id, known]) => before.get(id) !== known);
+        if (inFlight || saved || paused()) return;
+        applyRemote(rows);
+        if (!dirty()) settledStatus();
+      } catch (error) {
+        // The next trigger tries again; saves report their own failures.
+        console.warn("Could not check for changes made elsewhere:", error);
+      } finally {
+        refreshing = null;
+      }
+    })();
+    return refreshing;
+  };
+  const syncNow = () => {
+    if (!ready || stopped || paused()) return;
+    void flush()
+      .catch(() => {})
+      .finally(() => void refresh());
+  };
+
+  /** Settles a conflict on one project by keeping this tab's version or taking the cloud's. */
+  const resolveConflict = async (id: string, keep: boolean) => {
+    await inFlight?.catch(() => {});
+    cancelTimer();
+    const rows = await client.load();
+    assertActive();
+    const row = rows.find((candidate) =>
+      "projectId" in candidate ? candidate.projectId === id : candidate.project.id === id,
+    );
+    if (row && "projectId" in row) {
+      throw new UnsupportedProjectVersionError(id, row.schemaVersion, row.reason);
+    }
+    if (keep) {
+      const project = currentProject(id);
+      if (!project) throw new Error("This project is no longer open in this tab.");
+      const hash = await hashProject(project);
+      assertActive();
+      const result = await client.save(project, hash, row?.hash ?? null);
+      assertActive();
+      if (!result.saved || !result.hash) {
+        throw new ProjectConflictError(
+          id,
+          "It changed again while you were choosing. Look again before keeping yours.",
+        );
+      }
+      acknowledged.set(id, { project, hash: result.hash });
+    } else {
+      const local = currentProject(id);
+      const previous = acknowledged.get(id);
+      if (row) {
+        acknowledged.set(id, row);
+        store.set(workspaceAtom, (workspace) => ({
+          ...workspace,
+          projects: workspace.projects.map((project) =>
+            project.id === id ? row.project : project,
+          ),
+        }));
+        if (local) noteDeletions(removedEntities(local, row.project, previous?.project));
+      } else {
+        acknowledged.delete(id);
+        store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
+        if (local) {
+          noteDeletions([
+            {
+              type: "project",
+              name: projectDisplayName(local.state),
+              projectId: id,
+              unsavedEdits: true,
+            },
+          ]);
+        }
+      }
+    }
+    // Saves anything else still waiting and clears the conflict status.
+    await flush().catch(() => {});
+  };
+
+  const unsubscribe = store.sub(workspaceAtom, schedule);
+  // Catch up as soon as the last editor holding a draft closes.
+  const unsubscribePauses = store.sub(refreshPausesAtom, () => {
+    if (!paused()) syncNow();
+  });
+  const onVisibilityChange = () => {
+    if (document.visibilityState === "hidden") backgroundFlush();
+    else syncNow();
+  };
+  const poll = setInterval(() => {
+    if (document.visibilityState === "visible") void refresh();
+  }, REFRESH_INTERVAL_MS);
   const beforeUnload = (event: BeforeUnloadEvent) => {
     if (!dirty()) return;
     backgroundFlush();
     event.preventDefault();
     event.returnValue = "";
   };
-  window.addEventListener("online", backgroundFlush);
+  window.addEventListener("online", syncNow);
   window.addEventListener("pagehide", backgroundFlush);
   window.addEventListener("beforeunload", beforeUnload);
-  document.addEventListener("visibilitychange", onHidden);
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
   const load = async () => {
     status({ state: "loading" });
@@ -385,7 +570,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       if (!acknowledged.has(record.id)) {
         throw new Error(
-          `"${projectDisplayName(record.state)}" was deleted elsewhere while importing. It's still in this browser.`,
+          `"${projectDisplayName(record.state)}" was deleted while importing. It's still in this browser.`,
         );
       }
       source.remove();
@@ -401,15 +586,20 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       await flush().catch(() => {});
       await remove(id);
     },
+    refresh,
+    keepProjectChanges: (id: string) => resolveConflict(id, true),
+    discardProjectChanges: (id: string) => resolveConflict(id, false),
     hasPendingChanges: dirty,
     stop() {
       stopped = true;
       cancelTimer();
       unsubscribe();
-      window.removeEventListener("online", backgroundFlush);
+      unsubscribePauses();
+      window.removeEventListener("online", syncNow);
       window.removeEventListener("pagehide", backgroundFlush);
       window.removeEventListener("beforeunload", beforeUnload);
-      document.removeEventListener("visibilitychange", onHidden);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      clearInterval(poll);
     },
   };
 }

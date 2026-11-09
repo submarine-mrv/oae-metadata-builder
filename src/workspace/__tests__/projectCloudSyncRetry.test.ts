@@ -24,6 +24,7 @@ function clientWith(projects: ProjectRecord[]) {
   const rows = new Map(projects.map((record) => [record.id, { project: record, hash: record.id }]));
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
+    hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, row.hash]))),
     save: vi.fn(async (record, hash, expected) => {
       const current = rows.get(record.id);
       if ((current?.hash ?? null) !== expected) {
@@ -102,7 +103,7 @@ describe("automatic sync retries", () => {
     await vi.advanceTimersByTimeAsync(20_000);
     expect(store.get(projectSyncStatusAtom)).toMatchObject({
       state: "error",
-      message: expect.stringContaining("Can't reach the cloud right now"),
+      message: expect.stringContaining("Can't save right now"),
     });
     expect(sync.hasPendingChanges()).toBe(true);
   });
@@ -135,7 +136,7 @@ describe("automatic sync retries", () => {
     };
     vi.mocked(client.save).mockResolvedValueOnce({ saved: false, project: remote, hash: "theirs" });
     edit("mine");
-    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+    await expect(sync.flush()).rejects.toThrow("Newer changes also edited");
     expect(store.get(projectSyncStatusAtom).state).toBe("error");
     await vi.advanceTimersByTimeAsync(120_000);
     expect(client.save).toHaveBeenCalledTimes(1);

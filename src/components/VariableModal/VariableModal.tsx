@@ -18,11 +18,13 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconCategory, IconCheck, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
+import { useSetAtom } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CfEntry } from "@/data/cf/cfStandardNames";
 import type { DraftVariable } from "@/types/variable";
 import { parseVariable } from "@/utils/parseVariable";
+import { refreshPausesAtom } from "@/workspace/syncState";
 import {
   fieldExistsInSchema,
   getFieldSchema,
@@ -193,6 +195,15 @@ export default function VariableModal({
   // What the CF standard name picker last filled in. Anything the user has since
   // edited no longer matches, which is how a later pick knows to leave it alone.
   const cfPrefillRef = useRef<CfPrefilled>({});
+
+  // Syncing would replace the variable list under this draft, which Save writes back by index,
+  // so background saves and refreshes wait until the editor closes.
+  const setRefreshPauses = useSetAtom(refreshPausesAtom);
+  useEffect(() => {
+    if (!opened) return;
+    setRefreshPauses((count) => count + 1);
+    return () => setRefreshPauses((count) => count - 1);
+  }, [opened, setRefreshPauses]);
 
   // Reset state when modal opens
   useEffect(() => {

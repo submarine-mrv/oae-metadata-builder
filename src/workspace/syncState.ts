@@ -32,6 +32,10 @@ export interface ProjectSyncActions {
   flush(): Promise<void>;
   migrateLocalProjects(): Promise<void>;
   remove(projectId: string): Promise<void>;
+  /** Picks up changes made elsewhere; `maxAgeMs` skips it if one ran that recently. */
+  refresh(maxAgeMs?: number): Promise<void>;
+  keepProjectChanges(projectId: string): Promise<void>;
+  discardProjectChanges(projectId: string): Promise<void>;
   stop(): void;
 }
 
@@ -39,13 +43,16 @@ export interface ProjectSyncActions {
 export interface RemoteDeletion {
   type: "project" | "experiment" | "dataset";
   name: string;
-  /** Experiments and datasets only: where it was, so the UI can leave its page. */
+  /** Where it was, so the UI can leave its page. */
   projectId?: string;
+  /** Experiments and datasets only. */
   id?: number;
-  /** Set for experiments and datasets edited here. A project is only removed while saving edits to it. */
+  /** Edits made here since the last save were lost with it. */
   unsavedEdits?: true;
 }
 
 export const remoteDeletionsAtom = atom<RemoteDeletion[]>([]);
+/** Open editors holding drafts outside the workspace. Background sync waits until none are open. */
+export const refreshPausesAtom = atom(0);
 export const projectSyncStatusAtom = atom<ProjectSyncStatus>({ state: "disabled" });
 export const projectSyncActionsAtom = atom<ProjectSyncActions | null>(null);

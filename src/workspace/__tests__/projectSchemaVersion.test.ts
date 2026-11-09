@@ -50,6 +50,7 @@ describe("draft schema versions", () => {
     const project = newProjectRecord();
     const save = vi.fn(async () => ({ saved: true, project, hash: "saved" }));
     const client: ProjectCloudClient = {
+      hashes: async () => new Map(),
       load: async () => [
         { projectId: "future", schemaVersion: 2 },
         { project, hash: "initial" },
@@ -89,6 +90,7 @@ describe("draft schema versions", () => {
     const first = newProjectRecord();
     const second = newProjectRecord();
     const client: ProjectCloudClient = {
+      hashes: async () => new Map(),
       load: async () => [
         { project: first, hash: "first" },
         { project: second, hash: "second" },

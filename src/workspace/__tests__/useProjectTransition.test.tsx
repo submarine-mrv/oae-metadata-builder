@@ -21,6 +21,9 @@ describe("project transition save boundary", () => {
     const store = createTestStore();
     const flush = vi.fn(() => new Promise<void>(() => {}));
     store.set(projectSyncActionsAtom, {
+      refresh: vi.fn(),
+      keepProjectChanges: vi.fn(),
+      discardProjectChanges: vi.fn(),
       flush,
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
@@ -37,6 +40,9 @@ describe("project transition save boundary", () => {
     const store = createTestStore();
     const flush = vi.fn().mockRejectedValue(new Error("not saved"));
     store.set(projectSyncActionsAtom, {
+      refresh: vi.fn(),
+      keepProjectChanges: vi.fn(),
+      discardProjectChanges: vi.fn(),
       flush,
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
@@ -56,6 +62,9 @@ describe("project transition save boundary", () => {
     const action = vi.fn();
     const remove = vi.fn().mockRejectedValue(new Error("remote conflict"));
     store.set(projectSyncActionsAtom, {
+      refresh: vi.fn(),
+      keepProjectChanges: vi.fn(),
+      discardProjectChanges: vi.fn(),
       flush: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),

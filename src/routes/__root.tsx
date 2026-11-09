@@ -4,11 +4,13 @@ import { Fragment } from "react";
 import type { AuthStore } from "@/auth/authStore";
 import { activeProjectIdAtom } from "@/state/atoms";
 import { RemoteDeletionNotices } from "@/workspace/sync";
+import { useCloudRefresh } from "@/workspace/useCloudRefresh";
 import { useProjectListSelection } from "@/workspace/useProjectListSelection";
 
 /** Remounts the routed page on project switch, so page-local UI state such as an open error list starts fresh. */
 function ProjectScopedOutlet() {
   useProjectListSelection();
+  useCloudRefresh();
   const activeProjectId = useAtomValue(activeProjectIdAtom);
   return (
     <>

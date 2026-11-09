@@ -22,6 +22,8 @@ export interface ProjectSaveResult {
 
 export interface ProjectCloudClient {
   load(): Promise<CloudProject[]>;
+  /** Each project's current hash, to check for changes without loading every project. */
+  hashes(): Promise<Map<string, string>>;
   save(
     project: ProjectRecord,
     hash: string,

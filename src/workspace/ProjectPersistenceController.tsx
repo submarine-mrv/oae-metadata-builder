@@ -145,7 +145,7 @@ export default function ProjectPersistenceController({ children }: { children: R
     return (
       <>
         {Object.keys(recovery).length > 0 && (
-          <Alert color="red" title="An account change interrupted unsaved project edits">
+          <Alert color="red" title="Some changes weren't saved before you signed out">
             <Stack gap="xs">
               <Text>
                 Unsaved drafts are retained only in this tab, isolated from other accounts. Sign
