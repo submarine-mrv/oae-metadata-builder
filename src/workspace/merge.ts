@@ -18,6 +18,15 @@ export function equalData(a: unknown, b: unknown): boolean {
   return JSON.stringify(canonicalize(a)) === JSON.stringify(canonicalize(b));
 }
 
+/** An experiment's or dataset's data without its timestamps. */
+function entityContent<T extends ExperimentRecord | DatasetRecord>({
+  createdAt: _,
+  updatedAt: __,
+  ...data
+}: T) {
+  return data;
+}
+
 function matchesExperiment(target: ProjectState, experimentId: unknown, recordId: string) {
   return target.experiments.find((experiment) =>
     typeof experimentId === "string" && experimentId
@@ -225,12 +234,32 @@ export function reconcileProjectRecord(
     base.state.datasets,
   );
   // A save that went through but whose reply was lost comes back as a "remote" addition
-  // this tab already has; keep the local copy.
-  const remoteExperiments = additions(remote.state.experiments, base.state.experiments).filter(
-    (entity) => !local.state.experiments.some((own) => own.id === entity.id),
+  // this tab already has. Identical copies are the same entity; with no shared baseline,
+  // differing copies are a conflict.
+  const newRemote = <T extends ExperimentRecord | DatasetRecord>(
+    kind: "experiment" | "dataset",
+    side: T[],
+    original: T[],
+    own: T[],
+  ) =>
+    additions(side, original).filter((entity) => {
+      const mine = own.find((candidate) => candidate.id === entity.id);
+      if (mine && !equalData(entityContent(mine), entityContent(entity))) {
+        conflict(`the ${kind} "${entity.name}"`);
+      }
+      return !mine;
+    });
+  const remoteExperiments = newRemote(
+    "experiment",
+    remote.state.experiments,
+    base.state.experiments,
+    local.state.experiments,
   );
-  const remoteDatasets = additions(remote.state.datasets, base.state.datasets).filter(
-    (entity) => !local.state.datasets.some((own) => own.id === entity.id),
+  const remoteDatasets = newRemote(
+    "dataset",
+    remote.state.datasets,
+    base.state.datasets,
+    local.state.datasets,
   );
   for (const incoming of remoteExperiments) {
     const publicId = incoming.formData.experiment_id;

@@ -221,6 +221,12 @@ describe("project import reconciliation", () => {
       expect(merged.state.datasets).toHaveLength(1);
     });
 
+    it("conflicts when that addition was edited elsewhere before this tab retried", () => {
+      expect(() =>
+        reconcileProjectRecord(withAddition("mine", true), withAddition("theirs", true), base),
+      ).toThrow("the experiment");
+    });
+
     it("keeps a remote addition's ID and links when nothing was added here", () => {
       const merged = reconcileProjectRecord(base, withAddition("remote", true), base);
       expect(merged.state.experiments.map((experiment) => experiment.id)).toEqual([
