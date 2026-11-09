@@ -194,9 +194,13 @@ export default function VariableModal({
   // edited no longer matches, which is how a later pick knows to leave it alone.
   const cfPrefillRef = useRef<CfPrefilled>({});
 
-  // Reset state when modal opens
+  // Reset state when the modal opens, not when initialData changes while it's open: a refresh
+  // from another tab replaces the project's objects and must not wipe an in-progress edit.
+  const wasOpened = useRef(false);
   useEffect(() => {
-    if (opened) {
+    const justOpened = opened && !wasOpened.current;
+    wasOpened.current = opened;
+    if (justOpened) {
       if (initialData) {
         setFormData(initialData);
         const savedType = (initialData.variable_type as string) || null;
