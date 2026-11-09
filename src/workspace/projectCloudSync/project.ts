@@ -15,7 +15,6 @@ import {
   checkProjectVersion,
   errorMessage,
   hashProject,
-  importCopyId,
   parseCloudProject,
   UnsupportedProjectVersionError,
 } from "./helper";
@@ -339,8 +338,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     }
   };
 
-  // Where this session sent each local source, and the version it sent.
-  const imports = new Map<string, { id: string; state: ProjectRecord["state"] }>();
   const migrateLocalProjects = async () => {
     // Explicit consent is handled by the UI. Retain every source until its save is acknowledged.
     await flush();
@@ -349,31 +346,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     for (const source of sources) {
       assertActive();
       const incoming = parseCloudProject(source.project);
-      const copyId = await importCopyId(incoming.id);
-      assertActive();
       const workspace = store.get(workspaceAtom);
-      const saved = (id: string) => {
-        const project = workspace.projects.find((record) => record.id === id);
-        return acknowledged.has(id) && project ? project : undefined;
-      };
-      const earlier = imports.get(incoming.id);
-      // A retry finds the copy an earlier attempt saved; without this session's record, only an
-      // identical copy counts. A source changed since then imports again rather than being lost.
-      const done = earlier
-        ? saved(earlier.id) && equalData(earlier.state, incoming.state)
-        : [incoming.id, copyId].some((id) => {
-            const project = saved(id);
-            return project && equalData(project.state, incoming.state);
-          });
-      if (done) {
-        source.remove();
-        continue;
-      }
       // Always a new project, so importing never changes one already in the account.
-      const taken = (id: string) => workspace.projects.some((record) => record.id === id);
-      const id = !taken(incoming.id) ? incoming.id : !taken(copyId) ? copyId : crypto.randomUUID();
-      const record = { ...incoming, id };
-      imports.set(incoming.id, { id, state: incoming.state });
+      const taken = workspace.projects.some((project) => project.id === incoming.id);
+      const record = taken ? { ...incoming, id: crypto.randomUUID() } : incoming;
       store.set(workspaceAtom, {
         ...workspace,
         projects: [...workspace.projects, record],
