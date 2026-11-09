@@ -1,7 +1,8 @@
 # Private project cloud sync
 
-The project synchronization engine is available for integration; the app still
-uses guest browser persistence at this stage.
+Signed-in Supabase users now edit private cloud projects directly from Jotai.
+Guests and the memory auth provider retain browser persistence. Enable with
+`VITE_AUTH_ENABLED=true` and a Supabase URL/publishable key.
 
 - One owner-isolated `metadata_builder_sessions` row stores each project.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
@@ -15,7 +16,9 @@ uses guest browser persistence at this stage.
   Changing an experiment's or dataset's type conflicts with any other edit to it.
   Experiments (or datasets) added on both sides conflict, because the counter
   IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
-- Deletes win: something deleted elsewhere is removed here even over unsaved edits.
+- Deletes win: something deleted elsewhere is removed here even over unsaved
+  edits. A yellow "Deleted elsewhere" notice names it and says when edits were
+  lost; if its experiment or dataset page was open, the app goes to Overview.
 - While saves fail, retries back off from 5 s to 60 s and new edits wait for the
   next retry. Offline shows as pending until failures last 30 s.
 - The client checks the owner before obtaining an access token for each request.
@@ -25,6 +28,22 @@ uses guest browser persistence at this stage.
   Cleanup removes only an acknowledged, unchanged source.
 - Stop removes listeners/timers and ignores late responses after account changes.
 
-Run the cloud engine, merge, storage, and Supabase client tests plus
+The login-only cloud icon beside Import shows pending, saved, or failed state.
+Hover for details. Only the failed state is clickable: it shows the error, with
+Retry save unless the cause is a conflict or a newer-format project.
+
+After login, a prompt offers to import local projects or explicitly clear their
+copies. Imports remove only acknowledged, unchanged sources. Errors retain the
+sources and allow retry or continuing without deleting local copies. Regular
+file import remains available.
+
+Authenticated drafts stay in memory, not localStorage. Switching projects saves
+in the background without waiting; sign-out and deleting a project await saves. Interrupted account-specific drafts can be recovered or
+exported after signing back in. Recovery adds projects the account doesn't have
+and brings back any that differ from the cloud as a "(recovered)" copy, since
+without the saved baseline it can't merge them safely. Snapshots move into Jotai
+once, so a failed save retries the live draft rather than importing it again.
+
+Run the workspace, project page, import, and auth lifecycle tests plus
 `npm run build`. The opt-in local Supabase integration test uses disposable users.
-Application activation, consent UI, and cross-window refresh are later layers.
+Cross-window refresh and explicit conflict discard are the next layer.

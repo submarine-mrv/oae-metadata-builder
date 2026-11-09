@@ -203,6 +203,45 @@ describe("project cloud synchronization", () => {
     expect(sync.hasPendingChanges()).toBe(false);
   });
 
+  it("records experiments deleted elsewhere and flags the one edited here", async () => {
+    const experiment = (id: number, name: string) => ({
+      id,
+      name,
+      formData: { experiment_id: name },
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const base = project();
+    const withExperiments: ProjectRecord = {
+      ...base,
+      state: {
+        ...base.state,
+        experiments: [experiment(1, "Site A"), experiment(2, "Site B")],
+        nextExperimentId: 3,
+      },
+    };
+    const { rows, store, sync } = await setup([withExperiments]);
+    rows.set("one", {
+      project: { ...withExperiments, state: { ...withExperiments.state, experiments: [] } },
+      hash: "remote",
+    });
+    const loaded = store.get(workspaceAtom).projects[0];
+    store.set(workspaceAtom, (workspace) =>
+      updateProject(workspace, "one", {
+        ...loaded.state,
+        experiments: loaded.state.experiments.map((item) =>
+          item.id === 1 ? { ...item, formData: { experiment_id: "Site A edited" } } : item,
+        ),
+      }),
+    );
+    await sync.flush();
+    expect(store.get(workspaceAtom).projects[0].state.experiments).toEqual([]);
+    expect(store.get(remoteDeletionsAtom)).toEqual([
+      { type: "experiment", name: "Site A", projectId: "one", id: 1, unsavedEdits: true },
+      { type: "experiment", name: "Site B", projectId: "one", id: 2 },
+    ]);
+  });
+
   it("deletes a project even if it was edited elsewhere", async () => {
     const { rows, store, sync } = await setup();
     rows.set("one", { project: project(), hash: "changed" });
