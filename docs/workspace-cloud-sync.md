@@ -16,7 +16,9 @@ Guests and the memory auth provider retain browser persistence. Enable with
   Changing an experiment's or dataset's type conflicts with any other edit to it.
   Experiments (or datasets) added on both sides conflict, because the counter
   IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
-- Deletes win: something deleted elsewhere is removed here even over unsaved edits.
+- Deletes win: something deleted elsewhere is removed here even over unsaved
+  edits. A yellow "Deleted elsewhere" notice names it and says when edits were
+  lost; if its experiment or dataset page was open, the app goes to Overview.
 - While saves fail, retries back off from 5 s to 60 s and new edits wait for the
   next retry. Offline shows as pending until failures last 30 s.
 - The client checks the owner before obtaining an access token for each request.
@@ -27,8 +29,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - Stop removes listeners/timers and ignores late responses after account changes.
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
-Hover for details and click for a notification with retry. Notifications appear
-bottom-right and dismiss automatically.
+Hover for details. Only the failed state is clickable: it shows the error, with
+Retry save unless the cause is a conflict or a newer-format project.
 
 After login, a prompt offers to import local projects or explicitly clear their
 copies. Imports remove only acknowledged, unchanged sources. Errors retain the

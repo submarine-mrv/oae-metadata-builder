@@ -4,7 +4,9 @@ import type { AppStore } from "@/state/store";
 import { adoptUnseenProject, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import {
+  ProjectConflictError,
   type ProjectSyncStatus,
+  projectSyncErrorStatus,
   projectSyncStatusAtom,
   type RemoteDeletion,
   remoteDeletionsAtom,
@@ -38,19 +40,38 @@ class FlushFailures extends Error {
 const retryable = (error: unknown) =>
   error instanceof ContentionError || error instanceof RequestError;
 
-/** Entities in `before` that `after` no longer has. */
-function removedEntities(before: ProjectRecord, after: ProjectRecord): RemoteDeletion[] {
-  const gone = <T extends { id: number; name: string }>(from: T[], to: T[]) =>
-    from.filter((entity) => !to.some((kept) => kept.id === entity.id));
+/** Entities in `before` that `after` no longer has, flagged when edited since `baseline`. */
+function removedEntities(
+  before: ProjectRecord,
+  after: ProjectRecord,
+  baseline?: ProjectRecord,
+): RemoteDeletion[] {
+  const gone = <T extends { id: number; name: string }>(
+    type: "experiment" | "dataset",
+    from: T[],
+    to: T[],
+    saved: T[] = [],
+  ): RemoteDeletion[] =>
+    from
+      .filter((entity) => !to.some((kept) => kept.id === entity.id))
+      .map((entity) => {
+        const original = saved.find((item) => item.id === entity.id);
+        return {
+          type,
+          name: entity.name,
+          projectId: before.id,
+          id: entity.id,
+          ...(original && !equalData(original, entity) ? { unsavedEdits: true as const } : {}),
+        };
+      });
   return [
-    ...gone(before.state.experiments, after.state.experiments).map((entity) => ({
-      type: "experiment" as const,
-      name: entity.name,
-    })),
-    ...gone(before.state.datasets, after.state.datasets).map((entity) => ({
-      type: "dataset" as const,
-      name: entity.name,
-    })),
+    ...gone(
+      "experiment",
+      before.state.experiments,
+      after.state.experiments,
+      baseline?.state.experiments,
+    ),
+    ...gone("dataset", before.state.datasets, after.state.datasets, baseline?.state.datasets),
   ];
 }
 
@@ -68,7 +89,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   const versionError = () => unsupported.values().next().value;
   const settledStatus = () => {
     const error = versionError();
-    status(error ? { state: "error", message: error.message } : { state: "synced" });
+    status(error ? projectSyncErrorStatus(error) : { state: "synced" });
   };
   let stopped = false;
   let ready = false;
@@ -142,14 +163,19 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       }
       const remote = parseCloudProject(result.project, id);
       const latest = currentProject(id) ?? project;
-      const merged = previous
-        ? reconcileProjectRecord(latest, remote, previous.project)
-        : adoptUnseenProject(latest, remote);
+      let merged: ProjectRecord;
+      try {
+        merged = previous
+          ? reconcileProjectRecord(latest, remote, previous.project)
+          : adoptUnseenProject(latest, remote);
+      } catch (error) {
+        throw new ProjectConflictError(id, errorMessage(error));
+      }
       store.set(workspaceAtom, (workspace) => ({
         ...workspace,
         projects: workspace.projects.map((record) => (record.id === id ? merged : record)),
       }));
-      noteDeletions(removedEntities(latest, merged));
+      noteDeletions(removedEntities(latest, merged, previous?.project));
       acknowledged.set(id, { project: remote, hash: result.hash });
     }
     throw new ContentionError("This project keeps changing elsewhere. Retry sync to continue.");
@@ -239,7 +265,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         }
         if (!retryable(error) || failingSince === null) {
           // Conflicts and newer drafts need the user.
-          status({ state: "error", message: errorMessage(error) });
+          status(projectSyncErrorStatus(error));
         } else {
           status(
             Date.now() - failingSince < SUSTAINED_FAILURE_MS
@@ -278,7 +304,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     const error = versionError();
     status(
       error
-        ? { state: "error", message: error.message }
+        ? projectSyncErrorStatus(error)
         : {
             state: "pending",
             message: "Unsaved edits are only in memory until cloud sync succeeds.",

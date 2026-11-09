@@ -30,34 +30,39 @@ export default function ProjectSyncIndicator() {
         color={failed ? "red" : synced ? "green" : "gray"}
         variant="subtle"
         size="lg"
-        onClick={() =>
-          notifications.show({
-            title: failed ? "Project sync failed" : "Cloud sync",
-            message: failed ? (
-              <Stack gap="xs">
-                <Text size="sm">{message}</Text>
-                <Button
-                  size="xs"
-                  variant="light"
-                  onClick={() =>
-                    void sync?.flush().catch((error: unknown) =>
-                      notifications.show({
-                        title: "Project sync failed",
-                        message:
-                          error instanceof Error ? error.message : "Could not save this project.",
-                        color: "red",
-                      }),
-                    )
-                  }
-                >
-                  Retry save
-                </Button>
-              </Stack>
-            ) : (
-              message
-            ),
-            color: failed ? "red" : synced ? "green" : "gray",
-          })
+        onClick={
+          failed
+            ? () =>
+                notifications.show({
+                  title: "Project sync failed",
+                  message: status.noRetry ? (
+                    message
+                  ) : (
+                    <Stack gap="xs">
+                      <Text size="sm">{message}</Text>
+                      <Button
+                        size="xs"
+                        variant="light"
+                        onClick={() =>
+                          void sync?.flush().catch((error: unknown) =>
+                            notifications.show({
+                              title: "Project sync failed",
+                              message:
+                                error instanceof Error
+                                  ? error.message
+                                  : "Could not save this project.",
+                              color: "red",
+                            }),
+                          )
+                        }
+                      >
+                        Retry save
+                      </Button>
+                    </Stack>
+                  ),
+                  color: "red",
+                })
+            : undefined
         }
       >
         <Icon size={22} />
