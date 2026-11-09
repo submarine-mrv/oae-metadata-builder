@@ -1,7 +1,7 @@
 import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
-import { adoptUnseenProject, reconcileProjectRecord } from "../merge";
+import { adoptUnseenProject, equalData, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import {
   ProjectConflictError,
