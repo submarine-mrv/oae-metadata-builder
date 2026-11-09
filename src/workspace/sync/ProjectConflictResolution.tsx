@@ -5,7 +5,6 @@ import { useState } from "react";
 import { workspaceAtom } from "@/state/atoms";
 import { projectSyncActionsAtom } from "../syncState";
 import { projectDisplayName } from "../types";
-import { isSharedProject, useProjectAccess } from "../useProjectAccess";
 
 /** Lets the user settle a conflict by keeping this tab's version or taking the other one. */
 export default function ProjectConflictResolution({
@@ -21,9 +20,6 @@ export default function ProjectConflictResolution({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const project = useAtomValue(workspaceAtom).projects.find((record) => record.id === projectId);
-  const access = useProjectAccess(projectId);
-  // Named only on shared projects, where it may be someone else.
-  const editor = isSharedProject(access) ? access?.updatedByEmail : null;
 
   const resolve = async (keep: boolean) => {
     const sync = store.get(projectSyncActionsAtom);
@@ -60,11 +56,6 @@ export default function ProjectConflictResolution({
           Keep my changes and they replace the newer ones. Use newer changes and yours to{" "}
           {project ? `"${projectDisplayName(project.state)}"` : "this project"} are dropped.
         </Text>
-        {editor && (
-          <Text size="sm" c="dimmed">
-            The newer changes were saved by {editor}.
-          </Text>
-        )}
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">
           <Button variant="default" loading={busy} onClick={() => void resolve(false)}>

@@ -103,6 +103,17 @@ describe("project roles in cloud sync", () => {
     expect(client.load).toHaveBeenCalledOnce();
   });
 
+  it("drops unsaved edits when downgraded to viewer, even if the draft didn't change", async () => {
+    const { rows, store, sync, edit } = await setup("editor");
+    edit("unsaved before the downgrade");
+    const row = rows.get("one");
+    if (!row) throw new Error("missing row");
+    rows.set("one", { ...row, access: access("viewer") });
+    await sync.refresh();
+    expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("one");
+    expect(sync.hasPendingChanges()).toBe(false);
+  });
+
   it("treats losing access like a remote delete, with its own reason", async () => {
     const { rows, store, sync } = await setup("editor");
     rows.delete("one");

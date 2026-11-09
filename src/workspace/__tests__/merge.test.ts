@@ -11,7 +11,7 @@ describe("project import reconciliation", () => {
         ...base.state,
         experiments: [
           {
-            id: "1",
+            id: `added-${description}`,
             name: "E",
             formData: { experiment_id: "E", description },
             createdAt: 1,
@@ -212,6 +212,13 @@ describe("project import reconciliation", () => {
       const merged = reconcileProjectRecord(local, withAddition("remote", true), base);
       expect(merged.state.experiments[0].formData.project_id).toBe("P2");
       expect(merged.state.datasets[0].formData.project_id).toBe("P2");
+    });
+
+    it("keeps one copy when a lost save reply makes this tab's addition look remote", () => {
+      const own = withAddition("mine", true);
+      const merged = reconcileProjectRecord(own, own, base);
+      expect(merged.state.experiments).toHaveLength(1);
+      expect(merged.state.datasets).toHaveLength(1);
     });
 
     it("keeps a remote addition's ID and links when nothing was added here", () => {

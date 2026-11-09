@@ -101,8 +101,19 @@ export default function ShareProjectModal({
     if (await run((members) => members.set(projectId, address, role))) setEmail("");
   };
 
+  // Leaving ends access, so the member list can't be reloaded afterwards.
   const leave = async () => {
-    if (!user || !(await run((members) => members.remove(projectId, user.email)))) return;
+    if (!client || !user || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await client.remove(projectId, user.email);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not leave this project.");
+      setBusy(false);
+      return;
+    }
+    void store.get(projectSyncActionsAtom)?.refresh();
     onClose();
     onLeft();
   };

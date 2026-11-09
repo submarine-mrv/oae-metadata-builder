@@ -14,8 +14,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
   people; members can leave.
 - Projects load through one RPC that returns each project's role, owner email,
   last editor and member count (`projectAccessAtom`). Viewers get disabled forms
-  and no add, delete or duplicate actions; their copies never save, and refresh
-  replaces anything they change locally. A save refused because the role changed
+  and no add, delete, duplicate or merge-import actions; their copies never save,
+  and refresh replaces anything they change locally, including after a downgrade. A save refused because the role changed
   shows "You can no longer edit this project."
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
@@ -47,8 +47,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices: keep my changes or use newer changes. On a shared project it
-names who saved the newer changes; Overview also shows who last edited it. Other errors show the message, with Retry save unless the project has a
+with two choices: keep my changes or use newer changes. On a shared project,
+Overview shows who last edited it. Other errors show the message, with Retry save unless the project has a
 newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only

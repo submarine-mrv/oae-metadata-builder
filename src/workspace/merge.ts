@@ -224,8 +224,14 @@ export function reconcileProjectRecord(
     remote.state.datasets,
     base.state.datasets,
   );
-  const remoteExperiments = additions(remote.state.experiments, base.state.experiments);
-  const remoteDatasets = additions(remote.state.datasets, base.state.datasets);
+  // A save that went through but whose reply was lost comes back as a "remote" addition
+  // this tab already has; keep the local copy.
+  const remoteExperiments = additions(remote.state.experiments, base.state.experiments).filter(
+    (entity) => !local.state.experiments.some((own) => own.id === entity.id),
+  );
+  const remoteDatasets = additions(remote.state.datasets, base.state.datasets).filter(
+    (entity) => !local.state.datasets.some((own) => own.id === entity.id),
+  );
   for (const incoming of remoteExperiments) {
     const publicId = incoming.formData.experiment_id;
     if (publicId && experiments.some((e) => e.formData.experiment_id === publicId)) {

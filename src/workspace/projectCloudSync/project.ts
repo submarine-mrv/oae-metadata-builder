@@ -442,6 +442,15 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           known.map(([id, version]) => [id, version.access]),
           true,
         );
+        // Someone downgraded to viewer keeps no local changes, even if the draft didn't change.
+        const reverted = store.get(workspaceAtom).projects.map((record) => {
+          const saved = acknowledged.get(record.id)?.project;
+          return isViewer(record.id) && saved && saved !== record ? saved : record;
+        });
+        if (reverted.some((record, index) => record !== store.get(workspaceAtom).projects[index])) {
+          store.set(workspaceAtom, (workspace) => ({ ...workspace, projects: reverted }));
+          if (!dirty()) settledStatus();
+        }
         const changed =
           [...versions].some(
             ([id, version]) => !unsupported.has(id) && acknowledged.get(id)?.hash !== version.hash,
