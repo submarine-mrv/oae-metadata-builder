@@ -14,7 +14,9 @@ export class UnsupportedProjectVersionError extends Error {
     super(
       reason
         ? "One project in your account couldn't be opened. It hasn't been changed or deleted."
-        : `This project was saved by a newer version of the Metadata Builder. Reload the page to keep editing it.${unsavedEdits ? " Edits made in this tab since then can't be saved." : ""}`,
+        : unsavedEdits
+          ? "A project in your account was saved by a newer version of the Metadata Builder. Reload the page to keep editing it. Edits made in this tab since then can't be saved."
+          : "A project in your account was saved by a newer version of the Metadata Builder. Reload the page to open it.",
     );
     this.name = "UnsupportedProjectVersionError";
   }

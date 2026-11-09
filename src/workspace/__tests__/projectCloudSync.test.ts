@@ -148,7 +148,7 @@ describe("project cloud synchronization", () => {
     const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     edit("offline");
     await expect(sync.flush()).rejects.toThrow("Offline");
-    expect(store.get(projectSyncStatusAtom).state).toBe("error");
+    expect(store.get(projectSyncStatusAtom).state).toBe("pending");
     expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
     online.mockReturnValue(true);
     window.dispatchEvent(new Event("online"));

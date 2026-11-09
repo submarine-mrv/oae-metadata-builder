@@ -27,6 +27,7 @@ const MAX_RETRY_MS = 60_000;
 class ContentionError extends Error {}
 /** A request to the cloud failed; retrying it unchanged may succeed. */
 class RequestError extends Error {}
+class OfflineError extends RequestError {}
 /** Several projects failed in one flush; the others still saved. */
 class FlushFailures extends Error {
   constructor(readonly failures: unknown[]) {
@@ -194,8 +195,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         while (dirty()) {
           assertActive();
           if (navigator.onLine === false) {
-            throw new Error(
-              "Offline: edits are only in memory. Keep this tab open until cloud sync succeeds.",
+            throw new OfflineError(
+              "Offline. Your edits are kept in this tab and will save when you reconnect.",
             );
           }
           status({ state: "syncing" });
@@ -237,7 +238,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           timer = setTimeout(backgroundFlush, retryIn);
         }
         if (!retryable(error) || failingSince === null) {
-          // Conflicts, newer drafts and offline need the user or the online event.
+          // Conflicts and newer drafts need the user.
           status({ state: "error", message: errorMessage(error) });
         } else {
           status(
@@ -249,9 +250,11 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
               : {
                   state: "error",
                   message:
-                    error instanceof ContentionError
-                      ? "This project keeps being saved elsewhere. Your changes are safe in this tab and will keep retrying."
-                      : `Can't reach the cloud right now. Your changes are safe in this tab and will keep retrying. (${errorMessage(error)})`,
+                    error instanceof OfflineError
+                      ? error.message
+                      : error instanceof ContentionError
+                        ? "This project keeps being saved elsewhere. Your changes are safe in this tab and will keep retrying."
+                        : `Can't reach the cloud right now. Your changes are safe in this tab and will keep retrying. (${errorMessage(error)})`,
                 },
           );
         }
