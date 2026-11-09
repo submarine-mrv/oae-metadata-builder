@@ -19,6 +19,7 @@ import {
   IconFolder,
   IconPlus,
   IconTrash,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -46,8 +47,13 @@ import {
 } from "@/state/atoms";
 import { formStatus } from "@/utils/formStatus";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
-import { isProjectOwner, useActiveProjectAccess } from "@/workspace/useProjectAccess";
+import {
+  isProjectOwner,
+  isSharedProject,
+  useActiveProjectAccess,
+} from "@/workspace/useProjectAccess";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
+import ShareProjectModal from "./ShareProjectModal";
 
 export default function OverviewPage() {
   const projectData = useAtomValue(projectDataAtom);
@@ -68,6 +74,7 @@ export default function OverviewPage() {
   const access = useActiveProjectAccess();
   const canEdit = access?.role !== "viewer";
   const isOwner = isProjectOwner(access);
+  const [sharing, setSharing] = useState(false);
   const navigate = useNavigate();
   const transition = useProjectTransition();
 
@@ -232,20 +239,40 @@ export default function OverviewPage() {
                       >
                         {projectData.project_id || "No project ID set"}
                       </Text>
+                      {isSharedProject(access) && access?.updatedByEmail && (
+                        <Text size="sm" c="dimmed" truncate>
+                          Last edited by {access.updatedByEmail}
+                        </Text>
+                      )}
                     </div>
                   </Group>
-                  {isOwner && (
-                    <Button
-                      variant="subtle"
-                      color="red"
-                      size="xs"
-                      style={{ flexShrink: 0 }}
-                      onClick={handleDeleteProject}
-                      aria-label="Delete project"
-                    >
-                      <IconTrash size={16} />
-                    </Button>
-                  )}
+                  <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+                    {access && (
+                      <Button
+                        variant="subtle"
+                        size="xs"
+                        leftSection={<IconUsers size={16} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSharing(true);
+                        }}
+                      >
+                        {isOwner ? "Share" : "People"}
+                      </Button>
+                    )}
+                    {isOwner && (
+                      <Button
+                        variant="subtle"
+                        color="red"
+                        size="xs"
+                        style={{ flexShrink: 0 }}
+                        onClick={handleDeleteProject}
+                        aria-label="Delete project"
+                      >
+                        <IconTrash size={16} />
+                      </Button>
+                    )}
+                  </Group>
                 </Group>
 
                 <Stack gap="xs">
@@ -588,6 +615,14 @@ export default function OverviewPage() {
           )}
         </Stack>
       </Container>
+      {sharing && activeSummary && (
+        <ShareProjectModal
+          projectId={activeSummary.id}
+          isOwner={isOwner}
+          onClose={() => setSharing(false)}
+          onLeft={() => void navigate({ to: "/projects" })}
+        />
+      )}
       <DeleteProjectModal
         project={confirmingDelete ? activeSummary : null}
         onConfirm={confirmDeleteProject}

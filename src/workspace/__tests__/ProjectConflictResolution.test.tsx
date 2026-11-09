@@ -3,16 +3,18 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createStore, Provider } from "jotai";
 import { describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
+import type { ProjectAccess } from "../projectCloudSync";
 import ProjectConflictResolution from "../sync/ProjectConflictResolution";
-import { type ProjectSyncActions, projectSyncActionsAtom } from "../syncState";
+import { type ProjectSyncActions, projectAccessAtom, projectSyncActionsAtom } from "../syncState";
 import { newProjectRecord } from "../types";
 
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
 
-function setup() {
+function setup(access?: ProjectAccess) {
   const store = createStore();
   const project = { ...newProjectRecord(), id: "one" };
   store.set(workspaceAtom, { version: 1, activeProjectId: "one", projects: [project] });
+  if (access) store.set(projectAccessAtom, { one: access });
   const actions = {
     flush: vi.fn(),
     stop: vi.fn(),
@@ -59,5 +61,15 @@ describe("project conflict resolution", () => {
     fireEvent.click(screen.getByRole("button", { name: "Use newer changes" }));
     expect(await screen.findByText("changed again")).toBeVisible();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("names who saved the newer changes on a shared project", () => {
+    setup({
+      role: "editor",
+      ownerEmail: "o@example.com",
+      updatedByEmail: "bob@example.com",
+      memberCount: 1,
+    });
+    expect(screen.getByText("The newer changes were saved by bob@example.com.")).toBeVisible();
   });
 });
