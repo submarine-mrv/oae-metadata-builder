@@ -339,6 +339,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     }
   };
 
+  // What each local source looked like when this session uploaded it.
+  const importedStates = new Map<string, ProjectRecord["state"]>();
   const migrateLocalProjects = async () => {
     // Explicit consent is handled by the UI. Retain every source until its save is acknowledged.
     await flush();
@@ -359,10 +361,21 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           ? sameId
           : sameId && workspace.projects.find((project) => project.id === copyId);
       if (imported && acknowledged.has(imported.id)) {
-        source.remove();
-        continue;
+        const uploaded = importedStates.get(incoming.id);
+        // Edited here since that upload: import the newer version too rather than drop it.
+        if (
+          equalData(imported.state, incoming.state) ||
+          (uploaded && equalData(uploaded, incoming.state))
+        ) {
+          source.remove();
+          continue;
+        }
       }
-      const record = { ...incoming, id };
+      const record = {
+        ...incoming,
+        id: imported && acknowledged.has(imported.id) ? crypto.randomUUID() : id,
+      };
+      importedStates.set(incoming.id, incoming.state);
       store.set(workspaceAtom, {
         ...workspace,
         projects: [...workspace.projects, record],
