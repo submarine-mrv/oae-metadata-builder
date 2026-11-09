@@ -34,7 +34,7 @@ The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu 
 
 ## Deleting
 
-You delete a whole project from its `/projects` card or the overview. `DeleteProjectModal` confirms first. Deleting the active project activates the most recently edited one left. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place. The restore prompt's Start fresh deletes every project at once.
+You delete a whole project from its `/projects` card or the overview. `DeleteProjectModal` confirms first. Deleting the open project goes to All projects, as does a project deleted in another tab while open. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place. The restore prompt's Start fresh deletes every project at once.
 
 ## Restore prompt
 

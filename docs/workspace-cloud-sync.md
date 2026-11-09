@@ -18,7 +18,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
   IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
 - Deletes win: something deleted elsewhere is removed here even over unsaved
   edits. A yellow "Deleted" notice names it and says when edits were
-  lost; if its experiment or dataset page was open, the app goes to Overview.
+  lost. If it was open, the app goes to All projects for a project, or Overview for an experiment or dataset.
 - While saves fail, retries back off from 5 s to 60 s and new edits wait for the
   next retry. Offline shows as pending until failures last 30 s.
 - The client checks the owner before obtaining an access token for each request.

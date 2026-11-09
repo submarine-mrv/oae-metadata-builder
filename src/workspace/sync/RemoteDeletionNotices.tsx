@@ -55,7 +55,11 @@ export default function RemoteDeletionNotices() {
               view.pathname === "/dataset" &&
               deletion.id === view.datasetId)),
       );
-      if (lostPage) void navigate({ to: "/overview" });
+      const lostProject = pending.some(
+        (deletion) => deletion.type === "project" && deletion.projectId === view.projectId,
+      );
+      if (lostProject) void navigate({ to: "/projects" });
+      else if (lostPage) void navigate({ to: "/overview" });
     };
     show();
     return store.sub(remoteDeletionsAtom, show);

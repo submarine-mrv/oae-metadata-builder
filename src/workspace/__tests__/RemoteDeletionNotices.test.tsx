@@ -98,4 +98,11 @@ describe("remote deletion notices", () => {
     );
     expect(router.navigate).toHaveBeenCalledWith({ to: "/overview" });
   });
+
+  it("goes to All projects when the open project is deleted", () => {
+    router.pathname = "/project";
+    const store = setup();
+    act(() => store.set(remoteDeletionsAtom, [{ type: "project", name: "P", projectId: "p" }]));
+    expect(router.navigate).toHaveBeenCalledWith({ to: "/projects" });
+  });
 });

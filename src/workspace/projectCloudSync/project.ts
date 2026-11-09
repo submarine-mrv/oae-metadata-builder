@@ -161,7 +161,12 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         acknowledged.delete(id);
         store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
         noteDeletions([
-          { type: "project", name: projectDisplayName(project.state), unsavedEdits: true },
+          {
+            type: "project",
+            name: projectDisplayName(project.state),
+            projectId: id,
+            unsavedEdits: true,
+          },
         ]);
         return;
       }
@@ -371,6 +376,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         deletions.push({
           type: "project",
           name: projectDisplayName(local.state),
+          projectId: id,
           ...(local !== known.project ? { unsavedEdits: true as const } : {}),
         });
         workspace = deleteProject(workspace, id);

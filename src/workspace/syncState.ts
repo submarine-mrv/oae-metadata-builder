@@ -43,8 +43,9 @@ export interface ProjectSyncActions {
 export interface RemoteDeletion {
   type: "project" | "experiment" | "dataset";
   name: string;
-  /** Experiments and datasets only: where it was, so the UI can leave its page. */
+  /** Where it was, so the UI can leave its page. */
   projectId?: string;
+  /** Experiments and datasets only. */
   id?: number;
   /** Edits made here since the last save were lost with it. */
   unsavedEdits?: true;

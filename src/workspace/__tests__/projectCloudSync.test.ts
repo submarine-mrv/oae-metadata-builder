@@ -201,7 +201,7 @@ describe("project cloud synchronization", () => {
     expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["two"]);
     expect([...rows.keys()]).toEqual(["two"]);
     expect(store.get(remoteDeletionsAtom)).toEqual([
-      { type: "project", name: "keep me", unsavedEdits: true },
+      { type: "project", name: "keep me", projectId: "one", unsavedEdits: true },
     ]);
     expect(sync.hasPendingChanges()).toBe(false);
   });
@@ -466,8 +466,8 @@ describe("project cloud synchronization", () => {
       await sync.refresh();
       expect(store.get(workspaceAtom).projects).toEqual([]);
       expect(store.get(remoteDeletionsAtom)).toEqual([
-        { type: "project", name: "one" },
-        { type: "project", name: "unsaved", unsavedEdits: true },
+        { type: "project", name: "one", projectId: "one" },
+        { type: "project", name: "unsaved", projectId: "two", unsavedEdits: true },
       ]);
     });
 
