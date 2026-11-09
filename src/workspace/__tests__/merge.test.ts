@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
-import { emptyProjectState, newProjectRecord } from "../types";
+import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 
 describe("project import reconciliation", () => {
   it("reports conflicting concurrent additions with the same experiment import identity", () => {
@@ -58,6 +58,139 @@ describe("project import reconciliation", () => {
     expect(merged.state.projectData).toMatchObject({ name: "remote", description: "retained" });
     expect(merged.state.experiments).toHaveLength(1);
     expect(merged.state.experiments[0].formData.description).toBe("remote");
+  });
+
+  describe("concurrent edits to one experiment or dataset", () => {
+    const base = newProjectRecord(
+      {
+        ...emptyProjectState(),
+        experiments: [
+          {
+            id: 1,
+            name: "E",
+            formData: { experiment_id: "E", description: "base", start_datetime: "2026-01-01" },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        datasets: [
+          {
+            id: 1,
+            name: "D",
+            formData: { name: "D", description: "base" },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+        nextExperimentId: 2,
+        nextDatasetId: 2,
+      },
+      1,
+    );
+    const edit = (
+      experiment: Record<string, unknown>,
+      dataset: Record<string, unknown> = {},
+    ): ProjectRecord => ({
+      ...base,
+      state: {
+        ...base.state,
+        experiments: [
+          {
+            ...base.state.experiments[0],
+            formData: { ...base.state.experiments[0].formData, ...experiment },
+            updatedAt: 2,
+          },
+        ],
+        datasets: [
+          {
+            ...base.state.datasets[0],
+            formData: { ...base.state.datasets[0].formData, ...dataset },
+            updatedAt: 2,
+          },
+        ],
+      },
+    });
+
+    it("merges edits to different fields", () => {
+      const merged = reconcileProjectRecord(
+        edit({ description: "local" }, { description: "local" }),
+        edit({ start_datetime: "2026-02-02" }, { name: "D remote" }),
+        base,
+      );
+      expect(merged.state.experiments[0].formData).toMatchObject({
+        description: "local",
+        start_datetime: "2026-02-02",
+      });
+      expect(merged.state.datasets[0].formData).toMatchObject({
+        name: "D remote",
+        description: "local",
+      });
+    });
+
+    it("conflicts when both sides change the same field", () => {
+      expect(() =>
+        reconcileProjectRecord(
+          edit({ description: "local" }),
+          edit({ description: "remote" }),
+          base,
+        ),
+      ).toThrow('"description" in experiment "E"');
+    });
+  });
+
+  describe("experiments added on both sides with the same internal ID", () => {
+    const base = newProjectRecord({ ...emptyProjectState(), nextExperimentId: 1 }, 1);
+    const withAddition = (description?: string, linkedDataset = false): ProjectRecord => ({
+      ...base,
+      state: {
+        ...base.state,
+        experiments: [
+          {
+            id: 1,
+            name: "Experiment 1",
+            formData: description ? { description } : {},
+            createdAt: 2,
+            updatedAt: 2,
+          },
+        ],
+        datasets: linkedDataset
+          ? [
+              {
+                id: 1,
+                name: "D",
+                formData: { name: "D" },
+                linking: { linkedExperimentInternalId: 1 },
+                createdAt: 2,
+                updatedAt: 2,
+              },
+            ]
+          : [],
+        nextExperimentId: 2,
+        nextDatasetId: linkedDataset ? 2 : 1,
+      },
+    });
+
+    it("keeps both when they are blank and identical", () => {
+      const merged = reconcileProjectRecord(withAddition(), withAddition(), base);
+      expect(merged.state.experiments).toHaveLength(2);
+      expect(new Set(merged.state.experiments.map((experiment) => experiment.id)).size).toBe(2);
+    });
+
+    it("keeps both when they differ but have no Experiment ID", () => {
+      const merged = reconcileProjectRecord(
+        withAddition("local"),
+        withAddition("remote", true),
+        base,
+      );
+      const descriptions = merged.state.experiments.map(
+        (experiment) => experiment.formData.description,
+      );
+      expect(descriptions).toEqual(["local", "remote"]);
+      const remoteExperiment = merged.state.experiments[1];
+      expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(
+        remoteExperiment.id,
+      );
+    });
   });
 
   describe("deletes win over concurrent edits", () => {

@@ -108,7 +108,27 @@ export function adoptUnseenProject(local: ProjectRecord, remote: ProjectRecord):
   return remote;
 }
 
+/** Three-way merge of top-level fields: take whichever side changed; both changing one field conflicts. */
+function mergeFields<T extends object>(
+  local: T,
+  remote: T,
+  base: T,
+  label: (key: string) => string,
+): T {
+  const [current, incoming, original] = [local, remote, base] as Record<string, unknown>[];
+  const merged = { ...current };
+  for (const key of new Set([...Object.keys(original), ...Object.keys(incoming)])) {
+    if (equalData(incoming[key], original[key])) continue;
+    if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key]))
+      conflict(label(key));
+    if (key in incoming) merged[key] = incoming[key];
+    else delete merged[key];
+  }
+  return merged as T;
+}
+
 function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
+  kind: "experiment" | "dataset",
   local: T[],
   remote: T[],
   base: T[],
@@ -116,6 +136,7 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   let target = [...local];
   let incoming = [...remote];
   const content = ({ createdAt: _, updatedAt: __, ...data }: T) => data;
+  const details = ({ createdAt: _, updatedAt: __, formData: ___, ...data }: T) => data;
   for (const original of base) {
     const a = local.find((entity) => entity.id === original.id);
     const b = remote.find((entity) => entity.id === original.id);
@@ -128,9 +149,15 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
     const localChanged = !equalData(content(a), content(original));
     const remoteChanged = !equalData(content(b), content(original));
     if (localChanged && remoteChanged && !equalData(content(a), content(b))) {
-      conflict(`entity "${original.name}"`);
-    }
-    if (remoteChanged && !localChanged) {
+      const label = (key: string) => `"${key}" in ${kind} "${original.name}"`;
+      const merged = {
+        ...a,
+        ...mergeFields(details(a), details(b), details(original), label),
+        formData: mergeFields(a.formData, b.formData, original.formData, label),
+        updatedAt: Math.max(a.updatedAt, b.updatedAt),
+      } as T;
+      target = target.map((entity) => (entity.id === original.id ? merged : entity));
+    } else if (remoteChanged && !localChanged) {
       target = target.map((entity) => (entity.id === original.id ? b : entity));
     }
     // Baseline records are reconciled by stable identity, not imported again as new datasets.
@@ -139,32 +166,69 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   return { target, incoming };
 }
 
-/** Reconciles disjoint changes; overlapping edits remain unsaved instead of being overwritten. */
-export function reconcileProjectRecord(
+/**
+ * Both sides number new experiments from the same counter, so two additions can share an ID.
+ * Moves the remote ones to unused IDs, links included, so they import as separate experiments.
+ */
+function renumberCollidingAdditions(
   local: ProjectRecord,
   remote: ProjectRecord,
   base: ProjectRecord,
 ): ProjectRecord {
-  const projectData = { ...local.state.projectData };
-  for (const key of new Set([
-    ...Object.keys(base.state.projectData),
-    ...Object.keys(remote.state.projectData),
-  ])) {
-    const original = base.state.projectData[key];
-    const incoming = remote.state.projectData[key];
-    const current = local.state.projectData[key];
-    if (equalData(incoming, original)) continue;
-    if (!equalData(current, original) && !equalData(current, incoming))
-      conflict(`project field "${key}"`);
-    if (key in remote.state.projectData) projectData[key] = incoming;
-    else delete projectData[key];
+  const inBase = new Set(base.state.experiments.map((experiment) => experiment.id));
+  const localIds = new Set(local.state.experiments.map((experiment) => experiment.id));
+  let next = Math.max(
+    local.state.nextExperimentId,
+    remote.state.nextExperimentId,
+    ...local.state.experiments.map((experiment) => experiment.id + 1),
+    ...remote.state.experiments.map((experiment) => experiment.id + 1),
+  );
+  const moved = new Map<number, number>();
+  for (const experiment of remote.state.experiments) {
+    if (!inBase.has(experiment.id) && localIds.has(experiment.id)) moved.set(experiment.id, next++);
   }
+  if (!moved.size) return remote;
+  return {
+    ...remote,
+    state: {
+      ...remote.state,
+      experiments: remote.state.experiments.map((experiment) =>
+        moved.has(experiment.id)
+          ? { ...experiment, id: moved.get(experiment.id) as number }
+          : experiment,
+      ),
+      datasets: remote.state.datasets.map((dataset) => {
+        const linkedId = dataset.linking?.linkedExperimentInternalId;
+        const movedTo = linkedId == null ? undefined : moved.get(linkedId);
+        return movedTo === undefined || !dataset.linking
+          ? dataset
+          : { ...dataset, linking: { ...dataset.linking, linkedExperimentInternalId: movedTo } };
+      }),
+    },
+  };
+}
+
+/** Reconciles disjoint changes; overlapping edits remain unsaved instead of being overwritten. */
+export function reconcileProjectRecord(
+  local: ProjectRecord,
+  latestRemote: ProjectRecord,
+  base: ProjectRecord,
+): ProjectRecord {
+  const remote = renumberCollidingAdditions(local, latestRemote, base);
+  const projectData = mergeFields(
+    local.state.projectData,
+    remote.state.projectData,
+    base.state.projectData,
+    (key) => `project field "${key}"`,
+  );
   const experiments = reconcileEntities(
+    "experiment",
     local.state.experiments,
     remote.state.experiments,
     base.state.experiments,
   );
   const datasets = reconcileEntities(
+    "dataset",
     local.state.datasets,
     remote.state.datasets,
     base.state.datasets,
