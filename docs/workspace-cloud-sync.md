@@ -1,11 +1,28 @@
-# Private project cloud sync
+# Project cloud sync and sharing
 
-Signed-in Supabase users now edit private cloud projects directly from Jotai.
+Signed-in Supabase users edit cloud projects directly from Jotai, and can share
+them with other people.
 Guests and the memory auth provider retain browser persistence. Enable with
 `VITE_AUTH_ENABLED=true` and a Supabase URL/publishable key.
 
-- One owner-isolated `metadata_builder_sessions` row stores each project.
+- One `metadata_builder_sessions` row stores each project. Whoever first saves it
+  owns it for good.
+- The owner shares a project by email as **editor** (edits everything) or
+  **viewer** (read only), from Share on its Overview. A grant applies to whoever
+  signs in with that confirmed email, so people can be added before they have an
+  account; there is no accept step. Only the owner deletes the project or manages
+  people; members can leave.
+- Projects load through one RPC that returns each project's role, owner email,
+  last editor and member count (`projectAccessAtom`). Viewers get disabled forms
+  and no add, delete or duplicate actions; their copies never save, and refresh
+  replaces anything they change locally. A save refused because the role changed
+  shows "You can no longer edit this project."
+- Losing access to a shared project removes it like a delete, with a "No longer
+  shared" notice.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
+- Experiment and dataset IDs are UUIDs. Drafts from before version 2 numbered
+  them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
+  tab, so two people loading one old draft agree on its IDs.
 - Drafts carry `schemaVersion` (missing means 1). Bump `PROJECT_SCHEMA_VERSION`
   with state migrations. Newer drafts are never parsed, merged or saved by an
   older build; reload is required for those projects while others can still save.
@@ -14,8 +31,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
   the cloud copy field by field, for project fields and each experiment and
   dataset's top-level fields; edits to the same field conflict and stay in memory.
   Changing an experiment's or dataset's type conflicts with any other edit to it.
-  Experiments (or datasets) added on both sides conflict, because the counter
-  IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
+  Lists such as a dataset's variables count as one field. Experiments and datasets
+  added on both sides are all kept.
 - Deletes win: something deleted elsewhere is removed here even over unsaved
   edits. A yellow "Deleted" notice names it and says when edits were
   lost. If it was open, the app goes to All projects for a project, or Overview for an experiment or dataset.
@@ -30,13 +47,15 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices: keep my changes or use newer changes. Other errors show the message, with Retry save unless the project has a
+with two choices: keep my changes or use newer changes. On a shared project it
+names who saved the newer changes; Overview also shows who last edited it. Other errors show the message, with Retry save unless the project has a
 newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only
 when one differs. Checks run on project switch, opening All projects, page
 changes within a project (at most every 10 s), returning to the tab, coming back
-online, and every 60 s while visible; never while a save runs. A project with
+online, and while visible every 10 s for a shared project or every 60 s for a
+private one; never while a save runs. A project with
 unsaved edits keeps them and merges the newer copy on its next save. Projects
 added or deleted elsewhere appear or disappear, with the usual notice. While a variable editor
 is open, background saves and checks wait, because Save writes the draft back by
@@ -55,4 +74,4 @@ without the saved baseline it can't merge them safely. Snapshots move into Jotai
 once, so a failed save retries the live draft rather than importing it again.
 
 Run the workspace, project page, import, and auth lifecycle tests plus
-`npm run build`. The opt-in local Supabase integration test uses disposable users.
+`npm run build`. The opt-in local Supabase integration tests (sync and sharing) use disposable users.
