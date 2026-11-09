@@ -104,15 +104,19 @@ export default function ProjectPersistenceController({ children }: { children: R
     try {
       const current = store.get(workspaceAtom);
       const projects = [...current.projects];
-      // Latest snapshot wins per project. Without the saved baseline a merge can't tell edits
-      // from stale fields, so a project that differs from the cloud comes back as a copy.
-      const latest = new Map(
-        snapshots.flatMap((snapshot) => snapshot.projects).map((project) => [project.id, project]),
-      );
-      for (const project of latest.values()) {
+      // Without the saved baseline a merge can't tell edits from stale fields, so a project that
+      // differs from the cloud comes back as a copy. Each distinct version is kept once.
+      const restored: ProjectRecord["state"][] = [];
+      for (const project of snapshots.flatMap((snapshot) => snapshot.projects)) {
         const cloud = projects.find((record) => record.id === project.id);
         if (!cloud) projects.push(project);
-        else if (!equalData(cloud.state, project.state)) projects.push(recoveredCopy(project));
+        else if (
+          !equalData(cloud.state, project.state) &&
+          !restored.some((state) => equalData(state, project.state))
+        ) {
+          restored.push(project.state);
+          projects.push(recoveredCopy(project));
+        }
       }
       store.set(workspaceAtom, {
         ...current,

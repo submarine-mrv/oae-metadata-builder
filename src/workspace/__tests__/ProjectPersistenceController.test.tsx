@@ -262,6 +262,51 @@ describe("auth-aware project persistence", () => {
     );
   });
 
+  it("keeps an earlier unsaved version when a later snapshot has the cloud copy", async () => {
+    mocks.load.mockResolvedValue([
+      { project: named("A"), hash: "A" },
+      { project: named("B"), hash: "B" },
+    ]);
+    const { store, update } = setup();
+    await screen.findByText("Editor");
+    const interruptAfterEditing = async (id: string) => {
+      act(() =>
+        store.set(workspaceAtom, (workspace) => ({
+          ...workspace,
+          projects: workspace.projects.map((project) =>
+            project.id === id
+              ? {
+                  ...project,
+                  updatedAt: project.updatedAt + 1,
+                  state: {
+                    ...project.state,
+                    projectData: { ...project.state.projectData, name: `${id} edited` },
+                  },
+                }
+              : project,
+          ),
+        })),
+      );
+      mocks.auth = { status: "unauthenticated", user: null };
+      update();
+      await screen.findByText("Guest restore prompt");
+      mocks.auth = { status: "authenticated", user: { id: "A" } };
+      update();
+      await screen.findByRole("button", { name: "Recover unsaved projects" });
+    };
+    await interruptAfterEditing("A");
+    await interruptAfterEditing("B");
+    fireEvent.click(screen.getByRole("button", { name: "Recover unsaved projects" }));
+    await waitFor(() =>
+      expect(store.get(workspaceAtom).projects.map((p) => p.state.projectData.name)).toEqual([
+        "A",
+        "B",
+        "A edited (recovered)",
+        "B edited (recovered)",
+      ]),
+    );
+  });
+
   it("consumes recovered snapshots once even when their first cloud save fails", async () => {
     const { store, update } = setup();
     await screen.findByText("Editor");
