@@ -140,6 +140,9 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       await b.sync.refresh();
       expect(b.store.get(projectAccessAtom)[shared.id].role).toBe("viewer");
       expect(b.sync.hasPendingChanges()).toBe(false);
+      expect(b.store.get(workspaceAtom).projects[0].state.projectData.description).not.toBe(
+        "After downgrade",
+      );
 
       // Removed: the project disappears with its own reason.
       auth.session = owner;
