@@ -9,7 +9,7 @@ import {
   startProjectCloudSync,
 } from "../projectCloudSync";
 import { WORKSPACE_KEY } from "../storage";
-import { projectSyncStatusAtom, remoteDeletionsAtom } from "../syncState";
+import { projectSyncStatusAtom, refreshPausesAtom, remoteDeletionsAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { addProject, deleteProject, switchProject, updateProject } from "../workspace";
 
@@ -471,6 +471,18 @@ describe("project cloud synchronization", () => {
       ]);
     });
 
+    it("waits while an editor holds a draft, then catches up when it closes", async () => {
+      const { rows, store, sync } = await setup();
+      store.set(refreshPausesAtom, 1);
+      rows.set("one", { project: changedElsewhere("remote"), hash: "remote" });
+      await sync.refresh();
+      expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("one");
+      store.set(refreshPausesAtom, 0);
+      await vi.waitFor(() =>
+        expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("remote"),
+      );
+    });
+
     it("skips a refresh that ran within the given age", async () => {
       const { client, sync } = await setup();
       await sync.refresh();
@@ -508,6 +520,16 @@ describe("project cloud synchronization", () => {
       expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("remote");
       expect(sync.hasPendingChanges()).toBe(false);
       expect(store.get(projectSyncStatusAtom).state).toBe("synced");
+    });
+
+    it("records what taking the newer changes removed", async () => {
+      const { rows, store, sync } = await conflicted();
+      rows.delete("one");
+      await sync.discardProjectChanges("one");
+      expect(store.get(workspaceAtom).projects).toEqual([]);
+      expect(store.get(remoteDeletionsAtom)).toEqual([
+        { type: "project", name: "local", projectId: "one", unsavedEdits: true },
+      ]);
     });
   });
 

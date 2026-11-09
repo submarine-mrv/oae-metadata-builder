@@ -18,11 +18,13 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconCategory, IconCheck, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
+import { useSetAtom } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CfEntry } from "@/data/cf/cfStandardNames";
 import type { DraftVariable } from "@/types/variable";
 import { parseVariable } from "@/utils/parseVariable";
+import { refreshPausesAtom } from "@/workspace/syncState";
 import {
   fieldExistsInSchema,
   getFieldSchema,
@@ -194,13 +196,18 @@ export default function VariableModal({
   // edited no longer matches, which is how a later pick knows to leave it alone.
   const cfPrefillRef = useRef<CfPrefilled>({});
 
-  // Reset state when the modal opens, not when initialData changes while it's open: a refresh
-  // from another tab replaces the project's objects and must not wipe an in-progress edit.
-  const wasOpened = useRef(false);
+  // A refresh would replace the variable list under this draft, which Save writes back by
+  // index, so changes from elsewhere wait until the editor closes.
+  const setRefreshPauses = useSetAtom(refreshPausesAtom);
   useEffect(() => {
-    const justOpened = opened && !wasOpened.current;
-    wasOpened.current = opened;
-    if (justOpened) {
+    if (!opened) return;
+    setRefreshPauses((count) => count + 1);
+    return () => setRefreshPauses((count) => count - 1);
+  }, [opened, setRefreshPauses]);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (opened) {
       if (initialData) {
         setFormData(initialData);
         const savedType = (initialData.variable_type as string) || null;

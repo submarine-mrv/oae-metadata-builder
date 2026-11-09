@@ -9,6 +9,7 @@ import {
   projectSyncErrorStatus,
   projectSyncStatusAtom,
   type RemoteDeletion,
+  refreshPausesAtom,
   remoteDeletionsAtom,
 } from "../syncState";
 import { type ProjectRecord, projectDisplayName } from "../types";
@@ -390,8 +391,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   let refreshing: Promise<void> | null = null;
   let lastRefresh = 0;
   /** Checks hashes first and loads projects only when something changed. Skipped while saving. */
+  const paused = () => store.get(refreshPausesAtom) > 0;
   const refresh = (maxAgeMs = 0): Promise<void> => {
-    if (!ready || stopped || inFlight) return Promise.resolve();
+    if (!ready || stopped || inFlight || paused()) return Promise.resolve();
     if (refreshing) return refreshing;
     if (Date.now() - lastRefresh < maxAgeMs) return Promise.resolve();
     lastRefresh = Date.now();
@@ -411,7 +413,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         const saved =
           before.size !== acknowledged.size ||
           [...acknowledged].some(([id, known]) => before.get(id) !== known);
-        if (inFlight || saved) return;
+        if (inFlight || saved || paused()) return;
         applyRemote(rows);
         if (!dirty()) settledStatus();
       } catch (error) {
@@ -456,21 +458,41 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         );
       }
       acknowledged.set(id, { project, hash: result.hash });
-    } else if (row) {
-      acknowledged.set(id, row);
-      store.set(workspaceAtom, (workspace) => ({
-        ...workspace,
-        projects: workspace.projects.map((project) => (project.id === id ? row.project : project)),
-      }));
     } else {
-      acknowledged.delete(id);
-      store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
+      const local = currentProject(id);
+      if (row) {
+        acknowledged.set(id, row);
+        store.set(workspaceAtom, (workspace) => ({
+          ...workspace,
+          projects: workspace.projects.map((project) =>
+            project.id === id ? row.project : project,
+          ),
+        }));
+        if (local) noteDeletions(removedEntities(local, row.project));
+      } else {
+        acknowledged.delete(id);
+        store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
+        if (local) {
+          noteDeletions([
+            {
+              type: "project",
+              name: projectDisplayName(local.state),
+              projectId: id,
+              unsavedEdits: true,
+            },
+          ]);
+        }
+      }
     }
     // Saves anything else still waiting and clears the conflict status.
     await flush().catch(() => {});
   };
 
   const unsubscribe = store.sub(workspaceAtom, schedule);
+  // Catch up as soon as the last editor holding a draft closes.
+  const unsubscribePauses = store.sub(refreshPausesAtom, () => {
+    if (!paused()) void refresh();
+  });
   const onVisibilityChange = () => {
     if (document.visibilityState === "hidden") backgroundFlush();
     else syncNow();
@@ -570,6 +592,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       stopped = true;
       cancelTimer();
       unsubscribe();
+      unsubscribePauses();
       window.removeEventListener("online", syncNow);
       window.removeEventListener("pagehide", backgroundFlush);
       window.removeEventListener("beforeunload", beforeUnload);
