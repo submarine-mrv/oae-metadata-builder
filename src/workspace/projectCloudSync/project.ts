@@ -339,8 +339,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     }
   };
 
-  // What each local source looked like when this session uploaded it.
-  const importedStates = new Map<string, ProjectRecord["state"]>();
+  // Where this session sent each local source, and the version it sent.
+  const imports = new Map<string, { id: string; state: ProjectRecord["state"] }>();
   const migrateLocalProjects = async () => {
     // Explicit consent is handled by the UI. Retain every source until its save is acknowledged.
     await flush();
@@ -352,30 +352,28 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       const copyId = await importCopyId(incoming.id);
       assertActive();
       const workspace = store.get(workspaceAtom);
-      const sameId = workspace.projects.find((project) => project.id === incoming.id);
-      // Always a new project, so importing never changes one already in the account. A taken ID
-      // gets a fixed copy ID, so a retry finds the copy an earlier attempt saved.
-      const id = sameId ? copyId : incoming.id;
-      const imported =
-        sameId && equalData(sameId.state, incoming.state)
-          ? sameId
-          : sameId && workspace.projects.find((project) => project.id === copyId);
-      if (imported && acknowledged.has(imported.id)) {
-        const uploaded = importedStates.get(incoming.id);
-        // Edited here since that upload: import the newer version too rather than drop it.
-        if (
-          equalData(imported.state, incoming.state) ||
-          (uploaded && equalData(uploaded, incoming.state))
-        ) {
-          source.remove();
-          continue;
-        }
-      }
-      const record = {
-        ...incoming,
-        id: imported && acknowledged.has(imported.id) ? crypto.randomUUID() : id,
+      const saved = (id: string) => {
+        const project = workspace.projects.find((record) => record.id === id);
+        return acknowledged.has(id) && project ? project : undefined;
       };
-      importedStates.set(incoming.id, incoming.state);
+      const earlier = imports.get(incoming.id);
+      // A retry finds the copy an earlier attempt saved; without this session's record, only an
+      // identical copy counts. A source changed since then imports again rather than being lost.
+      const done = earlier
+        ? saved(earlier.id) && equalData(earlier.state, incoming.state)
+        : [incoming.id, copyId].some((id) => {
+            const project = saved(id);
+            return project && equalData(project.state, incoming.state);
+          });
+      if (done) {
+        source.remove();
+        continue;
+      }
+      // Always a new project, so importing never changes one already in the account.
+      const taken = (id: string) => workspace.projects.some((record) => record.id === id);
+      const id = !taken(incoming.id) ? incoming.id : !taken(copyId) ? copyId : crypto.randomUUID();
+      const record = { ...incoming, id };
+      imports.set(incoming.id, { id, state: incoming.state });
       store.set(workspaceAtom, {
         ...workspace,
         projects: [...workspace.projects, record],

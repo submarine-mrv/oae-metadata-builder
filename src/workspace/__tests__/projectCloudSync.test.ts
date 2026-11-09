@@ -436,6 +436,34 @@ describe("project cloud synchronization", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
   });
 
+  it("keeps a newer local version whose copy was deleted before it saved", async () => {
+    const local = {
+      ...project("one"),
+      state: { ...project("one").state, projectData: { name: "guest" } },
+    };
+    const guest = { version: 1, activeProjectId: local.id, projects: [local] };
+    localStorage.setItem(WORKSPACE_KEY, JSON.stringify(guest));
+    const { client, rows, sync } = await setup();
+    const save = vi.mocked(client.save).getMockImplementation();
+    if (!save) throw new Error("Missing test save implementation");
+    const newer = { ...local, state: { ...local.state, projectData: { name: "guest, newer" } } };
+    vi.mocked(client.save).mockImplementationOnce(async (...args) => {
+      localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...guest, projects: [newer] }));
+      return save(...args);
+    });
+    await expect(sync.migrateLocalProjects()).rejects.toThrow("changed during migration");
+    vi.mocked(client.save).mockResolvedValueOnce({ saved: false, project: null, hash: null });
+    await expect(sync.migrateLocalProjects()).rejects.toThrow("deleted elsewhere while importing");
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toHaveLength(1);
+    await sync.migrateLocalProjects();
+    expect([...rows.values()].map((row) => row.project.state.projectData.name).sort()).toEqual([
+      "guest",
+      "guest, newer",
+      "one",
+    ]);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
+  });
+
   it("keeps the local copy when the imported project is deleted before it saves", async () => {
     const local = project("local");
     localStorage.setItem(
