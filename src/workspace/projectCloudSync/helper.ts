@@ -100,6 +100,18 @@ export async function hashProject(project: ProjectRecord): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/** A fixed UUID for the imported copy of a local project, so a retried import finds it. */
+export async function importCopyId(localId: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`import-copy:${localId}`),
+  );
+  const hex = Array.from(new Uint8Array(digest).slice(0, 16), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Could not save this project.";
 }

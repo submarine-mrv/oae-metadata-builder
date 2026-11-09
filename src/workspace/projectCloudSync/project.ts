@@ -15,6 +15,7 @@ import {
   checkProjectVersion,
   errorMessage,
   hashProject,
+  importCopyId,
   parseCloudProject,
   UnsupportedProjectVersionError,
 } from "./helper";
@@ -346,19 +347,22 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     for (const source of sources) {
       assertActive();
       const incoming = parseCloudProject(source.project);
+      const copyId = await importCopyId(incoming.id);
+      assertActive();
       const workspace = store.get(workspaceAtom);
-      // A retry finds the copy an earlier attempt saved, whatever ID that copy got.
-      if (
-        workspace.projects.some(
-          (project) => acknowledged.has(project.id) && equalData(project.state, incoming.state),
-        )
-      ) {
+      const sameId = workspace.projects.find((project) => project.id === incoming.id);
+      // Always a new project, so importing never changes one already in the account. A taken ID
+      // gets a fixed copy ID, so a retry finds the copy an earlier attempt saved.
+      const id = sameId ? copyId : incoming.id;
+      const imported =
+        sameId && equalData(sameId.state, incoming.state)
+          ? sameId
+          : sameId && workspace.projects.find((project) => project.id === copyId);
+      if (imported && acknowledged.has(imported.id)) {
         source.remove();
         continue;
       }
-      const existing = workspace.projects.find((project) => project.id === incoming.id);
-      // Always a new project, so importing never changes one already in the account.
-      const record = existing ? { ...incoming, id: crypto.randomUUID() } : incoming;
+      const record = { ...incoming, id };
       store.set(workspaceAtom, {
         ...workspace,
         projects: [...workspace.projects, record],

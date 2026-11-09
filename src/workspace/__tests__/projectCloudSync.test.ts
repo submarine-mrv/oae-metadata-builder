@@ -375,6 +375,42 @@ describe("project cloud synchronization", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
   });
 
+  it("imports two local projects with identical contents as two projects", async () => {
+    const twin = (id: string) => ({ ...project(id), state: project("same").state });
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ version: 1, activeProjectId: "a", projects: [twin("a"), twin("b")] }),
+    );
+    const { rows, sync } = await setup([]);
+    await sync.migrateLocalProjects();
+    expect([...rows.keys()].sort()).toEqual(["a", "b"]);
+  });
+
+  it("finds an import's copy on retry even after it was edited", async () => {
+    const local = {
+      ...project("one"),
+      state: { ...project("one").state, projectData: { name: "guest" } },
+    };
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ version: 1, activeProjectId: local.id, projects: [local] }),
+    );
+    const { client, rows, store, sync } = await setup();
+    vi.mocked(client.save).mockRejectedValueOnce(new Error("failed"));
+    await expect(sync.migrateLocalProjects()).rejects.toThrow("failed");
+    const copy = store.get(workspaceAtom).projects.find((record) => record.id !== "one");
+    if (!copy) throw new Error("Missing imported copy");
+    store.set(workspaceAtom, (workspace) =>
+      updateProject(workspace, copy.id, {
+        ...copy.state,
+        projectData: { ...copy.state.projectData, name: "edited copy" },
+      }),
+    );
+    await sync.migrateLocalProjects();
+    expect(rows.size).toBe(2);
+    expect(rows.get(copy.id)?.project.state.projectData.name).toBe("edited copy");
+  });
+
   it("keeps the local copy when the imported project is deleted before it saves", async () => {
     const local = project("local");
     localStorage.setItem(
