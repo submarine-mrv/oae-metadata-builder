@@ -9,6 +9,13 @@ const label = ({ type, name }: RemoteDeletion) => `${type} "${name}"`;
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function remoteDeletionMessage(deletions: RemoteDeletion[]): string {
+  const lost = deletions.filter((deletion) => deletion.reason === "access");
+  if (lost.length) {
+    const names = lost.map((deletion) => `"${deletion.name}"`).join(", ");
+    const rest = deletions.filter((deletion) => deletion.reason !== "access");
+    const unshared = `${capitalize(lost.length === 1 ? "project" : "projects")} ${names} ${lost.length === 1 ? "is" : "are"} no longer shared with you.`;
+    return rest.length ? `${unshared} ${remoteDeletionMessage(rest)}` : unshared;
+  }
   const removed = `${capitalize(deletions.map(label).join(", "))} ${deletions.length === 1 ? "was" : "were"} deleted in another tab or on another device.`;
   const edited = deletions.filter((deletion) => deletion.unsavedEdits);
   if (!edited.length) return removed;
@@ -39,7 +46,9 @@ export default function RemoteDeletionNotices() {
       if (!pending.length) return;
       store.set(remoteDeletionsAtom, []);
       notifications.show({
-        title: "Deleted",
+        title: pending.every((deletion) => deletion.reason === "access")
+          ? "No longer shared"
+          : "Deleted",
         message: remoteDeletionMessage(pending),
         color: "yellow",
         autoClose: 8000,

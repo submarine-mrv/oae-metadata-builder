@@ -1,5 +1,6 @@
 import { atom } from "jotai";
-import { UnsupportedProjectVersionError } from "./projectCloudSync/helper";
+import { ProjectAccessError, UnsupportedProjectVersionError } from "./projectCloudSync/helper";
+import type { ProjectAccess } from "./projectCloudSync/types";
 
 export type ProjectSyncStatus =
   | { state: "disabled" | "loading" | "syncing" | "synced" }
@@ -22,7 +23,9 @@ export function projectSyncErrorStatus(error: unknown): ProjectSyncStatus {
     message: error instanceof Error ? error.message : "Could not sync this project.",
     ...(error instanceof ProjectConflictError ? { projectId: error.projectId } : {}),
     // Saving again can't settle a conflict or a newer-format project.
-    ...(error instanceof ProjectConflictError || error instanceof UnsupportedProjectVersionError
+    ...(error instanceof ProjectConflictError ||
+    error instanceof UnsupportedProjectVersionError ||
+    error instanceof ProjectAccessError
       ? { noRetry: true as const }
       : {}),
   };
@@ -47,6 +50,8 @@ export interface RemoteDeletion {
   projectId?: string;
   /** Experiments and datasets only. */
   id?: string;
+  /** The project wasn't deleted for everyone: this user lost access to it. */
+  reason?: "access";
   /** Edits made here since the last save were lost with it. */
   unsavedEdits?: true;
 }
@@ -54,5 +59,7 @@ export interface RemoteDeletion {
 export const remoteDeletionsAtom = atom<RemoteDeletion[]>([]);
 /** Open editors holding drafts outside the workspace. Background sync waits until none are open. */
 export const refreshPausesAtom = atom(0);
+/** The signed-in user's access to each cloud project, by project ID. */
+export const projectAccessAtom = atom<Record<string, ProjectAccess>>({});
 export const projectSyncStatusAtom = atom<ProjectSyncStatus>({ state: "disabled" });
 export const projectSyncActionsAtom = atom<ProjectSyncActions | null>(null);

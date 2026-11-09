@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   rows: [] as unknown[],
   loadError: null as { message: string } | null,
   rpc: vi.fn(),
-  eq: vi.fn(),
+  list: vi.fn(),
 }));
 vi.mock("../client", () => ({
   supabase: {
@@ -21,24 +21,37 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: (_url: string, _key: string, options: { accessToken(): Promise<string> }) => {
     mocks.options = options;
     return {
-      from: () => ({
-        select: () => ({
-          eq: async (...args: unknown[]) => {
-            mocks.eq(...args);
-            await options.accessToken();
-            return { data: mocks.rows, error: mocks.loadError };
-          },
-        }),
-      }),
-      rpc: async (...args: unknown[]) => {
+      rpc: async (name: string, args: unknown) => {
         await options.accessToken();
-        return mocks.rpc(...args);
+        if (name !== "list_metadata_builder_projects") return mocks.rpc(name, args);
+        mocks.list(args);
+        return {
+          data: (mocks.rows as Record<string, unknown>[]).map((row) => ({
+            ...ownerAccess,
+            ...row,
+          })),
+          error: mocks.loadError,
+        };
       },
     };
   },
 }));
 
-import { createProjectCloudClient } from "../projectClient";
+import { ProjectAccessError } from "@/workspace/projectCloudSync";
+import { createProjectCloudClient, createProjectMembersClient } from "../projectClient";
+
+const ownerAccess = {
+  role: "owner",
+  owner_email: "owner@example.com",
+  updated_by_email: null,
+  member_count: 0,
+};
+const access = {
+  role: "owner",
+  ownerEmail: "owner@example.com",
+  updatedByEmail: null,
+  memberCount: 0,
+};
 
 describe("owner-bound project Supabase client", () => {
   const project = { ...newProjectRecord(emptyProjectState(), 100), id: "internal-project" };
@@ -53,12 +66,54 @@ describe("owner-bound project Supabase client", () => {
     });
   });
 
-  it("reads only the bound owner's project sessions", async () => {
+  it("reads owned and shared projects with the caller's access through one RPC", async () => {
     const client = createProjectCloudClient("owner");
     const rows = await client.load();
-    expect(mocks.eq).toHaveBeenCalledWith("user_id", "owner");
-    expect(rows[0]).toMatchObject({ project: { id: project.id } });
+    expect(mocks.list).toHaveBeenCalledWith({ p_include_state: true });
+    expect(rows[0]).toMatchObject({ project: { id: project.id }, access });
     expect(await mocks.options?.accessToken()).toBe("owner-token");
+  });
+
+  it("checks hashes and access without loading state", async () => {
+    mocks.rows = [{ project_id: project.id, state: null, state_hash: "hash", role: "viewer" }];
+    const versions = await createProjectCloudClient("owner").hashes();
+    expect(mocks.list).toHaveBeenCalledWith({ p_include_state: false });
+    expect(versions.get(project.id)).toEqual({
+      hash: "hash",
+      access: { ...access, role: "viewer" },
+    });
+  });
+
+  it("rejects rows with an unknown role", async () => {
+    mocks.rows = [{ project_id: project.id, state: project, state_hash: "hash", role: "admin" }];
+    await expect(createProjectCloudClient("owner").load()).rejects.toThrow("invalid");
+  });
+
+  it("reports a refused save as lost edit access", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "denied", code: "42501" } });
+    await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toThrow(
+      ProjectAccessError,
+    );
+  });
+
+  it("manages members through the member RPCs", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ email: "bob@example.com", role: "editor" }],
+      error: null,
+    });
+    const members = createProjectMembersClient("owner");
+    expect(await members.list("p")).toEqual([{ email: "bob@example.com", role: "editor" }]);
+    await members.set("p", "bob@example.com", "viewer");
+    expect(mocks.rpc).toHaveBeenCalledWith("set_metadata_builder_project_member", {
+      p_project_id: "p",
+      p_email: "bob@example.com",
+      p_role: "viewer",
+    });
+    await members.remove("p", "bob@example.com");
+    expect(mocks.rpc).toHaveBeenCalledWith("remove_metadata_builder_project_member", {
+      p_project_id: "p",
+      p_email: "bob@example.com",
+    });
   });
 
   it("uses project-scoped conditional-save arguments without accepting a user ID", async () => {
@@ -80,8 +135,8 @@ describe("owner-bound project Supabase client", () => {
       state_hash: "future-hash",
     });
     expect(await createProjectCloudClient("owner").load()).toEqual([
-      { project, hash: "hash" },
-      { projectId: "future", schemaVersion: 3 },
+      { project, hash: "hash", access },
+      { projectId: "future", schemaVersion: 3, access },
     ]);
   });
 
@@ -158,7 +213,7 @@ describe("owner-bound project Supabase client", () => {
     const client = createProjectCloudClient("owner");
     mocks.rows = [{ project_id: "different", state: project, state_hash: "hash" }];
     await expect(client.load()).resolves.toEqual([
-      { projectId: "different", reason: expect.stringContaining("invalid") },
+      { projectId: "different", reason: expect.stringContaining("invalid"), access },
     ]);
     mocks.rpc.mockResolvedValue({
       data: [{ result_saved: true, result_state: null, result_state_hash: "hash" }],

@@ -22,6 +22,14 @@ export class UnsupportedProjectVersionError extends Error {
   }
 }
 
+/** The server refused a save because the user can no longer edit this project. */
+export class ProjectAccessError extends Error {
+  constructor(public readonly projectId: string) {
+    super("You can no longer edit this project.");
+    this.name = "ProjectAccessError";
+  }
+}
+
 /** Check the version before any state validation or migration can drop future fields. */
 export function checkProjectVersion(value: unknown, projectId?: string): number {
   if (

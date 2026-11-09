@@ -68,6 +68,14 @@ describe("remote deletion notices", () => {
     );
   });
 
+  it("says when a project is no longer shared rather than deleted", () => {
+    expect(
+      remoteDeletionMessage([
+        { type: "project", name: "Shared", projectId: "p", reason: "access" },
+      ]),
+    ).toBe('Project "Shared" is no longer shared with you.');
+  });
+
   it("shows one notice per batch and clears it", () => {
     const store = setup();
     expect(notifications.show).not.toHaveBeenCalled();

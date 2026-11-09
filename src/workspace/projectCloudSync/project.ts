@@ -6,6 +6,7 @@ import { readLocalProjectSources } from "../storage";
 import {
   ProjectConflictError,
   type ProjectSyncStatus,
+  projectAccessAtom,
   projectSyncErrorStatus,
   projectSyncStatusAtom,
   type RemoteDeletion,
@@ -18,14 +19,23 @@ import {
   checkProjectVersion,
   errorMessage,
   hashProject,
+  ProjectAccessError,
   parseCloudProject,
   UnsupportedProjectVersionError,
 } from "./helper";
-import type { CloudProject, ProjectCloudClient, ProjectSaveResult, RemoteProject } from "./types";
+import type {
+  CloudProject,
+  ProjectAccess,
+  ProjectCloudClient,
+  ProjectSaveResult,
+  RemoteProject,
+} from "./types";
 
 const SUSTAINED_FAILURE_MS = 30_000;
 /** How often a visible tab checks for changes made elsewhere. */
 export const REFRESH_INTERVAL_MS = 60_000;
+/** How often a visible tab with a shared project open checks for changes. */
+export const SHARED_REFRESH_INTERVAL_MS = 10_000;
 const MAX_RETRY_MS = 60_000;
 
 /** Other writers kept saving between our merge and resave. */
@@ -116,11 +126,26 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       if (currentProject(id) !== acknowledged.get(id)?.project) return error;
     }
   };
+  const accessOf = (id: string): ProjectAccess | undefined => store.get(projectAccessAtom)[id];
+  // Viewers' copies never save; anything they change locally is replaced on refresh.
+  const isViewer = (id: string) => accessOf(id)?.role === "viewer";
+  /** Replaces the access map, or with `merge` updates only the given projects. */
+  const updateAccess = (entries: [string, ProjectAccess | undefined][], merge = false) => {
+    const next = {
+      ...(merge ? store.get(projectAccessAtom) : {}),
+      ...Object.fromEntries(
+        entries.filter((entry): entry is [string, ProjectAccess] => entry[1] !== undefined),
+      ),
+    };
+    if (!equalData(next, store.get(projectAccessAtom))) store.set(projectAccessAtom, next);
+  };
   const dirty = () =>
     ready &&
     (store
       .get(workspaceAtom)
-      .projects.some((project) => acknowledged.get(project.id)?.project !== project) ||
+      .projects.some(
+        (project) => !isViewer(project.id) && acknowledged.get(project.id)?.project !== project,
+      ) ||
       [...acknowledged.keys()].some((id) => !currentProject(id)));
 
   const noteDeletions = (deletions: RemoteDeletion[]) => {
@@ -138,7 +163,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       const project = currentProject(id);
       const previous = acknowledged.get(id);
-      if (unsupported.has(id) || !project || previous?.project === project) return;
+      if (unsupported.has(id) || !project || previous?.project === project || isViewer(id)) {
+        return;
+      }
       checkProjectVersion(project);
       const hash = await hashProject(project);
       assertActive();
@@ -146,6 +173,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       try {
         result = await client.save(project, hash, previous?.hash ?? null);
       } catch (error) {
+        if (error instanceof ProjectAccessError) throw error;
         if (!(error instanceof UnsupportedProjectVersionError)) {
           throw new RequestError(errorMessage(error), { cause: error });
         }
@@ -329,6 +357,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   };
   /** Applies changes made elsewhere. A project with unsaved edits waits for its next save to merge. */
   const applyRemote = (rows: CloudProject[]) => {
+    const previousAccess = store.get(projectAccessAtom);
+    updateAccess(
+      rows.map((row) => ["projectId" in row ? row.projectId : row.project.id, row.access]),
+    );
     let workspace = store.get(workspaceAtom);
     const deletions: RemoteDeletion[] = [];
     const seen = new Set<string>();
@@ -361,7 +393,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         continue;
       }
       // Gone here is a delete still on its way; edited here merges on the next save.
-      if (!local || local !== known.project) continue;
+      if (!local || (local !== known.project && !isViewer(remote.id))) continue;
       deletions.push(...removedEntities(local, remote));
       workspace = {
         ...workspace,
@@ -376,10 +408,12 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       // Deleted elsewhere: the delete wins over local edits.
       const local = workspace.projects.find((project) => project.id === id);
       if (local) {
+        const shared = (previousAccess[id]?.role ?? "owner") !== "owner";
         deletions.push({
           type: "project",
           name: projectDisplayName(local.state),
           projectId: id,
+          ...(shared ? { reason: "access" as const } : {}),
           ...(local !== known.project ? { unsavedEdits: true as const } : {}),
         });
         workspace = deleteProject(workspace, id);
@@ -400,12 +434,18 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     lastRefresh = Date.now();
     refreshing = (async () => {
       try {
-        const hashes = await client.hashes();
+        const versions = await client.hashes();
         assertActive();
+        // Roles and who saved last can change without the draft changing.
+        const known = [...versions].filter(([id]) => acknowledged.has(id));
+        updateAccess(
+          known.map(([id, version]) => [id, version.access]),
+          true,
+        );
         const changed =
-          [...hashes].some(
-            ([id, hash]) => !unsupported.has(id) && acknowledged.get(id)?.hash !== hash,
-          ) || [...acknowledged.keys()].some((id) => !hashes.has(id));
+          [...versions].some(
+            ([id, version]) => !unsupported.has(id) && acknowledged.get(id)?.hash !== version.hash,
+          ) || [...acknowledged.keys()].some((id) => !versions.has(id));
         if (!changed) return;
         const before = new Map(acknowledged);
         const rows = await client.load();
@@ -499,9 +539,14 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (document.visibilityState === "hidden") backgroundFlush();
     else syncNow();
   };
+  // Ticks at the shared rate; private projects check at most once per REFRESH_INTERVAL_MS.
   const poll = setInterval(() => {
-    if (document.visibilityState === "visible") void refresh();
-  }, REFRESH_INTERVAL_MS);
+    if (document.visibilityState !== "visible") return;
+    const active = store.get(workspaceAtom).activeProjectId;
+    const access = active ? accessOf(active) : undefined;
+    const shared = access !== undefined && (access.role !== "owner" || access.memberCount > 0);
+    void refresh(shared ? 0 : REFRESH_INTERVAL_MS);
+  }, SHARED_REFRESH_INTERVAL_MS);
   const beforeUnload = (event: BeforeUnloadEvent) => {
     if (!dirty()) return;
     backgroundFlush();
@@ -518,6 +563,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     try {
       const rows = await client.load();
       assertActive();
+      updateAccess(
+        rows.map((row) => ["projectId" in row ? row.projectId : row.project.id, row.access]),
+      );
       const projects = rows.flatMap((row) => {
         if ("projectId" in row) {
           if (row.reason)
@@ -541,6 +589,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         activeProjectId: mostRecent(projects)?.id ?? null,
         projects,
       });
+      lastRefresh = Date.now();
       ready = true;
       settledStatus();
     } catch (error) {
