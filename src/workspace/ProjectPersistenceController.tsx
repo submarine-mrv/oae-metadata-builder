@@ -54,9 +54,10 @@ export default function ProjectPersistenceController({ children }: { children: R
       })
       .catch((error: unknown) => {
         if (!cancelled) {
+          console.error("Could not load cloud projects:", error);
           store.set(projectSyncStatusAtom, {
             state: "error",
-            message: error instanceof Error ? error.message : "Could not load cloud projects.",
+            message: "Couldn't load your projects. Check your connection and try again.",
           });
         }
       });
@@ -166,7 +167,7 @@ export default function ProjectPersistenceController({ children }: { children: R
   return (
     <Center mih="100vh" p="md">
       {syncStatus.state === "error" ? (
-        <Alert color="red" title="Cloud projects unavailable">
+        <Alert color="red" title="Projects unavailable">
           <Stack>
             <Text>{syncStatus.message}</Text>
             <Button onClick={() => setRetry((value) => value + 1)}>Retry loading projects</Button>

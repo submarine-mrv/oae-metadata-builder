@@ -52,7 +52,7 @@ describe("local project consent", () => {
     seed();
     localStorage.setItem("oae-auth", "untouched");
     const migrate = setup();
-    expect(await screen.findByText(/permanently cleared/)).toBeVisible();
+    expect(await screen.findByText(/deleted from this browser/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Clear without importing" }));
     await waitFor(() =>
       expect(notifications.show).toHaveBeenCalledWith(

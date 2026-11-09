@@ -213,7 +213,7 @@ describe("auth-aware project persistence", () => {
   it("keeps failed cloud loads gated and supports retry", async () => {
     mocks.load.mockRejectedValueOnce(new Error("load unavailable"));
     setup();
-    await screen.findByText("load unavailable");
+    await screen.findByText(/Couldn.t load your projects/);
     expect(screen.queryByText("Editor")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry loading projects" }));
     await screen.findByText("Editor");

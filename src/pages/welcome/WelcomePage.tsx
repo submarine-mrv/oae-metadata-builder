@@ -74,7 +74,7 @@ export default function WelcomePage() {
           </Text>
           <Text size="sm" c="dimmed">
             {cloud
-              ? "Your projects are saved privately to your account after cloud acknowledgement."
+              ? "Your projects are saved to your account."
               : "Your work is saved in this browser only. Export a project to keep a copy."}
           </Text>
           <Group mt="md">

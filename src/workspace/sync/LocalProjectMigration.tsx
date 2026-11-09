@@ -53,6 +53,8 @@ export default function LocalProjectMigration() {
     }
   };
 
+  const count = projects?.length ?? 0;
+  const one = count === 1;
   return (
     <Modal
       opened={Boolean(projects?.length || error)}
@@ -65,12 +67,15 @@ export default function LocalProjectMigration() {
     >
       <Stack>
         <Text>
-          {projects?.length} local project(s) are stored in this browser. Import them into your
-          private cloud projects to keep them.
+          {one
+            ? "This browser has 1 project from before you signed in. Import it into your account to keep it."
+            : `This browser has ${count} projects from before you signed in. Import them into your account to keep them.`}
         </Text>
-        <Text c="red">
-          If you choose not to import, these local project copies will be permanently cleared.
-          Existing cloud projects will not be deleted.
+        <Text c="dimmed">
+          {one
+            ? "If you don't import it, it's deleted from this browser."
+            : "If you don't import them, they're deleted from this browser."}{" "}
+          Projects already in your account don't change.
         </Text>
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">
