@@ -8,13 +8,22 @@ import { workspaceAtom } from "@/state/atoms";
 import { startPersistence } from "@/state/persistence";
 import { hydrate } from "@/state/store";
 import { exportMetadata } from "@/utils/exportImport";
-import { mergeProjectRecord } from "./merge";
+import { equalData } from "./merge";
 import { startProjectCloudSync } from "./projectCloudSync";
 import { localStorageWorkspaceStore } from "./storage";
 import { LocalProjectMigration } from "./sync";
 import { projectSyncActionsAtom, projectSyncErrorStatus, projectSyncStatusAtom } from "./syncState";
-import type { Workspace } from "./types";
+import { type ProjectRecord, projectDisplayName, type Workspace } from "./types";
 import { emptyWorkspace } from "./workspace";
+
+function recoveredCopy(project: ProjectRecord): ProjectRecord {
+  const name = `${projectDisplayName(project.state)} (recovered)`;
+  return {
+    ...project,
+    id: crypto.randomUUID(),
+    state: { ...project.state, projectData: { ...project.state.projectData, name } },
+  };
+}
 
 export default function ProjectPersistenceController({ children }: { children: ReactNode }) {
   const { status, user } = useAuth();
@@ -95,10 +104,15 @@ export default function ProjectPersistenceController({ children }: { children: R
     try {
       const current = store.get(workspaceAtom);
       const projects = [...current.projects];
-      for (const project of snapshots.flatMap((snapshot) => snapshot.projects)) {
-        const index = projects.findIndex((record) => record.id === project.id);
-        if (index < 0) projects.push(project);
-        else projects[index] = mergeProjectRecord(projects[index], project);
+      // Latest snapshot wins per project. Without the saved baseline a merge can't tell edits
+      // from stale fields, so a project that differs from the cloud comes back as a copy.
+      const latest = new Map(
+        snapshots.flatMap((snapshot) => snapshot.projects).map((project) => [project.id, project]),
+      );
+      for (const project of latest.values()) {
+        const cloud = projects.find((record) => record.id === project.id);
+        if (!cloud) projects.push(project);
+        else if (!equalData(cloud.state, project.state)) projects.push(recoveredCopy(project));
       }
       store.set(workspaceAtom, {
         ...current,

@@ -251,7 +251,10 @@ describe("auth-aware project persistence", () => {
     const recover = await screen.findByRole("button", { name: "Recover unsaved projects" });
     fireEvent.click(recover);
     await waitFor(() => expect(mocks.save).toHaveBeenCalled());
-    expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("unsaved-A");
+    expect(store.get(workspaceAtom).projects.map((p) => p.state.projectData.name)).toEqual([
+      "cloud-A",
+      "unsaved-A (recovered)",
+    ]);
     await waitFor(() =>
       expect(
         screen.queryByText("An account change interrupted unsaved project edits"),
@@ -302,22 +305,18 @@ describe("auth-aware project persistence", () => {
         message: "Save unavailable",
       }),
     );
-    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual([
-      "cloud-A",
-      "unsaved",
-    ]);
+    const names = () => store.get(workspaceAtom).projects.map((p) => p.state.projectData.name);
+    expect(names()).toEqual(["cloud-A", "cloud-A (recovered)", "unsaved"]);
     expect(
       screen.queryByRole("button", { name: "Recover unsaved projects" }),
     ).not.toBeInTheDocument();
-    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(1);
+    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(0);
+    expect(store.get(workspaceAtom).projects[1].state.datasets).toHaveLength(1);
     await act(async () => {
       await store.get(projectSyncActionsAtom)?.flush();
     });
-    expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual([
-      "cloud-A",
-      "unsaved",
-    ]);
+    expect(names()).toEqual(["cloud-A", "cloud-A (recovered)", "unsaved"]);
     expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
-    expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(1);
+    expect(store.get(workspaceAtom).projects[1].state.datasets).toHaveLength(1);
   });
 });
