@@ -38,7 +38,9 @@ when one differs. Checks run on project switch, opening All projects, page
 changes within a project (at most every 10 s), returning to the tab, coming back
 online, and every 60 s while visible; never while a save runs. A project with
 unsaved edits keeps them and merges the newer copy on its next save. Projects
-added or deleted elsewhere appear or disappear, with the usual notice.
+added or deleted elsewhere appear or disappear, with the usual notice. While a variable editor
+is open, background saves and checks wait, because Save writes the draft back by
+list position; they run as soon as it closes.
 
 After login, a prompt offers to import local projects or explicitly clear their
 copies. Imports remove only acknowledged, unchanged sources. Errors retain the
