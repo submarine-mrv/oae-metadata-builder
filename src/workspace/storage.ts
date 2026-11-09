@@ -15,7 +15,7 @@ export interface WorkspaceStore {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isEntity(value: unknown): boolean {
@@ -35,7 +35,7 @@ function isProjectState(value: unknown): value is ProjectState {
   );
 }
 
-function isProjectRecord(value: unknown): value is ProjectRecord {
+export function isProjectRecord(value: unknown): value is ProjectRecord {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === "string" &&
@@ -131,7 +131,9 @@ function readWorkspace(raw: string): Workspace | null {
   const migrated = projects.some((p, i) => p !== readable[i]);
   const activeProjectId = projects.some((p) => p.id === stored.activeProjectId)
     ? (stored.activeProjectId as string)
-    : (mostRecent(projects)?.id ?? null);
+    : stored.activeProjectId === null
+      ? null
+      : (mostRecent(projects)?.id ?? null);
   const workspace: Workspace = { version: 1, activeProjectId, projects };
 
   const backedUp = dropped && backup(raw);
@@ -181,3 +183,66 @@ export const localStorageWorkspaceStore: WorkspaceStore = {
     write(WORKSPACE_KEY, JSON.stringify(stored));
   },
 };
+
+export interface LocalProjectSource {
+  project: ProjectRecord;
+  remove(): void;
+}
+
+/** Inspect migration sources without repairing, backing up, or rewriting guest storage. */
+export function readLocalProjectSources(): LocalProjectSource[] {
+  const raw = localStorage.getItem(WORKSPACE_KEY);
+  if (raw !== null) {
+    const stored: unknown = parseJson(raw);
+    if (!isRecord(stored) || stored.version !== 1 || !Array.isArray(stored.projects)) {
+      throw new Error("The local project storage could not be read. Its copy was retained.");
+    }
+    return stored.projects.filter(isProjectRecord).map((original) => ({
+      project: migrateProjectRecord(original),
+      remove() {
+        const latestRaw = localStorage.getItem(WORKSPACE_KEY);
+        if (latestRaw === null) return;
+        const latest: unknown = parseJson(latestRaw);
+        if (!isRecord(latest) || latest.version !== 1 || !Array.isArray(latest.projects)) {
+          throw new Error(
+            "The local workspace changed format during migration. Its copy was retained.",
+          );
+        }
+        const current = latest.projects.find(
+          (candidate) => isRecord(candidate) && candidate.id === original.id,
+        );
+        if (!current) return;
+        if (JSON.stringify(current) !== JSON.stringify(original)) {
+          throw new Error("A local project changed during migration. Its local copy was retained.");
+        }
+        const projects = latest.projects.filter((candidate) => candidate !== current);
+        const activeProjectId =
+          latest.activeProjectId === original.id
+            ? (projects.find(isProjectRecord)?.id ?? null)
+            : latest.activeProjectId;
+        localStorage.setItem(
+          WORKSPACE_KEY,
+          JSON.stringify({ ...latest, projects, activeProjectId }),
+        );
+      },
+    }));
+  }
+  const legacyRaw = localStorage.getItem(LEGACY_SESSION_KEY);
+  if (legacyRaw === null) return [];
+  const legacy = migrateLegacySession(parseJson(legacyRaw));
+  if (!legacy) throw new Error("The local saved project could not be read. Its copy was retained.");
+  return [
+    {
+      // Stable across retries without writing a new envelope before consent.
+      project: migrateProjectRecord({ ...legacy, id: `local-session-${legacy.createdAt}` }),
+      remove() {
+        const current = localStorage.getItem(LEGACY_SESSION_KEY);
+        if (current === null) return;
+        if (current !== legacyRaw) {
+          throw new Error("A local project changed during migration. Its local copy was retained.");
+        }
+        localStorage.removeItem(LEGACY_SESSION_KEY);
+      },
+    },
+  ];
+}

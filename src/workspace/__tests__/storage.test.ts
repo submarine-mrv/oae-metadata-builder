@@ -3,6 +3,7 @@ import {
   BACKUP_KEY_PREFIX,
   LEGACY_SESSION_KEY,
   localStorageWorkspaceStore,
+  readLocalProjectSources,
   WORKSPACE_KEY,
 } from "../storage";
 import { emptyProjectState, newProjectRecord, type Workspace } from "../types";
@@ -46,6 +47,53 @@ describe("localStorageWorkspaceStore", () => {
     expect(localStorageWorkspaceStore.load()).toBeNull();
   });
 
+  it("inspects and cleans up the original source without migrating guest storage in place", () => {
+    const workspace = workspaceFixture();
+    workspace.projects[0].state.projectData.spatial_coverage = {
+      geo: { box: "-124.5 47.2 -122.3 48.2" },
+    };
+    const raw = JSON.stringify({
+      ...workspace,
+      activeProjectId: "missing",
+      projects: [...workspace.projects, { unreadable: true }],
+    });
+    localStorage.setItem(WORKSPACE_KEY, raw);
+    const [source] = readLocalProjectSources();
+    expect(source.project.state.projectData.spatial_coverage).toEqual({
+      geo: { box: "47.2 -124.5 48.2 -122.3" },
+    });
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe(raw);
+    expect(backups()).toEqual([]);
+    source.remove();
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([
+      { unreadable: true },
+    ]);
+  });
+
+  it("inspects a single-session source with stable identity without rewriting or removing it", () => {
+    localStorage.setItem(LEGACY_SESSION_KEY, LEGACY_SESSION);
+    const [source] = readLocalProjectSources();
+    expect(readLocalProjectSources()[0].project).toEqual(source.project);
+    expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBe(LEGACY_SESSION);
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+    localStorage.setItem(LEGACY_SESSION_KEY, `${LEGACY_SESSION} `);
+    expect(() => source.remove()).toThrow("changed during migration");
+    const [latest] = readLocalProjectSources();
+    latest.remove();
+    expect(localStorage.getItem(LEGACY_SESSION_KEY)).toBeNull();
+  });
+
+  it("surfaces unreadable or inaccessible migration sources without modifying them", () => {
+    localStorage.setItem(WORKSPACE_KEY, "{bad");
+    expect(() => readLocalProjectSources()).toThrow("could not be read");
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe("{bad");
+    expect(backups()).toEqual([]);
+    vi.spyOn(Object.getPrototypeOf(localStorage), "getItem").mockImplementation(() => {
+      throw new Error("Storage unavailable");
+    });
+    expect(() => readLocalProjectSources()).toThrow("Storage unavailable");
+  });
+
   it("round-trips a workspace", () => {
     const ws = workspaceFixture();
     localStorageWorkspaceStore.save(ws);
@@ -68,12 +116,12 @@ describe("localStorageWorkspaceStore", () => {
     expect(localStorageWorkspaceStore.load()?.projects[0].id).toBe(ws.projects[0].id);
   });
 
-  it("repairs a null active id to the most recently edited project", () => {
+  it("preserves an explicit empty selection for All projects", () => {
     const ws = twoProjectFixture();
     localStorage.setItem(WORKSPACE_KEY, JSON.stringify({ ...ws, activeProjectId: null }));
     const loaded = localStorageWorkspaceStore.load();
     expect(loaded?.projects).toHaveLength(2);
-    expect(loaded?.activeProjectId).toBe(ws.projects[1].id);
+    expect(loaded?.activeProjectId).toBeNull();
   });
 
   it("repairs a dangling active id and saves the repair", () => {
