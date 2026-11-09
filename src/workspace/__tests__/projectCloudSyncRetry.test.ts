@@ -77,6 +77,20 @@ describe("automatic sync retries", () => {
     expect(store.get(projectSyncStatusAtom).state).toBe("synced");
   });
 
+  it("holds new edits until the scheduled retry instead of the shorter save delay", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(1);
+    const { client, sync, edit } = await setup();
+    edit("unsaved");
+    vi.mocked(client.save).mockRejectedValueOnce(new Error("network failed"));
+    await expect(sync.flush()).rejects.toThrow("network failed");
+    edit("more edits");
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(client.save).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(client.save).toHaveBeenCalledTimes(2);
+    expect(sync.hasPendingChanges()).toBe(false);
+  });
+
   it("shows a plain-language error only after failing for 30 seconds", async () => {
     vi.spyOn(Math, "random").mockReturnValue(1);
     const { client, store, sync, edit } = await setup();

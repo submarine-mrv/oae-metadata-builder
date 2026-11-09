@@ -339,6 +339,46 @@ describe("project cloud synchronization", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects[0].updatedAt).toBe(999);
   });
 
+  it("imports a local project with a taken ID as a new copy", async () => {
+    const local = {
+      ...project("one"),
+      state: { ...project("one").state, projectData: { name: "guest" } },
+    };
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ version: 1, activeProjectId: local.id, projects: [local] }),
+    );
+    const { rows, sync } = await setup();
+    await sync.migrateLocalProjects();
+    expect(rows.get("one")?.project.state.projectData.name).toBe("one");
+    expect([...rows.values()].map((row) => row.project.state.projectData.name).sort()).toEqual([
+      "guest",
+      "one",
+    ]);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
+  });
+
+  it("keeps the local copy when the imported project is deleted before it saves", async () => {
+    const local = project("local");
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ version: 1, activeProjectId: local.id, projects: [local] }),
+    );
+    const { client, sync } = await setup([]);
+    vi.mocked(client.save).mockResolvedValueOnce({ saved: false, project: null, hash: null });
+    await expect(sync.migrateLocalProjects()).rejects.toThrow("deleted elsewhere while importing");
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toHaveLength(1);
+  });
+
+  it("deletes a project while another one can't save", async () => {
+    const { client, rows, sync, edit } = await setup([project(), project("two")]);
+    rows.set("one", { project: { ...project(), updatedAt: 500 }, hash: "elsewhere" });
+    edit("conflicting");
+    vi.mocked(client.save).mockRejectedValue(new Error("save failed"));
+    await sync.remove("two");
+    expect(rows.has("two")).toBe(false);
+  });
+
   it("stops an old account's in-flight result from changing the current store", async () => {
     const { client, store, sync, edit } = await setup();
     const result = deferred<ProjectSaveResult>();

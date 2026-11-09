@@ -1,7 +1,7 @@
 import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
-import { adoptUnseenProject, mergeProjectRecord, reconcileProjectRecord } from "../merge";
+import { adoptUnseenProject, equalData, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import {
   type ProjectSyncStatus,
@@ -273,6 +273,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   };
   const schedule = () => {
     if (!ready || stopped || !dirty()) return;
+    // While saves are failing, new edits wait for the retry already scheduled.
+    if (failingSince !== null && timer !== null) return;
     const error = versionError();
     status(
       error
@@ -345,24 +347,26 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       const incoming = parseCloudProject(source.project);
       const workspace = store.get(workspaceAtom);
-      const publicId = incoming.state.projectData.project_id;
-      const existing = workspace.projects.find(
-        (project) =>
-          project.id === incoming.id ||
-          (typeof publicId === "string" &&
-            publicId.trim() !== "" &&
-            project.state.projectData.project_id === publicId),
-      );
-      const merged = existing ? mergeProjectRecord(existing, incoming) : incoming;
+      const existing = workspace.projects.find((project) => project.id === incoming.id);
+      // A retry after the save but before the source was removed finds its own earlier copy.
+      if (existing && equalData(existing.state, incoming.state) && acknowledged.has(existing.id)) {
+        source.remove();
+        continue;
+      }
+      // Always a new project, so importing never changes one already in the account.
+      const record = existing ? { ...incoming, id: crypto.randomUUID() } : incoming;
       store.set(workspaceAtom, {
         ...workspace,
-        projects: existing
-          ? workspace.projects.map((project) => (project.id === existing.id ? merged : project))
-          : [...workspace.projects, merged],
-        activeProjectId: workspace.activeProjectId ?? merged.id,
+        projects: [...workspace.projects, record],
+        activeProjectId: workspace.activeProjectId ?? record.id,
       });
       await flush();
       assertActive();
+      if (!acknowledged.has(record.id)) {
+        throw new Error(
+          `"${projectDisplayName(record.state)}" was deleted elsewhere while importing. It's still in this browser.`,
+        );
+      }
       source.remove();
     }
   };
@@ -372,7 +376,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     flush,
     migrateLocalProjects,
     async remove(id: string) {
-      await flush();
+      // Wait for any save in progress, but a failure elsewhere mustn't block this delete.
+      await flush().catch(() => {});
       await remove(id);
     },
     hasPendingChanges: dirty,

@@ -127,6 +127,27 @@ describe("project import reconciliation", () => {
       });
     });
 
+    it("conflicts when one side changes the type and the other edits the same dataset", () => {
+      expect(() =>
+        reconcileProjectRecord(
+          edit({}, { dataset_type: "model_output" }),
+          edit({}, { description: "remote" }),
+          base,
+        ),
+      ).toThrow('the type of dataset "D"');
+    });
+
+    it("refreshes a linked dataset's experiment ID after merging", () => {
+      const local = edit({}, { description: "local" });
+      local.state.datasets[0] = {
+        ...local.state.datasets[0],
+        linking: { linkedExperimentInternalId: 1 },
+        formData: { ...local.state.datasets[0].formData, experiment_id: "E" },
+      };
+      const merged = reconcileProjectRecord(local, edit({ experiment_id: "E2" }), base);
+      expect(merged.state.datasets[0].formData.experiment_id).toBe("E2");
+    });
+
     it("conflicts when both sides change the same field", () => {
       expect(() =>
         reconcileProjectRecord(
@@ -138,7 +159,7 @@ describe("project import reconciliation", () => {
     });
   });
 
-  describe("experiments added on both sides with the same internal ID", () => {
+  describe("experiments added on both sides", () => {
     const base = newProjectRecord({ ...emptyProjectState(), nextExperimentId: 1 }, 1);
     const withAddition = (description?: string, linkedDataset = false): ProjectRecord => ({
       ...base,
@@ -170,26 +191,20 @@ describe("project import reconciliation", () => {
       },
     });
 
-    it("keeps both when they are blank and identical", () => {
-      const merged = reconcileProjectRecord(withAddition(), withAddition(), base);
-      expect(merged.state.experiments).toHaveLength(2);
-      expect(new Set(merged.state.experiments.map((experiment) => experiment.id)).size).toBe(2);
+    it("conflicts rather than guess which addition is which", () => {
+      expect(() => reconcileProjectRecord(withAddition(), withAddition(), base)).toThrow(
+        "this project's experiments",
+      );
+      expect(() =>
+        reconcileProjectRecord(withAddition("local"), withAddition("remote", true), base),
+      ).toThrow("this project's experiments");
     });
 
-    it("keeps both when they differ but have no Experiment ID", () => {
-      const merged = reconcileProjectRecord(
-        withAddition("local"),
-        withAddition("remote", true),
-        base,
-      );
-      const descriptions = merged.state.experiments.map(
-        (experiment) => experiment.formData.description,
-      );
-      expect(descriptions).toEqual(["local", "remote"]);
-      const remoteExperiment = merged.state.experiments[1];
-      expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(
-        remoteExperiment.id,
-      );
+    it("keeps a remote addition's ID and links when nothing was added here", () => {
+      const merged = reconcileProjectRecord(base, withAddition("remote", true), base);
+      expect(merged.state.experiments.map((experiment) => experiment.id)).toEqual([1]);
+      expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(1);
+      expect(merged.state.nextExperimentId).toBe(2);
     });
   });
 

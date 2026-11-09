@@ -9,11 +9,19 @@ uses guest browser persistence at this stage.
   with state migrations. Newer drafts are never parsed, merged or saved by an
   older build; reload is required for those projects while others can still save.
   The server also rejects version downgrades even with a matching hash.
-- Changed projects save after a two-second debounce; existing merge rules
-  reconcile disjoint edits and retain conflicting drafts in memory.
+- Changed projects save after a two-second debounce. A stale save merges with
+  the cloud copy field by field, for project fields and each experiment and
+  dataset's top-level fields; edits to the same field conflict and stay in memory.
+  Changing an experiment's or dataset's type conflicts with any other edit to it.
+  Experiments (or datasets) added on both sides conflict, because the counter
+  IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
+- Deletes win: something deleted elsewhere is removed here even over unsaved edits.
+- While saves fail, retries back off from 5 s to 60 s and new edits wait for the
+  next retry. Offline shows as pending until failures last 30 s.
 - The client checks the owner before obtaining an access token for each request.
   Never configure a browser with a service-role key.
 - Local migration sources are inspected without rewriting guest storage.
+  Each imports as a new cloud project and never merges into an existing one.
   Cleanup removes only an acknowledged, unchanged source.
 - Stop removes listeners/timers and ignores late responses after account changes.
 
