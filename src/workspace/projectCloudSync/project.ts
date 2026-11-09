@@ -182,7 +182,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       noteDeletions(removedEntities(latest, merged, previous?.project));
       acknowledged.set(id, { project: remote, hash: result.hash });
     }
-    throw new ContentionError("This project keeps changing elsewhere. Retry sync to continue.");
+    throw new ContentionError(
+      "This project keeps changing. Your changes are safe in this tab, and saving will keep retrying.",
+    );
   };
 
   const remove = async (id: string) => {
@@ -202,7 +204,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       // Gone already counts as deleted. Edited elsewhere: the delete wins, so retry at its hash.
       if (result.saved || !result.hash) break;
       if (attempt === 3) {
-        throw new ContentionError("This project keeps changing elsewhere. Retrying the delete.");
+        throw new ContentionError("This project keeps changing. Retrying the delete.");
       }
       expected = result.hash;
     }
@@ -275,7 +277,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
             Date.now() - failingSince < SUSTAINED_FAILURE_MS
               ? {
                   state: "pending",
-                  message: "Unsaved edits are only in memory until cloud sync succeeds.",
+                  message: "Not saved yet. Retrying.",
                 }
               : {
                   state: "error",
@@ -283,8 +285,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
                     error instanceof OfflineError
                       ? error.message
                       : error instanceof ContentionError
-                        ? "This project keeps being saved elsewhere. Your changes are safe in this tab and will keep retrying."
-                        : `Can't reach the cloud right now. Your changes are safe in this tab and will keep retrying. (${errorMessage(error)})`,
+                        ? "This project keeps changing. Your changes are safe in this tab, and saving will keep retrying."
+                        : "Can't save right now. Your changes are safe in this tab, and saving will keep retrying.",
                 },
           );
         }
@@ -311,7 +313,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         ? projectSyncErrorStatus(error)
         : {
             state: "pending",
-            message: "Unsaved edits are only in memory until cloud sync succeeds.",
+            message: "Not saved yet. Retrying.",
           },
     );
     cancelTimer();
@@ -444,7 +446,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       if (!result.saved || !result.hash) {
         throw new ProjectConflictError(
           id,
-          "The other version changed again. Review it before replacing it.",
+          "It changed again while you were choosing. Look again before keeping yours.",
         );
       }
       acknowledged.set(id, { project, hash: result.hash });
@@ -538,7 +540,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       if (!acknowledged.has(record.id)) {
         throw new Error(
-          `"${projectDisplayName(record.state)}" was deleted elsewhere while importing. It's still in this browser.`,
+          `"${projectDisplayName(record.state)}" was deleted while importing. It's still in this browser.`,
         );
       }
       source.remove();

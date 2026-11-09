@@ -22,7 +22,7 @@ describe("project import reconciliation", () => {
       },
     });
     expect(() => reconcileProjectRecord(added("A"), added("B"), base)).toThrow(
-      'Conflicting changes to new experiment "E"',
+      'Newer changes also edited the experiment "E"',
     );
   });
   it("uses imported project fields and replaces matching experiments", () => {
@@ -341,7 +341,7 @@ describe("project import reconciliation", () => {
         },
         base,
       ),
-    ).toThrow("Conflicting changes");
+    ).toThrow("Newer changes also edited");
   });
   it("preserves links and deduplicates datasets when retrying the same import", () => {
     const target = newProjectRecord({

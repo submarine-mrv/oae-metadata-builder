@@ -99,7 +99,7 @@ export function mergeProjectRecord(target: ProjectRecord, incoming: ProjectRecor
 }
 
 function conflict(field: string): never {
-  throw new Error(`Conflicting changes to ${field} elsewhere.`);
+  throw new Error(`Newer changes also edited ${field}.`);
 }
 
 /** With no shared baseline, only an identical copy can be adopted safely. */
@@ -229,7 +229,7 @@ export function reconcileProjectRecord(
   for (const incoming of remoteExperiments) {
     const publicId = incoming.formData.experiment_id;
     if (publicId && experiments.some((e) => e.formData.experiment_id === publicId)) {
-      conflict(`new experiment "${incoming.name}"`);
+      conflict(`the experiment "${incoming.name}"`);
     }
   }
   // Both sides number additions from the same counter, so concurrent additions share IDs.

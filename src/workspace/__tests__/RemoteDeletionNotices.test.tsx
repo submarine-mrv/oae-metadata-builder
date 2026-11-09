@@ -51,13 +51,13 @@ describe("remote deletion notices", () => {
 
   it("words one deletion, several, and lost edits", () => {
     expect(remoteDeletionMessage([{ type: "experiment", name: "Site A" }])).toBe(
-      'Experiment "Site A" was deleted elsewhere.',
+      'Experiment "Site A" was deleted in another tab or on another device.',
     );
     expect(remoteDeletionMessage([{ type: "project", name: "Plain" }])).toBe(
-      'Project "Plain" was deleted elsewhere.',
+      'Project "Plain" was deleted in another tab or on another device.',
     );
     expect(remoteDeletionMessage([{ type: "project", name: "Shared", unsavedEdits: true }])).toBe(
-      'Project "Shared" was deleted elsewhere. Your recent edits to it weren\'t saved.',
+      'Project "Shared" was deleted in another tab or on another device. Your recent edits to it weren\'t saved.',
     );
     expect(
       remoteDeletionMessage([
@@ -65,7 +65,7 @@ describe("remote deletion notices", () => {
         { type: "dataset", name: "CTD casts" },
       ]),
     ).toBe(
-      'Experiment "Site A", dataset "CTD casts" were deleted elsewhere. Your recent edits to experiment "Site A" weren\'t saved.',
+      'Experiment "Site A", dataset "CTD casts" were deleted in another tab or on another device. Your recent edits to experiment "Site A" weren\'t saved.',
     );
   });
 
@@ -80,7 +80,7 @@ describe("remote deletion notices", () => {
     );
     expect(notifications.show).toHaveBeenCalledTimes(1);
     expect(notifications.show).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Deleted elsewhere", color: "yellow" }),
+      expect.objectContaining({ title: "Deleted", color: "yellow" }),
     );
     expect(store.get(remoteDeletionsAtom)).toEqual([]);
   });

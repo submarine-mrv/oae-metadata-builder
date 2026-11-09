@@ -9,7 +9,7 @@ const label = ({ type, name }: RemoteDeletion) => `${type} "${name}"`;
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function remoteDeletionMessage(deletions: RemoteDeletion[]): string {
-  const removed = `${capitalize(deletions.map(label).join(", "))} ${deletions.length === 1 ? "was" : "were"} deleted elsewhere.`;
+  const removed = `${capitalize(deletions.map(label).join(", "))} ${deletions.length === 1 ? "was" : "were"} deleted in another tab or on another device.`;
   const edited = deletions.filter((deletion) => deletion.unsavedEdits);
   if (!edited.length) return removed;
   const target = deletions.length === 1 ? "it" : edited.map(label).join(", ");
@@ -39,7 +39,7 @@ export default function RemoteDeletionNotices() {
       if (!pending.length) return;
       store.set(remoteDeletionsAtom, []);
       notifications.show({
-        title: "Deleted elsewhere",
+        title: "Deleted",
         message: remoteDeletionMessage(pending),
         color: "yellow",
         autoClose: 8000,

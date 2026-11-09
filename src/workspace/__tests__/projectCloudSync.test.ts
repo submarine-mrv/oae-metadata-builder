@@ -263,7 +263,7 @@ describe("project cloud synchronization", () => {
     vi.mocked(client.save).mockResolvedValueOnce({ saved: false, project: theirs, hash: "theirs" });
     edit("mine");
     edit("two edited", "two");
-    await expect(sync.flush()).rejects.toThrow("Conflicting changes");
+    await expect(sync.flush()).rejects.toThrow("Newer changes also edited");
     expect(rows.get("two")?.project.state.projectData.name).toBe("two edited");
     expect(store.get(projectSyncStatusAtom).state).toBe("error");
   });
@@ -298,7 +298,7 @@ describe("project cloud synchronization", () => {
       state: { ...mine.state, projectData: { ...mine.state.projectData, name: "theirs" } },
     };
     rows.set("two", { project: theirs, hash: "other-tab" });
-    await expect(sync.flush()).rejects.toThrow("Conflicting changes to this project elsewhere");
+    await expect(sync.flush()).rejects.toThrow("Newer changes also edited this project");
     expect(client.save).toHaveBeenCalledTimes(1);
     expect(rows.get("two")?.project).toBe(theirs);
     expect(sync.hasPendingChanges()).toBe(true);
@@ -408,7 +408,7 @@ describe("project cloud synchronization", () => {
     );
     const { client, sync } = await setup([]);
     vi.mocked(client.save).mockResolvedValueOnce({ saved: false, project: null, hash: null });
-    await expect(sync.migrateLocalProjects()).rejects.toThrow("deleted elsewhere while importing");
+    await expect(sync.migrateLocalProjects()).rejects.toThrow("deleted while importing");
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toHaveLength(1);
   });
 
@@ -491,7 +491,7 @@ describe("project cloud synchronization", () => {
         hash: "remote",
       });
       context.edit("local");
-      await expect(context.sync.flush()).rejects.toThrow("Conflicting changes");
+      await expect(context.sync.flush()).rejects.toThrow("Newer changes also edited");
       return context;
     }
 

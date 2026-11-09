@@ -19,20 +19,18 @@ export default function ProjectSyncIndicator() {
   const synced = status.state === "synced";
   const message = failed
     ? status.projectId
-      ? `${status.message} Click to choose which version to keep.`
+      ? "This project has newer changes that conflict with yours. Click to choose."
       : status.message
     : synced
-      ? "Projects saved privately to your account."
-      : "Waiting for cloud sync. Unsaved edits are only in this tab; keep it open until saved.";
+      ? "All changes saved."
+      : "Saving… Keep this tab open until it finishes.";
   const Icon = failed ? IconCloudX : synced ? IconCloudCheck : IconCloud;
 
   return (
     <>
       <Tooltip label={message} multiline w={300} withArrow>
         <ActionIcon
-          aria-label={
-            failed ? "Project sync failed" : synced ? "Projects synced" : "Cloud sync pending"
-          }
+          aria-label={failed ? "Not saved" : synced ? "Saved" : "Saving"}
           color={failed ? "red" : synced ? "green" : "gray"}
           variant="subtle"
           size="lg"
@@ -43,7 +41,7 @@ export default function ProjectSyncIndicator() {
               : failed
                 ? () =>
                     notifications.show({
-                      title: "Project sync failed",
+                      title: "Not saved",
                       message: status.noRetry ? (
                         message
                       ) : (
@@ -55,7 +53,7 @@ export default function ProjectSyncIndicator() {
                             onClick={() =>
                               void sync?.flush().catch((error: unknown) =>
                                 notifications.show({
-                                  title: "Project sync failed",
+                                  title: "Not saved",
                                   message:
                                     error instanceof Error
                                       ? error.message

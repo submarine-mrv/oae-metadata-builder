@@ -17,7 +17,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
   Experiments (or datasets) added on both sides conflict, because the counter
   IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
 - Deletes win: something deleted elsewhere is removed here even over unsaved
-  edits. A yellow "Deleted elsewhere" notice names it and says when edits were
+  edits. A yellow "Deleted" notice names it and says when edits were
   lost; if its experiment or dataset page was open, the app goes to Overview.
 - While saves fail, retries back off from 5 s to 60 s and new edits wait for the
   next retry. Offline shows as pending until failures last 30 s.
@@ -30,7 +30,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices: keep mine or use the other version. Other errors show the message, with Retry save unless the project has a
+with two choices: keep my changes or use newer changes. Other errors show the message, with Retry save unless the project has a
 newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only

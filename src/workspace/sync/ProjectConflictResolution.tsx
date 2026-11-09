@@ -30,10 +30,8 @@ export default function ProjectConflictResolution({
       await (keep ? sync.keepProjectChanges(projectId) : sync.discardProjectChanges(projectId));
       onClose();
       notifications.show({
-        title: keep ? "Kept your version" : "Switched to the other version",
-        message: keep
-          ? "Your version replaced the one saved elsewhere."
-          : "Your unsaved changes to this project were dropped.",
+        title: keep ? "Kept your changes" : "Now showing the newer changes",
+        message: keep ? "They replaced the newer changes." : "Your unsaved changes were dropped.",
         color: "green",
       });
     } catch (cause) {
@@ -50,21 +48,21 @@ export default function ProjectConflictResolution({
       closeOnClickOutside={!busy}
       closeOnEscape={!busy}
       withCloseButton={!busy}
-      title="Resolve conflicting changes"
+      title="Your changes conflict with newer ones"
     >
       <Stack>
         <Text>{message}</Text>
         <Text size="sm" c="dimmed">
-          Keep mine replaces the version saved elsewhere. Use the other version drops your unsaved
-          changes to {project ? `"${projectDisplayName(project.state)}"` : "this project"}.{" "}
+          Keep my changes and they replace the newer ones. Use newer changes and yours to{" "}
+          {project ? `"${projectDisplayName(project.state)}"` : "this project"} are dropped.{" "}
         </Text>
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">
           <Button variant="default" loading={busy} onClick={() => void resolve(false)}>
-            Use the other version
+            Use newer changes
           </Button>
           <Button disabled={busy || !project} onClick={() => void resolve(true)}>
-            Keep mine
+            Keep my changes
           </Button>
         </Group>
       </Stack>

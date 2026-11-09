@@ -240,7 +240,7 @@ describe("auth-aware project persistence", () => {
     mocks.auth = { status: "unauthenticated", user: null };
     update();
     await screen.findByText("Guest restore prompt");
-    expect(screen.getByText("An account change interrupted unsaved project edits")).toBeVisible();
+    expect(screen.getByText("Some changes weren't saved before you signed out")).toBeVisible();
     expect(
       screen.queryByRole("button", { name: "Recover unsaved projects" }),
     ).not.toBeInTheDocument();
@@ -257,7 +257,7 @@ describe("auth-aware project persistence", () => {
     ]);
     await waitFor(() =>
       expect(
-        screen.queryByText("An account change interrupted unsaved project edits"),
+        screen.queryByText("Some changes weren't saved before you signed out"),
       ).not.toBeInTheDocument(),
     );
   });

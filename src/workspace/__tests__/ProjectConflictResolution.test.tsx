@@ -29,7 +29,7 @@ function setup() {
       <Provider store={store}>
         <ProjectConflictResolution
           projectId="one"
-          message="Conflicting changes"
+          message="Newer changes also edited"
           onClose={onClose}
         />
       </Provider>
@@ -41,14 +41,14 @@ function setup() {
 describe("project conflict resolution", () => {
   it("keeps this tab's version", async () => {
     const { actions, onClose } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Keep mine" }));
+    fireEvent.click(screen.getByRole("button", { name: "Keep my changes" }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(actions.keepProjectChanges).toHaveBeenCalledWith("one");
   });
 
   it("takes the other version", async () => {
     const { actions, onClose } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Use the other version" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use newer changes" }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(actions.discardProjectChanges).toHaveBeenCalledWith("one");
   });
@@ -56,7 +56,7 @@ describe("project conflict resolution", () => {
   it("stays open and shows why when resolving fails", async () => {
     const { actions, onClose } = setup();
     actions.discardProjectChanges.mockRejectedValueOnce(new Error("changed again"));
-    fireEvent.click(screen.getByRole("button", { name: "Use the other version" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use newer changes" }));
     expect(await screen.findByText("changed again")).toBeVisible();
     expect(onClose).not.toHaveBeenCalled();
   });

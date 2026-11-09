@@ -35,7 +35,7 @@ export default function LocalProjectMigration() {
       notifications.show({
         title: migrate ? "Local projects imported" : "Local projects cleared",
         message: migrate
-          ? "Your local projects are now saved privately to your account."
+          ? "Your projects are now in your account."
           : "The local project copies were removed from this browser.",
         color: migrate ? "green" : "gray",
       });

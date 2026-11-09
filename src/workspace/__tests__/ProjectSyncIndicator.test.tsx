@@ -40,21 +40,21 @@ describe("cloud status indicator", () => {
     act(() =>
       store.set(projectSyncStatusAtom, { state: "pending", message: "Waiting for autosave" }),
     );
-    expect(
-      screen.getByRole("button", { name: "Cloud sync pending" }).querySelector("svg"),
-    ).toHaveClass("tabler-icon-cloud");
+    expect(screen.getByRole("button", { name: "Saving" }).querySelector("svg")).toHaveClass(
+      "tabler-icon-cloud",
+    );
     act(() => store.set(projectSyncStatusAtom, { state: "synced" }));
-    expect(
-      screen.getByRole("button", { name: "Projects synced" }).querySelector("svg"),
-    ).toHaveClass("tabler-icon-cloud-check");
+    expect(screen.getByRole("button", { name: "Saved" }).querySelector("svg")).toHaveClass(
+      "tabler-icon-cloud-check",
+    );
     act(() => store.set(projectSyncStatusAtom, { state: "error", message: "Save failed" }));
-    const button = screen.getByRole("button", { name: "Project sync failed" });
+    const button = screen.getByRole("button", { name: "Not saved" });
     expect(button.querySelector("svg")).toHaveClass("tabler-icon-cloud-x");
     fireEvent.mouseEnter(button);
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Save failed");
     fireEvent.click(button);
     expect(notifications.show).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Project sync failed", color: "red" }),
+      expect.objectContaining({ title: "Not saved", color: "red" }),
     );
   });
 
@@ -63,13 +63,13 @@ describe("cloud status indicator", () => {
     act(() =>
       store.set(projectSyncStatusAtom, {
         state: "error",
-        message: "Conflicting changes to Project Name elsewhere.",
+        message: 'Newer changes also edited "Project Name".',
         projectId: "one",
         noRetry: true,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Project sync failed" }));
-    expect(await screen.findByText("Resolve conflicting changes")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Not saved" }));
+    expect(await screen.findByText("Your changes conflict with newer ones")).toBeVisible();
     expect(notifications.show).not.toHaveBeenCalled();
   });
 });
