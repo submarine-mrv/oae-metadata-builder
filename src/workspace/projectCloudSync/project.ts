@@ -347,12 +347,16 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       assertActive();
       const incoming = parseCloudProject(source.project);
       const workspace = store.get(workspaceAtom);
-      const existing = workspace.projects.find((project) => project.id === incoming.id);
-      // A retry after the save but before the source was removed finds its own earlier copy.
-      if (existing && equalData(existing.state, incoming.state) && acknowledged.has(existing.id)) {
+      // A retry finds the copy an earlier attempt saved, whatever ID that copy got.
+      if (
+        workspace.projects.some(
+          (project) => acknowledged.has(project.id) && equalData(project.state, incoming.state),
+        )
+      ) {
         source.remove();
         continue;
       }
+      const existing = workspace.projects.find((project) => project.id === incoming.id);
       // Always a new project, so importing never changes one already in the account.
       const record = existing ? { ...incoming, id: crypto.randomUUID() } : incoming;
       store.set(workspaceAtom, {

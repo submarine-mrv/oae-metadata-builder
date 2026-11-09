@@ -358,6 +358,23 @@ describe("project cloud synchronization", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
   });
 
+  it("makes one copy when an import with a taken ID is retried after a failed save", async () => {
+    const local = {
+      ...project("one"),
+      state: { ...project("one").state, projectData: { name: "guest" } },
+    };
+    localStorage.setItem(
+      WORKSPACE_KEY,
+      JSON.stringify({ version: 1, activeProjectId: local.id, projects: [local] }),
+    );
+    const { client, rows, sync } = await setup();
+    vi.mocked(client.save).mockRejectedValueOnce(new Error("failed"));
+    await expect(sync.migrateLocalProjects()).rejects.toThrow("failed");
+    await sync.migrateLocalProjects();
+    expect(rows.size).toBe(2);
+    expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
+  });
+
   it("keeps the local copy when the imported project is deleted before it saves", async () => {
     const local = project("local");
     localStorage.setItem(

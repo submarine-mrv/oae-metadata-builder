@@ -200,6 +200,16 @@ describe("project import reconciliation", () => {
       ).toThrow("this project's experiments");
     });
 
+    it("gives a remote addition the project ID changed here", () => {
+      const local = {
+        ...base,
+        state: { ...base.state, projectData: { ...base.state.projectData, project_id: "P2" } },
+      };
+      const merged = reconcileProjectRecord(local, withAddition("remote", true), base);
+      expect(merged.state.experiments[0].formData.project_id).toBe("P2");
+      expect(merged.state.datasets[0].formData.project_id).toBe("P2");
+    });
+
     it("keeps a remote addition's ID and links when nothing was added here", () => {
       const merged = reconcileProjectRecord(base, withAddition("remote", true), base);
       expect(merged.state.experiments.map((experiment) => experiment.id)).toEqual([1]);

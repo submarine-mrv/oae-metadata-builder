@@ -1,6 +1,6 @@
 import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
 import { applyImport, type ImportSelection } from "@/utils/applyImport";
-import { propagateExperimentIdToDatasets } from "@/utils/idPropagation";
+import { propagateExperimentIdToDatasets, propagateProjectId } from "@/utils/idPropagation";
 import type { ProjectRecord, ProjectState } from "./types";
 
 function canonicalize(value: unknown): unknown {
@@ -239,8 +239,9 @@ export function reconcileProjectRecord(
     conflict("this project's experiments");
   if (remoteDatasets.length && additions(local.state.datasets, base.state.datasets).length)
     conflict("this project's datasets");
-  const allExperiments = [...experiments, ...remoteExperiments];
-  const allDatasets = [...datasets, ...remoteDatasets];
+  const projectId = projectData.project_id as string | undefined;
+  const allExperiments = propagateProjectId([...experiments, ...remoteExperiments], projectId);
+  const allDatasets = propagateProjectId([...datasets, ...remoteDatasets], projectId);
   const state = refreshLinkedExperimentIds({
     ...local.state,
     projectData,
