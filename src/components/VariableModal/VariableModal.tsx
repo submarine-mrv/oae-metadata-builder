@@ -196,8 +196,8 @@ export default function VariableModal({
   // edited no longer matches, which is how a later pick knows to leave it alone.
   const cfPrefillRef = useRef<CfPrefilled>({});
 
-  // A refresh would replace the variable list under this draft, which Save writes back by
-  // index, so changes from elsewhere wait until the editor closes.
+  // Syncing would replace the variable list under this draft, which Save writes back by index,
+  // so background saves and refreshes wait until the editor closes.
   const setRefreshPauses = useSetAtom(refreshPausesAtom);
   useEffect(() => {
     if (!opened) return;

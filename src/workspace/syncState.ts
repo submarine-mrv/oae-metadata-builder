@@ -52,7 +52,7 @@ export interface RemoteDeletion {
 }
 
 export const remoteDeletionsAtom = atom<RemoteDeletion[]>([]);
-/** Open editors holding drafts outside the workspace. Refresh waits until none are open. */
+/** Open editors holding drafts outside the workspace. Background sync waits until none are open. */
 export const refreshPausesAtom = atom(0);
 export const projectSyncStatusAtom = atom<ProjectSyncStatus>({ state: "disabled" });
 export const projectSyncActionsAtom = atom<ProjectSyncActions | null>(null);

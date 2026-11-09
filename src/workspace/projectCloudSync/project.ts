@@ -108,6 +108,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (timer !== null) clearTimeout(timer);
     timer = null;
   };
+  const paused = () => store.get(refreshPausesAtom) > 0;
   const currentProject = (id: string) =>
     store.get(workspaceAtom).projects.find((project) => project.id === id);
   const pendingVersionError = () => {
@@ -304,9 +305,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     return inFlight;
   };
 
-  // Background failures are already surfaced by flush through the status atom.
+  // Background failures are already surfaced by flush through the status atom. An open editor
+  // holding a draft pauses background saves too, since a merge would replace its data.
   const backgroundFlush = () => {
-    if (!ready || stopped) return;
+    if (!ready || stopped || paused()) return;
     void flush().catch(() => {});
   };
   const schedule = () => {
@@ -391,7 +393,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   let refreshing: Promise<void> | null = null;
   let lastRefresh = 0;
   /** Checks hashes first and loads projects only when something changed. Skipped while saving. */
-  const paused = () => store.get(refreshPausesAtom) > 0;
   const refresh = (maxAgeMs = 0): Promise<void> => {
     if (!ready || stopped || inFlight || paused()) return Promise.resolve();
     if (refreshing) return refreshing;
@@ -460,6 +461,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       acknowledged.set(id, { project, hash: result.hash });
     } else {
       const local = currentProject(id);
+      const previous = acknowledged.get(id);
       if (row) {
         acknowledged.set(id, row);
         store.set(workspaceAtom, (workspace) => ({
@@ -468,7 +470,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
             project.id === id ? row.project : project,
           ),
         }));
-        if (local) noteDeletions(removedEntities(local, row.project));
+        if (local) noteDeletions(removedEntities(local, row.project, previous?.project));
       } else {
         acknowledged.delete(id);
         store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
@@ -491,7 +493,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   const unsubscribe = store.sub(workspaceAtom, schedule);
   // Catch up as soon as the last editor holding a draft closes.
   const unsubscribePauses = store.sub(refreshPausesAtom, () => {
-    if (!paused()) void refresh();
+    if (!paused()) syncNow();
   });
   const onVisibilityChange = () => {
     if (document.visibilityState === "hidden") backgroundFlush();

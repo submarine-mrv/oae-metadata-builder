@@ -483,6 +483,18 @@ describe("project cloud synchronization", () => {
       );
     });
 
+    it("holds background saves while an editor holds a draft", async () => {
+      vi.useFakeTimers();
+      const { client, store, sync, edit } = await setup();
+      store.set(refreshPausesAtom, 1);
+      edit("while editing");
+      await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS + 100);
+      expect(client.save).not.toHaveBeenCalled();
+      store.set(refreshPausesAtom, 0);
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.waitFor(() => expect(sync.hasPendingChanges()).toBe(false));
+    });
+
     it("skips a refresh that ran within the given age", async () => {
       const { client, sync } = await setup();
       await sync.refresh();
