@@ -46,7 +46,7 @@ export interface RemoteDeletion {
   /** Where it was, so the UI can leave its page. */
   projectId?: string;
   /** Experiments and datasets only. */
-  id?: number;
+  id?: string;
   /** Edits made here since the last save were lost with it. */
   unsavedEdits?: true;
 }

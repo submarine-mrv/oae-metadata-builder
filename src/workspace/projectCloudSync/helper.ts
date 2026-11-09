@@ -56,40 +56,39 @@ export function readRemoteProject(value: unknown, projectId: string, hash: strin
   }
 }
 
+/** A string ID, or a positive integer from drafts made before string IDs. */
+const isEntityId = (id: unknown) =>
+  (typeof id === "string" && id.trim() !== "") || (Number.isSafeInteger(id) && (id as number) >= 1);
+
 /** Validate and migrate stored drafts before they enter the editing atoms. */
 export function parseCloudProject(value: unknown, projectId?: string): ProjectRecord {
   checkProjectVersion(value, projectId);
+  const invalid = () => new Error("The cloud project has an invalid or unsupported format.");
   if (
     !isProjectRecord(value) ||
     !value.id.trim() ||
     (projectId !== undefined && value.id !== projectId) ||
     !Number.isFinite(value.createdAt) ||
     !Number.isFinite(value.updatedAt) ||
-    !Number.isSafeInteger(value.state.nextExperimentId) ||
-    !Number.isSafeInteger(value.state.nextDatasetId) ||
-    value.state.nextExperimentId < 1 ||
-    value.state.nextDatasetId < 1 ||
     [...value.state.experiments, ...value.state.datasets].some(
       (entity) =>
-        !Number.isSafeInteger(entity.id) ||
-        entity.id < 1 ||
+        !isEntityId(entity.id) ||
         typeof entity.name !== "string" ||
         !Number.isFinite(entity.createdAt) ||
         !Number.isFinite(entity.updatedAt),
-    ) ||
-    new Set(value.state.experiments.map((entity) => entity.id)).size !==
-      value.state.experiments.length ||
-    new Set(value.state.datasets.map((entity) => entity.id)).size !== value.state.datasets.length ||
-    value.state.experiments.some((entity) => entity.id >= value.state.nextExperimentId) ||
-    value.state.datasets.some((entity) => entity.id >= value.state.nextDatasetId)
+    )
   ) {
-    throw new Error("The cloud project has an invalid or unsupported format.");
+    throw invalid();
   }
-  return {
-    ...value,
-    schemaVersion: PROJECT_SCHEMA_VERSION,
-    state: parseProjectState(value.state),
-  };
+  const state = parseProjectState(value.state);
+  const unique = (ids: string[]) => new Set(ids).size === ids.length;
+  if (
+    !unique(state.experiments.map((entity) => entity.id)) ||
+    !unique(state.datasets.map((entity) => entity.id))
+  ) {
+    throw invalid();
+  }
+  return { ...value, schemaVersion: PROJECT_SCHEMA_VERSION, state };
 }
 
 export async function hashProject(project: ProjectRecord): Promise<string> {

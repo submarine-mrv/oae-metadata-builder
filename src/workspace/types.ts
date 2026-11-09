@@ -5,12 +5,10 @@ export interface ProjectState {
   projectData: DraftProject;
   experiments: ExperimentRecord[];
   datasets: DatasetRecord[];
-  nextExperimentId: number;
-  nextDatasetId: number;
 }
 
 /** Bump when draft-state migrations change the persisted shape or meaning. */
-export const PROJECT_SCHEMA_VERSION = 1;
+export const PROJECT_SCHEMA_VERSION = 2;
 
 export interface ProjectRecord {
   /** Absent on drafts saved before version protection; interpreted as version 1. */
@@ -50,8 +48,6 @@ export function emptyProjectState(): ProjectState {
     projectData: { project_id: "" },
     experiments: [],
     datasets: [],
-    nextExperimentId: 1,
-    nextDatasetId: 1,
   };
 }
 

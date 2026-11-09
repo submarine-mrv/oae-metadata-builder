@@ -11,14 +11,13 @@ describe("project import reconciliation", () => {
         ...base.state,
         experiments: [
           {
-            id: 1,
+            id: "1",
             name: "E",
             formData: { experiment_id: "E", description },
             createdAt: 1,
             updatedAt: 1,
           },
         ],
-        nextExperimentId: 2,
       },
     });
     expect(() => reconcileProjectRecord(added("A"), added("B"), base)).toThrow(
@@ -31,14 +30,13 @@ describe("project import reconciliation", () => {
       projectData: { project_id: "P", name: "local", description: "retained" },
       experiments: [
         {
-          id: 1,
+          id: "1",
           name: "E",
           formData: { experiment_id: "E", description: "local" },
           createdAt: 1,
           updatedAt: 1,
         },
       ],
-      nextExperimentId: 2,
     });
     const incoming = {
       ...target,
@@ -66,7 +64,7 @@ describe("project import reconciliation", () => {
         ...emptyProjectState(),
         experiments: [
           {
-            id: 1,
+            id: "1",
             name: "E",
             formData: { experiment_id: "E", description: "base", start_datetime: "2026-01-01" },
             createdAt: 1,
@@ -75,15 +73,13 @@ describe("project import reconciliation", () => {
         ],
         datasets: [
           {
-            id: 1,
+            id: "1",
             name: "D",
             formData: { name: "D", description: "base" },
             createdAt: 1,
             updatedAt: 1,
           },
         ],
-        nextExperimentId: 2,
-        nextDatasetId: 2,
       },
       1,
     );
@@ -141,7 +137,7 @@ describe("project import reconciliation", () => {
       const local = edit({}, { description: "local" });
       local.state.datasets[0] = {
         ...local.state.datasets[0],
-        linking: { linkedExperimentInternalId: 1 },
+        linking: { linkedExperimentInternalId: "1" },
         formData: { ...local.state.datasets[0].formData, experiment_id: "E" },
       };
       const merged = reconcileProjectRecord(local, edit({ experiment_id: "E2" }), base);
@@ -160,14 +156,18 @@ describe("project import reconciliation", () => {
   });
 
   describe("experiments added on both sides", () => {
-    const base = newProjectRecord({ ...emptyProjectState(), nextExperimentId: 1 }, 1);
-    const withAddition = (description?: string, linkedDataset = false): ProjectRecord => ({
+    const base = newProjectRecord({ ...emptyProjectState() }, 1);
+    const withAddition = (
+      description?: string,
+      linkedDataset = false,
+      id = "remote-experiment",
+    ): ProjectRecord => ({
       ...base,
       state: {
         ...base.state,
         experiments: [
           {
-            id: 1,
+            id,
             name: "Experiment 1",
             formData: description ? { description } : {},
             createdAt: 2,
@@ -177,27 +177,31 @@ describe("project import reconciliation", () => {
         datasets: linkedDataset
           ? [
               {
-                id: 1,
+                id: `${id}-dataset`,
                 name: "D",
                 formData: { name: "D" },
-                linking: { linkedExperimentInternalId: 1 },
+                linking: { linkedExperimentInternalId: id },
                 createdAt: 2,
                 updatedAt: 2,
               },
             ]
           : [],
-        nextExperimentId: 2,
-        nextDatasetId: linkedDataset ? 2 : 1,
       },
     });
 
-    it("conflicts rather than guess which addition is which", () => {
-      expect(() => reconcileProjectRecord(withAddition(), withAddition(), base)).toThrow(
-        "this project's experiments",
+    it("keeps both sides' additions, each with its own ID and links", () => {
+      const merged = reconcileProjectRecord(
+        withAddition("local", false, "local-experiment"),
+        withAddition("remote", true),
+        base,
       );
-      expect(() =>
-        reconcileProjectRecord(withAddition("local"), withAddition("remote", true), base),
-      ).toThrow("this project's experiments");
+      expect(merged.state.experiments.map((experiment) => experiment.id)).toEqual([
+        "local-experiment",
+        "remote-experiment",
+      ]);
+      expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(
+        "remote-experiment",
+      );
     });
 
     it("gives a remote addition the project ID changed here", () => {
@@ -212,22 +216,25 @@ describe("project import reconciliation", () => {
 
     it("keeps a remote addition's ID and links when nothing was added here", () => {
       const merged = reconcileProjectRecord(base, withAddition("remote", true), base);
-      expect(merged.state.experiments.map((experiment) => experiment.id)).toEqual([1]);
-      expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(1);
-      expect(merged.state.nextExperimentId).toBe(2);
+      expect(merged.state.experiments.map((experiment) => experiment.id)).toEqual([
+        "remote-experiment",
+      ]);
+      expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(
+        "remote-experiment",
+      );
     });
   });
 
   describe("deletes win over concurrent edits", () => {
     const experiment = (description: string) => ({
-      id: 1,
+      id: "1",
       name: "E",
       formData: { experiment_id: "E", description },
       createdAt: 1,
       updatedAt: 1,
     });
     const withExperiments = (experiments: ReturnType<typeof experiment>[]) =>
-      newProjectRecord({ ...emptyProjectState(), experiments, nextExperimentId: 2 }, 1);
+      newProjectRecord({ ...emptyProjectState(), experiments }, 1);
     const base = withExperiments([experiment("original")]);
 
     it("drops an entity deleted elsewhere even though it was edited here", () => {
@@ -249,7 +256,7 @@ describe("project import reconciliation", () => {
       projectData: { project_id: "P" },
       experiments: [
         {
-          id: 1,
+          id: "1",
           name: "E",
           formData: { experiment_id: "E", project_id: "P" },
           createdAt: 1,
@@ -258,7 +265,7 @@ describe("project import reconciliation", () => {
       ],
       datasets: [
         {
-          id: 1,
+          id: "1",
           name: "D",
           formData: { name: "D", project_id: "P" },
           linking: { linkedExperimentInternalId: null },
@@ -266,8 +273,6 @@ describe("project import reconciliation", () => {
           updatedAt: 1,
         },
       ],
-      nextExperimentId: 2,
-      nextDatasetId: 2,
     });
     const incoming = {
       ...target,
@@ -275,15 +280,14 @@ describe("project import reconciliation", () => {
         ...target.state,
         datasets: [
           target.state.datasets[0],
-          { ...target.state.datasets[0], id: 2 },
-          { ...target.state.datasets[0], id: 3, linking: { linkedExperimentInternalId: 1 } },
+          { ...target.state.datasets[0], id: "2" },
+          { ...target.state.datasets[0], id: "3", linking: { linkedExperimentInternalId: "1" } },
         ],
-        nextDatasetId: 4,
       },
     };
     const merged = mergeProjectRecord(target, incoming);
     expect(merged.state.datasets).toHaveLength(3);
-    expect(merged.state.datasets[2].linking?.linkedExperimentInternalId).toBe(1);
+    expect(merged.state.datasets[2].linking?.linkedExperimentInternalId).toBe("1");
     expect(mergeProjectRecord(merged, incoming)).toBe(merged);
   });
 
@@ -291,20 +295,19 @@ describe("project import reconciliation", () => {
     const base = newProjectRecord({
       ...emptyProjectState(),
       experiments: [1, 2].map((id) => ({
-        id,
+        id: String(id),
         name: `E${id}`,
         formData: { experiment_id: `E${id}`, description: "base" },
         createdAt: 1,
         updatedAt: 1,
       })),
-      nextExperimentId: 3,
     });
     const local = {
       ...base,
       state: {
         ...base.state,
         experiments: base.state.experiments.map((experiment) =>
-          experiment.id === 1
+          experiment.id === "1"
             ? { ...experiment, formData: { ...experiment.formData, description: "local" } }
             : experiment,
         ),
@@ -315,7 +318,7 @@ describe("project import reconciliation", () => {
       state: {
         ...base.state,
         experiments: base.state.experiments.map((experiment) =>
-          experiment.id === 2
+          experiment.id === "2"
             ? { ...experiment, formData: { ...experiment.formData, description: "remote" } }
             : experiment,
         ),
@@ -353,7 +356,7 @@ describe("project import reconciliation", () => {
       projectData: { project_id: "P" },
       experiments: [
         {
-          id: 5,
+          id: "5",
           name: "E",
           formData: { experiment_id: "E", project_id: "P" },
           createdAt: 1,
@@ -362,16 +365,14 @@ describe("project import reconciliation", () => {
       ],
       datasets: [
         {
-          id: 7,
+          id: "7",
           name: "D",
           formData: { name: "D", experiment_id: "E", project_id: "P" },
-          linking: { linkedExperimentInternalId: 5 },
+          linking: { linkedExperimentInternalId: "5" },
           createdAt: 1,
           updatedAt: 1,
         },
       ],
-      nextExperimentId: 6,
-      nextDatasetId: 8,
     });
     const merged = mergeProjectRecord(target, incoming);
     expect(merged.state.datasets[0].linking?.linkedExperimentInternalId).toBe(

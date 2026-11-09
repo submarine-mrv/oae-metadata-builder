@@ -176,7 +176,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       });
       const future = {
         id: first.id,
-        schemaVersion: 2,
+        schemaVersion: 3,
         newEnvelopeField: { keep: true },
         state: { newDraftField: ["must survive"], nextExperimentId: "new representation" },
       };
@@ -213,7 +213,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         .single();
       expect(supported.error).toBeNull();
       expect(supported.data?.state.state.projectData.name).toBe("old device edit");
-      expect(await client.load()).toContainEqual({ projectId: first.id, schemaVersion: 2 });
+      expect(await client.load()).toContainEqual({ projectId: first.id, schemaVersion: 3 });
     });
   },
 );

@@ -18,7 +18,7 @@ export function equalData(a: unknown, b: unknown): boolean {
   return JSON.stringify(canonicalize(a)) === JSON.stringify(canonicalize(b));
 }
 
-function matchesExperiment(target: ProjectState, experimentId: unknown, recordId: number) {
+function matchesExperiment(target: ProjectState, experimentId: unknown, recordId: string) {
   return target.experiments.find((experiment) =>
     typeof experimentId === "string" && experimentId
       ? experiment.formData.experiment_id === experimentId || experiment.name === experimentId
@@ -63,7 +63,7 @@ function importSelection(target: ProjectState, incoming: ProjectState): ImportSe
       const linkedExperiment = incoming.experiments.find(
         (experiment) => experiment.id === linkedId,
       );
-      const linkedKey = typeof linkedId === "number" ? importKeys.get(linkedId) : undefined;
+      const linkedKey = typeof linkedId === "string" ? importKeys.get(linkedId) : undefined;
       const targetExperiment = linkedExperiment
         ? matchesExperiment(target, linkedExperiment.formData.experiment_id, linkedExperiment.id)
         : undefined;
@@ -171,8 +171,8 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   return target;
 }
 
-/** Entities only one side has; the other side's IDs must not collide with them. */
-function additions<T extends { id: number }>(side: T[], base: T[]): T[] {
+/** Entities added on one side since the baseline. */
+function additions<T extends { id: string }>(side: T[], base: T[]): T[] {
   return side.filter((entity) => !base.some((original) => original.id === entity.id));
 }
 
@@ -199,7 +199,7 @@ function refreshLinkedExperimentIds(state: ProjectState): ProjectState {
 
 /**
  * Reconciles disjoint changes; overlapping edits remain unsaved instead of being overwritten.
- * Remote additions keep their IDs, since the remote copy becomes the next baseline.
+ * Additions on either side keep their UUIDs, so both sides' new entities are kept.
  */
 export function reconcileProjectRecord(
   local: ProjectRecord,
@@ -232,12 +232,6 @@ export function reconcileProjectRecord(
       conflict(`the experiment "${incoming.name}"`);
     }
   }
-  // Both sides number additions from the same counter, so concurrent additions share IDs.
-  // Internal IDs become UUIDs with collaboration; until then, keep both sides by conflicting.
-  if (remoteExperiments.length && additions(local.state.experiments, base.state.experiments).length)
-    conflict("this project's experiments");
-  if (remoteDatasets.length && additions(local.state.datasets, base.state.datasets).length)
-    conflict("this project's datasets");
   const projectId = projectData.project_id as string | undefined;
   const allExperiments = propagateProjectId([...experiments, ...remoteExperiments], projectId);
   const allDatasets = propagateProjectId([...datasets, ...remoteDatasets], projectId);
@@ -246,16 +240,6 @@ export function reconcileProjectRecord(
     projectData,
     experiments: allExperiments,
     datasets: allDatasets,
-    nextExperimentId: Math.max(
-      local.state.nextExperimentId,
-      remote.state.nextExperimentId,
-      ...allExperiments.map((experiment) => experiment.id + 1),
-    ),
-    nextDatasetId: Math.max(
-      local.state.nextDatasetId,
-      remote.state.nextDatasetId,
-      ...allDatasets.map((dataset) => dataset.id + 1),
-    ),
   });
   if (equalData(state, local.state)) return local;
   return {

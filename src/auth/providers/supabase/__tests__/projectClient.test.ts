@@ -76,18 +76,18 @@ describe("owner-bound project Supabase client", () => {
   it("reports future projects without parsing their state or hiding supported projects", async () => {
     mocks.rows.push({
       project_id: "future",
-      state: { id: "future", schemaVersion: 2, state: { futureField: true } },
+      state: { id: "future", schemaVersion: 3, state: { futureField: true } },
       state_hash: "future-hash",
     });
     expect(await createProjectCloudClient("owner").load()).toEqual([
       { project, hash: "hash" },
-      { projectId: "future", schemaVersion: 2 },
+      { projectId: "future", schemaVersion: 3 },
     ]);
   });
 
   it("rejects newer local formats before sending a write", async () => {
     await expect(
-      createProjectCloudClient("owner").save({ ...project, schemaVersion: 2 }, "next", "hash"),
+      createProjectCloudClient("owner").save({ ...project, schemaVersion: 3 }, "next", "hash"),
     ).rejects.toThrow("Reload");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });

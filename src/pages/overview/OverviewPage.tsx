@@ -95,19 +95,19 @@ export default function OverviewPage() {
     navigate({ to: "/project" });
   };
 
-  const handleEditExperiment = (id: number) => {
+  const handleEditExperiment = (id: string) => {
     setActiveExperiment(id);
     navigate({ to: "/experiment" });
   };
 
-  const handleDeleteExperiment = (id: number, e: React.MouseEvent) => {
+  const handleDeleteExperiment = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this experiment?")) {
       deleteExperiment(id);
     }
   };
 
-  const handleDuplicateExperiment = (id: number, e: React.MouseEvent) => {
+  const handleDuplicateExperiment = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     duplicateExperiment(id);
   };
@@ -117,19 +117,19 @@ export default function OverviewPage() {
     navigate({ to: "/dataset" });
   };
 
-  const handleEditDataset = (id: number) => {
+  const handleEditDataset = (id: string) => {
     setActiveDataset(id);
     navigate({ to: "/dataset" });
   };
 
-  const handleDeleteDataset = (id: number, e: React.MouseEvent) => {
+  const handleDeleteDataset = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this dataset?")) {
       deleteDataset(id);
     }
   };
 
-  const handleDuplicateDataset = (id: number, e: React.MouseEvent) => {
+  const handleDuplicateDataset = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     duplicateDataset(id);
   };

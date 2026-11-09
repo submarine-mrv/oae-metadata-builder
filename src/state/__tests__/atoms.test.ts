@@ -18,15 +18,15 @@ import {
 } from "../atoms";
 import { hydrate } from "../store";
 
-function experiment(id: number): ExperimentRecord {
+function experiment(id: string): ExperimentRecord {
   return { id, name: `Experiment ${id}`, formData: {}, createdAt: 0, updatedAt: 0 };
 }
 
-function dataset(id: number): DatasetRecord {
+function dataset(id: string): DatasetRecord {
   return { id, name: `Dataset ${id}`, formData: {}, createdAt: 0, updatedAt: 0 };
 }
 
-function withEntities(experimentIds: number[], datasetIds: number[] = []): ProjectState {
+function withEntities(experimentIds: string[], datasetIds: string[] = []): ProjectState {
   return {
     ...emptyProjectState(),
     experiments: experimentIds.map(experiment),
@@ -64,7 +64,7 @@ describe("projectStateAtom", () => {
   it("ignores writes with no active project", () => {
     const store = createStore();
     const before = store.get(workspaceAtom);
-    store.set(projectStateAtom, withEntities([1]));
+    store.set(projectStateAtom, withEntities(["1"]));
     expect(store.get(workspaceAtom)).toBe(before);
   });
 
@@ -73,12 +73,11 @@ describe("projectStateAtom", () => {
     const b = newProjectRecord(emptyProjectState(), 100);
     const store = storeWith(a, b);
 
-    store.set(projectStateAtom, withEntities([1]));
-    store.set(projectStateAtom, (prev) => ({ ...prev, nextExperimentId: 9 }));
+    store.set(projectStateAtom, withEntities(["1"]));
+    store.set(projectStateAtom, (prev) => ({ ...prev }));
 
     const byId = (id: string) => store.get(workspaceAtom).projects.find((p) => p.id === id);
-    expect(byId(b.id)?.state.experiments.map((e) => e.id)).toEqual([1]);
-    expect(byId(b.id)?.state.nextExperimentId).toBe(9);
+    expect(byId(b.id)?.state.experiments.map((e) => e.id)).toEqual(["1"]);
     expect(byId(a.id)?.state).toBe(a.state);
     expect(store.get(projectStateAtom)).toBe(byId(b.id)?.state);
   });
@@ -86,9 +85,9 @@ describe("projectStateAtom", () => {
 
 describe("active entity id atoms", () => {
   it("read the first entity of the active project by default", () => {
-    const store = storeWith(newProjectRecord(withEntities([3, 4], [7])));
-    expect(store.get(activeExperimentIdAtom)).toBe(3);
-    expect(store.get(activeDatasetIdAtom)).toBe(7);
+    const store = storeWith(newProjectRecord(withEntities(["3", "4"], ["7"])));
+    expect(store.get(activeExperimentIdAtom)).toBe("3");
+    expect(store.get(activeDatasetIdAtom)).toBe("7");
   });
 
   it("read null with no project or no entities", () => {
@@ -99,42 +98,42 @@ describe("active entity id atoms", () => {
   });
 
   it("keep a selection within the project it was made in", () => {
-    const a = newProjectRecord(withEntities([1, 2], [5, 6]));
-    const b = newProjectRecord(withEntities([8, 9]));
+    const a = newProjectRecord(withEntities(["1", "2"], ["5", "6"]));
+    const b = newProjectRecord(withEntities(["8", "9"]));
     const store = storeWith(a, b);
     store.set(workspaceAtom, (ws) => switchProject(ws, a.id));
 
-    store.set(activeExperimentIdAtom, 2);
-    store.set(activeDatasetIdAtom, 6);
-    expect(store.get(activeExperimentIdAtom)).toBe(2);
-    expect(store.get(activeDatasetIdAtom)).toBe(6);
+    store.set(activeExperimentIdAtom, "2");
+    store.set(activeDatasetIdAtom, "6");
+    expect(store.get(activeExperimentIdAtom)).toBe("2");
+    expect(store.get(activeDatasetIdAtom)).toBe("6");
 
     store.set(workspaceAtom, (ws) => switchProject(ws, b.id));
-    expect(store.get(activeExperimentIdAtom)).toBe(8);
+    expect(store.get(activeExperimentIdAtom)).toBe("8");
     expect(store.get(activeDatasetIdAtom)).toBeNull();
   });
 
   it("read null once the selection is cleared", () => {
-    const store = storeWith(newProjectRecord(withEntities([1, 2])));
+    const store = storeWith(newProjectRecord(withEntities(["1", "2"])));
     store.set(activeExperimentIdAtom, null);
     expect(store.get(activeExperimentIdAtom)).toBeNull();
   });
 
   it("fall back to the first entity once the selected one is deleted", () => {
-    const store = storeWith(newProjectRecord(withEntities([1, 2])));
-    store.set(activeExperimentIdAtom, 2);
+    const store = storeWith(newProjectRecord(withEntities(["1", "2"])));
+    store.set(activeExperimentIdAtom, "2");
     store.set(projectStateAtom, (prev) => ({
       ...prev,
-      experiments: prev.experiments.filter((e) => e.id !== 2),
+      experiments: prev.experiments.filter((e) => e.id !== "2"),
     }));
-    expect(store.get(activeExperimentIdAtom)).toBe(1);
+    expect(store.get(activeExperimentIdAtom)).toBe("1");
   });
 });
 
 describe("hydrate", () => {
   it("loads the saved workspace and parses each project", () => {
     const legacy = {
-      ...experiment(1),
+      ...experiment("1"),
       experiment_types: ["baseline"],
     } as unknown as ExperimentRecord;
     const record = newProjectRecord({ ...emptyProjectState(), experiments: [legacy] }, 100);

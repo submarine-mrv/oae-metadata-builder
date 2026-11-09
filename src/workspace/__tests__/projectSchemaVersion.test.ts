@@ -16,16 +16,16 @@ describe("draft schema versions", () => {
   it("migrates unversioned drafts and stamps new records", () => {
     const record = newProjectRecord();
     const { schemaVersion: _, ...unversioned } = record;
-    expect(record.schemaVersion).toBe(1);
+    expect(record.schemaVersion).toBe(2);
     expect(parseCloudProject(unversioned)).toEqual(record);
   });
 
   it("checks future versions before interpreting their unknown state", () => {
-    const future = { id: "future", schemaVersion: 2, state: { unknown: true } };
+    const future = { id: "future", schemaVersion: 3, state: { unknown: true } };
     expect(() => parseCloudProject(future)).toThrow(UnsupportedProjectVersionError);
     expect(readRemoteProject(future, "future", "hash")).toEqual({
       projectId: "future",
-      schemaVersion: 2,
+      schemaVersion: 3,
     });
     expect(readRemoteProject(future, "wrong", "hash")).toEqual({
       projectId: "wrong",
@@ -52,7 +52,7 @@ describe("draft schema versions", () => {
     const client: ProjectCloudClient = {
       hashes: async () => new Map(),
       load: async () => [
-        { projectId: "future", schemaVersion: 2 },
+        { projectId: "future", schemaVersion: 3 },
         { project, hash: "initial" },
       ],
       save,

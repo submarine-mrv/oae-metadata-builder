@@ -36,18 +36,18 @@ function projectAction<A extends unknown[]>(
   });
 }
 
-type SelectionAtom = WritableAtom<number | null, [number | null], void>;
+type SelectionAtom = WritableAtom<string | null, [string | null], void>;
 
 /**
- * Applies a reducer that creates a record and returns the record's id, or 0
- * with no active project. With `select`, the new record is also selected.
+ * Applies a reducer that creates a record and returns the record's id, or an
+ * empty string with no active project. With `select`, the new record is also selected.
  */
 function projectActionWithId<A extends unknown[]>(
   reducer: (state: ProjectState, ...args: A) => reducers.WithId,
   select?: SelectionAtom,
 ) {
-  return atom(null, (get, set, ...args: A): number => {
-    if (!get(activeProjectAtom)) return 0;
+  return atom(null, (get, set, ...args: A): string => {
+    if (!get(activeProjectAtom)) return "";
     const { state, id } = reducer(get(projectStateAtom), ...args);
     set(projectStateAtom, state);
     if (id && select) set(select, id);

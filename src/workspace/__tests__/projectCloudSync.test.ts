@@ -207,7 +207,7 @@ describe("project cloud synchronization", () => {
   });
 
   it("records experiments deleted elsewhere and flags the one edited here", async () => {
-    const experiment = (id: number, name: string) => ({
+    const experiment = (id: string, name: string) => ({
       id,
       name,
       formData: { experiment_id: name },
@@ -219,8 +219,7 @@ describe("project cloud synchronization", () => {
       ...base,
       state: {
         ...base.state,
-        experiments: [experiment(1, "Site A"), experiment(2, "Site B")],
-        nextExperimentId: 3,
+        experiments: [experiment("1", "Site A"), experiment("2", "Site B")],
       },
     };
     const { rows, store, sync } = await setup([withExperiments]);
@@ -233,15 +232,15 @@ describe("project cloud synchronization", () => {
       updateProject(workspace, "one", {
         ...loaded.state,
         experiments: loaded.state.experiments.map((item) =>
-          item.id === 1 ? { ...item, formData: { experiment_id: "Site A edited" } } : item,
+          item.id === "1" ? { ...item, formData: { experiment_id: "Site A edited" } } : item,
         ),
       }),
     );
     await sync.flush();
     expect(store.get(workspaceAtom).projects[0].state.experiments).toEqual([]);
     expect(store.get(remoteDeletionsAtom)).toEqual([
-      { type: "experiment", name: "Site A", projectId: "one", id: 1, unsavedEdits: true },
-      { type: "experiment", name: "Site B", projectId: "one", id: 2 },
+      { type: "experiment", name: "Site A", projectId: "one", id: "1", unsavedEdits: true },
+      { type: "experiment", name: "Site B", projectId: "one", id: "2" },
     ]);
   });
 
@@ -601,10 +600,11 @@ describe("project cloud synchronization", () => {
   it("rejects malformed or mismatched cloud records", () => {
     expect(() => parseCloudProject({})).toThrow("invalid");
     expect(() => parseCloudProject(project(), "other")).toThrow("invalid");
+    const twin = { id: "same", name: "E", formData: {}, createdAt: 1, updatedAt: 1 };
     expect(() =>
       parseCloudProject({
         ...project(),
-        state: { ...emptyProjectState(), nextDatasetId: -1 },
+        state: { ...emptyProjectState(), experiments: [twin, twin] },
       }),
     ).toThrow("invalid");
   });

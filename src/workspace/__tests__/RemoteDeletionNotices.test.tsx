@@ -22,7 +22,7 @@ describe("remote deletion notices", () => {
 
   function setup() {
     const store = createStore();
-    const experiment = (id: number) => ({
+    const experiment = (id: string) => ({
       id,
       name: `E${id}`,
       formData: { experiment_id: `E${id}` },
@@ -33,8 +33,7 @@ describe("remote deletion notices", () => {
       ...newProjectRecord(
         {
           ...emptyProjectState(),
-          experiments: [experiment(1), experiment(2)],
-          nextExperimentId: 3,
+          experiments: [experiment("1"), experiment("2")],
         },
         1,
       ),
@@ -88,13 +87,13 @@ describe("remote deletion notices", () => {
   it("leaves the page of the open experiment when it is deleted, and stays otherwise", () => {
     router.pathname = "/experiment";
     const store = setup();
-    act(() => store.set(activeExperimentIdAtom, 2));
+    act(() => store.set(activeExperimentIdAtom, "2"));
     act(() =>
-      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E1", projectId: "p", id: 1 }]),
+      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E1", projectId: "p", id: "1" }]),
     );
     expect(router.navigate).not.toHaveBeenCalled();
     act(() =>
-      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E2", projectId: "p", id: 2 }]),
+      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E2", projectId: "p", id: "2" }]),
     );
     expect(router.navigate).toHaveBeenCalledWith({ to: "/overview" });
   });

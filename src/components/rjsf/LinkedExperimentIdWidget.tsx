@@ -98,7 +98,7 @@ export default function LinkedExperimentIdWidget<
       });
       onChange(undefined);
     } else if (selectedValue) {
-      const expInternalId = parseInt(selectedValue, 10);
+      const expInternalId = selectedValue;
       const exp = experiments.find((e) => e.id === expInternalId);
       const expId = (exp?.formData?.experiment_id as string) || "";
 

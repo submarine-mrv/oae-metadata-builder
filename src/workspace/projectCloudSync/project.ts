@@ -49,7 +49,7 @@ function removedEntities(
   after: ProjectRecord,
   baseline?: ProjectRecord,
 ): RemoteDeletion[] {
-  const gone = <T extends { id: number; name: string }>(
+  const gone = <T extends { id: string; name: string }>(
     type: "experiment" | "dataset",
     from: T[],
     to: T[],
