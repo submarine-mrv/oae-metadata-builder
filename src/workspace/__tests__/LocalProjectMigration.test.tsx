@@ -19,6 +19,9 @@ describe("local project consent", () => {
   function setup(migrate = vi.fn().mockResolvedValue(undefined)) {
     const store = createStore();
     store.set(projectSyncActionsAtom, {
+      refresh: vi.fn(),
+      keepProjectChanges: vi.fn(),
+      discardProjectChanges: vi.fn(),
       flush: vi.fn(),
       remove: vi.fn(),
       stop: vi.fn(),

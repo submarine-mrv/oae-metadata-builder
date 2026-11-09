@@ -155,7 +155,7 @@ describe("project import reconciliation", () => {
           edit({ description: "remote" }),
           base,
         ),
-      ).toThrow('"description" in experiment "E"');
+      ).toThrow('Experiment Description in experiment "E"');
     });
   });
 

@@ -81,6 +81,21 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         return readRemoteProject(row.state, row.project_id, row.state_hash);
       });
     },
+    async hashes() {
+      const { data, error } = await client
+        .from("metadata_builder_sessions")
+        .select("project_id, state_hash")
+        .eq("user_id", userId);
+      if (error) throw new Error(`Could not check cloud projects: ${error.message}`);
+      return new Map(
+        (data ?? []).map((row) => {
+          if (typeof row.project_id !== "string" || typeof row.state_hash !== "string") {
+            throw new Error("Supabase returned an invalid cloud project row.");
+          }
+          return [row.project_id, row.state_hash];
+        }),
+      );
+    },
     async save(project, hash, expectedHash) {
       checkProjectVersion(project);
       const state = { ...project, schemaVersion: project.schemaVersion ?? PROJECT_SCHEMA_VERSION };

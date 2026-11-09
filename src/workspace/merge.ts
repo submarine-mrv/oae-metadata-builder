@@ -1,5 +1,6 @@
 import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
 import { applyImport, type ImportSelection } from "@/utils/applyImport";
+import { fieldLabel } from "@/utils/fieldLabels";
 import { propagateExperimentIdToDatasets, propagateProjectId } from "@/utils/idPropagation";
 import type { ProjectRecord, ProjectState } from "./types";
 
@@ -98,9 +99,7 @@ export function mergeProjectRecord(target: ProjectRecord, incoming: ProjectRecor
 }
 
 function conflict(field: string): never {
-  throw new Error(
-    `Conflicting changes to ${field} elsewhere. Your edits are still in memory; export them before reloading.`,
-  );
+  throw new Error(`Conflicting changes to ${field} elsewhere.`);
 }
 
 /** With no shared baseline, only an identical copy can be adopted safely. */
@@ -157,7 +156,7 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
       ) {
         conflict(`the type of ${kind} "${original.name}"`);
       }
-      const label = (key: string) => `"${key}" in ${kind} "${original.name}"`;
+      const label = (key: string) => `${fieldLabel(kind, key)} in ${kind} "${original.name}"`;
       const merged = {
         ...a,
         ...mergeFields(details(a), details(b), details(original), label),
@@ -211,7 +210,7 @@ export function reconcileProjectRecord(
     local.state.projectData,
     remote.state.projectData,
     base.state.projectData,
-    (key) => `project field "${key}"`,
+    (key) => fieldLabel("project", key),
   );
   const experiments = reconcileEntities(
     "experiment",

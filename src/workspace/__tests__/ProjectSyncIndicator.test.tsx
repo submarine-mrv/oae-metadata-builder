@@ -57,4 +57,19 @@ describe("cloud status indicator", () => {
       expect.objectContaining({ title: "Project sync failed", color: "red" }),
     );
   });
+
+  it("opens the conflict dialog for a conflict instead of a notification", async () => {
+    const store = setup();
+    act(() =>
+      store.set(projectSyncStatusAtom, {
+        state: "error",
+        message: "Conflicting changes to Project Name elsewhere.",
+        projectId: "one",
+        noRetry: true,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Project sync failed" }));
+    expect(await screen.findByText("Resolve conflicting changes")).toBeVisible();
+    expect(notifications.show).not.toHaveBeenCalled();
+  });
 });

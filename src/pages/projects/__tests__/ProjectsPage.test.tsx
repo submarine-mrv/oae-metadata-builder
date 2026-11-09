@@ -85,6 +85,9 @@ describe("ProjectsPage", () => {
       store.set(workspaceAtom, (workspace) => deleteProject(workspace, projectId));
     });
     store.set(projectSyncActionsAtom, {
+      refresh: vi.fn(),
+      keepProjectChanges: vi.fn(),
+      discardProjectChanges: vi.fn(),
       flush: vi.fn(),
       migrateLocalProjects: vi.fn(),
       stop: vi.fn(),

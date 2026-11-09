@@ -29,8 +29,16 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - Stop removes listeners/timers and ignores late responses after account changes.
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
-Hover for details. Only the failed state is clickable: it shows the error, with
-Retry save unless the cause is a conflict or a newer-format project.
+Hover for details. Only the failed state is clickable. A conflict opens a dialog
+with two choices, keep mine or use the other version, and a link to export first. Other errors show the message, with Retry save unless the project has a
+newer format.
+
+Tabs pick up changes made elsewhere by comparing hashes, loading projects only
+when one differs. Checks run on project switch, opening All projects, page
+changes within a project (at most every 10 s), returning to the tab, coming back
+online, and every 60 s while visible; never while a save runs. A project with
+unsaved edits keeps them and merges the newer copy on its next save. Projects
+added or deleted elsewhere appear or disappear, with the usual notice.
 
 After login, a prompt offers to import local projects or explicitly clear their
 copies. Imports remove only acknowledged, unchanged sources. Errors retain the
@@ -46,4 +54,3 @@ once, so a failed save retries the live draft rather than importing it again.
 
 Run the workspace, project page, import, and auth lifecycle tests plus
 `npm run build`. The opt-in local Supabase integration test uses disposable users.
-Cross-window refresh and explicit conflict discard are the next layer.

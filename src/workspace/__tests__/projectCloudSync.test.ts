@@ -32,6 +32,7 @@ function clientWith(projects: ProjectRecord[] = []) {
   const rows = new Map(projects.map((record) => [record.id, { project: record, hash: record.id }]));
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
+    hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, row.hash]))),
     save: vi.fn(async (record, hash, expected) => {
       const current = rows.get(record.id);
       if ((current?.hash ?? null) !== expected) {
@@ -199,7 +200,9 @@ describe("project cloud synchronization", () => {
     await sync.flush();
     expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["two"]);
     expect([...rows.keys()]).toEqual(["two"]);
-    expect(store.get(remoteDeletionsAtom)).toEqual([{ type: "project", name: "keep me" }]);
+    expect(store.get(remoteDeletionsAtom)).toEqual([
+      { type: "project", name: "keep me", unsavedEdits: true },
+    ]);
     expect(sync.hasPendingChanges()).toBe(false);
   });
 
@@ -416,6 +419,96 @@ describe("project cloud synchronization", () => {
     vi.mocked(client.save).mockRejectedValue(new Error("save failed"));
     await sync.remove("two");
     expect(rows.has("two")).toBe(false);
+  });
+
+  describe("refresh", () => {
+    const changedElsewhere = (name: string, id = "one"): ProjectRecord => ({
+      ...project(id),
+      updatedAt: 500,
+      state: { ...project(id).state, projectData: { project_id: id, name } },
+    });
+
+    it("loads projects only when a hash changed", async () => {
+      const { client, sync } = await setup();
+      await sync.refresh();
+      expect(client.hashes).toHaveBeenCalledOnce();
+      expect(client.load).toHaveBeenCalledOnce();
+    });
+
+    it("applies a change made elsewhere to a project without unsaved edits", async () => {
+      const { rows, store, sync } = await setup();
+      rows.set("one", { project: changedElsewhere("remote"), hash: "remote" });
+      await sync.refresh();
+      expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("remote");
+      expect(sync.hasPendingChanges()).toBe(false);
+    });
+
+    it("leaves a project with unsaved edits for its next save to merge", async () => {
+      const { rows, store, sync, edit } = await setup();
+      edit("local");
+      rows.set("one", { project: changedElsewhere("remote"), hash: "remote" });
+      await sync.refresh();
+      expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("local");
+    });
+
+    it("adds a project created elsewhere", async () => {
+      const { rows, store, sync } = await setup();
+      rows.set("two", { project: project("two"), hash: "two" });
+      await sync.refresh();
+      expect(store.get(workspaceAtom).projects.map((record) => record.id)).toEqual(["one", "two"]);
+    });
+
+    it("removes a project deleted elsewhere and says whether edits were lost", async () => {
+      const { rows, store, sync, edit } = await setup([project(), project("two")]);
+      edit("unsaved", "two");
+      rows.delete("one");
+      rows.delete("two");
+      await sync.refresh();
+      expect(store.get(workspaceAtom).projects).toEqual([]);
+      expect(store.get(remoteDeletionsAtom)).toEqual([
+        { type: "project", name: "one" },
+        { type: "project", name: "unsaved", unsavedEdits: true },
+      ]);
+    });
+
+    it("skips a refresh that ran within the given age", async () => {
+      const { client, sync } = await setup();
+      await sync.refresh();
+      await sync.refresh(10_000);
+      expect(client.hashes).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("conflict resolution", () => {
+    async function conflicted() {
+      const context = await setup();
+      context.rows.set("one", {
+        project: {
+          ...project(),
+          updatedAt: 500,
+          state: { ...project().state, projectData: { project_id: "one", name: "remote" } },
+        },
+        hash: "remote",
+      });
+      context.edit("local");
+      await expect(context.sync.flush()).rejects.toThrow("Conflicting changes");
+      return context;
+    }
+
+    it("keeps this tab's version over the other one", async () => {
+      const { rows, store, sync } = await conflicted();
+      await sync.keepProjectChanges("one");
+      expect(rows.get("one")?.project.state.projectData.name).toBe("local");
+      expect(store.get(projectSyncStatusAtom).state).toBe("synced");
+    });
+
+    it("takes the other version and drops this tab's edits", async () => {
+      const { store, sync } = await conflicted();
+      await sync.discardProjectChanges("one");
+      expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("remote");
+      expect(sync.hasPendingChanges()).toBe(false);
+      expect(store.get(projectSyncStatusAtom).state).toBe("synced");
+    });
   });
 
   it("stops an old account's in-flight result from changing the current store", async () => {

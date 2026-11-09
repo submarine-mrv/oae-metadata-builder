@@ -10,9 +10,7 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 
 export function remoteDeletionMessage(deletions: RemoteDeletion[]): string {
   const removed = `${capitalize(deletions.map(label).join(", "))} ${deletions.length === 1 ? "was" : "were"} deleted elsewhere.`;
-  const edited = deletions.filter(
-    (deletion) => deletion.unsavedEdits || deletion.type === "project",
-  );
+  const edited = deletions.filter((deletion) => deletion.unsavedEdits);
   if (!edited.length) return removed;
   const target = deletions.length === 1 ? "it" : edited.map(label).join(", ");
   return `${removed} Your recent edits to ${target} weren't saved.`;

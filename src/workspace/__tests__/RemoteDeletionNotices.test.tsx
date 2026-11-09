@@ -53,7 +53,10 @@ describe("remote deletion notices", () => {
     expect(remoteDeletionMessage([{ type: "experiment", name: "Site A" }])).toBe(
       'Experiment "Site A" was deleted elsewhere.',
     );
-    expect(remoteDeletionMessage([{ type: "project", name: "Shared" }])).toBe(
+    expect(remoteDeletionMessage([{ type: "project", name: "Plain" }])).toBe(
+      'Project "Plain" was deleted elsewhere.',
+    );
+    expect(remoteDeletionMessage([{ type: "project", name: "Shared", unsavedEdits: true }])).toBe(
       'Project "Shared" was deleted elsewhere. Your recent edits to it weren\'t saved.',
     );
     expect(

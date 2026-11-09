@@ -32,6 +32,10 @@ export interface ProjectSyncActions {
   flush(): Promise<void>;
   migrateLocalProjects(): Promise<void>;
   remove(projectId: string): Promise<void>;
+  /** Picks up changes made elsewhere; `maxAgeMs` skips it if one ran that recently. */
+  refresh(maxAgeMs?: number): Promise<void>;
+  keepProjectChanges(projectId: string): Promise<void>;
+  discardProjectChanges(projectId: string): Promise<void>;
   stop(): void;
 }
 
@@ -42,7 +46,7 @@ export interface RemoteDeletion {
   /** Experiments and datasets only: where it was, so the UI can leave its page. */
   projectId?: string;
   id?: number;
-  /** Set for experiments and datasets edited here. A project is only removed while saving edits to it. */
+  /** Edits made here since the last save were lost with it. */
   unsavedEdits?: true;
 }
 
