@@ -17,15 +17,9 @@ describe("project transition save boundary", () => {
     expect(action).toHaveBeenCalledOnce();
   });
 
-  it("waits for cloud acknowledgement before changing projects", async () => {
+  it("changes projects at once and saves in the background", () => {
     const store = createTestStore();
-    let acknowledge!: () => void;
-    const flush = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          acknowledge = resolve;
-        }),
-    );
+    const flush = vi.fn(() => new Promise<void>(() => {}));
     store.set(projectSyncActionsAtom, {
       flush,
       stop: vi.fn(),
@@ -35,29 +29,26 @@ describe("project transition save boundary", () => {
     const action = vi.fn();
     const { result } = renderHook(useProjectTransition, { wrapper: makeWrapper(store) });
     act(() => result.current(action));
-    expect(action).not.toHaveBeenCalled();
-    await act(async () => acknowledge());
     expect(action).toHaveBeenCalledOnce();
+    expect(flush).toHaveBeenCalledOnce();
   });
 
-  it("retains the project and reports a failed save rather than navigating", async () => {
+  it("changes projects even when the save fails, leaving the error to the sync icon", async () => {
     const store = createTestStore();
+    const flush = vi.fn().mockRejectedValue(new Error("not saved"));
     store.set(projectSyncActionsAtom, {
-      flush: vi.fn().mockRejectedValue(new Error("not saved")),
+      flush,
       stop: vi.fn(),
       migrateLocalProjects: vi.fn(),
       remove: vi.fn(),
     });
+    const status = store.get(projectSyncStatusAtom);
     const action = vi.fn();
     const { result } = renderHook(useProjectTransition, { wrapper: makeWrapper(store) });
-    act(() => result.current(action));
-    await waitFor(() =>
-      expect(store.get(projectSyncStatusAtom)).toEqual({
-        state: "error",
-        message: "not saved",
-      }),
-    );
-    expect(action).not.toHaveBeenCalled();
+    await act(async () => result.current(action));
+    expect(action).toHaveBeenCalledOnce();
+    expect(store.get(projectSyncStatusAtom)).toBe(status);
+    expect(notifications.show).not.toHaveBeenCalled();
   });
 
   it("awaits conditional deletion before removing a project from Jotai", async () => {

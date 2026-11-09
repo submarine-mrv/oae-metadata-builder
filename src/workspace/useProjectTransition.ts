@@ -4,7 +4,10 @@ import { workspaceAtom } from "@/state/atoms";
 import { projectSyncActionsAtom, projectSyncErrorStatus, projectSyncStatusAtom } from "./syncState";
 import { deleteProject } from "./workspace";
 
-/** Guest actions remain synchronous; authenticated transitions await durable saves. */
+/**
+ * Switching doesn't wait for saves: unsaved edits stay in memory and keep retrying, and the
+ * sync icon shows failures. A delete waits for the server, or the project returns on reload.
+ */
 export function useProjectTransition() {
   const store = useStore();
   return (action: () => void, deleteId?: string): void => {
@@ -14,18 +17,21 @@ export function useProjectTransition() {
       action();
       return;
     }
+    if (!deleteId) {
+      action();
+      void sync.flush().catch(() => {});
+      return;
+    }
     void (async () => {
       try {
-        if (deleteId) await sync.remove(deleteId);
-        else await sync.flush();
+        await sync.remove(deleteId);
         action();
       } catch (error) {
         if (store.get(projectSyncActionsAtom) !== sync) return;
         store.set(projectSyncStatusAtom, projectSyncErrorStatus(error));
         notifications.show({
-          title: deleteId ? "Could not delete project" : "Project sync failed",
-          message:
-            error instanceof Error ? error.message : "Could not save before leaving this project.",
+          title: "Could not delete project",
+          message: error instanceof Error ? error.message : "Could not delete this project.",
           color: "red",
         });
       }

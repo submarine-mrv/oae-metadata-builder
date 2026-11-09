@@ -37,8 +37,8 @@ copies. Imports remove only acknowledged, unchanged sources. Errors retain the
 sources and allow retry or continuing without deleting local copies. Regular
 file import remains available.
 
-Authenticated drafts stay in memory, not localStorage. Project transitions and
-sign-out await saves. Interrupted account-specific drafts can be recovered or
+Authenticated drafts stay in memory, not localStorage. Switching projects saves
+in the background without waiting; sign-out and deleting a project await saves. Interrupted account-specific drafts can be recovered or
 exported after signing back in; recovery moves snapshots into Jotai once, so a
 failed save retries the live draft rather than importing it again.
 
