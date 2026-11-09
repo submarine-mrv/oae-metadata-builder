@@ -427,7 +427,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     return refreshing;
   };
   const syncNow = () => {
-    if (!ready || stopped) return;
+    if (!ready || stopped || paused()) return;
     void flush()
       .catch(() => {})
       .finally(() => void refresh());

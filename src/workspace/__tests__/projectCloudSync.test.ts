@@ -490,6 +490,9 @@ describe("project cloud synchronization", () => {
       edit("while editing");
       await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS + 100);
       expect(client.save).not.toHaveBeenCalled();
+      window.dispatchEvent(new Event("online"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(client.save).not.toHaveBeenCalled();
       store.set(refreshPausesAtom, 0);
       await vi.advanceTimersByTimeAsync(0);
       await vi.waitFor(() => expect(sync.hasPendingChanges()).toBe(false));
