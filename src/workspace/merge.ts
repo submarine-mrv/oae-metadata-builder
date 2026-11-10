@@ -281,7 +281,7 @@ export function reconcileProjectRecord(
     list.map((entity) => (replaced.get(entity.id) as T | undefined) ?? entity);
   experiments = swap(experiments);
   datasets = swap(datasets);
-  // With a preference both additions are kept; validation flags the duplicate experiment ID.
+  // With a preference both additions are kept, even with the same experiment ID, so nothing is lost.
   for (const incoming of prefer ? [] : remoteExperiments) {
     const publicId = incoming.formData.experiment_id;
     if (publicId && experiments.some((e) => e.formData.experiment_id === publicId)) {

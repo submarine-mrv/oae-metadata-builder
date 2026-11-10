@@ -579,6 +579,28 @@ describe("project cloud synchronization", () => {
       expect(sync.hasPendingChanges()).toBe(false);
     });
 
+    it("stays unresolved when the project changes again while resolving", async () => {
+      const { client, rows, sync } = await conflictedWithOtherEdits();
+      vi.mocked(client.load).mockImplementationOnce(async () => {
+        const loaded = [...rows.values()];
+        const latest = rows.get("one");
+        if (!latest) throw new Error("missing row");
+        rows.set("one", {
+          project: {
+            ...latest.project,
+            state: {
+              ...latest.project.state,
+              projectData: { ...latest.project.state.projectData, name: "again" },
+            },
+          },
+          hash: "again",
+        });
+        return loaded;
+      });
+      await expect(sync.keepProjectChanges("one")).rejects.toThrow("Newer changes also edited");
+      expect(rows.get("one")?.project.state.projectData.name).toBe("again");
+    });
+
     it("records what taking the newer changes removed", async () => {
       const { rows, store, sync } = await conflicted();
       rows.delete("one");

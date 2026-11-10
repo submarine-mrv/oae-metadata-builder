@@ -510,6 +510,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         projects: workspace.projects.map((project) => (project.id === id ? merged : project)),
       }));
       noteDeletions(removedEntities(local, merged, previous.project));
+      // Report a failure here, such as another clash, so the dialog stays open.
+      await writeProject(id);
     } else if (keep) {
       const project = currentProject(id);
       if (!project) throw new Error("This project is no longer open in this tab.");
