@@ -494,7 +494,23 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (row && "projectId" in row) {
       throw new UnsupportedProjectVersionError(id, row.schemaVersion, row.reason);
     }
-    if (keep) {
+    const local = currentProject(id);
+    const previous = acknowledged.get(id);
+    if (row && local && previous) {
+      // Settle only the clashing fields; other edits from both sides are kept.
+      const merged = reconcileProjectRecord(
+        local,
+        row.project,
+        previous.project,
+        keep ? "local" : "remote",
+      );
+      acknowledged.set(id, row);
+      store.set(workspaceAtom, (workspace) => ({
+        ...workspace,
+        projects: workspace.projects.map((project) => (project.id === id ? merged : project)),
+      }));
+      noteDeletions(removedEntities(local, merged, previous.project));
+    } else if (keep) {
       const project = currentProject(id);
       if (!project) throw new Error("This project is no longer open in this tab.");
       const hash = await hashProject(project);
@@ -509,8 +525,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       }
       acknowledged.set(id, { project, hash: result.hash });
     } else {
-      const local = currentProject(id);
-      const previous = acknowledged.get(id);
       if (row) {
         acknowledged.set(id, row);
         store.set(workspaceAtom, (workspace) => ({

@@ -47,8 +47,10 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices: keep my changes or use newer changes. On a shared project,
-Overview shows who last edited it. Other errors show the message, with Retry save unless the project has a
+with two choices, keep my changes or use newer changes. The choice applies only
+where both sides edited the same thing; every other edit from either side is
+kept. On a shared project,
+Overview shows who last edited it ("you" for your own edits). Other errors show the message, with Retry save unless the project has a
 newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only

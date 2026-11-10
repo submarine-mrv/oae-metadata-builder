@@ -536,6 +536,49 @@ describe("project cloud synchronization", () => {
       expect(store.get(projectSyncStatusAtom).state).toBe("synced");
     });
 
+    async function conflictedWithOtherEdits() {
+      const context = await setup();
+      context.rows.set("one", {
+        project: {
+          ...project(),
+          updatedAt: 500,
+          state: {
+            ...project().state,
+            projectData: { project_id: "one", name: "remote", description: "theirs" },
+          },
+        },
+        hash: "remote",
+      });
+      const record = context.store.get(workspaceAtom).projects[0];
+      context.store.set(workspaceAtom, (workspace) =>
+        updateProject(workspace, "one", {
+          ...record.state,
+          projectData: { ...record.state.projectData, name: "local", purpose: "mine" },
+        }),
+      );
+      await expect(context.sync.flush()).rejects.toThrow("Newer changes also edited");
+      return context;
+    }
+
+    it("keeps both sides' other edits when keeping this tab's value", async () => {
+      const { rows, sync } = await conflictedWithOtherEdits();
+      await sync.keepProjectChanges("one");
+      expect(rows.get("one")?.project.state.projectData).toMatchObject({
+        name: "local",
+        description: "theirs",
+        purpose: "mine",
+      });
+    });
+
+    it("keeps both sides' other edits when taking the newer value", async () => {
+      const { rows, store, sync } = await conflictedWithOtherEdits();
+      await sync.discardProjectChanges("one");
+      const expected = { name: "remote", description: "theirs", purpose: "mine" };
+      expect(store.get(workspaceAtom).projects[0].state.projectData).toMatchObject(expected);
+      expect(rows.get("one")?.project.state.projectData).toMatchObject(expected);
+      expect(sync.hasPendingChanges()).toBe(false);
+    });
+
     it("records what taking the newer changes removed", async () => {
       const { rows, store, sync } = await conflicted();
       rows.delete("one");

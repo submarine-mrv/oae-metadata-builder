@@ -107,6 +107,9 @@ export function mergeProjectRecord(target: ProjectRecord, incoming: ProjectRecor
   };
 }
 
+/** Which side wins where both edited the same thing; unset means throw a conflict. */
+export type ConflictPreference = "local" | "remote";
+
 function conflict(field: string): never {
   throw new Error(`Newer changes also edited ${field}.`);
 }
@@ -123,13 +126,16 @@ function mergeFields<T extends object>(
   remote: T,
   base: T,
   label: (key: string) => string,
+  prefer?: ConflictPreference,
 ): T {
   const [current, incoming, original] = [local, remote, base] as Record<string, unknown>[];
   const merged = { ...current };
   for (const key of new Set([...Object.keys(original), ...Object.keys(incoming)])) {
     if (equalData(incoming[key], original[key])) continue;
-    if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key]))
-      conflict(label(key));
+    if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key])) {
+      if (!prefer) conflict(label(key));
+      if (prefer === "local") continue;
+    }
     if (key in incoming) merged[key] = incoming[key];
     else delete merged[key];
   }
@@ -141,6 +147,7 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   local: T[],
   remote: T[],
   base: T[],
+  prefer?: ConflictPreference,
 ): T[] {
   let target = [...local];
   const content = ({ createdAt: _, updatedAt: __, ...data }: T) => data;
@@ -163,13 +170,16 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
         !equalData(formData(a)[typeKey], formData(original)[typeKey]) ||
         !equalData(formData(b)[typeKey], formData(original)[typeKey])
       ) {
-        conflict(`the type of ${kind} "${original.name}"`);
+        if (!prefer) conflict(`the type of ${kind} "${original.name}"`);
+        const winner = prefer === "local" ? a : b;
+        target = target.map((entity) => (entity.id === original.id ? winner : entity));
+        continue;
       }
       const label = (key: string) => `"${fieldLabel(kind, key)}" in ${kind} "${original.name}"`;
       const merged = {
         ...a,
-        ...mergeFields(details(a), details(b), details(original), label),
-        formData: mergeFields(a.formData, b.formData, original.formData, label),
+        ...mergeFields(details(a), details(b), details(original), label, prefer),
+        formData: mergeFields(a.formData, b.formData, original.formData, label, prefer),
         updatedAt: Math.max(a.updatedAt, b.updatedAt),
       } as T;
       target = target.map((entity) => (entity.id === original.id ? merged : entity));
@@ -207,32 +217,37 @@ function refreshLinkedExperimentIds(state: ProjectState): ProjectState {
 }
 
 /**
- * Reconciles disjoint changes; overlapping edits remain unsaved instead of being overwritten.
- * Additions on either side keep their UUIDs, so both sides' new entities are kept.
+ * Reconciles disjoint changes. Overlapping edits throw a conflict, or with `prefer` take that
+ * side's value for just those fields. Additions on either side keep their UUIDs.
  */
 export function reconcileProjectRecord(
   local: ProjectRecord,
   remote: ProjectRecord,
   base: ProjectRecord,
+  prefer?: ConflictPreference,
 ): ProjectRecord {
   const projectData = mergeFields(
     local.state.projectData,
     remote.state.projectData,
     base.state.projectData,
     (key) => `"${fieldLabel("project", key)}"`,
+    prefer,
   );
-  const experiments = reconcileEntities(
+  let experiments = reconcileEntities(
     "experiment",
     local.state.experiments,
     remote.state.experiments,
     base.state.experiments,
+    prefer,
   );
-  const datasets = reconcileEntities(
+  let datasets = reconcileEntities(
     "dataset",
     local.state.datasets,
     remote.state.datasets,
     base.state.datasets,
+    prefer,
   );
+  const replaced = new Map<string, ExperimentRecord | DatasetRecord>();
   // A save that went through but whose reply was lost comes back as a "remote" addition
   // this tab already has. Identical copies are the same entity; with no shared baseline,
   // differing copies are a conflict.
@@ -245,7 +260,8 @@ export function reconcileProjectRecord(
     additions(side, original).filter((entity) => {
       const mine = own.find((candidate) => candidate.id === entity.id);
       if (mine && !equalData(entityContent(mine), entityContent(entity))) {
-        conflict(`the ${kind} "${entity.name}"`);
+        if (!prefer) conflict(`the ${kind} "${entity.name}"`);
+        if (prefer === "remote") replaced.set(entity.id, entity);
       }
       return !mine;
     });
@@ -261,7 +277,12 @@ export function reconcileProjectRecord(
     base.state.datasets,
     local.state.datasets,
   );
-  for (const incoming of remoteExperiments) {
+  const swap = <T extends { id: string }>(list: T[]) =>
+    list.map((entity) => (replaced.get(entity.id) as T | undefined) ?? entity);
+  experiments = swap(experiments);
+  datasets = swap(datasets);
+  // With a preference both additions are kept; validation flags the duplicate experiment ID.
+  for (const incoming of prefer ? [] : remoteExperiments) {
     const publicId = incoming.formData.experiment_id;
     if (publicId && experiments.some((e) => e.formData.experiment_id === publicId)) {
       conflict(`the experiment "${incoming.name}"`);

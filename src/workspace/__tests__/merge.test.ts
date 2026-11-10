@@ -155,6 +155,63 @@ describe("project import reconciliation", () => {
     });
   });
 
+  describe("settling conflicts with a preferred side", () => {
+    const base = newProjectRecord(
+      { ...emptyProjectState(), projectData: { name: "base", description: "base" } },
+      1,
+    );
+    const withData = (data: Record<string, unknown>): ProjectRecord => ({
+      ...base,
+      state: { ...base.state, projectData: { ...base.state.projectData, ...data } },
+    });
+    const local = withData({ name: "local", purpose: "mine" });
+    const remote = withData({ name: "remote", description: "theirs" });
+
+    it("takes this side's value only where both edited", () => {
+      expect(reconcileProjectRecord(local, remote, base, "local").state.projectData).toEqual({
+        name: "local",
+        description: "theirs",
+        purpose: "mine",
+      });
+    });
+
+    it("takes the newer value only where both edited", () => {
+      expect(reconcileProjectRecord(local, remote, base, "remote").state.projectData).toEqual({
+        name: "remote",
+        description: "theirs",
+        purpose: "mine",
+      });
+    });
+
+    it("keeps the preferred side's whole entity on a type change", () => {
+      const experiment = {
+        id: "e",
+        name: "E",
+        formData: { experiment_id: "E", description: "base" },
+        createdAt: 1,
+        updatedAt: 1,
+      };
+      const start = newProjectRecord({ ...emptyProjectState(), experiments: [experiment] }, 1);
+      const change = (formData: Record<string, unknown>): ProjectRecord => ({
+        ...start,
+        state: {
+          ...start.state,
+          experiments: [{ ...experiment, formData: { ...experiment.formData, ...formData } }],
+        },
+      });
+      const mine = change({ experiment_types: ["control"] });
+      const theirs = change({ description: "theirs" });
+      const settled = (prefer: "local" | "remote") =>
+        reconcileProjectRecord(mine, theirs, start, prefer).state.experiments[0].formData;
+      expect(settled("remote")).toMatchObject({ description: "theirs" });
+      expect(settled("remote")).not.toHaveProperty("experiment_types");
+      expect(settled("local")).toMatchObject({
+        description: "base",
+        experiment_types: ["control"],
+      });
+    });
+  });
+
   describe("experiments added on both sides", () => {
     const base = newProjectRecord({ ...emptyProjectState() }, 1);
     const withAddition = (
