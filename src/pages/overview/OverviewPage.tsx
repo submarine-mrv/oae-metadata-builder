@@ -25,6 +25,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
 import { useState } from "react";
+import { useAuth } from "@/auth/useAuth";
 import AppLayout from "@/components/AppLayout";
 import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
 import {
@@ -72,6 +73,7 @@ export default function OverviewPage() {
   const deleteProject = useSetAtom(deleteProjectAtom);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const access = useActiveProjectAccess();
+  const { user } = useAuth();
   const canEdit = access?.role !== "viewer";
   const isOwner = isProjectOwner(access);
   const [sharing, setSharing] = useState(false);
@@ -241,7 +243,10 @@ export default function OverviewPage() {
                       </Text>
                       {isSharedProject(access) && access?.updatedByEmail && (
                         <Text size="sm" c="dimmed" truncate>
-                          Last edited by {access.updatedByEmail}
+                          Last edited by{" "}
+                          {access.updatedByEmail === user?.email.toLowerCase()
+                            ? "you"
+                            : access.updatedByEmail}
                         </Text>
                       )}
                     </div>
