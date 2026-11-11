@@ -208,12 +208,12 @@ function analyze(
 
   // Add experiment items
   experiments.forEach((exp, index) => {
-    const expId = (exp.experiment_id as string) || (exp.name as string) || null;
-    const expName = (exp.name as string) || expId || `Experiment ${index + 1}`;
+    const expId = (exp.experiment_id as string) || null;
+    const expName = (exp.name as string) || `Experiment ${index + 1}`;
 
-    // Check for conflict with existing experiments
+    // Only a matching experiment_id replaces an existing experiment, as in applyImport.
     const existingExp = expId
-      ? baseline.experiments.find((e) => e.formData.experiment_id === expId || e.name === expId)
+      ? baseline.experiments.find((e) => e.formData.experiment_id === expId)
       : null;
 
     const hasConflict = Boolean(existingExp);
