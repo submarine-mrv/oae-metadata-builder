@@ -39,7 +39,7 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
   experiments.forEach((rawExpData, index) => {
     const expData = cleanFormData(rawExpData) as DraftExperiment;
     const expId = expData.experiment_id as string | undefined;
-    const expName = (expData.name as string) || expId;
+    const expName = expData.name as string | undefined;
     const importKey = `experiment-${index}`;
 
     const existingIndex = expId

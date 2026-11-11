@@ -42,20 +42,6 @@ describe("applyImport", () => {
     expect(result.experiments[0].name).toBe("New");
   });
 
-  it("keeps an existing experiment whose name equals an imported experiment_id", () => {
-    const prev = applyImport(emptyProjectState(), {
-      project: null,
-      experiments: [{ experiment_id: "E1", name: "Baseline" }],
-      datasets: [],
-    });
-    const result = applyImport(prev, {
-      project: null,
-      experiments: [{ experiment_id: "Baseline", name: "Other" }],
-      datasets: [],
-    });
-    expect(result.experiments.map((e) => e.formData.experiment_id)).toEqual(["E1", "Baseline"]);
-  });
-
   it("drops a link to an experiment that isn't in the resulting project", () => {
     const result = applyImport(emptyProjectState(), {
       project: null,

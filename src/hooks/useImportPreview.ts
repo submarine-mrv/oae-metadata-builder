@@ -209,7 +209,7 @@ function analyze(
   // Add experiment items
   experiments.forEach((exp, index) => {
     const expId = (exp.experiment_id as string) || null;
-    const expName = (exp.name as string) || expId || `Experiment ${index + 1}`;
+    const expName = (exp.name as string) || `Experiment ${index + 1}`;
 
     // Only a matching experiment_id replaces an existing experiment, as in applyImport.
     const existingExp = expId

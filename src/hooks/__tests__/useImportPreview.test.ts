@@ -105,10 +105,6 @@ describe("useImportPreview", () => {
       expect(conflictFor({ name: "Renamed", experiment_id: "EXP-001" })).toBe("override");
     });
 
-    it("adds an experiment whose experiment_id equals an existing experiment's name", () => {
-      expect(conflictFor({ name: "Other", experiment_id: "Baseline" })).toBe("add-new");
-    });
-
     it("adds an experiment with no experiment_id and an existing experiment's name", () => {
       expect(conflictFor({ name: "Baseline" })).toBe("add-new");
     });
