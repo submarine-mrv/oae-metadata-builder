@@ -42,9 +42,8 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     const expName = (expData.name as string) || expId;
     const importKey = `experiment-${index}`;
 
-    // Find existing experiment by experiment_id or name
     const existingIndex = expId
-      ? newExperiments.findIndex((e) => e.formData.experiment_id === expId || e.name === expId)
+      ? newExperiments.findIndex((e) => e.formData.experiment_id === expId)
       : -1;
 
     if (existingIndex >= 0) {
