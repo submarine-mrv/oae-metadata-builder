@@ -20,7 +20,11 @@ declare module "@tanstack/react-router" {
  * Having them loaded also lets project switching work offline, where a failed chunk reloads the page.
  */
 export function preloadEntityRoutes() {
-  for (const to of ["/overview", "/project", "/experiment", "/dataset", "/projects"] as const) {
-    router.preloadRoute({ to }).catch(() => {});
-  }
+  // Wait for the first load: preloads still in flight when its redirect lands log router errors.
+  const unsubscribe = router.subscribe("onResolved", () => {
+    unsubscribe();
+    for (const to of ["/overview", "/project", "/experiment", "/dataset", "/projects"] as const) {
+      router.preloadRoute({ to }).catch(() => {});
+    }
+  });
 }
