@@ -15,7 +15,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - Projects load through one RPC that returns each project's role, owner email,
   last editor and member count (`projectAccessAtom`). Viewers get disabled forms
   and no add, delete, duplicate or merge-import actions; their copies never save,
-  and refresh replaces anything they change locally, including after a downgrade. A save refused because the role changed
+  and refresh replaces anything they change locally, including after a downgrade, with a notice when that discards unsaved edits. A save refused because the role changed
   shows "You can no longer edit this project."
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
@@ -56,8 +56,8 @@ newer format.
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only
 when one differs. Checks run on project switch, opening All projects, page
 changes within a project (at most every 10 s), returning to the tab, coming back
-online, and while visible every 10 s for a shared project or every 60 s for a
-private one; never while a save runs. A project with
+online, and while visible every 10 s when the open project is shared, otherwise
+every 60 s; never while a save runs. A project with
 unsaved edits keeps them and merges the newer copy on its next save. Projects
 added or deleted elsewhere appear or disappear, with the usual notice. While a variable editor
 is open, background saves and checks wait, because Save writes the draft back by

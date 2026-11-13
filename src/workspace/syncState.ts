@@ -50,8 +50,8 @@ export interface RemoteDeletion {
   projectId?: string;
   /** Experiments and datasets only. */
   id?: string;
-  /** The project wasn't deleted for everyone: this user lost access to it. */
-  reason?: "access";
+  /** Not deleted for everyone: this user lost access, or can now only view it. */
+  reason?: "access" | "viewOnly";
   /** Edits made here since the last save were lost with it. */
   unsavedEdits?: true;
 }

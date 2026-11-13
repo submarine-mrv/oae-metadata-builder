@@ -394,6 +394,16 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       }
       // Gone here is a delete still on its way; edited here merges on the next save.
       if (!local || (local !== known.project && !isViewer(remote.id))) continue;
+      if (local !== known.project) {
+        const name = projectDisplayName(local.state);
+        deletions.push({
+          type: "project",
+          name,
+          projectId: remote.id,
+          reason: "viewOnly",
+          unsavedEdits: true,
+        });
+      }
       deletions.push(...removedEntities(local, remote));
       workspace = {
         ...workspace,
@@ -447,8 +457,19 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           const saved = acknowledged.get(record.id)?.project;
           return isViewer(record.id) && saved && saved !== record ? saved : record;
         });
-        if (reverted.some((record, index) => record !== store.get(workspaceAtom).projects[index])) {
+        const current = store.get(workspaceAtom).projects;
+        const lost = current.filter((record, index) => record !== reverted[index]);
+        if (lost.length) {
           store.set(workspaceAtom, (workspace) => ({ ...workspace, projects: reverted }));
+          noteDeletions(
+            lost.map((record) => ({
+              type: "project" as const,
+              name: projectDisplayName(record.state),
+              projectId: record.id,
+              reason: "viewOnly" as const,
+              unsavedEdits: true as const,
+            })),
+          );
           if (!dirty()) settledStatus();
         }
         const changed =

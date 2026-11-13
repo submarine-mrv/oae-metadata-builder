@@ -9,11 +9,20 @@ const label = ({ type, name }: RemoteDeletion) => `${type} "${name}"`;
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function remoteDeletionMessage(deletions: RemoteDeletion[]): string {
+  const names = (list: RemoteDeletion[]) => list.map((deletion) => `"${deletion.name}"`).join(", ");
+  const viewOnly = deletions.filter((deletion) => deletion.reason === "viewOnly");
+  if (viewOnly.length) {
+    const rest = deletions.filter((deletion) => deletion.reason !== "viewOnly");
+    const notice = `You can now only view ${names(viewOnly)}. Your unsaved changes there were discarded.`;
+    return rest.length ? `${notice} ${remoteDeletionMessage(rest)}` : notice;
+  }
   const lost = deletions.filter((deletion) => deletion.reason === "access");
   if (lost.length) {
-    const names = lost.map((deletion) => `"${deletion.name}"`).join(", ");
     const rest = deletions.filter((deletion) => deletion.reason !== "access");
-    const unshared = `${capitalize(lost.length === 1 ? "project" : "projects")} ${names} ${lost.length === 1 ? "is" : "are"} no longer shared with you.`;
+    const unsaved = lost.some((deletion) => deletion.unsavedEdits)
+      ? " Your recent edits weren't saved."
+      : "";
+    const unshared = `${capitalize(lost.length === 1 ? "project" : "projects")} ${names(lost)} ${lost.length === 1 ? "is" : "are"} no longer shared with you.${unsaved}`;
     return rest.length ? `${unshared} ${remoteDeletionMessage(rest)}` : unshared;
   }
   const removed = `${capitalize(deletions.map(label).join(", "))} ${deletions.length === 1 ? "was" : "were"} deleted in another tab or on another device.`;
@@ -46,9 +55,11 @@ export default function RemoteDeletionNotices() {
       if (!pending.length) return;
       store.set(remoteDeletionsAtom, []);
       notifications.show({
-        title: pending.every((deletion) => deletion.reason === "access")
-          ? "No longer shared"
-          : "Deleted",
+        title: pending.every((deletion) => deletion.reason === "viewOnly")
+          ? "View only"
+          : pending.every((deletion) => deletion.reason === "access")
+            ? "No longer shared"
+            : "Deleted",
         message: remoteDeletionMessage(pending),
         color: "yellow",
         autoClose: 8000,
@@ -65,7 +76,10 @@ export default function RemoteDeletionNotices() {
               deletion.id === view.datasetId)),
       );
       const lostProject = pending.some(
-        (deletion) => deletion.type === "project" && deletion.projectId === view.projectId,
+        (deletion) =>
+          deletion.type === "project" &&
+          deletion.reason !== "viewOnly" &&
+          deletion.projectId === view.projectId,
       );
       if (lostProject) void navigate({ to: "/projects" });
       else if (lostPage) void navigate({ to: "/overview" });
