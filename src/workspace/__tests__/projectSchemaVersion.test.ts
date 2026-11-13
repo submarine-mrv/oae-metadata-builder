@@ -16,7 +16,7 @@ describe("draft schema versions", () => {
   it("migrates unversioned drafts and stamps new records", () => {
     const record = newProjectRecord();
     const { schemaVersion: _, ...unversioned } = record;
-    expect(record.schemaVersion).toBe(2);
+    expect(record.schemaVersion).toBe(1);
     expect(parseCloudProject(unversioned)).toEqual(record);
   });
 

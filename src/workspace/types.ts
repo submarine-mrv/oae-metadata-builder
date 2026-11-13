@@ -8,7 +8,7 @@ export interface ProjectState {
 }
 
 /** Bump when draft-state migrations change the persisted shape or meaning. */
-export const PROJECT_SCHEMA_VERSION = 2;
+export const PROJECT_SCHEMA_VERSION = 1;
 
 export interface ProjectRecord {
   /** Absent on drafts saved before version protection; interpreted as version 1. */
