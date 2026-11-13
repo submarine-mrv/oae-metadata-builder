@@ -87,6 +87,29 @@ describe("useImportPreview", () => {
     });
   });
 
+  describe("experiment conflicts", () => {
+    const baseline = {
+      projectData: { project_id: "PROJ-001" },
+      experiments: [createExperiment(1, "EXP-001", "Baseline")],
+    };
+
+    function conflictFor(experiment: DraftExperiment) {
+      const { result } = renderHook(() => useImportPreview());
+      act(() => {
+        result.current.openPreview("test.json", {}, [experiment], [], baseline);
+      });
+      return result.current.state.items.find((i) => i.type === "experiment")?.conflict;
+    }
+
+    it("replaces an experiment with the same experiment_id", () => {
+      expect(conflictFor({ name: "Renamed", experiment_id: "EXP-001" })).toBe("override");
+    });
+
+    it("adds an experiment with no experiment_id and an existing experiment's name", () => {
+      expect(conflictFor({ name: "Baseline" })).toBe("add-new");
+    });
+  });
+
   describe("experiment linking resolution", () => {
     it("resolves to existing experiment when experiment_id matches", () => {
       const currentExperiments = [

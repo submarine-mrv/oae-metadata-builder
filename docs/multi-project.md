@@ -79,6 +79,6 @@ A file with duplicate experiment ids is blocked in both modes.
 
 `applyImport` (`src/utils/applyImport.ts`) builds the result for both modes. It drops a dataset link whose experiment isn't in the result. `getSelectedItems` renumbers dataset links to match the ticked experiments. A dataset linked to an unticked experiment imports unlinked.
 
-The app owns `project_id` and `experiment_id` on imported records and ignores the file's values.
+The app owns `project_id` on imported records and ignores the file's value. An imported experiment keeps its `experiment_id`, and a dataset takes its `experiment_id` from the experiment it links to. Experiments match on `experiment_id` only: one with no `experiment_id`, or with the same name as an existing experiment, is added as new.
 
 `localStorageWorkspaceStore.load` runs `migrateProject`, `migrateExperiment` and `migrateDataset` (`src/utils/migrations.ts`) on every stored project and saves the result, so the project list shows current field names. `hydrate` then parses and migrates each project again through `parseProjectState`.
