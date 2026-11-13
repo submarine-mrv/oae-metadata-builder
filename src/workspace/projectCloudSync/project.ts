@@ -542,6 +542,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       try {
         await writeProject(id);
       } catch (error) {
+        // After an account change the workspace belongs to the new account.
+        if (stopped) throw error;
         // Back to the original baseline so the next choice settles the same clash.
         acknowledged.set(id, previous);
         put(local);

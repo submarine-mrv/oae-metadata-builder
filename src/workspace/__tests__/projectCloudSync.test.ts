@@ -580,6 +580,18 @@ describe("project cloud synchronization", () => {
       expect(rows.get("one")?.project.state.projectData).toMatchObject(expected);
     });
 
+    it("leaves the next account's workspace alone when a choice fails after sign-out", async () => {
+      const { client, store, sync } = await conflictedWithOtherEdits();
+      const next = { ...project(), state: { ...project().state, projectData: { name: "next" } } };
+      vi.mocked(client.save).mockImplementationOnce(async () => {
+        sync.stop();
+        store.set(workspaceAtom, (workspace) => ({ ...workspace, projects: [next] }));
+        throw new Error("offline");
+      });
+      await expect(sync.keepProjectChanges("one")).rejects.toThrow();
+      expect(store.get(workspaceAtom).projects).toEqual([next]);
+    });
+
     it("keeps both sides' other edits when taking the newer value", async () => {
       const { rows, store, sync } = await conflictedWithOtherEdits();
       await sync.discardProjectChanges("one");
