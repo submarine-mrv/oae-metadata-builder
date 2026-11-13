@@ -90,7 +90,7 @@ describe("useImportPreview", () => {
   describe("experiment conflicts", () => {
     const baseline = {
       projectData: { project_id: "PROJ-001" },
-      experiments: [createExperiment(1, "EXP-001", "Baseline")],
+      experiments: [createExperiment("1", "EXP-001", "Baseline")],
     };
 
     function conflictFor(experiment: DraftExperiment) {
