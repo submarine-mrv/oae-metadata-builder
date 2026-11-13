@@ -570,6 +570,16 @@ describe("project cloud synchronization", () => {
       });
     });
 
+    it("settles the original clash when a choice fails and the other is picked", async () => {
+      const { client, rows, store, sync } = await conflictedWithOtherEdits();
+      vi.mocked(client.save).mockRejectedValueOnce(new Error("offline"));
+      await expect(sync.keepProjectChanges("one")).rejects.toThrow();
+      await sync.discardProjectChanges("one");
+      const expected = { name: "remote", description: "theirs", purpose: "mine" };
+      expect(store.get(workspaceAtom).projects[0].state.projectData).toMatchObject(expected);
+      expect(rows.get("one")?.project.state.projectData).toMatchObject(expected);
+    });
+
     it("keeps both sides' other edits when taking the newer value", async () => {
       const { rows, store, sync } = await conflictedWithOtherEdits();
       await sync.discardProjectChanges("one");

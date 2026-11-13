@@ -504,14 +504,23 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         previous.project,
         keep ? "local" : "remote",
       );
+      const put = (project: ProjectRecord) =>
+        store.set(workspaceAtom, (workspace) => ({
+          ...workspace,
+          projects: workspace.projects.map((record) => (record.id === id ? project : record)),
+        }));
       acknowledged.set(id, row);
-      store.set(workspaceAtom, (workspace) => ({
-        ...workspace,
-        projects: workspace.projects.map((project) => (project.id === id ? merged : project)),
-      }));
+      put(merged);
+      try {
+        await writeProject(id);
+      } catch (error) {
+        // Back to the original baseline so the next choice settles the same clash.
+        acknowledged.set(id, previous);
+        put(local);
+        // Reported so the dialog stays open, e.g. on another clash.
+        throw error;
+      }
       noteDeletions(removedEntities(local, merged, previous.project));
-      // Report a failure here, such as another clash, so the dialog stays open.
-      await writeProject(id);
     } else if (keep) {
       const project = currentProject(id);
       if (!project) throw new Error("This project is no longer open in this tab.");
