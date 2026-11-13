@@ -28,6 +28,7 @@ import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import type { JSONSchema } from "@/components/schemaUtils";
 import ValidationButton from "@/components/ValidationButton";
 import VariablesField from "@/components/VariablesField";
+import ViewOnlyBadge from "@/components/ViewOnlyBadge";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { replaceDatasetFormDataAtom } from "@/state/actions";
 import { activeDatasetIdAtom, experimentCountAtom } from "@/state/atoms";
@@ -43,6 +44,7 @@ import {
   getModelOutputDatasetSchema,
 } from "@/utils/schemaViews";
 import { validateDataset } from "@/utils/validation";
+import { useCanEdit } from "@/workspace/useProjectAccess";
 import modelOutputUiSchema from "./modelOutputUiSchema";
 import fieldDatasetUiSchema from "./uiSchema";
 
@@ -111,6 +113,7 @@ function datasetForm(datasetType: unknown) {
 }
 
 export default function DatasetPage() {
+  const canEdit = useCanEdit();
   const activeDatasetId = useAtomValue(activeDatasetIdAtom);
   const replaceDatasetFormData = useSetAtom(replaceDatasetFormDataAtom);
 
@@ -225,6 +228,7 @@ export default function DatasetPage() {
           <Stack gap="sm">
             <Group align="center" gap="md">
               <Title order={2}>Dataset Metadata: {currentDataset.name}</Title>
+              <ViewOnlyBadge />
               <ValidationButton
                 badgeState={validation.badgeState}
                 missingRequired={validation.missingRequired}
@@ -239,6 +243,7 @@ export default function DatasetPage() {
           </Stack>
 
           <Form
+            disabled={!canEdit}
             ref={validation.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}

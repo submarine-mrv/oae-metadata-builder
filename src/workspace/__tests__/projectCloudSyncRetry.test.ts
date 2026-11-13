@@ -24,7 +24,7 @@ function clientWith(projects: ProjectRecord[]) {
   const rows = new Map(projects.map((record) => [record.id, { project: record, hash: record.id }]));
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
-    hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, row.hash]))),
+    hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, { hash: row.hash }]))),
     save: vi.fn(async (record, hash, expected) => {
       const current = rows.get(record.id);
       if ((current?.hash ?? null) !== expected) {

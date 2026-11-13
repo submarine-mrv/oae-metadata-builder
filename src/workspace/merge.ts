@@ -18,7 +18,16 @@ export function equalData(a: unknown, b: unknown): boolean {
   return JSON.stringify(canonicalize(a)) === JSON.stringify(canonicalize(b));
 }
 
-function matchesExperiment(target: ProjectState, experimentId: unknown, recordId: number) {
+/** An experiment's or dataset's data without its timestamps. */
+function entityContent<T extends ExperimentRecord | DatasetRecord>({
+  createdAt: _,
+  updatedAt: __,
+  ...data
+}: T) {
+  return data;
+}
+
+function matchesExperiment(target: ProjectState, experimentId: unknown, recordId: string) {
   return target.experiments.find((experiment) =>
     typeof experimentId === "string" && experimentId
       ? experiment.formData.experiment_id === experimentId || experiment.name === experimentId
@@ -63,7 +72,7 @@ function importSelection(target: ProjectState, incoming: ProjectState): ImportSe
       const linkedExperiment = incoming.experiments.find(
         (experiment) => experiment.id === linkedId,
       );
-      const linkedKey = typeof linkedId === "number" ? importKeys.get(linkedId) : undefined;
+      const linkedKey = typeof linkedId === "string" ? importKeys.get(linkedId) : undefined;
       const targetExperiment = linkedExperiment
         ? matchesExperiment(target, linkedExperiment.formData.experiment_id, linkedExperiment.id)
         : undefined;
@@ -98,6 +107,9 @@ export function mergeProjectRecord(target: ProjectRecord, incoming: ProjectRecor
   };
 }
 
+/** Which side wins where both edited the same thing; unset means throw a conflict. */
+export type ConflictPreference = "local" | "remote";
+
 function conflict(field: string): never {
   throw new Error(`Newer changes also edited ${field}.`);
 }
@@ -114,13 +126,16 @@ function mergeFields<T extends object>(
   remote: T,
   base: T,
   label: (key: string) => string,
+  prefer?: ConflictPreference,
 ): T {
   const [current, incoming, original] = [local, remote, base] as Record<string, unknown>[];
   const merged = { ...current };
   for (const key of new Set([...Object.keys(original), ...Object.keys(incoming)])) {
     if (equalData(incoming[key], original[key])) continue;
-    if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key]))
-      conflict(label(key));
+    if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key])) {
+      if (!prefer) conflict(label(key));
+      if (prefer === "local") continue;
+    }
     if (key in incoming) merged[key] = incoming[key];
     else delete merged[key];
   }
@@ -132,6 +147,7 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   local: T[],
   remote: T[],
   base: T[],
+  prefer?: ConflictPreference,
 ): T[] {
   let target = [...local];
   const content = ({ createdAt: _, updatedAt: __, ...data }: T) => data;
@@ -154,13 +170,20 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
         !equalData(formData(a)[typeKey], formData(original)[typeKey]) ||
         !equalData(formData(b)[typeKey], formData(original)[typeKey])
       ) {
-        conflict(`the type of ${kind} "${original.name}"`);
+        if (!prefer) {
+          conflict(
+            `the type of ${kind} "${original.name}", so the version you choose replaces that whole ${kind}`,
+          );
+        }
+        const winner = prefer === "local" ? a : b;
+        target = target.map((entity) => (entity.id === original.id ? winner : entity));
+        continue;
       }
       const label = (key: string) => `"${fieldLabel(kind, key)}" in ${kind} "${original.name}"`;
       const merged = {
         ...a,
-        ...mergeFields(details(a), details(b), details(original), label),
-        formData: mergeFields(a.formData, b.formData, original.formData, label),
+        ...mergeFields(details(a), details(b), details(original), label, prefer),
+        formData: mergeFields(a.formData, b.formData, original.formData, label, prefer),
         updatedAt: Math.max(a.updatedAt, b.updatedAt),
       } as T;
       target = target.map((entity) => (entity.id === original.id ? merged : entity));
@@ -171,8 +194,8 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   return target;
 }
 
-/** Entities only one side has; the other side's IDs must not collide with them. */
-function additions<T extends { id: number }>(side: T[], base: T[]): T[] {
+/** Entities added on one side since the baseline. */
+function additions<T extends { id: string }>(side: T[], base: T[]): T[] {
   return side.filter((entity) => !base.some((original) => original.id === entity.id));
 }
 
@@ -198,46 +221,77 @@ function refreshLinkedExperimentIds(state: ProjectState): ProjectState {
 }
 
 /**
- * Reconciles disjoint changes; overlapping edits remain unsaved instead of being overwritten.
- * Remote additions keep their IDs, since the remote copy becomes the next baseline.
+ * Reconciles disjoint changes. Overlapping edits throw a conflict, or with `prefer` take that
+ * side's value for just those fields. Additions on either side keep their UUIDs.
  */
 export function reconcileProjectRecord(
   local: ProjectRecord,
   remote: ProjectRecord,
   base: ProjectRecord,
+  prefer?: ConflictPreference,
 ): ProjectRecord {
   const projectData = mergeFields(
     local.state.projectData,
     remote.state.projectData,
     base.state.projectData,
     (key) => `"${fieldLabel("project", key)}"`,
+    prefer,
   );
-  const experiments = reconcileEntities(
+  let experiments = reconcileEntities(
     "experiment",
     local.state.experiments,
     remote.state.experiments,
     base.state.experiments,
+    prefer,
   );
-  const datasets = reconcileEntities(
+  let datasets = reconcileEntities(
     "dataset",
     local.state.datasets,
     remote.state.datasets,
     base.state.datasets,
+    prefer,
   );
-  const remoteExperiments = additions(remote.state.experiments, base.state.experiments);
-  const remoteDatasets = additions(remote.state.datasets, base.state.datasets);
-  for (const incoming of remoteExperiments) {
+  const replaced = new Map<string, ExperimentRecord | DatasetRecord>();
+  // A save that went through but whose reply was lost comes back as a "remote" addition
+  // this tab already has. Identical copies are the same entity; with no shared baseline,
+  // differing copies are a conflict.
+  const newRemote = <T extends ExperimentRecord | DatasetRecord>(
+    kind: "experiment" | "dataset",
+    side: T[],
+    original: T[],
+    own: T[],
+  ) =>
+    additions(side, original).filter((entity) => {
+      const mine = own.find((candidate) => candidate.id === entity.id);
+      if (mine && !equalData(entityContent(mine), entityContent(entity))) {
+        if (!prefer) conflict(`the ${kind} "${entity.name}"`);
+        if (prefer === "remote") replaced.set(entity.id, entity);
+      }
+      return !mine;
+    });
+  const remoteExperiments = newRemote(
+    "experiment",
+    remote.state.experiments,
+    base.state.experiments,
+    local.state.experiments,
+  );
+  const remoteDatasets = newRemote(
+    "dataset",
+    remote.state.datasets,
+    base.state.datasets,
+    local.state.datasets,
+  );
+  const swap = <T extends { id: string }>(list: T[]) =>
+    list.map((entity) => (replaced.get(entity.id) as T | undefined) ?? entity);
+  experiments = swap(experiments);
+  datasets = swap(datasets);
+  // With a preference both additions are kept, even with the same experiment ID, so nothing is lost.
+  for (const incoming of prefer ? [] : remoteExperiments) {
     const publicId = incoming.formData.experiment_id;
     if (publicId && experiments.some((e) => e.formData.experiment_id === publicId)) {
       conflict(`the experiment "${incoming.name}"`);
     }
   }
-  // Both sides number additions from the same counter, so concurrent additions share IDs.
-  // Internal IDs become UUIDs with collaboration; until then, keep both sides by conflicting.
-  if (remoteExperiments.length && additions(local.state.experiments, base.state.experiments).length)
-    conflict("this project's experiments");
-  if (remoteDatasets.length && additions(local.state.datasets, base.state.datasets).length)
-    conflict("this project's datasets");
   const projectId = projectData.project_id as string | undefined;
   const allExperiments = propagateProjectId([...experiments, ...remoteExperiments], projectId);
   const allDatasets = propagateProjectId([...datasets, ...remoteDatasets], projectId);
@@ -246,16 +300,6 @@ export function reconcileProjectRecord(
     projectData,
     experiments: allExperiments,
     datasets: allDatasets,
-    nextExperimentId: Math.max(
-      local.state.nextExperimentId,
-      remote.state.nextExperimentId,
-      ...allExperiments.map((experiment) => experiment.id + 1),
-    ),
-    nextDatasetId: Math.max(
-      local.state.nextDatasetId,
-      remote.state.nextDatasetId,
-      ...allDatasets.map((dataset) => dataset.id + 1),
-    ),
   });
   if (equalData(state, local.state)) return local;
   return {

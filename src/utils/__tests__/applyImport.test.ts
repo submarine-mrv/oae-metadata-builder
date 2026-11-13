@@ -20,11 +20,9 @@ describe("applyImport", () => {
 
     expect(result.projectData.name).toBe("Imported");
     expect(result.experiments).toHaveLength(1);
-    expect(result.experiments[0].id).toBe(1);
-    expect(result.nextExperimentId).toBe(2);
-    expect(result.datasets[0].linking?.linkedExperimentInternalId).toBe(1);
+    expect(result.experiments[0].id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(result.datasets[0].linking?.linkedExperimentInternalId).toBe(result.experiments[0].id);
     expect(result.datasets[0].formData.experiment_id).toBe("E1");
-    expect(result.nextDatasetId).toBe(2);
   });
 
   it("replaces an experiment with a matching experiment_id instead of duplicating it", () => {
@@ -51,12 +49,12 @@ describe("applyImport", () => {
           formData: { name: "DS", experiment_id: "E9" },
           experimentLinking: {
             mode: "use-file",
-            resolvedMatch: { type: "existing", experimentId: "E9", internalId: 7 },
+            resolvedMatch: { type: "existing", experimentId: "E9", internalId: "7" },
           },
         },
         {
           formData: { name: "DS2" },
-          experimentLinking: { mode: "explicit", explicitExperimentInternalId: 7 },
+          experimentLinking: { mode: "explicit", explicitExperimentInternalId: "7" },
         },
       ],
     });
@@ -79,7 +77,11 @@ describe("applyImport", () => {
           formData: { name: "existing" },
           experimentLinking: {
             mode: "use-file",
-            resolvedMatch: { type: "existing", experimentId: "E1", internalId: 1 },
+            resolvedMatch: {
+              type: "existing",
+              experimentId: "E1",
+              internalId: prev.experiments[0].id,
+            },
           },
         },
         {
@@ -97,8 +99,8 @@ describe("applyImport", () => {
       d.formData.experiment_id,
     ]);
     expect(links).toEqual([
-      [1, "E1"],
-      [2, "E2"],
+      [prev.experiments[0].id, "E1"],
+      [result.experiments[1].id, "E2"],
       [null, undefined],
     ]);
     expect(result.datasets[2].formData).not.toHaveProperty("experiment_id");
@@ -153,17 +155,19 @@ describe("applyImport", () => {
     });
 
     it("sets a linked dataset's experiment_id from its experiment", () => {
-      const result = applyImport(withProject("P"), {
+      const target = withProject("P");
+      const existing = target.experiments[0].id;
+      const result = applyImport(target, {
         project: null,
         experiments: [],
         datasets: [
           {
             formData: { name: "DS", experiment_id: "FOREIGN" },
-            experimentLinking: { mode: "explicit", explicitExperimentInternalId: 1 },
+            experimentLinking: { mode: "explicit", explicitExperimentInternalId: existing },
           },
         ],
       });
-      expect(result.datasets[1].linking?.linkedExperimentInternalId).toBe(1);
+      expect(result.datasets[1].linking?.linkedExperimentInternalId).toBe(existing);
       expect(result.datasets[1].formData.experiment_id).toBe("E1");
     });
 

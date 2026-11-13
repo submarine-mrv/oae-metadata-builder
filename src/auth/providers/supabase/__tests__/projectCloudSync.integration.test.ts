@@ -2,7 +2,7 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
 import { createStore } from "jotai";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
-import { startProjectCloudSync } from "@/workspace/projectCloudSync";
+import { ProjectAccessError, startProjectCloudSync } from "@/workspace/projectCloudSync";
 import { WORKSPACE_KEY } from "@/workspace/storage";
 import { emptyProjectState, newProjectRecord } from "@/workspace/types";
 import { addProject, deleteProject, updateProject } from "@/workspace/workspace";
@@ -130,7 +130,10 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
           projectData: { project_id: "other-owner", name: "Private other owner" },
         },
       };
-      expect((await isolated.save(sameId, "other-owner-hash", null)).saved).toBe(true);
+      // Project ids are global: a non-member can't claim an existing one.
+      await expect(isolated.save(sameId, "other-owner-hash", null)).rejects.toThrow(
+        ProjectAccessError,
+      );
 
       const anonymous = createClient(url, key, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -153,9 +156,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         (await client.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
       ).toEqual([second.id]);
       auth.session = other;
-      expect(
-        (await isolated.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
-      ).toEqual([first.id]);
+      expect(await isolated.load()).toEqual([]);
     });
 
     it("protects a newer draft from an old device even with the latest hash", async () => {
@@ -176,7 +177,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       });
       const future = {
         id: first.id,
-        schemaVersion: 2,
+        schemaVersion: 3,
         newEnvelopeField: { keep: true },
         state: { newDraftField: ["must survive"], nextExperimentId: "new representation" },
       };
@@ -199,21 +200,24 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       await expect(client.save(first, "old-with-latest-hash", "version-two")).rejects.toThrow(
         "Reload",
       );
-      const stored = await newer
+      // Signed-in clients can't read the table directly, so inspect it as the admin.
+      const stored = await admin
         .from("metadata_builder_sessions")
         .select("state, state_hash")
         .eq("project_id", first.id)
         .single();
       expect(stored.error).toBeNull();
       expect(stored.data).toEqual({ state: future, state_hash: "version-two" });
-      const supported = await newer
+      const supported = await admin
         .from("metadata_builder_sessions")
         .select("state")
         .eq("project_id", second.id)
         .single();
       expect(supported.error).toBeNull();
       expect(supported.data?.state.state.projectData.name).toBe("old device edit");
-      expect(await client.load()).toContainEqual({ projectId: first.id, schemaVersion: 2 });
+      expect(await client.load()).toContainEqual(
+        expect.objectContaining({ projectId: first.id, schemaVersion: 3 }),
+      );
     });
   },
 );

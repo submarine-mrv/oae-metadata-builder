@@ -29,9 +29,7 @@ function isProjectState(value: unknown): value is ProjectState {
     Array.isArray(value.experiments) &&
     value.experiments.every(isEntity) &&
     Array.isArray(value.datasets) &&
-    value.datasets.every(isEntity) &&
-    typeof value.nextExperimentId === "number" &&
-    typeof value.nextDatasetId === "number"
+    value.datasets.every(isEntity)
   );
 }
 

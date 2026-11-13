@@ -32,7 +32,7 @@ function clientWith(projects: ProjectRecord[] = []) {
   const rows = new Map(projects.map((record) => [record.id, { project: record, hash: record.id }]));
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
-    hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, row.hash]))),
+    hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, { hash: row.hash }]))),
     save: vi.fn(async (record, hash, expected) => {
       const current = rows.get(record.id);
       if ((current?.hash ?? null) !== expected) {
@@ -207,7 +207,7 @@ describe("project cloud synchronization", () => {
   });
 
   it("records experiments deleted elsewhere and flags the one edited here", async () => {
-    const experiment = (id: number, name: string) => ({
+    const experiment = (id: string, name: string) => ({
       id,
       name,
       formData: { experiment_id: name },
@@ -219,8 +219,7 @@ describe("project cloud synchronization", () => {
       ...base,
       state: {
         ...base.state,
-        experiments: [experiment(1, "Site A"), experiment(2, "Site B")],
-        nextExperimentId: 3,
+        experiments: [experiment("1", "Site A"), experiment("2", "Site B")],
       },
     };
     const { rows, store, sync } = await setup([withExperiments]);
@@ -233,15 +232,15 @@ describe("project cloud synchronization", () => {
       updateProject(workspace, "one", {
         ...loaded.state,
         experiments: loaded.state.experiments.map((item) =>
-          item.id === 1 ? { ...item, formData: { experiment_id: "Site A edited" } } : item,
+          item.id === "1" ? { ...item, formData: { experiment_id: "Site A edited" } } : item,
         ),
       }),
     );
     await sync.flush();
     expect(store.get(workspaceAtom).projects[0].state.experiments).toEqual([]);
     expect(store.get(remoteDeletionsAtom)).toEqual([
-      { type: "experiment", name: "Site A", projectId: "one", id: 1, unsavedEdits: true },
-      { type: "experiment", name: "Site B", projectId: "one", id: 2 },
+      { type: "experiment", name: "Site A", projectId: "one", id: "1", unsavedEdits: true },
+      { type: "experiment", name: "Site B", projectId: "one", id: "2" },
     ]);
   });
 
@@ -537,6 +536,93 @@ describe("project cloud synchronization", () => {
       expect(store.get(projectSyncStatusAtom).state).toBe("synced");
     });
 
+    async function conflictedWithOtherEdits() {
+      const context = await setup();
+      context.rows.set("one", {
+        project: {
+          ...project(),
+          updatedAt: 500,
+          state: {
+            ...project().state,
+            projectData: { project_id: "one", name: "remote", description: "theirs" },
+          },
+        },
+        hash: "remote",
+      });
+      const record = context.store.get(workspaceAtom).projects[0];
+      context.store.set(workspaceAtom, (workspace) =>
+        updateProject(workspace, "one", {
+          ...record.state,
+          projectData: { ...record.state.projectData, name: "local", purpose: "mine" },
+        }),
+      );
+      await expect(context.sync.flush()).rejects.toThrow("Newer changes also edited");
+      return context;
+    }
+
+    it("keeps both sides' other edits when keeping this tab's value", async () => {
+      const { rows, sync } = await conflictedWithOtherEdits();
+      await sync.keepProjectChanges("one");
+      expect(rows.get("one")?.project.state.projectData).toMatchObject({
+        name: "local",
+        description: "theirs",
+        purpose: "mine",
+      });
+    });
+
+    it("settles the original clash when a choice fails and the other is picked", async () => {
+      const { client, rows, store, sync } = await conflictedWithOtherEdits();
+      vi.mocked(client.save).mockRejectedValueOnce(new Error("offline"));
+      await expect(sync.keepProjectChanges("one")).rejects.toThrow();
+      await sync.discardProjectChanges("one");
+      const expected = { name: "remote", description: "theirs", purpose: "mine" };
+      expect(store.get(workspaceAtom).projects[0].state.projectData).toMatchObject(expected);
+      expect(rows.get("one")?.project.state.projectData).toMatchObject(expected);
+    });
+
+    it("leaves the next account's workspace alone when a choice fails after sign-out", async () => {
+      const { client, store, sync } = await conflictedWithOtherEdits();
+      const next = { ...project(), state: { ...project().state, projectData: { name: "next" } } };
+      vi.mocked(client.save).mockImplementationOnce(async () => {
+        sync.stop();
+        store.set(workspaceAtom, (workspace) => ({ ...workspace, projects: [next] }));
+        throw new Error("offline");
+      });
+      await expect(sync.keepProjectChanges("one")).rejects.toThrow();
+      expect(store.get(workspaceAtom).projects).toEqual([next]);
+    });
+
+    it("keeps both sides' other edits when taking the newer value", async () => {
+      const { rows, store, sync } = await conflictedWithOtherEdits();
+      await sync.discardProjectChanges("one");
+      const expected = { name: "remote", description: "theirs", purpose: "mine" };
+      expect(store.get(workspaceAtom).projects[0].state.projectData).toMatchObject(expected);
+      expect(rows.get("one")?.project.state.projectData).toMatchObject(expected);
+      expect(sync.hasPendingChanges()).toBe(false);
+    });
+
+    it("stays unresolved when the project changes again while resolving", async () => {
+      const { client, rows, sync } = await conflictedWithOtherEdits();
+      vi.mocked(client.load).mockImplementationOnce(async () => {
+        const loaded = [...rows.values()];
+        const latest = rows.get("one");
+        if (!latest) throw new Error("missing row");
+        rows.set("one", {
+          project: {
+            ...latest.project,
+            state: {
+              ...latest.project.state,
+              projectData: { ...latest.project.state.projectData, name: "again" },
+            },
+          },
+          hash: "again",
+        });
+        return loaded;
+      });
+      await expect(sync.keepProjectChanges("one")).rejects.toThrow("Newer changes also edited");
+      expect(rows.get("one")?.project.state.projectData.name).toBe("again");
+    });
+
     it("records what taking the newer changes removed", async () => {
       const { rows, store, sync } = await conflicted();
       rows.delete("one");
@@ -601,10 +687,11 @@ describe("project cloud synchronization", () => {
   it("rejects malformed or mismatched cloud records", () => {
     expect(() => parseCloudProject({})).toThrow("invalid");
     expect(() => parseCloudProject(project(), "other")).toThrow("invalid");
+    const twin = { id: "same", name: "E", formData: {}, createdAt: 1, updatedAt: 1 };
     expect(() =>
       parseCloudProject({
         ...project(),
-        state: { ...emptyProjectState(), nextDatasetId: -1 },
+        state: { ...emptyProjectState(), experiments: [twin, twin] },
       }),
     ).toThrow("invalid");
   });

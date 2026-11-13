@@ -113,8 +113,8 @@ describe("LinkedExperimentIdWidget", () => {
       render(
         <TestWrapper
           setup={(store) => {
-            store.set(addExperimentAtom, "Baseline Study");
-            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
+            const experiment = store.set(addExperimentAtom, "Baseline Study");
+            store.set(replaceExperimentFormDataAtom, experiment, { experiment_id: "EXP-001" });
             store.set(addExperimentAtom, "Treatment Run");
             store.set(addDatasetAtom, "Test Dataset");
           }}
@@ -145,8 +145,8 @@ describe("LinkedExperimentIdWidget", () => {
       render(
         <TestWrapper
           setup={(store) => {
-            store.set(addExperimentAtom, "Experiment 1");
-            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
+            const experiment = store.set(addExperimentAtom, "Experiment 1");
+            store.set(replaceExperimentFormDataAtom, experiment, { experiment_id: "EXP-001" });
             store.set(addDatasetAtom, "Test Dataset");
           }}
         >
@@ -192,11 +192,11 @@ describe("LinkedExperimentIdWidget", () => {
       render(
         <TestWrapper
           setup={(store) => {
-            store.set(addExperimentAtom, "Experiment 1");
-            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
-            store.set(addDatasetAtom, "Test Dataset");
-            store.set(updateDatasetLinkingAtom, 1, {
-              linkedExperimentInternalId: 1,
+            const experiment = store.set(addExperimentAtom, "Experiment 1");
+            store.set(replaceExperimentFormDataAtom, experiment, { experiment_id: "EXP-001" });
+            const dataset = store.set(addDatasetAtom, "Test Dataset");
+            store.set(updateDatasetLinkingAtom, dataset, {
+              linkedExperimentInternalId: experiment,
             });
           }}
         >
@@ -223,10 +223,10 @@ describe("LinkedExperimentIdWidget", () => {
       render(
         <TestWrapper
           setup={(store) => {
-            store.set(addExperimentAtom, "Treatment Run");
-            store.set(addDatasetAtom, "Test Dataset");
-            store.set(updateDatasetLinkingAtom, 1, {
-              linkedExperimentInternalId: 1,
+            const experiment = store.set(addExperimentAtom, "Treatment Run");
+            const dataset = store.set(addDatasetAtom, "Test Dataset");
+            store.set(updateDatasetLinkingAtom, dataset, {
+              linkedExperimentInternalId: experiment,
             });
           }}
         >
@@ -245,11 +245,11 @@ describe("LinkedExperimentIdWidget", () => {
       render(
         <TestWrapper
           setup={(store) => {
-            store.set(addExperimentAtom, "Baseline Study");
-            store.set(replaceExperimentFormDataAtom, 1, { experiment_id: "EXP-001" });
-            store.set(addDatasetAtom, "Test Dataset");
-            store.set(updateDatasetLinkingAtom, 1, {
-              linkedExperimentInternalId: 1,
+            const experiment = store.set(addExperimentAtom, "Baseline Study");
+            store.set(replaceExperimentFormDataAtom, experiment, { experiment_id: "EXP-001" });
+            const dataset = store.set(addDatasetAtom, "Test Dataset");
+            store.set(updateDatasetLinkingAtom, dataset, {
+              linkedExperimentInternalId: experiment,
             });
           }}
         >

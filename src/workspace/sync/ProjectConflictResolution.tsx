@@ -6,7 +6,7 @@ import { workspaceAtom } from "@/state/atoms";
 import { projectSyncActionsAtom } from "../syncState";
 import { projectDisplayName } from "../types";
 
-/** Lets the user settle a conflict by keeping this tab's version or taking the other one. */
+/** Lets the user settle clashing fields with this tab's values or the newer ones. */
 export default function ProjectConflictResolution({
   projectId,
   message,
@@ -31,7 +31,9 @@ export default function ProjectConflictResolution({
       onClose();
       notifications.show({
         title: keep ? "Kept your changes" : "Now showing the newer changes",
-        message: keep ? "They replaced the newer changes." : "Your unsaved changes were dropped.",
+        message: keep
+          ? "Yours replaced the newer version where you both edited."
+          : "Your other edits were kept.",
         color: "green",
       });
     } catch (cause) {
@@ -53,8 +55,9 @@ export default function ProjectConflictResolution({
       <Stack>
         <Text>{message}</Text>
         <Text size="sm" c="dimmed">
-          Keep my changes and they replace the newer ones. Use newer changes and yours to{" "}
-          {project ? `"${projectDisplayName(project.state)}"` : "this project"} are dropped.{" "}
+          Where you both edited the same thing in{" "}
+          {project ? `"${projectDisplayName(project.state)}"` : "this project"}, choose whose
+          version to keep. Everything else either of you changed is kept.
         </Text>
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">

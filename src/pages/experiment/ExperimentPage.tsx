@@ -31,6 +31,7 @@ import StringListField from "@/components/rjsf/StringListField";
 import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
+import ViewOnlyBadge from "@/components/ViewOnlyBadge";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { replaceExperimentFormDataAtom } from "@/state/actions";
 import { activeExperimentIdAtom } from "@/state/atoms";
@@ -49,6 +50,7 @@ import {
   getTracerSchema,
 } from "@/utils/schemaViews";
 import { validateExperiment } from "@/utils/validation";
+import { useCanEdit } from "@/workspace/useProjectAccess";
 import fieldExperimentUiSchema from "./fieldExperimentUiSchema";
 import modelUiSchema from "./modelUiSchema";
 
@@ -86,6 +88,7 @@ function experimentForm(schemaType: string) {
 }
 
 export default function ExperimentPage() {
+  const canEdit = useCanEdit();
   const activeExperimentId = useAtomValue(activeExperimentIdAtom);
   const replaceExperimentFormData = useSetAtom(replaceExperimentFormDataAtom);
 
@@ -163,6 +166,7 @@ export default function ExperimentPage() {
           <Stack gap="sm" mb="md">
             <Group align="center" gap="md">
               <Title order={2}>{experiment.name || "Experiment"}</Title>
+              <ViewOnlyBadge />
               <ValidationButton
                 badgeState={validation.badgeState}
                 missingRequired={validation.missingRequired}
@@ -176,6 +180,7 @@ export default function ExperimentPage() {
           </Stack>
 
           <Form
+            disabled={!canEdit}
             ref={validation.formRef}
             schema={activeSchema}
             uiSchema={activeUiSchema}

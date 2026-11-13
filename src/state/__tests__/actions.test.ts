@@ -85,7 +85,7 @@ describe("workspace actions", () => {
       datasets: [
         {
           formData: { name: "DS" },
-          experimentLinking: { mode: "explicit", explicitExperimentInternalId: 1 },
+          experimentLinking: { mode: "explicit", explicitExperimentInternalId: "1" },
         },
       ],
     });
@@ -112,11 +112,11 @@ describe("project actions", () => {
     return { store, a: a.id, b, untouched };
   }
 
-  it("do nothing and return 0 with no active project", () => {
+  it("do nothing and return an empty id with no active project", () => {
     const store = createStore();
     const before = store.get(workspaceAtom);
-    expect(store.set(addExperimentAtom)).toBe(0);
-    expect(store.set(addDatasetAtom)).toBe(0);
+    expect(store.set(addExperimentAtom)).toBe("");
+    expect(store.set(addDatasetAtom)).toBe("");
     store.set(updateProjectDataAtom, { project_id: "X" });
     expect(store.get(workspaceAtom)).toBe(before);
   });
@@ -138,8 +138,8 @@ describe("project actions", () => {
     const { store, untouched } = setup();
     const first = store.set(addExperimentAtom);
     const second = store.set(addExperimentAtom, "Named");
-    expect([first, second]).toEqual([1, 2]);
-    expect(store.get(activeExperimentIdAtom)).toBe(2);
+    expect(store.get(projectStateAtom).experiments.map((e) => e.id)).toEqual([first, second]);
+    expect(store.get(activeExperimentIdAtom)).toBe(second);
     expect(store.get(projectStateAtom).experiments.map((e) => e.name)).toEqual([
       "Experiment 1",
       "Named",
@@ -163,14 +163,14 @@ describe("project actions", () => {
 
   it("deleting the selected experiment selects the first remaining one", () => {
     const { store, untouched } = setup();
-    store.set(addExperimentAtom);
+    const first = store.set(addExperimentAtom);
     const second = store.set(addExperimentAtom);
-    store.set(addExperimentAtom);
+    const third = store.set(addExperimentAtom);
     store.set(activeExperimentIdAtom, second);
     store.set(deleteExperimentAtom, second);
 
-    expect(store.get(projectStateAtom).experiments.map((e) => e.id)).toEqual([1, 3]);
-    expect(store.get(activeExperimentIdAtom)).toBe(1);
+    expect(store.get(projectStateAtom).experiments.map((e) => e.id)).toEqual([first, third]);
+    expect(store.get(activeExperimentIdAtom)).toBe(first);
     untouched();
   });
 
@@ -194,13 +194,13 @@ describe("project actions", () => {
     expect(store.get(activeExperimentIdAtom)).toBeNull();
   });
 
-  it("duplicateExperiment returns the new id, or 0 for an unknown one", () => {
+  it("duplicateExperiment returns the new id, or an empty id for an unknown one", () => {
     const { store, untouched } = setup();
     const exp = store.set(addExperimentAtom, "Original");
     const copy = store.set(duplicateExperimentAtom, exp);
-    expect(copy).toBe(2);
+    expect(store.get(projectStateAtom).experiments[1].id).toBe(copy);
     expect(store.get(projectStateAtom).experiments[1].name).toBe("Original (Copy)");
-    expect(store.set(duplicateExperimentAtom, 99)).toBe(0);
+    expect(store.set(duplicateExperimentAtom, "missing")).toBe("");
     untouched();
   });
 
@@ -208,8 +208,8 @@ describe("project actions", () => {
     const { store, untouched } = setup();
     store.set(addDatasetAtom);
     const second = store.set(addDatasetAtom, "Named");
-    expect(second).toBe(2);
-    expect(store.get(activeDatasetIdAtom)).toBe(2);
+    expect(store.get(projectStateAtom).datasets[1].id).toBe(second);
+    expect(store.get(activeDatasetIdAtom)).toBe(second);
     expect(store.get(projectStateAtom).datasets[1].name).toBe("Named");
     untouched();
   });
@@ -227,20 +227,21 @@ describe("project actions", () => {
 
   it("deleting the selected dataset selects the first remaining one", () => {
     const { store, untouched } = setup();
-    store.set(addDatasetAtom);
+    const first = store.set(addDatasetAtom);
     const second = store.set(addDatasetAtom);
     store.set(deleteDatasetAtom, second);
-    expect(store.get(projectStateAtom).datasets.map((d) => d.id)).toEqual([1]);
-    expect(store.get(activeDatasetIdAtom)).toBe(1);
+    expect(store.get(projectStateAtom).datasets.map((d) => d.id)).toEqual([first]);
+    expect(store.get(activeDatasetIdAtom)).toBe(first);
     untouched();
   });
 
-  it("duplicateDataset returns the new id, or 0 for an unknown one", () => {
+  it("duplicateDataset returns the new id, or an empty id for an unknown one", () => {
     const { store, untouched } = setup();
     const ds = store.set(addDatasetAtom, "Original");
-    expect(store.set(duplicateDatasetAtom, ds)).toBe(2);
+    const copy = store.set(duplicateDatasetAtom, ds);
+    expect(store.get(projectStateAtom).datasets[1].id).toBe(copy);
     expect(store.get(projectStateAtom).datasets[1].name).toBe("Original (Copy)");
-    expect(store.set(duplicateDatasetAtom, 99)).toBe(0);
+    expect(store.set(duplicateDatasetAtom, "missing")).toBe("");
     untouched();
   });
 
