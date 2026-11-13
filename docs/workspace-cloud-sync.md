@@ -20,8 +20,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
-- Experiment and dataset IDs are UUIDs. Drafts from before version 2 numbered
-  them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
+- Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
+  browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.
 - Drafts carry `schemaVersion` (missing means 1). Bump `PROJECT_SCHEMA_VERSION`
   with state migrations. Newer drafts are never parsed, merged or saved by an
