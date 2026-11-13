@@ -10,7 +10,7 @@ import {
 import { SHARED_REFRESH_INTERVAL_MS } from "../projectCloudSync/project";
 import { projectAccessAtom, projectSyncStatusAtom, remoteDeletionsAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
-import { updateProject } from "../workspace";
+import { addProject, updateProject } from "../workspace";
 
 const access = (role: ProjectAccess["role"], memberCount = 0): ProjectAccess => ({
   role,
@@ -112,6 +112,32 @@ describe("project roles in cloud sync", () => {
     await sync.refresh();
     expect(store.get(workspaceAtom).projects[0].state.projectData.name).toBe("one");
     expect(sync.hasPendingChanges()).toBe(false);
+  });
+
+  it("tells a downgraded editor their unsaved edits were discarded", async () => {
+    const { rows, store, sync, edit } = await setup("editor");
+    edit("unsaved before the downgrade");
+    const row = rows.get("one");
+    if (!row) throw new Error("missing row");
+    rows.set("one", { ...row, access: access("viewer") });
+    await sync.refresh();
+    expect(store.get(remoteDeletionsAtom)).toEqual([
+      {
+        type: "project",
+        name: "unsaved before the downgrade",
+        projectId: "one",
+        reason: "viewOnly",
+        unsavedEdits: true,
+      },
+    ]);
+  });
+
+  it("records the creator as owner after a new project's first save", async () => {
+    const { store, sync } = await setup("owner");
+    const created = { ...project("new"), id: "new" };
+    store.set(workspaceAtom, (workspace) => addProject(workspace, created));
+    await sync.flush();
+    expect(store.get(projectAccessAtom).new?.role).toBe("owner");
   });
 
   it("treats losing access like a remote delete, with its own reason", async () => {

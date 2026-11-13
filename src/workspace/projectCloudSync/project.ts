@@ -184,6 +184,13 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       if (result.saved) {
         if (!result.hash) throw new Error("The cloud did not acknowledge the saved project.");
         acknowledged.set(id, { project, hash: result.hash });
+        // A first save makes this user the owner; the next hash check fills in the rest.
+        if (!previous && !accessOf(id)) {
+          updateAccess(
+            [[id, { role: "owner", ownerEmail: "", updatedByEmail: null, memberCount: 0 }]],
+            true,
+          );
+        }
         return;
       }
       if (!result.project || !result.hash) {
