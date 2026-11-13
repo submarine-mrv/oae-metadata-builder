@@ -170,7 +170,11 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
         !equalData(formData(a)[typeKey], formData(original)[typeKey]) ||
         !equalData(formData(b)[typeKey], formData(original)[typeKey])
       ) {
-        if (!prefer) conflict(`the type of ${kind} "${original.name}"`);
+        if (!prefer) {
+          conflict(
+            `the type of ${kind} "${original.name}", so the version you choose replaces that whole ${kind}`,
+          );
+        }
         const winner = prefer === "local" ? a : b;
         target = target.map((entity) => (entity.id === original.id ? winner : entity));
         continue;
