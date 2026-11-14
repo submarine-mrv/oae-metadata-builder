@@ -92,14 +92,6 @@ describe("Schema Views", () => {
       expect(projectSchema["version"]).toBeDefined();
       expect(typeof projectSchema["version"]).toBe("string");
     });
-
-    it("should have experiments array in properties", () => {
-      const schema = getProjectSchema();
-
-      expect(schema.properties!.experiments).toBeDefined();
-      // Schema now allows null values, so type is ['array', 'null']
-      expect((schema.properties!.experiments as RJSFSchema).type).toEqual(["array", "null"]);
-    });
   });
 
   describe("getExperimentSchema", () => {

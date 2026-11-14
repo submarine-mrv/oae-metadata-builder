@@ -8,6 +8,8 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ### Updated
 
+- Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
+  field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
   instead of copying each project into the page being edited. Typing in a form no longer redraws the
   header and other parts of the page that didn't change. (#82)
