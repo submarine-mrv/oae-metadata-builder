@@ -16,6 +16,15 @@ function validDate(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));
 }
 
+/**
+ * Publication is separate from private draft sync: this client reads catalog
+ * status and uses dedicated RPCs to publish or unpublish an explicit snapshot.
+ * Saving a draft must not make its edits public.
+ *
+ * It reuses the shared Supabase session through an account-bound client, which
+ * checks the user before each request so an account switch cannot send an
+ * operation with another user's token. Supabase enforces mutation ownership.
+ */
 export function createPublicationClient(ownerId: string) {
   // Keep publication RPCs out of the keepalive budget used for draft saves during page unload.
   const client = createAccountClient(ownerId, false);
