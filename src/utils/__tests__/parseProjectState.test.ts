@@ -9,7 +9,7 @@ describe("parseProjectState", () => {
       ...emptyProjectState(),
       experiments: [
         {
-          id: 1,
+          id: "1",
           name: "Exp",
           formData: { experiment_id: "E1", experiment_types: ["intervention"] },
           // Older saves duplicated formData.experiment_types here.
@@ -28,7 +28,7 @@ describe("parseProjectState", () => {
       ...emptyProjectState(),
       experiments: [
         {
-          id: 1,
+          id: "1",
           name: "Legacy",
           formData: {
             experiment_id: "exp-legacy",
@@ -41,7 +41,7 @@ describe("parseProjectState", () => {
       ],
       datasets: [
         {
-          id: 1,
+          id: "1",
           name: "Legacy model output",
           formData: {
             dataset_type: "model_output",
@@ -64,5 +64,44 @@ describe("parseProjectState", () => {
       schema_class: "ModelOutputVariable",
       variable_type: "ph",
     });
+  });
+});
+
+describe("legacy numeric IDs", () => {
+  const legacy = {
+    projectData: {},
+    experiments: [
+      { id: 1, name: "E1", formData: { experiment_id: "E1" }, createdAt: 1, updatedAt: 1 },
+    ],
+    datasets: [
+      {
+        id: 1,
+        name: "D1",
+        formData: { name: "D1" },
+        createdAt: 1,
+        updatedAt: 1,
+        linking: { linkedExperimentInternalId: 1 },
+      },
+      {
+        id: 2,
+        name: "D2",
+        formData: { name: "D2" },
+        createdAt: 1,
+        updatedAt: 1,
+        linking: { linkedExperimentInternalId: 9 },
+      },
+    ],
+    nextExperimentId: 2,
+    nextDatasetId: 3,
+  } as unknown as Parameters<typeof parseProjectState>[0];
+
+  it("become the same string IDs everywhere, so every tab agrees", () => {
+    const state = parseProjectState(legacy);
+    expect(state.experiments[0].id).toBe("experiment-1");
+    expect(state.datasets.map((dataset) => dataset.id)).toEqual(["dataset-1", "dataset-2"]);
+    expect(state.datasets[0].linking?.linkedExperimentInternalId).toBe("experiment-1");
+    expect(state.datasets[1].linking?.linkedExperimentInternalId).toBeNull();
+    expect(state).not.toHaveProperty("nextExperimentId");
+    expect(parseProjectState(state)).toEqual(state);
   });
 });

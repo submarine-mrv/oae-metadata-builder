@@ -5,8 +5,6 @@ export interface ProjectState {
   projectData: DraftProject;
   experiments: ExperimentRecord[];
   datasets: DatasetRecord[];
-  nextExperimentId: number;
-  nextDatasetId: number;
 }
 
 /** Bump when draft-state migrations change the persisted shape or meaning. */
@@ -50,8 +48,6 @@ export function emptyProjectState(): ProjectState {
     projectData: { project_id: "" },
     experiments: [],
     datasets: [],
-    nextExperimentId: 1,
-    nextDatasetId: 1,
   };
 }
 

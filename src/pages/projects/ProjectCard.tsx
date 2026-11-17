@@ -11,6 +11,7 @@ import {
 import { IconTrash } from "@tabler/icons-react";
 import type { ProjectSummary } from "@/state/atoms";
 import { formatRelativeTime } from "@/utils/relativeTime";
+import { isProjectOwner, useProjectAccess } from "@/workspace/useProjectAccess";
 import classes from "./ProjectCard.module.css";
 
 interface ProjectCardProps {
@@ -20,6 +21,8 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
+  const access = useProjectAccess(project.id);
+  const owner = isProjectOwner(access);
   return (
     <Card
       withBorder
@@ -49,20 +52,22 @@ export default function ProjectCard({ project, onOpen, onDelete }: ProjectCardPr
                 Active
               </Badge>
             )}
-            <Tooltip label="Delete project">
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                aria-label={`Delete ${project.name}`}
-                style={{ position: "relative", zIndex: 1 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-              >
-                <IconTrash size={16} />
-              </ActionIcon>
-            </Tooltip>
+            {owner && (
+              <Tooltip label="Delete project">
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  aria-label={`Delete ${project.name}`}
+                  style={{ position: "relative", zIndex: 1 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
           </Group>
         </Group>
         <Text size="xs" c="dimmed">
@@ -72,6 +77,12 @@ export default function ProjectCard({ project, onOpen, onDelete }: ProjectCardPr
         <Text size="xs" c="dimmed">
           Edited {formatRelativeTime(project.updatedAt)}
         </Text>
+        {access && !owner && (
+          <Text size="xs" c="dimmed" truncate>
+            Shared by {access.ownerEmail}
+            {access.role === "viewer" ? " · View only" : ""}
+          </Text>
+        )}
       </Stack>
     </Card>
   );

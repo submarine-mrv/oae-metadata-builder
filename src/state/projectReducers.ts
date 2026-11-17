@@ -15,7 +15,7 @@ import type { ProjectState } from "@/workspace/types";
 
 export interface WithId {
   state: ProjectState;
-  id: number;
+  id: string;
 }
 
 export function updateProjectData(state: ProjectState, rawData: DraftProject): ProjectState {
@@ -35,10 +35,10 @@ export function updateProjectData(state: ProjectState, rawData: DraftProject): P
 // =============================================================================
 
 export function addExperiment(state: ProjectState, name?: string): WithId {
-  const id = state.nextExperimentId;
+  const id = crypto.randomUUID();
   const experiment: ExperimentRecord = {
     id,
-    name: name || `Experiment ${id}`,
+    name: name || `Experiment ${state.experiments.length + 1}`,
     formData: { project_id: state.projectData?.project_id || "" },
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -47,7 +47,6 @@ export function addExperiment(state: ProjectState, name?: string): WithId {
     state: {
       ...state,
       experiments: [...state.experiments, experiment],
-      nextExperimentId: id + 1,
     },
     id,
   };
@@ -56,7 +55,7 @@ export function addExperiment(state: ProjectState, name?: string): WithId {
 /** Replace an experiment's formData, so keys absent from `data` are cleared. */
 export function replaceExperimentFormData(
   state: ProjectState,
-  id: number,
+  id: string,
   data: DraftExperiment,
 ): ProjectState {
   const cleaned = cleanFormData(data);
@@ -82,16 +81,16 @@ export function replaceExperimentFormData(
   return { ...state, experiments, datasets };
 }
 
-export function deleteExperiment(state: ProjectState, id: number): ProjectState {
+export function deleteExperiment(state: ProjectState, id: string): ProjectState {
   return { ...state, experiments: state.experiments.filter((exp) => exp.id !== id) };
 }
 
-/** Copy an experiment with " (Copy)" appended to its name. Returns the state unchanged and id 0 if not found. */
-export function duplicateExperiment(state: ProjectState, id: number): WithId {
+/** Copy an experiment with " (Copy)" appended to its name. Returns the state unchanged and an empty id if not found. */
+export function duplicateExperiment(state: ProjectState, id: string): WithId {
   const original = state.experiments.find((exp) => exp.id === id);
-  if (!original) return { state, id: 0 };
+  if (!original) return { state, id: "" };
 
-  const newId = state.nextExperimentId;
+  const newId = crypto.randomUUID();
   const newName = `${original.name} (Copy)`;
   const duplicate: ExperimentRecord = {
     ...structuredClone(original),
@@ -111,7 +110,6 @@ export function duplicateExperiment(state: ProjectState, id: number): WithId {
     state: {
       ...state,
       experiments: [...state.experiments, duplicate],
-      nextExperimentId: newId + 1,
     },
     id: newId,
   };
@@ -122,10 +120,10 @@ export function duplicateExperiment(state: ProjectState, id: number): WithId {
 // =============================================================================
 
 export function addDataset(state: ProjectState, name?: string): WithId {
-  const id = state.nextDatasetId;
+  const id = crypto.randomUUID();
   const dataset: DatasetRecord = {
     id,
-    name: name || `Dataset ${id}`,
+    name: name || `Dataset ${state.datasets.length + 1}`,
     formData: { project_id: state.projectData?.project_id || "" },
     linking: { linkedExperimentInternalId: null },
     createdAt: Date.now(),
@@ -135,7 +133,6 @@ export function addDataset(state: ProjectState, name?: string): WithId {
     state: {
       ...state,
       datasets: [...state.datasets, dataset],
-      nextDatasetId: id + 1,
     },
     id,
   };
@@ -143,7 +140,7 @@ export function addDataset(state: ProjectState, name?: string): WithId {
 
 export function replaceDatasetFormData(
   state: ProjectState,
-  id: number,
+  id: string,
   data: DraftDataset,
 ): ProjectState {
   return {
@@ -161,16 +158,16 @@ export function replaceDatasetFormData(
   };
 }
 
-export function deleteDataset(state: ProjectState, id: number): ProjectState {
+export function deleteDataset(state: ProjectState, id: string): ProjectState {
   return { ...state, datasets: state.datasets.filter((ds) => ds.id !== id) };
 }
 
-/** Copy a dataset with " (Copy)" appended to its name. Returns the state unchanged and id 0 if not found. */
-export function duplicateDataset(state: ProjectState, id: number): WithId {
+/** Copy a dataset with " (Copy)" appended to its name. Returns the state unchanged and an empty id if not found. */
+export function duplicateDataset(state: ProjectState, id: string): WithId {
   const original = state.datasets.find((ds) => ds.id === id);
-  if (!original) return { state, id: 0 };
+  if (!original) return { state, id: "" };
 
-  const newId = state.nextDatasetId;
+  const newId = crypto.randomUUID();
   const newName = `${original.name} (Copy)`;
   // structuredClone keeps the copy linked to the same experiment without sharing references.
   const duplicate: DatasetRecord = {
@@ -189,7 +186,6 @@ export function duplicateDataset(state: ProjectState, id: number): WithId {
     state: {
       ...state,
       datasets: [...state.datasets, duplicate],
-      nextDatasetId: newId + 1,
     },
     id: newId,
   };
@@ -198,7 +194,7 @@ export function duplicateDataset(state: ProjectState, id: number): WithId {
 /** Update a dataset's experiment link. Linking to an experiment copies its experiment_id. */
 export function updateDatasetLinking(
   state: ProjectState,
-  id: number,
+  id: string,
   linking: Partial<DatasetLinkingMetadata>,
 ): ProjectState {
   return {

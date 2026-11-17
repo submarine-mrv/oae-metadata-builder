@@ -19,7 +19,7 @@ export function propagateProjectId<T extends ExperimentRecord | DatasetRecord>(
 /** Set experiment_id on the datasets linked to the given experiment. Other datasets are returned unchanged. */
 export function propagateExperimentIdToDatasets(
   datasets: DatasetRecord[],
-  experimentInternalId: number,
+  experimentInternalId: string,
   experimentId: string | undefined,
 ): DatasetRecord[] {
   return datasets.map((ds) =>

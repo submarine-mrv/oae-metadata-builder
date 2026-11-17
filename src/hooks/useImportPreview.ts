@@ -18,7 +18,7 @@ export interface ResolvedExperimentLink {
   /** Import key for cross-import linking (e.g., "experiment-0") */
   importKey?: string;
   /** Internal ID if linking to existing experiment */
-  internalId?: number;
+  internalId?: string;
 }
 
 /** Experiment linking configuration for datasets during import */
@@ -26,7 +26,7 @@ export interface DatasetExperimentLinking {
   /** How to determine the experiment link */
   mode: "use-file" | "explicit";
   /** Internal ID when mode='explicit' and linking to existing experiment */
-  explicitExperimentInternalId?: number;
+  explicitExperimentInternalId?: string;
   /** Import key when mode='explicit' and linking to importing experiment */
   explicitImportKey?: string;
   /** Computed resolution for display */
@@ -108,7 +108,7 @@ interface UseImportPreviewReturn {
   setDatasetExperimentLinking: (
     datasetKey: string,
     mode: "use-file" | "explicit",
-    explicitExperimentInternalId?: number,
+    explicitExperimentInternalId?: string,
     explicitImportKey?: string,
   ) => void;
   /** Get available experiment link options for a specific dataset */
@@ -396,7 +396,7 @@ export function useImportPreview(): UseImportPreviewReturn {
     (
       datasetKey: string,
       mode: "use-file" | "explicit",
-      explicitExperimentInternalId?: number,
+      explicitExperimentInternalId?: string,
       explicitImportKey?: string,
     ) => {
       setState((prev) => ({

@@ -26,6 +26,7 @@ import CustomTitleFieldTemplate from "@/components/rjsf/TitleFieldTemplate";
 import SeaNamesAutocompleteWidget from "@/components/SeaNamesAutocompleteWidget";
 import SpatialCoverageField from "@/components/SpatialCoverageField";
 import ValidationButton from "@/components/ValidationButton";
+import ViewOnlyBadge from "@/components/ViewOnlyBadge";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { updateProjectDataAtom } from "@/state/actions";
 import { projectDataAtom } from "@/state/atoms";
@@ -34,6 +35,7 @@ import { transformFormErrors } from "@/utils/errorTransformer";
 import { isFormEmpty } from "@/utils/formDataCleanup";
 import { getProjectSchema } from "@/utils/schemaViews";
 import { validateProject } from "@/utils/validation";
+import { useCanEdit } from "@/workspace/useProjectAccess";
 import uiSchema from "./uiSchema";
 
 const NoDescription: React.FC<DescriptionFieldProps> = () => null;
@@ -45,6 +47,7 @@ const validator = customizeValidator({ AjvClass: Ajv2019 });
 const HiddenSubmitButton = () => null;
 
 export default function ProjectPage() {
+  const canEdit = useCanEdit();
   const projectData = useAtomValue(projectDataAtom);
   const updateProjectData = useSetAtom(updateProjectDataAtom);
   const [schema] = useState<any>(() => getProjectSchema());
@@ -90,6 +93,7 @@ export default function ProjectPage() {
           <Stack gap="sm">
             <Group align="center" gap="md">
               <Title order={2}>Project Metadata</Title>
+              <ViewOnlyBadge />
               <ValidationButton
                 badgeState={validation.badgeState}
                 missingRequired={validation.missingRequired}
@@ -104,6 +108,7 @@ export default function ProjectPage() {
           </Stack>
 
           <Form
+            disabled={!canEdit}
             ref={validation.formRef}
             schema={schema}
             uiSchema={uiSchema}

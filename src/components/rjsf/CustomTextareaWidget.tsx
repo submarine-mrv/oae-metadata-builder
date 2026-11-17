@@ -131,14 +131,7 @@ export default function CustomTextareaWidget<
                   <IconInfoCircle size={14} />
                 </ActionIcon>
               ) : (
-                <Tooltip
-                  label={description}
-                  position="top"
-                  withArrow
-                  multiline
-                  maw={400}
-                  style={{ wordWrap: "break-word" }}
-                >
+                <Tooltip label={description} maw={400}>
                   <ActionIcon variant="transparent" size="xs" color="gray">
                     <IconInfoCircle size={14} />
                   </ActionIcon>

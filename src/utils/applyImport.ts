@@ -32,9 +32,8 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
 
   // Handle experiments - replace matching or add new
   // Track mapping from import key (e.g., "experiment-0") to internal ID for cross-import linking
-  const importKeyToInternalId: Record<string, number> = {};
+  const importKeyToInternalId: Record<string, string> = {};
   const newExperiments = [...prev.experiments];
-  let nextExpId = prev.nextExperimentId;
 
   experiments.forEach((rawExpData, index) => {
     const expData = cleanFormData(rawExpData) as DraftExperiment;
@@ -58,23 +57,21 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
       importKeyToInternalId[importKey] = newExperiments[existingIndex].id;
     } else {
       // Add as new experiment
-      const newInternalId = nextExpId;
+      const newInternalId = crypto.randomUUID();
       newExperiments.push({
         id: newInternalId,
-        name: expName || `Experiment ${newInternalId}`,
+        name: expName || `Experiment ${newExperiments.length + 1}`,
         formData: expData,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
       // Map import key to new internal ID
       importKeyToInternalId[importKey] = newInternalId;
-      nextExpId++;
     }
   });
 
   // Datasets: always added
   const newDatasets = [...prev.datasets];
-  let nextDsId = prev.nextDatasetId;
 
   for (const { formData: rawDsData, experimentLinking } of datasets) {
     // Normalize incoming dataset data at the boundary.
@@ -82,7 +79,7 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     const dsName = dsData.name as string | undefined;
 
     // Resolve experiment linking to internal ID
-    let linkedExperimentInternalId: number | null = null;
+    let linkedExperimentInternalId: string | null = null;
 
     if (experimentLinking) {
       if (experimentLinking.mode === "use-file") {
@@ -136,14 +133,13 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     // Always add datasets as new (no name-based override — unlike experiments
     // which have unique experiment_id, datasets can share names)
     newDatasets.push({
-      id: nextDsId,
-      name: dsName || `Dataset ${nextDsId}`,
+      id: crypto.randomUUID(),
+      name: dsName || `Dataset ${newDatasets.length + 1}`,
       formData: finalFormData,
       linking: datasetLinking,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-    nextDsId++;
   }
 
   // project_id and experiment_id are owned by the target project, never taken from the file.
@@ -152,7 +148,5 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     projectData: newProjectData,
     experiments: propagateProjectId(newExperiments, projectId),
     datasets: propagateProjectId(newDatasets, projectId),
-    nextExperimentId: nextExpId,
-    nextDatasetId: nextDsId,
   };
 }

@@ -139,7 +139,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
           (raw: unknown, index: number) => {
             const expData = parseExperiment(migrateExperiment(asImportRecord(raw)));
             return {
-              id: index + 1, // Will be reassigned based on nextExperimentId
+              id: crypto.randomUUID(),
               name:
                 (expData.name as string) ||
                 (expData.experiment_id as string) ||
@@ -158,7 +158,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             getBaseSchema() as JSONSchema,
           );
           return {
-            id: index + 1,
+            id: crypto.randomUUID(),
             name: (dsData.name as string) || `Dataset ${index + 1}`,
             formData: dsData,
             linking: {

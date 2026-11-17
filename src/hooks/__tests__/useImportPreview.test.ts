@@ -6,7 +6,7 @@ import { emptyProjectState } from "@/workspace/types";
 import { EMPTY_BASELINE, useImportPreview } from "../useImportPreview";
 
 // Helper to create test experiments
-function createExperiment(id: number, experimentId: string, name: string): ExperimentRecord {
+function createExperiment(id: string, experimentId: string, name: string): ExperimentRecord {
   return {
     id,
     name,
@@ -17,7 +17,7 @@ function createExperiment(id: number, experimentId: string, name: string): Exper
 }
 
 // Helper to create test datasets
-function _createDataset(id: number, name: string): DatasetRecord {
+function _createDataset(id: string, name: string): DatasetRecord {
   return {
     id,
     name,
@@ -90,7 +90,7 @@ describe("useImportPreview", () => {
   describe("experiment conflicts", () => {
     const baseline = {
       projectData: { project_id: "PROJ-001" },
-      experiments: [createExperiment(1, "EXP-001", "Baseline")],
+      experiments: [createExperiment("1", "EXP-001", "Baseline")],
     };
 
     function conflictFor(experiment: DraftExperiment) {
@@ -113,8 +113,8 @@ describe("useImportPreview", () => {
   describe("experiment linking resolution", () => {
     it("resolves to existing experiment when experiment_id matches", () => {
       const currentExperiments = [
-        createExperiment(1, "EXP-001", "Existing Experiment 1"),
-        createExperiment(2, "EXP-002", "Existing Experiment 2"),
+        createExperiment("1", "EXP-001", "Existing Experiment 1"),
+        createExperiment("2", "EXP-002", "Existing Experiment 2"),
       ];
 
       const { result } = renderHook(() => useImportPreview());
@@ -136,7 +136,7 @@ describe("useImportPreview", () => {
       expect(datasetItem?.experimentLinking?.resolvedMatch?.experimentName).toBe(
         "Existing Experiment 1",
       );
-      expect(datasetItem?.experimentLinking?.resolvedMatch?.internalId).toBe(1);
+      expect(datasetItem?.experimentLinking?.resolvedMatch?.internalId).toBe("1");
     });
 
     it("resolves to importing experiment when experiment_id matches importing experiment", () => {
@@ -208,7 +208,7 @@ describe("useImportPreview", () => {
 
   describe("setDatasetExperimentLinking", () => {
     it("switches dataset to explicit linking with existing experiment", () => {
-      const currentExperiments = [createExperiment(1, "EXP-001", "Existing Experiment 1")];
+      const currentExperiments = [createExperiment("1", "EXP-001", "Existing Experiment 1")];
 
       const { result } = renderHook(() => useImportPreview());
 
@@ -227,14 +227,14 @@ describe("useImportPreview", () => {
         result.current.setDatasetExperimentLinking(
           "dataset-0",
           "explicit",
-          1, // internal ID of existing experiment
+          "1", // internal ID of existing experiment
           undefined,
         );
       });
 
       const datasetItem = result.current.state.items.find((i) => i.type === "dataset");
       expect(datasetItem?.experimentLinking?.mode).toBe("explicit");
-      expect(datasetItem?.experimentLinking?.explicitExperimentInternalId).toBe(1);
+      expect(datasetItem?.experimentLinking?.explicitExperimentInternalId).toBe("1");
       expect(datasetItem?.experimentLinking?.resolvedMatch?.type).toBe("existing");
       expect(datasetItem?.experimentLinking?.resolvedMatch?.experimentName).toBe(
         "Existing Experiment 1",
@@ -286,14 +286,14 @@ describe("useImportPreview", () => {
           [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
           {
             projectData: { project_id: "PROJ-001" },
-            experiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+            experiments: [createExperiment("1", "EXP-001", "Existing Experiment")],
           },
         );
       });
 
       // First switch to explicit
       act(() => {
-        result.current.setDatasetExperimentLinking("dataset-0", "explicit", 1, undefined);
+        result.current.setDatasetExperimentLinking("dataset-0", "explicit", "1", undefined);
       });
 
       // Then switch back to use-file
@@ -329,8 +329,8 @@ describe("useImportPreview", () => {
 
     it("shows matched experiment name for file experiment_id option", () => {
       const currentExperiments = [
-        createExperiment(1, "EXP-001", "Experiment One"),
-        createExperiment(2, "EXP-002", "Experiment Two"),
+        createExperiment("1", "EXP-001", "Experiment One"),
+        createExperiment("2", "EXP-002", "Experiment Two"),
       ];
 
       const { result } = renderHook(() => useImportPreview());
@@ -410,7 +410,7 @@ describe("useImportPreview", () => {
           [{ name: "Dataset 1", experiment_id: "EXP-001" } as DraftDataset],
           {
             projectData: { project_id: "PROJ-001" },
-            experiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+            experiments: [createExperiment("1", "EXP-001", "Existing Experiment")],
           },
         );
       });
@@ -497,7 +497,7 @@ describe("useImportPreview", () => {
   describe("rebase", () => {
     const current = {
       projectData: { project_id: "PROJ-001" },
-      experiments: [createExperiment(1, "EXP-001", "Existing Experiment")],
+      experiments: [createExperiment("1", "EXP-001", "Existing Experiment")],
     };
 
     function openWithEmptyBaseline() {
@@ -523,7 +523,7 @@ describe("useImportPreview", () => {
 
       act(() => result.current.rebase(current));
       expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.type).toBe("existing");
-      expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.internalId).toBe(1);
+      expect(item("dataset-0")?.experimentLinking?.resolvedMatch?.internalId).toBe("1");
       expect(item("experiment-0")?.conflict).toBe("override");
       expect(item("project-0")?.conflict).toBe("override");
 

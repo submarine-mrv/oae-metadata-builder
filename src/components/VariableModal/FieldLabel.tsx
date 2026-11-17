@@ -66,14 +66,7 @@ export default function FieldLabel({
   return (
     <Group gap={4}>
       {titleNode}
-      <Tooltip
-        label={description}
-        position="top"
-        withArrow
-        multiline
-        maw={400}
-        style={{ wordWrap: "break-word" }}
-      >
+      <Tooltip label={description} maw={400}>
         <ActionIcon variant="transparent" size="xs" color="gray">
           <IconInfoCircle size={14} />
         </ActionIcon>

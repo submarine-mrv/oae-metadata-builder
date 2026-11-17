@@ -28,7 +28,7 @@ export default function ProjectSyncIndicator() {
 
   return (
     <>
-      <Tooltip label={message} multiline w={300} withArrow>
+      <Tooltip label={message}>
         <ActionIcon
           aria-label={failed ? "Not saved" : synced ? "Saved" : "Saving"}
           color={failed ? "red" : synced ? "green" : "gray"}

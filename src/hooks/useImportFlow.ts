@@ -7,6 +7,7 @@ import { importAsNewProjectAtom, importSelectedDataAtom } from "@/state/actions"
 import { activeProjectIdAtom, projectNameAtom, projectStateAtom } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
+import { useCanEdit } from "@/workspace/useProjectAccess";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 export type ImportMode = "new" | "merge";
@@ -21,7 +22,9 @@ export function useImportFlow() {
   const importAsNewProject = useSetAtom(importAsNewProjectAtom);
   const currentProjectName = useAtomValue(projectNameAtom);
   const navigate = useNavigate();
-  const canMerge = useAtomValue(activeProjectIdAtom) !== null;
+  // Viewers can still import a file as a new project of their own.
+  const canEdit = useCanEdit();
+  const canMerge = useAtomValue(activeProjectIdAtom) !== null && canEdit;
   const [mode, setMode] = useState<ImportMode>("new");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const effectiveMode: ImportMode = canMerge ? mode : "new";

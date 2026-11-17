@@ -114,7 +114,7 @@ export interface DraftDataset extends FormDataRecord {
  */
 export interface DatasetLinkingMetadata {
   /** If set, experiment_id auto-syncs from this experiment's internal ID */
-  linkedExperimentInternalId: number | null;
+  linkedExperimentInternalId: string | null;
 }
 
 // =============================================================================
@@ -125,8 +125,8 @@ export interface DatasetLinkingMetadata {
  * App-side wrapper around an experiment's schema content.
  */
 export interface ExperimentRecord {
-  /** Internal integer ID for tracking */
-  id: number;
+  /** Internal ID: a UUID, or experiment-N / dataset-N for drafts from before UUIDs */
+  id: string;
   /** Display name */
   name: string;
   /** Form data (schema-driven) */
@@ -141,8 +141,8 @@ export interface ExperimentRecord {
  * App-side wrapper around a dataset's schema content.
  */
 export interface DatasetRecord {
-  /** Internal integer ID for tracking */
-  id: number;
+  /** Internal ID: a UUID, or experiment-N / dataset-N for drafts from before UUIDs */
+  id: string;
   /** Display name */
   name: string;
   /** Form data (schema-driven) */
