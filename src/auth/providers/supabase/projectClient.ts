@@ -43,7 +43,7 @@ function parseResult(value: unknown, projectId: string, sent?: ProjectRecord): P
 }
 
 // Capture an owner-checked token for each request, never a later account's token.
-function createAccountClient(userId: string) {
+export function createAccountClient(userId: string, keepaliveRequests = true) {
   return createClient(
     import.meta.env.VITE_SUPABASE_URL,
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -53,7 +53,9 @@ function createAccountClient(userId: string) {
           const body = init?.body;
           // Browsers cap outstanding keepalive bodies at 64 KiB; large drafts use normal autosave.
           const keepalive =
-            typeof body === "string" && new TextEncoder().encode(body).byteLength <= 60_000;
+            keepaliveRequests &&
+            typeof body === "string" &&
+            new TextEncoder().encode(body).byteLength <= 60_000;
           return fetch(input, { ...init, keepalive });
         },
       },

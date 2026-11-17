@@ -1,10 +1,11 @@
-import { createOwnerClient } from "@/auth/providers/supabase/ownerClient";
+import { createAccountClient } from "@/auth/providers/supabase/projectClient";
 import type { ProjectPublicationPayload } from "./publicationPayload";
 
 export interface ProjectPublicationStatus {
   projectId: string;
   published: boolean;
   updatedAt: string;
+  document: Record<string, unknown>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -16,12 +17,34 @@ function validDate(value: unknown): value is string {
 }
 
 export function createPublicationClient(ownerId: string) {
-  const client = createOwnerClient(ownerId);
+  const client = createAccountClient(ownerId, false);
   return {
+    async publishedProjectIds(sourceProjectIds: string[]): Promise<string[]> {
+      if (sourceProjectIds.length === 0) return [];
+      const { data, error } = await client
+        .from("oae_projects")
+        .select("builder_project_id")
+        .eq("published", true)
+        .in("builder_project_id", sourceProjectIds);
+      if (error) throw new Error(`Could not check project publications: ${error.message}`);
+      if (!Array.isArray(data)) {
+        throw new Error("Supabase returned invalid project publication statuses.");
+      }
+      return data.map((row: unknown) => {
+        if (
+          !isRecord(row) ||
+          typeof row.builder_project_id !== "string" ||
+          !sourceProjectIds.includes(row.builder_project_id)
+        ) {
+          throw new Error("Supabase returned invalid project publication statuses.");
+        }
+        return row.builder_project_id;
+      });
+    },
     async status(sourceProjectId: string): Promise<ProjectPublicationStatus | null> {
       const { data, error } = await client
         .from("oae_projects")
-        .select("project_id, published, updated_at")
+        .select("project_id, published, updated_at, document:extras->_document")
         .eq("owner_id", ownerId)
         .eq("builder_project_id", sourceProjectId)
         .maybeSingle();
@@ -31,16 +54,26 @@ export function createPublicationClient(ownerId: string) {
         !isRecord(data) ||
         typeof data.project_id !== "string" ||
         typeof data.published !== "boolean" ||
-        !validDate(data.updated_at)
+        !validDate(data.updated_at) ||
+        !isRecord(data.document)
       ) {
         throw new Error("Supabase returned an invalid publication status.");
       }
-      return { projectId: data.project_id, published: data.published, updatedAt: data.updated_at };
+      return {
+        projectId: data.project_id,
+        published: data.published,
+        updatedAt: data.updated_at,
+        document: data.document,
+      };
     },
     async publish(
       sourceProjectId: string,
       payload: ProjectPublicationPayload,
     ): Promise<ProjectPublicationStatus> {
+      const extras = payload.project.extras;
+      if (!isRecord(extras) || !isRecord(extras._document)) {
+        throw new Error("The publication payload is missing its metadata document.");
+      }
       const { data, error } = await client.rpc("publish_oae_project", {
         p_source_project_id: sourceProjectId,
         p_project: payload.project,
@@ -65,6 +98,7 @@ export function createPublicationClient(ownerId: string) {
         projectId: row.result_project_id,
         published: true,
         updatedAt: row.result_published_at,
+        document: extras._document,
       };
     },
     async unpublish(sourceProjectId: string): Promise<void> {

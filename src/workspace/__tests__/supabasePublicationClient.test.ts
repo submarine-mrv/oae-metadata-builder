@@ -7,17 +7,19 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   eq: vi.fn(),
   single: vi.fn(),
-  owner: vi.fn(),
+  account: vi.fn(),
+  list: vi.fn(),
 }));
-vi.mock("@/auth/providers/supabase/ownerClient", () => ({
-  createOwnerClient: (owner: string) => {
-    mocks.owner(owner);
+vi.mock("@/auth/providers/supabase/projectClient", () => ({
+  createAccountClient: (account: string, keepaliveRequests?: boolean) => {
+    mocks.account(account, keepaliveRequests);
     return {
       from: () => ({
         select: () => ({
           eq: (...args: unknown[]) => {
             mocks.eq(...args);
             return {
+              in: mocks.list,
               eq: (...args: unknown[]) => {
                 mocks.eq(...args);
                 return { maybeSingle: mocks.single };
@@ -37,6 +39,7 @@ describe("owner-bound publication client", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.single.mockResolvedValue({ data: null, error: null });
+    mocks.list.mockResolvedValue({ data: [{ builder_project_id: "draft-id" }], error: null });
     mocks.rpc.mockResolvedValue({
       data: [
         {
@@ -52,11 +55,52 @@ describe("owner-bound publication client", () => {
 
   it("looks up the owner and stable internal draft identity, not an editable public ID", async () => {
     expect(await createPublicationClient("owner").status("draft-id")).toBeNull();
-    expect(mocks.owner).toHaveBeenCalledWith("owner");
+    expect(mocks.account).toHaveBeenCalledWith("owner", false);
     expect(mocks.eq.mock.calls).toEqual([
       ["owner_id", "owner"],
       ["builder_project_id", "draft-id"],
     ]);
+  });
+
+  it("loads published draft IDs in one request, including visible shared projects", async () => {
+    const client = createPublicationClient("owner");
+    expect(await client.publishedProjectIds(["draft-id", "private-draft"])).toEqual(["draft-id"]);
+    expect(mocks.eq).toHaveBeenCalledWith("published", true);
+    expect(mocks.list).toHaveBeenCalledWith("builder_project_id", ["draft-id", "private-draft"]);
+    mocks.list.mockClear();
+    expect(await client.publishedProjectIds([])).toEqual([]);
+    expect(mocks.list).not.toHaveBeenCalled();
+  });
+
+  it("loads the persisted metadata document for comparison after a reload", async () => {
+    mocks.single.mockResolvedValue({
+      data: {
+        project_id: "PUBLICATION-TEST",
+        published: true,
+        updated_at: timestamp,
+        document: { project: { name: "Published project" }, experiments: [], datasets: [] },
+      },
+      error: null,
+    });
+    expect(await createPublicationClient("owner").status("draft-id")).toEqual({
+      projectId: "PUBLICATION-TEST",
+      published: true,
+      updatedAt: timestamp,
+      document: { project: { name: "Published project" }, experiments: [], datasets: [] },
+    });
+    mocks.single.mockResolvedValue({
+      data: { project_id: "PUBLICATION-TEST", published: true, updated_at: timestamp },
+      error: null,
+    });
+    await expect(createPublicationClient("owner").status("draft-id")).rejects.toThrow("invalid");
+  });
+
+  it("rejects failed or malformed publication listings", async () => {
+    const client = createPublicationClient("owner");
+    mocks.list.mockResolvedValue({ data: null, error: { message: "offline" } });
+    await expect(client.publishedProjectIds(["draft-id"])).rejects.toThrow("offline");
+    mocks.list.mockResolvedValue({ data: [{ builder_project_id: 123 }], error: null });
+    await expect(client.publishedProjectIds(["draft-id"])).rejects.toThrow("invalid");
   });
 
   it("publishes the complete normalized payload and validates the server acknowledgement", async () => {
@@ -71,6 +115,9 @@ describe("owner-bound publication client", () => {
       projectId: "PUBLICATION-TEST",
       published: true,
       updatedAt: timestamp,
+      document: expect.objectContaining({
+        project: expect.objectContaining({ project_id: "PUBLICATION-TEST" }),
+      }),
     });
     mocks.rpc.mockResolvedValue({
       data: [
