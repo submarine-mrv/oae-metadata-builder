@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { authEnabled, authProvider } from "@/auth/config";
 import { useAuth } from "@/auth/useAuth";
 import { activeProjectAtom } from "@/state/atoms";
+import { buildMetadataDocument } from "@/utils/exportImport";
+import { equalData } from "./merge";
 import { buildProjectPublicationPayload } from "./publicationPayload";
 import type {
   createPublicationClient,
@@ -16,7 +18,11 @@ import { useProjectAccess } from "./useProjectAccess";
 
 type PublicationClient = ReturnType<typeof createPublicationClient>;
 
-export default function ProjectPublicationControl() {
+export default function ProjectPublicationControl({
+  onPublishedChange,
+}: {
+  onPublishedChange?: (published: boolean | null) => void;
+}) {
   const { user, isAuthenticated } = useAuth();
   const project = useAtomValue(activeProjectAtom);
   const access = useProjectAccess(project?.id ?? null);
@@ -35,6 +41,7 @@ export default function ProjectPublicationControl() {
       key={`${user.id}:${project.id}`}
       ownerId={user.id}
       sourceProjectId={project.id}
+      onPublishedChange={onPublishedChange}
     />
   );
 }
@@ -42,11 +49,14 @@ export default function ProjectPublicationControl() {
 function PublicationControl({
   ownerId,
   sourceProjectId,
+  onPublishedChange,
 }: {
   ownerId: string;
   sourceProjectId: string;
+  onPublishedChange?: (published: boolean | null) => void;
 }) {
   const store = useStore();
+  const project = useAtomValue(activeProjectAtom);
   const [client, setClient] = useState<PublicationClient | null>(null);
   const [status, setStatus] = useState<ProjectPublicationStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +67,22 @@ function PublicationControl({
   const [busy, setBusy] = useState(false);
   const mounted = useRef(false);
   const request = useRef(0);
+  const matchesPublication = (record: ProjectRecord) =>
+    status?.published &&
+    equalData(
+      buildMetadataDocument(
+        record.state.projectData,
+        record.state.experiments,
+        record.state.datasets,
+      ),
+      status.document,
+    );
+  const unchanged = project !== null && matchesPublication(project);
+  const reviewUnchanged = review !== null && matchesPublication(review);
+
+  useEffect(() => {
+    onPublishedChange?.(loading || statusError ? null : (status?.published ?? false));
+  }, [loading, statusError, status, onPublishedChange]);
 
   const loadStatus = useCallback(
     async (target: PublicationClient) => {
@@ -100,9 +126,9 @@ function PublicationControl({
     };
   }, [ownerId, loadStatus]);
 
-  const open = () => {
+  const open = (nextMode: "publish" | "unpublish") => {
     setReview(store.get(activeProjectAtom));
-    setMode("publish");
+    setMode(nextMode);
     setActionError(null);
     if (client) void loadStatus(client);
   };
@@ -122,6 +148,7 @@ function PublicationControl({
     setActionError(null);
     try {
       if (mode === "publish") {
+        if (reviewUnchanged) throw new Error("There are no unpublished changes.");
         const sync = store.get(projectSyncActionsAtom);
         if (!sync)
           throw new Error("Cloud project storage is not ready. Retry after it has loaded.");
@@ -164,9 +191,20 @@ function PublicationControl({
 
   return (
     <>
-      <Button variant="light" onClick={open}>
-        Publication
-      </Button>
+      <Group gap="xs" mt="xs">
+        <Button
+          title={unchanged ? "There are no unpublished changes." : "Publish this project"}
+          disabled={loading || (!statusError && !!unchanged)}
+          onClick={() => open("publish")}
+        >
+          {status?.published ? "Publish Updates" : "Publish"}
+        </Button>
+        {status?.published && (
+          <Button variant="outline" color="red" onClick={() => open("unpublish")}>
+            Unpublish
+          </Button>
+        )}
+      </Group>
       <Modal
         opened={review !== null}
         onClose={() => {
@@ -218,9 +256,12 @@ function PublicationControl({
               <>
                 <Text>
                   Publish the complete project, including {review.state.experiments.length}{" "}
-                  experiments and {review.state.datasets.length} datasets, to Data Commons.
+                  experiments and {review.state.datasets.length} datasets, to Data Commons at{" "}
+                  <a href="https://oaedata.org" target="_blank" rel="noopener noreferrer">
+                    oaedata.org
+                  </a>
                 </Text>
-                <Alert color="yellow" title="This metadata will be public">
+                <Alert color="hadal.9" title="This metadata will be public">
                   All metadata, including names, emails, identifiers and access links, will be
                   readable and downloadable without signing in. This replaces any previous
                   publication of this draft, including its previous project ID.
@@ -234,7 +275,7 @@ function PublicationControl({
                 )}
               </>
             ) : (
-              <Alert color="yellow" title="Unpublish this project?">
+              <Alert color="hadal.9" title="Unpublish this project?">
                 This hides the entire project from new Data Commons reads. Your draft and saved
                 metadata remain intact. Previously downloaded copies cannot be recalled.
               </Alert>
@@ -245,27 +286,19 @@ function PublicationControl({
               </Alert>
             )}
             <Group justify="space-between">
-              {mode === "publish" && status?.published ? (
-                <Button
-                  color="red"
-                  variant="subtle"
-                  disabled={busy || loading || !!statusError}
-                  onClick={() => {
-                    setMode("unpublish");
-                    setActionError(null);
-                  }}
-                >
-                  Unpublish...
-                </Button>
-              ) : (
-                <Button variant="subtle" disabled={busy} onClick={() => setReview(null)}>
-                  Cancel
-                </Button>
-              )}
+              <Button variant="subtle" disabled={busy} onClick={() => setReview(null)}>
+                Cancel
+              </Button>
               <Button
                 color={mode === "unpublish" ? "red" : undefined}
                 loading={busy}
-                disabled={!client || loading || !!statusError || !!validationError}
+                disabled={
+                  !client ||
+                  loading ||
+                  !!statusError ||
+                  !!validationError ||
+                  (mode === "publish" && !!reviewUnchanged)
+                }
                 onClick={submit}
               >
                 {mode === "unpublish"
