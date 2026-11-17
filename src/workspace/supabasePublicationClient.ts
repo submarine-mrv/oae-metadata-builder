@@ -17,6 +17,7 @@ function validDate(value: unknown): value is string {
 }
 
 export function createPublicationClient(ownerId: string) {
+  // Keep publication RPCs out of the keepalive budget used for draft saves during page unload.
   const client = createAccountClient(ownerId, false);
   return {
     async publishedProjectIds(sourceProjectIds: string[]): Promise<string[]> {
