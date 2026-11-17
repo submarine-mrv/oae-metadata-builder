@@ -50,7 +50,7 @@ describe("complete project publication payload", () => {
     dataset.state.datasets[0].formData.experiment_id = "missing-experiment";
     expect(() => buildProjectPublicationPayload(dataset)).toThrow("must link");
     const duplicate = publicationProject();
-    duplicate.state.experiments.push({ ...duplicate.state.experiments[0], id: 2 });
+    duplicate.state.experiments.push({ ...duplicate.state.experiments[0], id: "experiment-2" });
     expect(() => buildProjectPublicationPayload(duplicate)).toThrow("unique");
   });
 

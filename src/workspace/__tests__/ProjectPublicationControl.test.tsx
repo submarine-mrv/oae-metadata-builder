@@ -42,6 +42,7 @@ function setup(project = publicationProject(), flush = vi.fn().mockResolvedValue
   store.set(projectSyncActionsAtom, {
     flush,
     refresh: vi.fn(),
+    keepProjectChanges: vi.fn(),
     discardProjectChanges: vi.fn(),
     stop: vi.fn(),
     migrateLocalProjects: vi.fn(),

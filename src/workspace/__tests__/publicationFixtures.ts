@@ -22,7 +22,7 @@ export function publicationProject() {
       },
       experiments: [
         {
-          id: 1,
+          id: "experiment-1",
           name: "Baseline",
           createdAt: 100,
           updatedAt: 100,
@@ -40,11 +40,11 @@ export function publicationProject() {
       ],
       datasets: [
         {
-          id: 1,
+          id: "dataset-1",
           name: "Test observations",
           createdAt: 100,
           updatedAt: 100,
-          linking: { linkedExperimentInternalId: 1 },
+          linking: { linkedExperimentInternalId: "experiment-1" },
           formData: {
             project_id: "PUBLICATION-TEST",
             experiment_id: "PUBLICATION-EXP",

@@ -2,9 +2,8 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
 import { createStore } from "jotai";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
-import { ProjectAccessError, startProjectCloudSync } from "@/workspace/projectCloudSync";
 import { publicationProject } from "@/workspace/__tests__/publicationFixtures";
-import { startProjectCloudSync } from "@/workspace/projectCloudSync";
+import { ProjectAccessError, startProjectCloudSync } from "@/workspace/projectCloudSync";
 import { buildProjectPublicationPayload } from "@/workspace/publicationPayload";
 import { WORKSPACE_KEY } from "@/workspace/storage";
 import { createPublicationClient } from "@/workspace/supabasePublicationClient";
