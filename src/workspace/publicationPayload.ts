@@ -5,6 +5,10 @@ import type { ProjectRecord } from "./types";
 
 type JsonRecord = Record<string, unknown>;
 
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export interface ProjectPublicationPayload {
   project: JsonRecord;
   experiments: Array<JsonRecord & { project_id: string; experiment_id: string }>;
@@ -16,6 +20,25 @@ function requiredString(value: unknown, field: string): string {
     throw new Error(`${field} is required before publication.`);
   }
   return value;
+}
+
+function requiredPersonNames(value: unknown, field: string) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${field} are required before publication.`);
+  }
+  value.forEach((person, index) => {
+    if (!isJsonRecord(person)) {
+      throw new Error(`${field} must have valid names before publication.`);
+    }
+    requiredString(person.name, `${field} ${index + 1} name`);
+  });
+}
+
+function requiredSpatialBox(value: unknown, field: string) {
+  if (!isJsonRecord(value) || !isJsonRecord(value.geo)) {
+    throw new Error(`${field} is required before publication.`);
+  }
+  requiredString(value.geo.box, field);
 }
 
 function assertValid(
@@ -48,6 +71,10 @@ function mapExperiment(projectId: string, experiment: ExperimentRecord) {
   if (data.project_id !== projectId) {
     throw new Error(`Experiment "${experimentId}" must link to project "${projectId}".`);
   }
+  if (data.spatial_coverage != null) {
+    requiredSpatialBox(data.spatial_coverage, `Experiment "${experimentId}" spatial coverage`);
+  }
+  requiredPersonNames(data.experiment_leads, `Experiment "${experimentId}" leads`);
   return {
     project_id: projectId,
     experiment_id: experimentId,
@@ -69,6 +96,12 @@ function mapDataset(projectId: string, dataset: DatasetRecord, experimentIds: Se
   if (data.project_id !== projectId || !experimentIds.has(experimentId)) {
     throw new Error(`Dataset "${name}" must link to an experiment in project "${projectId}".`);
   }
+  requiredString(data.description, `Dataset "${name}" description`);
+  const submitter = data.data_submitter;
+  if (!isJsonRecord(submitter)) {
+    throw new Error(`Dataset "${name}" submitter is required before publication.`);
+  }
+  requiredString(submitter.name, `Dataset "${name}" submitter name`);
   return {
     project_id: projectId,
     experiment_id: experimentId,
@@ -92,6 +125,8 @@ export function buildProjectPublicationPayload(project: ProjectRecord): ProjectP
   assertValid("Project", validateProject(projectData));
   requiredString(projectData.name, "Project name");
   const projectId = requiredString(projectData.project_id, "Project ID");
+  requiredPersonNames(projectData.project_leads, "Project leads");
+  requiredSpatialBox(projectData.spatial_coverage, "Project spatial coverage");
   const document = buildMetadataDocument(projectData, experiments, datasets);
   if (!document.version || !document.protocol_git_hash) {
     throw new Error("Protocol version metadata is missing; this project cannot be published.");

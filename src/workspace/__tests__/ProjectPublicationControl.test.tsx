@@ -5,7 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
 import { createTestStore } from "@/state/testing";
 import ProjectPublicationControl from "../ProjectPublicationControl";
-import { projectSyncActionsAtom } from "../syncState";
+import type { ProjectRole } from "../projectCloudSync/types";
+import { projectAccessAtom, projectSyncActionsAtom } from "../syncState";
 import { publicationProject } from "./publicationFixtures";
 
 const mocks = vi.hoisted(() => ({
@@ -37,8 +38,22 @@ vi.mock("../supabasePublicationClient", () => ({
   }),
 }));
 
-function setup(project = publicationProject(), flush = vi.fn().mockResolvedValue(undefined)) {
+function setup(
+  project = publicationProject(),
+  flush = vi.fn().mockResolvedValue(undefined),
+  role: ProjectRole | null = "owner",
+) {
   const store = createTestStore({ version: 1, activeProjectId: project.id, projects: [project] });
+  if (role !== null) {
+    store.set(projectAccessAtom, {
+      [project.id]: {
+        role,
+        ownerEmail: "owner@example.com",
+        updatedByEmail: null,
+        memberCount: 0,
+      },
+    });
+  }
   store.set(projectSyncActionsAtom, {
     flush,
     refresh: vi.fn(),
@@ -88,6 +103,18 @@ describe("explicit project publication", () => {
     expect(mocks.status).not.toHaveBeenCalled();
   });
 
+  it.each(["editor", "viewer"] as const)("does not expose publication to a %s", (role) => {
+    setup(publicationProject(), undefined, role);
+    expect(screen.queryByRole("button", { name: "Publication" })).not.toBeInTheDocument();
+    expect(mocks.status).not.toHaveBeenCalled();
+  });
+
+  it("does not expose publication until cloud ownership is confirmed", () => {
+    setup(publicationProject(), undefined, null);
+    expect(screen.queryByRole("button", { name: "Publication" })).not.toBeInTheDocument();
+    expect(mocks.status).not.toHaveBeenCalled();
+  });
+
   it("requires review and saves the private draft before an explicit publish", async () => {
     const { flush } = setup();
     await openReview();
@@ -111,6 +138,19 @@ describe("explicit project publication", () => {
         }),
       ),
     );
+  });
+
+  it("blocks publication when a required dataset field is empty", async () => {
+    const project = publicationProject();
+    project.state.datasets[0].formData.data_submitter = {
+      ...project.state.datasets[0].formData.data_submitter,
+      name: "",
+    };
+    setup(project);
+    await openReview();
+    expect(screen.getByText("Fix metadata before publishing")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publish project" })).toBeDisabled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it("blocks invalid metadata but still allows an existing publication to be unpublished", async () => {

@@ -42,6 +42,39 @@ describe("complete project publication payload", () => {
     expect(() => buildProjectPublicationPayload(dataset)).toThrow("Dataset");
   });
 
+  it("rejects a dataset with a missing required submitter name", () => {
+    const project = publicationProject();
+    project.state.datasets[0].formData.data_submitter = {
+      ...project.state.datasets[0].formData.data_submitter,
+      name: "",
+    };
+    expect(() => buildProjectPublicationPayload(project)).toThrow("Dataset");
+  });
+
+  it("rejects empty required dataset descriptions and project spatial coverage", () => {
+    const dataset = publicationProject();
+    dataset.state.datasets[0].formData.description = "";
+    expect(() => buildProjectPublicationPayload(dataset)).toThrow('Dataset "Test observations"');
+
+    const project = publicationProject();
+    project.state.projectData.spatial_coverage = { geo: { box: " " } };
+    expect(() => buildProjectPublicationPayload(project)).toThrow("Project spatial coverage");
+  });
+
+  it("rejects datasets with a pH variable missing its calibration standard", () => {
+    const project = publicationProject();
+    Object.assign(project.state.datasets[0].formData, {
+      variables: [
+        {
+          schema_class: "DiscretePHVariable",
+          dataset_variable_name: "pH_total",
+          analyzing_instrument: { calibration: { technique_description: "Routine calibration" } },
+        },
+      ],
+    });
+    expect(() => buildProjectPublicationPayload(project)).toThrow("standard_used");
+  });
+
   it("rejects foreign links and duplicate experiment IDs rather than publishing a partial tree", () => {
     const experiment = publicationProject();
     experiment.state.experiments[0].formData.project_id = "other-project";

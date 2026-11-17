@@ -12,13 +12,22 @@ import type {
 } from "./supabasePublicationClient";
 import { projectSyncActionsAtom } from "./syncState";
 import { type ProjectRecord, projectDisplayName } from "./types";
+import { useProjectAccess } from "./useProjectAccess";
 
 type PublicationClient = ReturnType<typeof createPublicationClient>;
 
 export default function ProjectPublicationControl() {
   const { user, isAuthenticated } = useAuth();
   const project = useAtomValue(activeProjectAtom);
-  if (!authEnabled || authProvider !== "supabase" || !isAuthenticated || !user || !project) {
+  const access = useProjectAccess(project?.id ?? null);
+  if (
+    !authEnabled ||
+    authProvider !== "supabase" ||
+    !isAuthenticated ||
+    !user ||
+    !project ||
+    access?.role !== "owner"
+  ) {
     return null;
   }
   return (
