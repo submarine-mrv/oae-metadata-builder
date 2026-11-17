@@ -240,6 +240,20 @@ export const theme = createTheme({
       },
     },
 
+    // Fits short labels, wraps long ones at maw, and breaks long IDs and URLs.
+    Tooltip: {
+      defaultProps: {
+        multiline: true,
+        maw: 320,
+        withArrow: true,
+      },
+      styles: {
+        tooltip: {
+          overflowWrap: "anywhere",
+        },
+      },
+    },
+
     TextInput: {
       defaultProps: {
         radius: "md",
