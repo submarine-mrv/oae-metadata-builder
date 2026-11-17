@@ -16,11 +16,19 @@ import classes from "./ProjectCard.module.css";
 
 interface ProjectCardProps {
   project: ProjectSummary;
+  published?: boolean;
+  publicationUnknown?: boolean;
   onOpen: () => void;
   onDelete: () => void;
 }
 
-export default function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
+export default function ProjectCard({
+  project,
+  published = false,
+  publicationUnknown = false,
+  onOpen,
+  onDelete,
+}: ProjectCardProps) {
   const access = useProjectAccess(project.id);
   const owner = isProjectOwner(access);
   return (
@@ -47,25 +55,40 @@ export default function ProjectCard({ project, onOpen, onDelete }: ProjectCardPr
             </Text>
           </UnstyledButton>
           <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+            {published && (
+              <Badge size="xs" variant="light" color="green.9">
+                Published
+              </Badge>
+            )}
             {project.isActive && (
               <Badge size="xs" variant="light" color="coral">
                 Active
               </Badge>
             )}
             {owner && (
-              <Tooltip label="Delete project">
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  aria-label={`Delete ${project.name}`}
-                  style={{ position: "relative", zIndex: 1 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                  }}
-                >
-                  <IconTrash size={16} />
-                </ActionIcon>
+              <Tooltip
+                label={
+                  published
+                    ? "Unpublish this project before deleting it."
+                    : publicationUnknown
+                      ? "Check publication status before deleting this project."
+                      : "Delete project"
+                }
+              >
+                <span className="relative z-[1] inline-flex">
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
+                    aria-label={`Delete ${project.name}`}
+                    disabled={published || publicationUnknown}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete();
+                    }}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </span>
               </Tooltip>
             )}
           </Group>
