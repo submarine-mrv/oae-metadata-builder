@@ -75,32 +75,17 @@ and brings back any that differ from the cloud as a "(recovered)" copy, since
 without the saved baseline it can't merge them safely. Snapshots move into Jotai
 once, so a failed save retries the live draft rather than importing it again.
 
-## Verification
-
-Run the workspace, project page, import, and auth lifecycle tests plus
-`npm run build`. The opt-in local Supabase integration tests (sync, sharing, and
-publication) use disposable users.
-
-```sh
-NODE_OPTIONS=--no-experimental-webstorage npx vitest run src/workspace/__tests__ \
-  src/auth/providers/supabase/__tests__/projectClient.test.ts \
-  src/hooks/__tests__/useImportFlow.test.tsx src/pages/projects/__tests__
-npm run build
-```
-
-Verify login, migration/decline, indicators, account isolation, and transitions
-against local Supabase. In two isolated windows, check polling/focus updates,
-disjoint edits, conflicts, and clean/dirty remote deletions without reloading.
-Use disposable test data; do not reset useful data.
-
-Discovery does not rewrite guest storage. Cleanup compares the original source,
-not its migrated form. After an error, the prompt reloads current sources and
-also allows continuing without deleting local copies.
-
 ## Project publication
 
-With Supabase authentication enabled, open **Publication** in the header to
-review and publish the active project's complete metadata tree. All project,
+With Supabase authentication enabled, the project owner can select **Publish**
+below the project title on Overview to review and publish its complete metadata
+tree. Published projects show **Publish Updates** and a separate **Unpublish**
+action, which opens the unpublish confirmation directly. **Publish Updates** is
+disabled when the current metadata matches the published snapshot, including
+after a reload or reverting an edit. Internal workspace timestamps and selection
+changes do not count as updates. The Projects list shows
+a **Published** badge only for projects confirmed as public; private projects
+have no publication badge. All project,
 experiment and dataset metadata must pass validation. The confirmation explains
 that names, emails, identifiers and access links become publicly downloadable.
 Publishing first saves the private draft and refuses to publish if that save
@@ -108,7 +93,7 @@ fails or the reviewed content changes.
 
 - **Publish project / Update publication** atomically replaces the public tree.
   Removed experiments and datasets disappear from the publication.
-- **Unpublish...** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
+- **Unpublish** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
   reads without deleting metadata or the private draft. Existing downloads and
   already-open browser pages cannot be recalled. Unpublishing does not depend
   on private draft saves, so a draft conflict cannot prevent hiding public data.
@@ -118,6 +103,8 @@ fails or the reviewed content changes.
   IDs belonging to another draft or owner are rejected.
 - Draft edits remain private until the next explicit publication. Unpublish
   before deleting a published draft; deletion is blocked while it is public.
+  The delete buttons on Overview and Projects are disabled for published
+  projects, with a tooltip explaining that the project must be unpublished first.
 
 The client uses owner-bound tokens and the `publish_oae_project` and
 `unpublish_oae_project` RPCs. Direct authenticated catalog mutations are denied.
@@ -126,9 +113,3 @@ document envelope for lossless Data Commons downloads; no private workspace
 wrappers, internal counters or auth credentials are included in those documents.
 Guests, auth-disabled builds and the memory auth provider have no publication
 controls or requests.
-
-Local end-to-end verification requires the publication RPCs and Web's
-Supabase catalog reader. Publish a sample complete project from MB, refresh
-Web search and its detail/download, edit and update, unpublish and check a fresh
-anonymous read, then republish. Verify conflicts and failures leave the previous
-public tree intact. Do not use real private metadata for these checks.
