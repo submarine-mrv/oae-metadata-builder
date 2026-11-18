@@ -1,4 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
@@ -7,6 +6,7 @@ import { importAsNewProjectAtom, importSelectedDataAtom } from "@/state/actions"
 import { activeProjectIdAtom, projectNameAtom, projectStateAtom } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
 import { importMetadata } from "@/utils/exportImport";
+import { useEntityNavigate } from "@/workspace/useEntityNavigate";
 import { useCanEdit } from "@/workspace/useProjectAccess";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
 
@@ -21,7 +21,7 @@ export function useImportFlow() {
   const importSelectedData = useSetAtom(importSelectedDataAtom);
   const importAsNewProject = useSetAtom(importAsNewProjectAtom);
   const currentProjectName = useAtomValue(projectNameAtom);
-  const navigate = useNavigate();
+  const goTo = useEntityNavigate();
   // Viewers can still import a file as a new project of their own.
   const canEdit = useCanEdit();
   const canMerge = useAtomValue(activeProjectIdAtom) !== null && canEdit;
@@ -72,7 +72,7 @@ export function useImportFlow() {
         importSelectedData(selected);
       }
       // Entity pages hold local form data that a merge would leave stale.
-      navigate({ to: "/overview" });
+      goTo("overview");
       trackEvent("metadata_import", {
         project: selected.project ? 1 : 0,
         experiments: selected.experiments.length,

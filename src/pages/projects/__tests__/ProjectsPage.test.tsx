@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createProjectAtom, importAsNewProjectAtom } from "@/state/actions";
-import { projectNameAtom, workspaceAtom } from "@/state/atoms";
+import { activeProjectIdAtom, projectNameAtom, workspaceAtom } from "@/state/atoms";
 import { createTestStore, StoreWrapper } from "@/state/testing";
 import { projectSyncActionsAtom } from "@/workspace/syncState";
 import { deleteProject } from "@/workspace/workspace";
@@ -28,8 +28,10 @@ vi.mock("@/workspace/supabasePublicationClient", () => ({
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
+  useRouter: () => ({ buildLocation: () => ({ href: "/" }) }),
   useLocation: ({ select }: { select?: (s: { pathname: string }) => unknown }) =>
     select ? select({ pathname: "/projects" }) : { pathname: "/projects" },
+  useMatches: ({ select }: { select: (matches: { routeId: string }[]) => unknown }) => select([]),
   Link: ({ children }: { children: React.ReactNode }) => <a href="/">{children}</a>,
 }));
 
@@ -61,7 +63,10 @@ describe("ProjectsPage", () => {
     });
     expect(screen.getByRole("button", { name: "Open Unnamed Project" })).toBeInTheDocument();
     act(() => screen.getByRole("button", { name: "New project" }).click());
-    expect(navigate).toHaveBeenCalledWith({ to: "/project" });
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/projects/$projectId/metadata",
+      params: { projectId: store.get(activeProjectIdAtom) },
+    });
     expect(publication.ids).not.toHaveBeenCalled();
   });
 

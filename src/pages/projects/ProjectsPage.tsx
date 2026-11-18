@@ -1,6 +1,5 @@
 import { Alert, Button, Container, Group, SimpleGrid, Stack, Title } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { authEnabled, authProvider } from "@/auth/config";
@@ -8,6 +7,7 @@ import { useAuth } from "@/auth/useAuth";
 import AppLayout from "@/components/AppLayout";
 import { createProjectAtom, switchProjectAtom } from "@/state/actions";
 import { type ProjectSummary, projectSummariesAtom } from "@/state/atoms";
+import { useEntityNavigate } from "@/workspace/useEntityNavigate";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
 import DeleteProjectModal from "./DeleteProjectModal";
 import ProjectCard from "./ProjectCard";
@@ -16,7 +16,7 @@ export default function ProjectsPage() {
   const projects = useAtomValue(projectSummariesAtom);
   const switchProject = useSetAtom(switchProjectAtom);
   const createProject = useSetAtom(createProjectAtom);
-  const navigate = useNavigate();
+  const goTo = useEntityNavigate();
   const transition = useProjectTransition();
   const [pendingDelete, setPendingDelete] = useState<ProjectSummary | null>(null);
   const { user, isAuthenticated } = useAuth();
@@ -59,14 +59,14 @@ export default function ProjectsPage() {
   const openProject = (id: string) => {
     transition(() => {
       switchProject(id);
-      navigate({ to: "/overview" });
+      goTo("overview", { projectId: id });
     });
   };
 
   const newProject = () => {
     transition(() => {
       createProject();
-      navigate({ to: "/project" });
+      goTo("metadata");
     });
   };
 

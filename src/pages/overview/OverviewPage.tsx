@@ -40,8 +40,6 @@ import {
   duplicateExperimentAtom,
 } from "@/state/actions";
 import {
-  activeDatasetIdAtom,
-  activeExperimentIdAtom,
   datasetsAtom,
   experimentsAtom,
   projectDataAtom,
@@ -51,6 +49,7 @@ import {
 import { formStatus } from "@/utils/formStatus";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
 import ProjectPublicationControl from "@/workspace/ProjectPublicationControl";
+import { useEntityNavigate } from "@/workspace/useEntityNavigate";
 import {
   isProjectOwner,
   isSharedProject,
@@ -66,11 +65,9 @@ export default function OverviewPage() {
   const projectName = useAtomValue(projectNameAtom);
   const activeSummary = useAtomValue(projectSummariesAtom).find((p) => p.isActive) ?? null;
   const addExperiment = useSetAtom(addExperimentAtom);
-  const setActiveExperiment = useSetAtom(activeExperimentIdAtom);
   const deleteExperiment = useSetAtom(deleteExperimentAtom);
   const duplicateExperiment = useSetAtom(duplicateExperimentAtom);
   const addDataset = useSetAtom(addDatasetAtom);
-  const setActiveDataset = useSetAtom(activeDatasetIdAtom);
   const deleteDataset = useSetAtom(deleteDatasetAtom);
   const duplicateDataset = useSetAtom(duplicateDatasetAtom);
   const deleteProject = useSetAtom(deleteProjectAtom);
@@ -81,6 +78,7 @@ export default function OverviewPage() {
   const isOwner = isProjectOwner(access);
   const [sharing, setSharing] = useState(false);
   const navigate = useNavigate();
+  const goTo = useEntityNavigate();
   const transition = useProjectTransition();
   const projectId = activeSummary?.id;
   const [publication, setPublication] = useState<{
@@ -119,17 +117,15 @@ export default function OverviewPage() {
 
   const handleCreateExperiment = () => {
     // Selects the new experiment.
-    addExperiment();
-    navigate({ to: "/experiment" });
+    goTo("experiment", { entityId: addExperiment() });
   };
 
   const handleEditProject = () => {
-    navigate({ to: "/project" });
+    goTo("metadata");
   };
 
   const handleEditExperiment = (id: string) => {
-    setActiveExperiment(id);
-    navigate({ to: "/experiment" });
+    goTo("experiment", { entityId: id });
   };
 
   const handleDeleteExperiment = (id: string, e: React.MouseEvent) => {
@@ -145,13 +141,11 @@ export default function OverviewPage() {
   };
 
   const handleCreateDataset = () => {
-    addDataset();
-    navigate({ to: "/dataset" });
+    goTo("dataset", { entityId: addDataset() });
   };
 
   const handleEditDataset = (id: string) => {
-    setActiveDataset(id);
-    navigate({ to: "/dataset" });
+    goTo("dataset", { entityId: id });
   };
 
   const handleDeleteDataset = (id: string, e: React.MouseEvent) => {

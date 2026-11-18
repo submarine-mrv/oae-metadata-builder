@@ -11,6 +11,6 @@ function ProjectsRoute() {
   );
 }
 
-export const Route = createFileRoute("/projects")({
+export const Route = createFileRoute("/projects/")({
   component: ProjectsRoute,
 });

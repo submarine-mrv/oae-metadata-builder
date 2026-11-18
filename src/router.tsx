@@ -1,4 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
+import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import { authStore } from "./auth/authStore";
 import { routeTree } from "./routeTree.gen";
 
@@ -6,6 +7,7 @@ export const router = createRouter({
   routeTree,
   context: { auth: authStore },
   defaultPreload: "intent",
+  defaultNotFoundComponent: () => <NotFoundPage />,
 });
 
 declare module "@tanstack/react-router" {
@@ -25,6 +27,19 @@ export function preloadEntityRoutes() {
     unsubscribe();
     for (const to of ["/overview", "/project", "/experiment", "/dataset", "/projects"] as const) {
       router.preloadRoute({ to }).catch(() => {});
+    }
+    // Any params match these routes, which have no loaders, so this only fetches their code.
+    const projectId = "_";
+    for (const location of [
+      { to: "/projects/$projectId", params: { projectId } },
+      { to: "/projects/$projectId/metadata", params: { projectId } },
+      {
+        to: "/projects/$projectId/experiments/$experimentId",
+        params: { projectId, experimentId: "_" },
+      },
+      { to: "/projects/$projectId/datasets/$datasetId", params: { projectId, datasetId: "_" } },
+    ] as const) {
+      router.preloadRoute(location).catch(() => {});
     }
   });
 }
