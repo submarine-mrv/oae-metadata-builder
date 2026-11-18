@@ -22,15 +22,42 @@ A project opens with its first experiment and first dataset selected. The projec
 
 Zero projects is a legal state: first run, and after the last project is deleted. `activeProjectId` is also `null` while viewing All projects, without deleting any project.
 
-With no selected project, `/overview` renders `WelcomePage` (`src/pages/welcome/`). `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment` and `/dataset`, redirecting to `/projects` when projects exist but none is selected, or `/overview` when empty. `/projects` needs no selection but also redirects to `/overview` when empty.
+With an empty workspace, `/overview` renders `WelcomePage` (`src/pages/welcome/`). `RequireProject` (`src/workspace/RequireProject.tsx`) wraps `/project`, `/experiment` and `/dataset`, redirecting to `/projects` when projects exist but none is selected, or `/overview` when empty. `/projects` needs no selection but also redirects to `/overview` when empty.
 
-Creating a project, from anywhere, lands on `/project`.
+Creating a project, from anywhere, lands on its metadata form, `/projects/<project>/metadata`.
+
+## URLs
+
+Each project page has its own URL (issue [#192](https://github.com/submarine-mrv/oae-data-commons/issues/192)):
+
+| Page | URL |
+| --- | --- |
+| Overview | `/projects/<project>` |
+| Project metadata form | `/projects/<project>/metadata` |
+| Experiment | `/projects/<project>/experiments/<experiment>` |
+| Dataset | `/projects/<project>/datasets/<dataset>` |
+
+The slugs come from `src/workspace/slugs.ts`. A project or experiment uses its human ID (`project_id`, `experiment_id`, trimmed) when no other project, or no other experiment in the project, has the same one; otherwise, or while it is empty, its internal ID. Datasets have no human ID and always use the internal one. Slugs are percent-encoded, so IDs with `/`, `#` or spaces work.
+
+Nothing is fetched by slug. Every project the user can open is already in the workspace (one `list_metadata_builder_projects` call when signed in, `localStorage` for guests), and `ProjectPersistenceController` holds the routes until it is, so the routes in `src/workspace/EntityRoutes.tsx` resolve slugs synchronously:
+
+- `ProjectRoute`, the `/projects/$projectId` layout, matches the internal ID first, then the human ID. It makes the project active, then renders the page, so a page never shows the previously active project. `ExperimentRoute` and `DatasetRoute` select their record the same way.
+- A URL that isn't canonical, such as an internal ID for a project with a unique human ID, is replaced with the canonical one. Editing a human ID moves the URL with it: `useSlugResolution` keeps resolving the old slug to the same record until the URL catches up.
+- Human IDs are unique only among published projects, so a slug can match several drafts. That shows `AmbiguousIdPage`, which lists the matches (with owner and last edit) and never picks one; choosing opens it by internal ID.
+- No match shows `NotFoundPage`: "Project ID "X" can't be found", or the experiment or dataset equivalent with a link back to the project. It doesn't say whether a project exists that you can't open. Unknown paths get the generic "Page not found".
+- Guests with auth enabled also get Sign in, which returns to the link.
+
+Code navigates with `useEntityNavigate` (`src/workspace/useEntityNavigate.ts`), which builds the slug URL from the store when called, so it can follow an action in the same handler. `useCurrentEntityPage` reports which project page is showing, for the tabs.
+
+The pre-slug paths `/overview`, `/project`, `/experiment` and `/dataset` still work: `ActivePageRedirect` replaces them with the active project's URL, and `/overview` stays the welcome screen while the workspace is empty.
+
+Signed-in users get "Copy link to this page" in the menu and "Copy link" in the Share dialog (`useCopyLink`). The link uses the same slugs as the address bar. Guest projects live in one browser, so guests get neither.
 
 ## Header and /projects
 
 While the workspace is empty, the header shows the brand, Import and the menu. Once a project exists it adds the project crumb, the section tabs and Export. Below 1280px the tabs move to a second row, and at 768px and below Import and Export move into the menu.
 
-The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu lists every project, then "New project" and "All projects…". Entering `/projects` clears the selection and hides project tabs and Export. Picking a project opens its `/overview`, whose H1 is the project name.
+The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu lists every project, then "New project" and "All projects…". Entering `/projects` clears the selection and hides project tabs and Export. Picking a project opens its overview, `/projects/<project>`, whose H1 is the project name.
 
 ## Deleting
 
@@ -71,7 +98,7 @@ Analytics (`src/utils/analytics.ts`) sets a fixed `page_title` per route with `g
 
 `useImportFlow` (`src/hooks/useImportFlow.ts`) owns the file picker, preview and confirm, for the header and the welcome screen.
 
-The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project is selected. Both open `/overview` afterwards.
+The preview offers two modes: "Add as a new project" and "Merge into current project". Merge appears only when a project is selected. Both open the project's overview afterwards.
 
 `useImportPreview` compares the file against a baseline. A new project resolves against an empty baseline, so nothing conflicts and datasets link only to experiments in the file. Merge resolves against the current project: imported project fields override existing ones, an experiment with a matching `experiment_id` is replaced, and datasets are always added. Switching mode re-analyzes the file with `rebase` and keeps ticked items.
 

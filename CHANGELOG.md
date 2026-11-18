@@ -6,6 +6,16 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ## Unreleased
 
+### Added
+
+- Each project, experiment and dataset has its own URL, such as
+  `/projects/KIEL-2025/experiments/EXP-1`, so you can bookmark a page or send it to someone on the
+  project. The URL uses the project and experiment IDs when they're unique, and follows them as you
+  edit them. "Copy link" in the menu and the Share dialog copies it. A link to something that can't
+  be found says so, and one that matches several projects lets you choose. The old `/overview`,
+  `/project`, `/experiment` and `/dataset` addresses still open the current project.
+  ([oae-data-commons#192](https://github.com/submarine-mrv/oae-data-commons/issues/192))
+
 ### Updated
 
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,

@@ -19,6 +19,12 @@ Guests and the memory auth provider retain browser persistence. Enable with
   shows "You can no longer edit this project."
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
+- Every project page has a URL (see `docs/multi-project.md`), and Copy link in
+  the menu or the Share dialog copies it. A link opens only for people on the
+  project; for anyone else it reads as "can't be found", the same as a deleted
+  project, so it doesn't reveal that the project exists. Signing in from that
+  page returns to the link, unless it contains characters that need encoding,
+  which `safeReturnTo` rejects; those land on the overview.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
