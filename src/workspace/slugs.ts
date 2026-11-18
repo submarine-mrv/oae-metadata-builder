@@ -2,10 +2,10 @@ import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
 import type { ProjectRecord, Workspace } from "./types";
 
 /**
- * URL slugs for shareable links (submarine-mrv/oae-data-commons#192). A project or experiment
- * slug is its human-readable ID whenever set, even if another draft shares it (only publication
- * enforces uniqueness), else its internal ID. Resolution reports several matches rather than guess;
- * in-app navigation targets the internal ID instead, so it always opens the exact record.
+ * URL slugs for shareable links. A project or experiment slug is its human-readable ID whenever
+ * set, even if another draft shares it (only publication enforces uniqueness), else its internal
+ * ID. Resolution reports several matches rather than guess; in-app navigation targets the internal
+ * ID instead, so it always opens the exact record.
  */
 
 export type Resolution<T> =

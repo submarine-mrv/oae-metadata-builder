@@ -15,7 +15,6 @@ you use it; minor versions add features or adopt a new protocol version; patches
   dialog copies it. A link to something that can't
   be found says so, and one that matches several projects lets you choose. The old `/overview`,
   `/project`, `/experiment` and `/dataset` addresses still open the current project.
-  ([oae-data-commons#192](https://github.com/submarine-mrv/oae-data-commons/issues/192))
 
 ### Updated
 

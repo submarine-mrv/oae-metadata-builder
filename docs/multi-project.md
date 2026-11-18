@@ -28,7 +28,7 @@ Creating a project, from anywhere, lands on its metadata form, `/projects/<proje
 
 ## URLs
 
-Each project page has its own URL (issue [#192](https://github.com/submarine-mrv/oae-data-commons/issues/192)):
+Each project page has its own URL:
 
 | Page | URL |
 | --- | --- |
