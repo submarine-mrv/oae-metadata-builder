@@ -75,5 +75,41 @@ and brings back any that differ from the cloud as a "(recovered)" copy, since
 without the saved baseline it can't merge them safely. Snapshots move into Jotai
 once, so a failed save retries the live draft rather than importing it again.
 
-Run the workspace, project page, import, and auth lifecycle tests plus
-`npm run build`. The opt-in local Supabase integration tests (sync and sharing) use disposable users.
+## Project publication
+
+With Supabase authentication enabled, the project owner can select **Publish**
+below the project title on Overview to review and publish its complete metadata
+tree. Published projects show **Publish Updates** and a separate **Unpublish**
+action, which opens the unpublish confirmation directly. **Publish Updates** is
+disabled when the current metadata matches the published snapshot, including
+after a reload or reverting an edit. Internal workspace timestamps and selection
+changes do not count as updates. The Projects list shows
+a **Published** badge only for projects confirmed as public; private projects
+have no publication badge. All project,
+experiment and dataset metadata must pass validation. The confirmation explains
+that names, emails, identifiers and access links become publicly downloadable.
+Publishing first saves the private draft and refuses to publish if that save
+fails or the reviewed content changes.
+
+- **Publish project / Update publication** atomically replaces the public tree.
+  Removed experiments and datasets disappear from the publication.
+- **Unpublish** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
+  reads without deleting metadata or the private draft. Existing downloads and
+  already-open browser pages cannot be recalled. Unpublishing does not depend
+  on private draft saves, so a draft conflict cannot prevent hiding public data.
+- **Republish** uses the same reviewed publication action.
+- Publication is bound to the internal draft identity. Changing the editable
+  metadata project ID and publishing again replaces the previous public ID;
+  IDs belonging to another draft or owner are rejected.
+- Draft edits remain private until the next explicit publication. Unpublish
+  before deleting a published draft; deletion is blocked while it is public.
+  The delete buttons on Overview and Projects are disabled for published
+  projects, with a tooltip explaining that the project must be unpublished first.
+
+The client uses owner-bound tokens and the `publish_oae_project` and
+`unpublish_oae_project` RPCs. Direct authenticated catalog mutations are denied.
+The normalized public rows retain complete source objects and the exported
+document envelope for lossless Data Commons downloads; no private workspace
+wrappers, internal counters or auth credentials are included in those documents.
+Guests, auth-disabled builds and the memory auth provider have no publication
+controls or requests.

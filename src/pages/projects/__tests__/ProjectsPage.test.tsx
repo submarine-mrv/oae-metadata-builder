@@ -10,8 +10,20 @@ import { deleteProject } from "@/workspace/workspace";
 import ProjectsPage from "../ProjectsPage";
 
 const navigate = vi.fn();
+const publication = vi.hoisted(() => ({
+  user: null as { id: string } | null,
+  ids: vi.fn(),
+}));
+vi.mock("@/auth/config", () => ({ authEnabled: true, authProvider: "supabase" }));
 vi.mock("@/auth/useAuth", () => ({
-  useAuth: () => ({ client: { signOut: vi.fn() }, user: null, isAuthenticated: false }),
+  useAuth: () => ({
+    client: { signOut: vi.fn() },
+    user: publication.user,
+    isAuthenticated: publication.user !== null,
+  }),
+}));
+vi.mock("@/workspace/supabasePublicationClient", () => ({
+  createPublicationClient: () => ({ publishedProjectIds: publication.ids }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -37,6 +49,9 @@ describe("ProjectsPage", () => {
   beforeEach(() => {
     localStorage.clear();
     navigate.mockClear();
+    publication.user = null;
+    publication.ids.mockReset();
+    publication.ids.mockResolvedValue([]);
   });
 
   it("lists projects and the New project button goes to the form", () => {
@@ -47,6 +62,55 @@ describe("ProjectsPage", () => {
     expect(screen.getByRole("button", { name: "Open Unnamed Project" })).toBeInTheDocument();
     act(() => screen.getByRole("button", { name: "New project" }).click());
     expect(navigate).toHaveBeenCalledWith({ to: "/project" });
+    expect(publication.ids).not.toHaveBeenCalled();
+  });
+
+  it("badges only confirmed published projects", async () => {
+    publication.user = { id: "owner" };
+    const store = renderPage();
+    act(() => {
+      store.set(importAsNewProjectAtom, {
+        project: { name: "Public trial" },
+        experiments: [],
+        datasets: [],
+      });
+      store.set(importAsNewProjectAtom, {
+        project: { name: "Private trial" },
+        experiments: [],
+        datasets: [],
+      });
+    });
+    const publicId = store
+      .get(workspaceAtom)
+      .projects.find((project) => project.state.projectData.name === "Public trial")?.id;
+    publication.ids.mockResolvedValue([publicId]);
+    await screen.findByText("Published");
+    expect(screen.getAllByText("Published")).toHaveLength(1);
+    const publicCard = screen
+      .getByRole("button", { name: "Open Public trial" })
+      .closest(".mantine-Card-root");
+    expect(publicCard).toHaveTextContent("Published");
+    expect(screen.getByRole("button", { name: "Delete Public trial" })).toBeDisabled();
+    const privateCard = screen
+      .getByRole("button", { name: "Open Private trial" })
+      .closest(".mantine-Card-root");
+    expect(privateCard).not.toHaveTextContent("Published");
+    expect(screen.getByRole("button", { name: "Delete Private trial" })).toBeEnabled();
+    expect(screen.queryByText("Private", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("reports publication status failures and retries without showing false badges", async () => {
+    publication.user = { id: "owner" };
+    publication.ids.mockRejectedValue(new Error("status offline"));
+    const store = renderPage();
+    act(() => store.set(createProjectAtom));
+    await screen.findByText("status offline");
+    expect(screen.getByRole("button", { name: "Delete Unnamed Project" })).toBeDisabled();
+    expect(screen.queryByText("Published")).not.toBeInTheDocument();
+    publication.ids.mockResolvedValue([store.get(workspaceAtom).projects[0].id]);
+    act(() => screen.getByRole("button", { name: "Retry status" }).click());
+    await screen.findByText("Published");
+    expect(screen.queryByText("status offline")).not.toBeInTheDocument();
   });
 
   it("deleting a non-active project keeps the active one", async () => {

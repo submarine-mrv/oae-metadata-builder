@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import {
   IconCircleCheck,
@@ -24,7 +25,8 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { authEnabled, authProvider } from "@/auth/config";
 import { useAuth } from "@/auth/useAuth";
 import AppLayout from "@/components/AppLayout";
 import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
@@ -48,6 +50,7 @@ import {
 } from "@/state/atoms";
 import { formStatus } from "@/utils/formStatus";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
+import ProjectPublicationControl from "@/workspace/ProjectPublicationControl";
 import {
   isProjectOwner,
   isSharedProject,
@@ -79,6 +82,22 @@ export default function OverviewPage() {
   const [sharing, setSharing] = useState(false);
   const navigate = useNavigate();
   const transition = useProjectTransition();
+  const projectId = activeSummary?.id;
+  const [publication, setPublication] = useState<{
+    projectId: string | undefined;
+    published: boolean | null;
+  } | null>(null);
+  const onPublishedChange = useCallback(
+    (published: boolean | null) => setPublication({ projectId, published }),
+    [projectId],
+  );
+  const published = publication?.projectId === projectId ? publication?.published : null;
+  const deleteDisabledReason =
+    published === true
+      ? "Unpublish this project before deleting it."
+      : authEnabled && authProvider === "supabase" && user && published == null
+        ? "Check publication status before deleting this project."
+        : null;
 
   const projectStatus = formStatus(projectData, validateProject);
   const projectCompletion = projectStatus.percentage;
@@ -198,7 +217,7 @@ export default function OverviewPage() {
             <Title order={1} lineClamp={1}>
               {projectName}
             </Title>
-            <Text c="dimmed">Overview</Text>
+            <ProjectPublicationControl onPublishedChange={onPublishedChange} />
           </div>
 
           <div>
@@ -266,16 +285,25 @@ export default function OverviewPage() {
                       </Button>
                     )}
                     {isOwner && (
-                      <Button
-                        variant="subtle"
-                        color="red"
-                        size="xs"
-                        style={{ flexShrink: 0 }}
-                        onClick={handleDeleteProject}
-                        aria-label="Delete project"
-                      >
-                        <IconTrash size={16} />
-                      </Button>
+                      <Tooltip label={deleteDisabledReason ?? "Delete project"}>
+                        <span
+                          className="inline-flex"
+                          role="presentation"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Button
+                            variant="subtle"
+                            color="red"
+                            size="xs"
+                            style={{ flexShrink: 0 }}
+                            onClick={handleDeleteProject}
+                            aria-label="Delete project"
+                            disabled={deleteDisabledReason !== null}
+                          >
+                            <IconTrash size={16} />
+                          </Button>
+                        </span>
+                      </Tooltip>
                     )}
                   </Group>
                 </Group>

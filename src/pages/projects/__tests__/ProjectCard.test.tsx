@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { createStore, Provider } from "jotai";
 import { describe, expect, it, vi } from "vitest";
 import type { ProjectSummary } from "@/state/atoms";
@@ -16,13 +16,13 @@ const summary: ProjectSummary = {
   isActive: false,
 };
 
-function renderCard(access?: ProjectAccess) {
+function renderCard(access?: ProjectAccess, published = false) {
   const store = createStore();
   if (access) store.set(projectAccessAtom, { p: access });
   render(
     <MantineProvider>
       <Provider store={store}>
-        <ProjectCard project={summary} onOpen={vi.fn()} onDelete={vi.fn()} />
+        <ProjectCard project={summary} published={published} onOpen={vi.fn()} onDelete={vi.fn()} />
       </Provider>
     </MantineProvider>,
   );
@@ -54,5 +54,17 @@ describe("ProjectCard sharing", () => {
   it("treats guest projects as owned", () => {
     renderCard();
     expect(screen.getByRole("button", { name: "Delete Kiel trial" })).toBeInTheDocument();
+  });
+
+  it("disables deletion of published projects and explains how to enable it", async () => {
+    renderCard(undefined, true);
+    const button = screen.getByRole("button", { name: "Delete Kiel trial" });
+    expect(button).toBeDisabled();
+    const tooltipTarget = button.parentElement;
+    if (!tooltipTarget) throw new Error("Missing tooltip target");
+    fireEvent.mouseEnter(tooltipTarget);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Unpublish this project before deleting it.",
+    );
   });
 });
