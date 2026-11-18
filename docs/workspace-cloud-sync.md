@@ -19,12 +19,16 @@ Guests and the memory auth provider retain browser persistence. Enable with
   shows "You can no longer edit this project."
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
-- Every project page has a URL (see `docs/multi-project.md`), and Copy link in
-  the menu or the Share dialog copies it. A link opens only for people on the
-  project; for anyone else it reads as "can't be found", the same as a deleted
-  project, so it doesn't reveal that the project exists. Signing in from that
-  page returns to the link, unless it contains characters that need encoding,
-  which `safeReturnTo` rejects; those land on the overview.
+- Signed-in users can copy links to saved cloud project pages from the menu or
+  Share dialog; the controls are hidden for guests and until a new project is
+  saved. Project members, including viewers, can open those links. Copy link is
+  also hidden on not-found and multiple-matches pages, where no specific entity
+  is selected. A link resolves only among projects the recipient can access, and
+  a missing match reads as "can't be found", just like a deleted project. Human
+  IDs may match a different project or multiple drafts; see `docs/multi-project.md`.
+  Signing in from the not-found page returns to the link, unless it contains
+  characters that need encoding, which `safeReturnTo` rejects; those land on
+  the overview.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every

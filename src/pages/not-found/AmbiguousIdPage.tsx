@@ -23,7 +23,7 @@ export default function AmbiguousIdPage({ entity, id, matches, onChoose }: Ambig
   const plural = entity === "Project" ? "projects" : `${entity.toLowerCase()}s`;
 
   return (
-    <AppLayout>
+    <AppLayout hideCopyLink>
       <Container size="sm" py="xl">
         <Stack gap="md" py="xl">
           <Title order={2} ta="center">

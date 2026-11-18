@@ -44,6 +44,7 @@ import { ProjectSyncIndicator } from "@/workspace/sync";
 import { projectSyncActionsAtom, projectSyncStatusAtom } from "@/workspace/syncState";
 import { useCopyLink } from "@/workspace/useCopyLink";
 import { useCurrentEntityPage, useEntityNavigate } from "@/workspace/useEntityNavigate";
+import { useActiveProjectAccess } from "@/workspace/useProjectAccess";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -52,7 +53,7 @@ const TABS = [
   { value: "dataset", label: "Datasets" },
 ];
 
-export default function Navigation() {
+export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: boolean }) {
   const { client, user } = useAuth();
   const showJsonPreview = useAtomValue(showJsonPreviewAtom);
   const toggleJsonPreview = useSetAtom(toggleJsonPreviewAtom);
@@ -62,8 +63,9 @@ export default function Navigation() {
   const navigate = useNavigate();
   const goTo = useEntityNavigate();
   const copyLink = useCopyLink();
-  // Guest projects live in this browser only, so a link wouldn't open anywhere else.
+  // Only projects saved to the cloud can be opened in another browser.
   const cloud = useAtomValue(projectSyncActionsAtom) !== null;
+  const access = useActiveProjectAccess();
   const importFlow = useImportFlow();
 
   const { showModal, sections, openModal, closeModal, handleDownload, handleSectionToggle } =
@@ -252,7 +254,7 @@ export default function Navigation() {
                     <Menu.Divider />
                   </>
                 )}
-                {cloud && entityPage && (
+                {!hideCopyLink && user && cloud && access && entityPage && (
                   <>
                     <Menu.Item leftSection={<IconLink size={16} />} onClick={copyPageLink}>
                       Copy link to this page

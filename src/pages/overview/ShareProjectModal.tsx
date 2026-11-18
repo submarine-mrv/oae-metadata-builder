@@ -130,6 +130,7 @@ export default function ShareProjectModal({
             Only people on this project can open its link.
           </Text>
           <Button
+            className="shrink-0"
             variant="light"
             size="xs"
             leftSection={<IconLink size={14} />}

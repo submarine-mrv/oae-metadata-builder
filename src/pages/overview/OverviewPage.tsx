@@ -265,7 +265,7 @@ export default function OverviewPage() {
                     </div>
                   </Group>
                   <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-                    {access && (
+                    {user && access && (
                       <Button
                         variant="subtle"
                         size="xs"
@@ -642,7 +642,7 @@ export default function OverviewPage() {
           )}
         </Stack>
       </Container>
-      {sharing && activeSummary && (
+      {sharing && user && access && activeSummary && (
         <ShareProjectModal
           projectId={activeSummary.id}
           isOwner={isOwner}
