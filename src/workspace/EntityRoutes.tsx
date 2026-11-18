@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { Outlet, useMatch, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import { useAtom, useAtomValue, useSetAtom, type WritableAtom } from "jotai";
 import { useEffect, useLayoutEffect } from "react";
 import AmbiguousIdPage from "@/pages/not-found/AmbiguousIdPage";
@@ -41,6 +41,17 @@ function useReplaceParam(param: SlugParam) {
 }
 
 /**
+ * Whether a navigation is taking the router off this route. Until it commits, the route stays
+ * rendered with its old params, and must not select its entity again or rewrite the URL.
+ */
+function useLeaving() {
+  const own = useMatch({ strict: false, select: (match) => match.pathname });
+  return useRouterState({
+    select: ({ location: { pathname } }) => pathname !== own && !pathname.startsWith(`${own}/`),
+  });
+}
+
+/**
  * Layout for `/projects/$projectId/*`: opens the project named in the URL, then renders the page
  * once it is active, so the page never shows the previously active project.
  */
@@ -52,15 +63,18 @@ export function ProjectRoute() {
   const switchProject = useSetAtom(switchProjectAtom);
   const transition = useProjectTransition();
   const replaceSlug = useReplaceParam("projectId");
+  const leaving = useLeaving();
   const { resolution, canonical } = useSlugResolution(slug, projects, resolveProject, projectSlug);
   const project = resolution.kind === "found" ? resolution.value : null;
 
   useLayoutEffect(() => {
-    if (project && project.id !== activeId) transition(() => switchProject(project.id));
+    if (!leaving && project && project.id !== activeId) {
+      transition(() => switchProject(project.id));
+    }
   });
 
   useEffect(() => {
-    if (canonical && canonical !== slug) void replaceSlug(canonical);
+    if (!leaving && canonical && canonical !== slug) void replaceSlug(canonical);
   });
 
   if (resolution.kind === "not-found") return <NotFoundPage entity="Project" id={slug} />;
@@ -110,15 +124,16 @@ function EntityRoute<T extends { id: string; name: string }>({
   const slug = params[param] ?? "";
   const [selected, select] = useAtom(selection);
   const replaceSlug = useReplaceParam(param);
+  const leaving = useLeaving();
   const { resolution, canonical } = useSlugResolution(slug, items, resolve, canonicalSlug);
   const found = resolution.kind === "found" ? resolution.value : null;
 
   useLayoutEffect(() => {
-    if (found && selected !== found.id) select(found.id);
+    if (!leaving && found && selected !== found.id) select(found.id);
   });
 
   useEffect(() => {
-    if (canonical && canonical !== slug) void replaceSlug(canonical);
+    if (!leaving && canonical && canonical !== slug) void replaceSlug(canonical);
   });
 
   if (resolution.kind === "not-found") {

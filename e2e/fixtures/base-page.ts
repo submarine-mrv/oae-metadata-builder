@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { ROUTE } from "./app";
 
 /**
  * Base page object with common functionality across all form pages.
@@ -61,7 +62,7 @@ export class BasePage {
    */
   async goToProject() {
     await this.page.click("text=Project");
-    await this.page.waitForURL("**/project");
+    await this.page.waitForURL(ROUTE.metadata);
   }
 
   /**
@@ -69,6 +70,6 @@ export class BasePage {
    */
   async goToExperiment() {
     await this.page.click("text=Experiment");
-    await this.page.waitForURL("**/experiment");
+    await this.page.waitForURL(ROUTE.experiment);
   }
 }

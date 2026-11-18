@@ -28,18 +28,15 @@ export function preloadEntityRoutes() {
     for (const to of ["/overview", "/project", "/experiment", "/dataset", "/projects"] as const) {
       router.preloadRoute({ to }).catch(() => {});
     }
-    // Any params match these routes, which have no loaders, so this only fetches their code.
-    const projectId = "_";
-    for (const location of [
-      { to: "/projects/$projectId", params: { projectId } },
-      { to: "/projects/$projectId/metadata", params: { projectId } },
-      {
-        to: "/projects/$projectId/experiments/$experimentId",
-        params: { projectId, experimentId: "_" },
-      },
-      { to: "/projects/$projectId/datasets/$datasetId", params: { projectId, datasetId: "_" } },
+    // The slug routes need params to preload as locations; their code is all that's wanted.
+    for (const id of [
+      "/projects/$projectId",
+      "/projects/$projectId/",
+      "/projects/$projectId/metadata",
+      "/projects/$projectId/experiments/$experimentId",
+      "/projects/$projectId/datasets/$datasetId",
     ] as const) {
-      router.preloadRoute(location).catch(() => {});
+      router.loadRouteChunk(router.routesById[id])?.catch(() => {});
     }
   });
 }

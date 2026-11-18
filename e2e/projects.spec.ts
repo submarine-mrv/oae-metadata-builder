@@ -1,4 +1,4 @@
-import { waitForRoute } from "./fixtures/app";
+import { ROUTE, waitForRoute } from "./fixtures/app";
 import { expect, test } from "./fixtures/test";
 
 test.describe("Multiple projects", () => {
@@ -23,7 +23,7 @@ test.describe("Multiple projects", () => {
 
     // First project lands on the form; the crumb and tab title follow the name as it's typed.
     await createFirstProject.click();
-    await expect(page).toHaveURL(/\/project$/);
+    await expect(page).toHaveURL(ROUTE.metadata);
     await expect(switcher).toHaveText("Unnamed Project");
     await page.getByLabel(/Project Name/).fill("Kiel trial");
     await expect(page).toHaveTitle("Kiel trial · OAE Metadata Builder");
@@ -34,19 +34,19 @@ test.describe("Multiple projects", () => {
       .locator("label")
       .filter({ hasText: /^Overview$/ })
       .click();
-    await expect(page).toHaveURL(/\/overview$/);
+    await expect(page).toHaveURL(ROUTE.overview);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiel trial");
 
     // A second project from the menu starts unnamed on the project form.
     await switcher.click();
     await page.getByRole("menuitem", { name: "New project" }).click();
-    await expect(page).toHaveURL(/\/project$/);
+    await expect(page).toHaveURL(ROUTE.metadata);
     await expect(switcher).toHaveText("Unnamed Project");
 
     // Switching from the menu lands on the other project's overview.
     await switcher.click();
     await page.getByRole("menuitem", { name: "Kiel trial" }).click();
-    await expect(page).toHaveURL(/\/overview$/);
+    await expect(page).toHaveURL(ROUTE.overview);
     await expect(switcher).toHaveText("Kiel trial");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiel trial");
     await switcher.click();
@@ -63,7 +63,7 @@ test.describe("Multiple projects", () => {
     await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Open / })).toHaveCount(2);
     await page.getByRole("button", { name: "Open Kiel trial" }).click();
-    await expect(page).toHaveURL(/\/overview$/);
+    await expect(page).toHaveURL(ROUTE.overview);
     await expect(switcher).toHaveText("Kiel trial");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Kiel trial");
 
@@ -90,7 +90,7 @@ test.describe("Multiple projects", () => {
 
     // Deleting from the overview with two projects lands on the other one's overview.
     await createFirstProject.click();
-    await expect(page).toHaveURL(/\/project$/);
+    await expect(page).toHaveURL(ROUTE.metadata);
     await page.getByLabel(/Project Name/).fill("Bergen trial");
     await expect(switcher).toHaveText("Bergen trial");
     await switcher.click();

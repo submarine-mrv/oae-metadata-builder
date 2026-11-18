@@ -1,6 +1,7 @@
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { router } from "@/router";
 import { deleteAllProjectsAtom } from "@/state/actions";
 import { projectSummariesAtom } from "@/state/atoms";
 import { formatRelativeTime } from "@/utils/relativeTime";
@@ -49,6 +50,9 @@ export default function RestorePrompt() {
   const startFresh = () => {
     deleteAllProjects();
     close();
+    // The tab may be on a removed project's URL; the overview welcomes an empty workspace. This
+    // renders outside the router's provider, so it uses the router directly.
+    void router.navigate({ to: "/overview", replace: true });
   };
 
   const experiments = projects.reduce((n, p) => n + p.experimentCount, 0);

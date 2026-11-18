@@ -2,11 +2,14 @@ import { MantineProvider } from "@mantine/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useAtomValue } from "jotai";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectCountAtom } from "@/state/atoms";
 import { createTestStore, StoreWrapper } from "@/state/testing";
 import { emptyProjectState, newProjectRecord, type Workspace } from "@/workspace/types";
 import RestorePrompt, { RESTORE_PROMPTED_KEY } from "../RestorePrompt";
+
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock("@/router", () => ({ router: { navigate } }));
 
 function Probe() {
   return <output>{useAtomValue(projectCountAtom)}</output>;
@@ -104,5 +107,6 @@ describe("RestorePrompt", () => {
     await userEvent.click(screen.getByRole("button", { name: "Start fresh" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove all projects" }));
     expect(screen.getByRole("status")).toHaveTextContent("0");
+    expect(navigate).toHaveBeenCalledWith({ to: "/overview", replace: true });
   });
 });
