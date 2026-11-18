@@ -51,4 +51,45 @@ test.describe("Project URLs", () => {
     await page.goto("/no/such/page");
     await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   });
+
+  test("keep a project ID another project shares, and open the project that was clicked", async ({
+    page,
+  }) => {
+    await page.goto("/overview");
+    const switcher = page.getByRole("button", { name: /Current project:/ });
+    const firstProject = page.getByRole("button", { name: "Create your first project" });
+    await waitForRoute(firstProject);
+    await firstProject.click();
+    await page.getByLabel(/Project Name/).fill("First");
+    await page
+      .getByLabel(/Project ID/)
+      .first()
+      .fill("DUP");
+    await expect(page).toHaveURL(/\/projects\/DUP\/metadata$/);
+
+    await switcher.click();
+    await page.getByRole("menuitem", { name: "New project" }).click();
+    await expect(page).toHaveURL(ROUTE.metadata);
+    await page.getByLabel(/Project Name/).fill("Second");
+    await page
+      .getByLabel(/Project ID/)
+      .first()
+      .fill("DUP");
+    await expect(page).toHaveURL(/\/projects\/DUP\/metadata$/);
+    await expect(switcher).toHaveText("Second");
+
+    // Opening either from the list shows the shared ID, on the project that was clicked.
+    await switcher.click();
+    await page.getByRole("menuitem", { name: /All projects/ }).click();
+    await page.getByRole("button", { name: "Open First" }).click();
+    await expect(page).toHaveURL(/\/projects\/DUP$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("First");
+
+    // Opened afresh, the shared ID asks which project it means.
+    await page.reload();
+    await expect(page.getByText(/Project ID "DUP" matches 2 projects/)).toBeVisible();
+    await page.getByText("Second").click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Second");
+    await expect(page).toHaveURL(/\/projects\/DUP$/);
+  });
 });

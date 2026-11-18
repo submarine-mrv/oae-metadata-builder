@@ -201,14 +201,34 @@ describe("slug routes", () => {
     expect(screen.getByText("Overview of A")).toBeInTheDocument();
   });
 
-  it("copies an absolute link with the canonical slugs", async () => {
+  it("copies an absolute link with human IDs, even one another project shares", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    renderAt("/projects/p1", workspaceOf(project("p1", "A", "KIEL", [experiment("e1", "EXP-1")])));
+    renderAt(
+      "/projects/p1",
+      workspaceOf(
+        project("p1", "A", "KIEL", [experiment("e1", "EXP-1")]),
+        project("p2", "B", "KIEL"),
+      ),
+    );
     fireEvent.click(await screen.findByRole("button", { name: "Copy" }));
     expect(writeText).toHaveBeenCalledWith(
       `${window.location.origin}/projects/KIEL/experiments/EXP-1`,
     );
+  });
+
+  it("opens the exact project in-app when its human ID is shared, then shows the human ID", async () => {
+    const { store, router } = renderAt(
+      "/experiment",
+      workspaceOf(
+        project("p1", "First", "DUP", [experiment("e1", "SITE-A")]),
+        project("p2", "Second", "DUP"),
+      ),
+    );
+    expect(await screen.findByText("Editing experiment e1")).toBeInTheDocument();
+    await waitFor(() => expect(pathname(router)).toBe("/projects/DUP/experiments/SITE-A"));
+    expect(store.get(activeProjectIdAtom)).toBe("p1");
+    expect(screen.getByText("Editing experiment e1")).toBeInTheDocument();
   });
 
   it("shows which project, experiment or dataset ID can't be found", async () => {
@@ -231,7 +251,7 @@ describe("slug routes", () => {
     expect(await screen.findByText("Dataset not found")).toBeInTheDocument();
   });
 
-  it("asks which project a duplicated human ID means, then opens the choice by UUID", async () => {
+  it("asks which project a duplicated human ID means, then opens the choice", async () => {
     const { store, router } = renderAt(
       "/projects/DUP",
       workspaceOf(
@@ -245,7 +265,8 @@ describe("slug routes", () => {
     fireEvent.click(screen.getByText("Second"));
     expect(await screen.findByText("Overview of Second")).toBeInTheDocument();
     expect(store.get(activeProjectIdAtom)).toBe("p2");
-    expect(pathname(router)).toBe("/projects/p2");
+    await waitFor(() => expect(pathname(router)).toBe("/projects/DUP"));
+    expect(screen.getByText("Overview of Second")).toBeInTheDocument();
   });
 
   it("redirects the legacy experiment path to the selected experiment's slug", async () => {

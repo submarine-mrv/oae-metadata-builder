@@ -37,13 +37,13 @@ Each project page has its own URL (issue [#192](https://github.com/submarine-mrv
 | Experiment | `/projects/<project>/experiments/<experiment>` |
 | Dataset | `/projects/<project>/datasets/<dataset>` |
 
-The slugs come from `src/workspace/slugs.ts`. A project or experiment uses its human ID (`project_id`, `experiment_id`, trimmed) when no other project, or no other experiment in the project, has the same one; otherwise, or while it is empty, its internal ID. Datasets have no human ID and always use the internal one. Slugs are percent-encoded, so IDs with `/`, `#` or spaces work.
+The slugs come from `src/workspace/slugs.ts`. A project or experiment uses its human ID (`project_id`, `experiment_id`, trimmed) whenever it is set, even if another project, or another experiment in the project, has the same one; while it is empty, its internal ID. The one exception is a human ID equal to another record's internal ID, which would open that record, so it uses its own internal ID. Datasets have no human ID and always use the internal one. Slugs are percent-encoded, so IDs with `/`, `#` or spaces work.
 
 Nothing is fetched by slug. Every project the user can open is already in the workspace (one `list_metadata_builder_projects` call when signed in, `localStorage` for guests), and `ProjectPersistenceController` holds the routes until it is, so the routes in `src/workspace/EntityRoutes.tsx` resolve slugs synchronously:
 
 - `ProjectRoute`, the `/projects/$projectId` layout, matches the internal ID first, then the human ID. It makes the project active, then renders the page, so a page never shows the previously active project. `ExperimentRoute` and `DatasetRoute` select their record the same way.
-- A URL that isn't canonical, such as an internal ID for a project with a unique human ID, is replaced with the canonical one. Editing a human ID moves the URL with it: `useSlugResolution` keeps resolving the old slug to the same record until the URL catches up.
-- Human IDs are unique only among published projects, so a slug can match several drafts. That shows `AmbiguousIdPage`, which lists the matches (with owner and last edit) and never picks one; choosing opens it by internal ID.
+- A URL that isn't canonical, such as an internal ID for a project with a human ID, is replaced with the canonical one. Editing a human ID moves the URL with it: `useSlugResolution` keeps resolving the old slug to the same record until the URL catches up.
+- Human IDs are unique only among published projects, so a slug can match several drafts. In-app navigation to such a record goes by its internal ID, and `useSlugResolution` keeps that record open once the URL switches to the shared human ID. Opening a shared human ID afresh (a copied link, a reload or a bookmark) shows `AmbiguousIdPage`, which lists the matches (with owner and last edit) and never picks one; choosing opens it, again showing its human ID.
 - No match shows `NotFoundPage`: "Project ID "X" can't be found", or the experiment or dataset equivalent with a link back to the project. It doesn't say whether a project exists that you can't open. Unknown paths get the generic "Page not found".
 - Guests with auth enabled also get Sign in, which returns to the link.
 

@@ -47,22 +47,38 @@ describe("slugs", () => {
     expect(projectSlug(notString, all)).toBe("uuid-3");
   });
 
-  it("falls back to the internal ID when the human ID is shared or is another record's internal ID", () => {
+  it("keeps a shared human ID, but not one equal to another record's internal ID", () => {
     const a = project("uuid-a", "DUP");
     const b = project("uuid-b", "DUP");
     const c = project("uuid-c", "uuid-a");
     const all = [a, b, c];
-    expect(projectSlug(a, all)).toBe("uuid-a");
-    expect(projectSlug(b, all)).toBe("uuid-b");
+    expect(projectSlug(a, all)).toBe("DUP");
+    expect(projectSlug(b, all)).toBe("DUP");
     expect(projectSlug(c, all)).toBe("uuid-c");
   });
 
-  it("checks experiment ID uniqueness within the project only, and keys datasets by internal ID", () => {
+  it("keeps a shared experiment ID, and keys datasets by internal ID", () => {
     const one = experiment("e1", "SITE-A");
     const two = experiment("e2", "SITE-A");
     expect(experimentSlug(one, [one])).toBe("SITE-A");
-    expect(experimentSlug(one, [one, two])).toBe("e1");
+    expect(experimentSlug(one, [one, two])).toBe("SITE-A");
     expect(datasetSlug(dataset("d1"))).toBe("d1");
+  });
+
+  it("navigates to a shared human ID by internal ID, but shares the human ID", () => {
+    const a = project("uuid-a", "DUP", {
+      experiments: [experiment("e1", "S"), experiment("e2", "S")],
+    });
+    const b = project("uuid-b", "DUP");
+    const workspace: Workspace = { version: 1, activeProjectId: a.id, projects: [a, b] };
+    expect(entityLocation(workspace, a.id, "experiment", "e2")?.params).toEqual({
+      projectId: "uuid-a",
+      experimentId: "e2",
+    });
+    expect(entityLocation(workspace, a.id, "experiment", "e2", { share: true })?.params).toEqual({
+      projectId: "DUP",
+      experimentId: "S",
+    });
   });
 
   it("resolves the internal ID before a human ID, and a unique trimmed human ID", () => {

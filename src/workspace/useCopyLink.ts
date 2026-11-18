@@ -7,9 +7,9 @@ import { workspaceAtom } from "@/state/atoms";
 import { type EntityPage, entityLocation } from "./slugs";
 
 /**
- * Copies an absolute link to a project page, using the same slug as the address bar. Copied with
- * human IDs, a link may match a different or several projects for someone else, which the
- * routes handle; see `EntityRoutes`.
+ * Copies an absolute link to a project page, using the same slugs as the address bar: human IDs
+ * whenever set, even if shared. Such a link may match a different or several projects for someone
+ * else, which the routes handle; see `EntityRoutes`.
  */
 export function useCopyLink() {
   const store = useStore();
@@ -17,7 +17,9 @@ export function useCopyLink() {
   const clipboard = useClipboard();
   return useCallback(
     (page: EntityPage, projectId: string, entityId?: string) => {
-      const location = entityLocation(store.get(workspaceAtom), projectId, page, entityId);
+      const location = entityLocation(store.get(workspaceAtom), projectId, page, entityId, {
+        share: true,
+      });
       if (!location) return;
       const { href } = router.buildLocation(location);
       clipboard.copy(new URL(href, window.location.origin).toString());

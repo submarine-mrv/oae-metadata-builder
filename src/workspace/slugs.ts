@@ -3,8 +3,9 @@ import type { ProjectRecord, Workspace } from "./types";
 
 /**
  * URL slugs for shareable links (submarine-mrv/oae-data-commons#192). A project or experiment
- * slug is its human-readable ID when set and unique, else its internal ID. Drafts don't enforce
- * unique human IDs (only publication does), so resolution reports several matches rather than guess.
+ * slug is its human-readable ID whenever set, even if another draft shares it (only publication
+ * enforces uniqueness), else its internal ID. Resolution reports several matches rather than guess;
+ * in-app navigation targets the internal ID instead, so it always opens the exact record.
  */
 
 export type Resolution<T> =
@@ -28,16 +29,27 @@ export function humanExperimentId(experiment: ExperimentRecord): string {
 }
 
 /**
- * The human ID, unless it is empty, shared with a sibling, or equal to a sibling's internal ID
- * (which resolution would match first).
+ * The address-bar and copied slug: the human ID, even when a sibling shares it, unless it is empty
+ * or equal to a sibling's internal ID (which resolution would match first, opening the sibling).
  */
 function slugFor<T extends Identified>(item: T, siblings: T[], human: (item: T) => string): string {
   const id = human(item);
   if (!id) return item.id;
-  const clashes = siblings.some(
-    (other) => other.id !== item.id && (other.id === id || human(other) === id),
-  );
-  return clashes ? item.id : id;
+  return siblings.some((other) => other.id !== item.id && other.id === id) ? item.id : id;
+}
+
+/**
+ * Where in-app navigation goes: the internal ID when a sibling shares the human ID, so the route
+ * opens this record and then shows `slugFor` in the address bar; otherwise `slugFor`.
+ */
+function targetFor<T extends Identified>(
+  item: T,
+  siblings: T[],
+  human: (item: T) => string,
+): string {
+  const slug = slugFor(item, siblings, human);
+  const shared = siblings.some((other) => other.id !== item.id && human(other) === slug);
+  return slug !== item.id && shared ? item.id : slug;
 }
 
 /** Internal ID first, since it is unique; then the human ID, which may match several. */
@@ -100,16 +112,21 @@ export type EntityLocation =
       params: { projectId: string; datasetId: string };
     };
 
-/** Where a page of a project lives, or null when the project or entity doesn't exist. */
+/**
+ * Where a page of a project lives, or null when the project or entity doesn't exist. `share`
+ * gives the copyable URL, with human IDs even when shared; the default targets the exact record.
+ */
 export function entityLocation(
   workspace: Workspace,
   projectId: string,
   page: EntityPage,
   entityId?: string | null,
+  { share = false }: { share?: boolean } = {},
 ): EntityLocation | null {
+  const slug = share ? slugFor : targetFor;
   const project = workspace.projects.find((p) => p.id === projectId);
   if (!project) return null;
-  const params = { projectId: projectSlug(project, workspace.projects) };
+  const params = { projectId: slug(project, workspace.projects, humanProjectId) };
   switch (page) {
     case "overview":
       return { to: "/projects/$projectId", params };
@@ -121,7 +138,7 @@ export function entityLocation(
       if (!experiment) return null;
       return {
         to: "/projects/$projectId/experiments/$experimentId",
-        params: { ...params, experimentId: experimentSlug(experiment, experiments) },
+        params: { ...params, experimentId: slug(experiment, experiments, humanExperimentId) },
       };
     }
     case "dataset": {
