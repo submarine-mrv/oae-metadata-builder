@@ -19,7 +19,11 @@ import { useAtomValue } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { activeProjectIdAtom } from "@/state/atoms";
-import { SLUG_CONFLICT_MESSAGE } from "@/workspace/slugConflicts";
+import {
+  INVALID_ID_MESSAGE,
+  isValidHumanId,
+  SLUG_CONFLICT_MESSAGE,
+} from "@/workspace/slugConflicts";
 import { rejectedIdsAtom } from "@/workspace/syncState";
 import DescriptionModal from "./DescriptionModal";
 
@@ -52,6 +56,7 @@ export default function LockableIdWidget<
   const projectId = useAtomValue(activeProjectIdAtom);
   const rejectedIds = useAtomValue(rejectedIdsAtom);
   const trimmedValue = typeof value === "string" ? value.trim() : "";
+  const invalidId = trimmedValue !== "" && !isValidHumanId(trimmedValue);
   const slugConflict =
     !!trimmedValue && !!projectId && (rejectedIds[projectId] ?? []).includes(trimmedValue);
   const description = schema?.description;
@@ -109,11 +114,13 @@ export default function LockableIdWidget<
   );
 
   const hasError = rawErrors && rawErrors.length > 0;
-  const errorMessage = slugConflict
-    ? SLUG_CONFLICT_MESSAGE
-    : hasError
-      ? rawErrors.join(", ")
-      : undefined;
+  const errorMessage = invalidId
+    ? INVALID_ID_MESSAGE
+    : slugConflict
+      ? SLUG_CONFLICT_MESSAGE
+      : hasError
+        ? rawErrors.join(", ")
+        : undefined;
 
   const lockedStyles = {
     input: {

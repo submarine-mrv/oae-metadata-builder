@@ -110,6 +110,18 @@ describe("owner-bound project Supabase client", () => {
     await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toEqual(
       new SlugConflictError(project.id, ["TAKEN"]),
     );
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: "23514",
+        message: "Invalid ID",
+        details: "metadata_builder_slug_invalid",
+        hint: '["has space"]',
+      },
+    });
+    await expect(
+      createProjectCloudClient("owner").save(project, "next", "hash"),
+    ).rejects.toMatchObject({ ids: ["has space"], reason: "invalid" });
   });
 
   it("manages members through the member RPCs", async () => {

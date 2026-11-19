@@ -133,6 +133,9 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         if (error.details === "metadata_builder_slug_conflict") {
           throw new SlugConflictError(project.id, JSON.parse(error.hint) as string[]);
         }
+        if (error.details === "metadata_builder_slug_invalid") {
+          throw new SlugConflictError(project.id, JSON.parse(error.hint) as string[], "invalid");
+        }
         if (error.details === "metadata_builder_schema_version_downgrade") {
           throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);
         }

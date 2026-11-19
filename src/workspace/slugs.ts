@@ -3,8 +3,9 @@ import type { ProjectRecord, Workspace } from "./types";
 
 /**
  * URL slugs for shareable links. A project or experiment slug is its human-readable ID whenever
- * unique in the workspace, else its internal ID. The backend reserves human IDs globally, so a
- * duplicate is only ever local and unsynced; it uses the internal ID rather than a chooser.
+ * unique in the workspace (case-insensitively), else its internal ID. The backend reserves human
+ * IDs globally, so a duplicate is only ever local and unsynced; it uses the internal ID rather than
+ * a chooser.
  */
 
 export type Resolution<T> = { kind: "found"; value: T } | { kind: "not-found" };
@@ -24,10 +25,16 @@ export function humanExperimentId(experiment: ExperimentRecord): string {
   return trimmed(experiment.formData.experiment_id);
 }
 
+function sameId(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 function slugFor<T extends Identified>(item: T, siblings: T[], human: (item: T) => string): string {
   const id = human(item);
   if (!id) return item.id;
-  return siblings.some((other) => other.id !== item.id && (other.id === id || human(other) === id))
+  return siblings.some(
+    (other) => other.id !== item.id && (sameId(other.id, id) || sameId(human(other), id)),
+  )
     ? item.id
     : id;
 }
@@ -41,7 +48,7 @@ function resolve<T extends Identified>(
   const byId = items.find((item) => item.id === slug);
   if (byId) return { kind: "found", value: byId };
   const id = slug.trim();
-  const matches = human && id ? items.filter((item) => human(item) === id) : [];
+  const matches = human && id ? items.filter((item) => sameId(human(item), id)) : [];
   if (matches.length === 1) return { kind: "found", value: matches[0] };
   return { kind: "not-found" };
 }

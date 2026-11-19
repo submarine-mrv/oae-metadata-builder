@@ -98,6 +98,14 @@ describe("slugs", () => {
     expect(resolveExperiment("e2", [one, two])).toEqual({ kind: "found", value: two });
   });
 
+  it("treats human IDs case-insensitively", () => {
+    const a = project("uuid-a", "Site-A");
+    expect(resolveProject("site-a", [a])).toEqual({ kind: "found", value: a });
+    const b = project("uuid-b", "SITE-A");
+    expect(projectSlug(a, [a, b])).toBe("uuid-a");
+    expect(resolveProject("site-a", [a, b])).toEqual({ kind: "not-found" });
+  });
+
   it("resolves legacy numbered IDs within their project, and datasets by internal ID only", () => {
     const legacy = experiment("experiment-1");
     expect(resolveExperiment("experiment-1", [legacy])).toEqual({ kind: "found", value: legacy });
