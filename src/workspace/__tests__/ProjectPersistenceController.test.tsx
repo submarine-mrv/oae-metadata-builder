@@ -250,7 +250,14 @@ describe("auth-aware project persistence", () => {
     update();
     const recover = await screen.findByRole("button", { name: "Recover unsaved projects" });
     fireEvent.click(recover);
-    await waitFor(() => expect(mocks.save).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(store.get(projectSyncStatusAtom)).toMatchObject({
+        state: "error",
+        noRetry: true,
+        message: expect.stringContaining("unique ID"),
+      }),
+    );
+    expect(mocks.save).not.toHaveBeenCalled();
     expect(store.get(workspaceAtom).projects.map((p) => p.state.projectData.name)).toEqual([
       "cloud-A",
       "unsaved-A (recovered)",
@@ -346,7 +353,7 @@ describe("auth-aware project persistence", () => {
     await waitFor(() =>
       expect(store.get(projectSyncStatusAtom)).toMatchObject({
         state: "error",
-        message: "Save unavailable",
+        message: expect.stringContaining("unique ID"),
       }),
     );
     const names = () => store.get(workspaceAtom).projects.map((p) => p.state.projectData.name);
@@ -356,6 +363,22 @@ describe("auth-aware project persistence", () => {
     ).not.toBeInTheDocument();
     expect(store.get(workspaceAtom).projects[0].state.datasets).toHaveLength(0);
     expect(store.get(workspaceAtom).projects[1].state.datasets).toHaveLength(1);
+    act(() =>
+      store.set(workspaceAtom, (workspace) => ({
+        ...workspace,
+        projects: workspace.projects.map((project, index) =>
+          index === 1
+            ? {
+                ...project,
+                state: {
+                  ...project.state,
+                  projectData: { ...project.state.projectData, project_id: "" },
+                },
+              }
+            : project,
+        ),
+      })),
+    );
     await act(async () => {
       await store.get(projectSyncActionsAtom)?.flush();
     });

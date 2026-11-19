@@ -1,3 +1,4 @@
+import type { SlugConflict } from "../slugConflicts";
 import type { ProjectRecord } from "../types";
 
 export type ProjectRole = "owner" | "editor" | "viewer";
@@ -31,12 +32,16 @@ export interface UnsupportedCloudProject {
 }
 
 /** A loaded row. Rows without `access` are the caller's own private projects. */
-export type CloudProject = (RemoteProject | UnsupportedCloudProject) & { access?: ProjectAccess };
+export type CloudProject = (RemoteProject | UnsupportedCloudProject) & {
+  access?: ProjectAccess;
+  slugConflicts?: SlugConflict[];
+};
 
 /** What the cheap change check returns per project. */
 export interface ProjectVersion {
   hash: string;
   access?: ProjectAccess;
+  slugConflicts?: SlugConflict[];
 }
 
 export interface ProjectSaveResult {

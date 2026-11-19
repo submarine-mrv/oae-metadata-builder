@@ -12,6 +12,7 @@ import {
   readRemoteProject,
   UnsupportedProjectVersionError,
 } from "@/workspace/projectCloudSync";
+import { parseSlugConflicts, SlugConflictError } from "@/workspace/slugConflicts";
 import { PROJECT_SCHEMA_VERSION, type ProjectRecord } from "@/workspace/types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -97,7 +98,8 @@ async function listProjects(client: ReturnType<typeof createAccountClient>, with
       updatedByEmail: (row.updated_by_email as string | null) ?? null,
       memberCount: row.member_count,
     };
-    return { id: row.project_id, hash: row.state_hash, state: row.state, access };
+    const slugConflicts = parseSlugConflicts(row.slug_conflicts);
+    return { id: row.project_id, hash: row.state_hash, state: row.state, access, slugConflicts };
   });
 }
 
@@ -108,13 +110,18 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
       return (await listProjects(client, true)).map((row) => ({
         ...readRemoteProject(row.state, row.id, row.hash),
         access: row.access,
+        ...(row.slugConflicts.length ? { slugConflicts: row.slugConflicts } : {}),
       }));
     },
     async hashes() {
       return new Map(
         (await listProjects(client, false)).map((row) => [
           row.id,
-          { hash: row.hash, access: row.access },
+          {
+            hash: row.hash,
+            access: row.access,
+            ...(row.slugConflicts.length ? { slugConflicts: row.slugConflicts } : {}),
+          },
         ]),
       );
     },
@@ -129,6 +136,9 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         p_client_updated_at: new Date().toISOString(),
       });
       if (error) {
+        if (error.details === "metadata_builder_slug_conflict") {
+          throw new SlugConflictError(project.id, parseSlugConflicts(JSON.parse(error.hint)));
+        }
         if (error.details === "metadata_builder_schema_version_downgrade") {
           throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);
         }

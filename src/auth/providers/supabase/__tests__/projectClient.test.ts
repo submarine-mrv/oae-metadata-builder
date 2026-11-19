@@ -38,6 +38,7 @@ vi.mock("@supabase/supabase-js", () => ({
 }));
 
 import { ProjectAccessError } from "@/workspace/projectCloudSync";
+import { type SlugConflict, SlugConflictError } from "@/workspace/slugConflicts";
 import { createProjectCloudClient, createProjectMembersClient } from "../projectClient";
 
 const ownerAccess = {
@@ -45,6 +46,7 @@ const ownerAccess = {
   owner_email: "owner@example.com",
   updated_by_email: null,
   member_count: 0,
+  slug_conflicts: [],
 };
 const access = {
   role: "owner",
@@ -94,6 +96,38 @@ describe("owner-bound project Supabase client", () => {
     await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toThrow(
       ProjectAccessError,
     );
+  });
+
+  it("reports structured slug conflicts without exposing the other claimant", async () => {
+    const conflicts: SlugConflict[] = [
+      { entityType: "project", entityId: project.id, slug: "TAKEN" },
+    ];
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: "23505",
+        message: "ID in use",
+        details: "metadata_builder_slug_conflict",
+        hint: JSON.stringify(conflicts),
+      },
+    });
+    await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toEqual(
+      new SlugConflictError(project.id, conflicts),
+    );
+    mocks.rows = [
+      {
+        project_id: project.id,
+        state: project,
+        state_hash: "hash",
+        slug_conflicts: conflicts,
+      },
+    ];
+    expect((await createProjectCloudClient("owner").load())[0]).toMatchObject({
+      slugConflicts: conflicts,
+    });
+    expect((await createProjectCloudClient("owner").hashes()).get(project.id)).toMatchObject({
+      slugConflicts: conflicts,
+    });
   });
 
   it("manages members through the member RPCs", async () => {
