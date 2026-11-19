@@ -1,8 +1,8 @@
 import { createStore } from "jotai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
+import { DuplicateIdError } from "../duplicateIds";
 import { type ProjectCloudClient, startProjectCloudSync } from "../projectCloudSync";
-import { SlugConflictError } from "../slugConflicts";
 import { projectSyncStatusAtom, rejectedIdsAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { updateProject } from "../workspace";
@@ -145,9 +145,9 @@ describe("automatic sync retries", () => {
 
   it("keeps duplicate edits unsynced without retrying, then recovers when the ID is cleared", async () => {
     const { client, store, sync, edit } = await setup();
-    vi.mocked(client.save).mockRejectedValueOnce(new SlugConflictError("one", ["one"]));
+    vi.mocked(client.save).mockRejectedValueOnce(new DuplicateIdError("one", ["one"]));
     edit("unsaved");
-    await expect(sync.flush()).rejects.toBeInstanceOf(SlugConflictError);
+    await expect(sync.flush()).rejects.toBeInstanceOf(DuplicateIdError);
     expect(store.get(projectSyncStatusAtom)).toMatchObject({ state: "error", noRetry: true });
     expect(store.get(rejectedIdsAtom).one).toEqual(["one"]);
     await vi.advanceTimersByTimeAsync(120_000);

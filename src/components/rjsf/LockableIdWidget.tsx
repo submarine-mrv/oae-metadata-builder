@@ -19,12 +19,7 @@ import { useAtomValue } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { activeProjectIdAtom } from "@/state/atoms";
-import {
-  INVALID_ID_MESSAGE,
-  isValidHumanId,
-  normalizeHumanId,
-  SLUG_CONFLICT_MESSAGE,
-} from "@/workspace/slugConflicts";
+import { DUPLICATE_ID_MESSAGE } from "@/workspace/duplicateIds";
 import { rejectedIdsAtom } from "@/workspace/syncState";
 import DescriptionModal from "./DescriptionModal";
 
@@ -56,10 +51,11 @@ export default function LockableIdWidget<
 
   const projectId = useAtomValue(activeProjectIdAtom);
   const rejectedIds = useAtomValue(rejectedIdsAtom);
-  const trimmedValue = typeof value === "string" ? value.trim() : "";
-  const invalidId = trimmedValue !== "" && !isValidHumanId(trimmedValue);
-  const slugConflict =
-    !!trimmedValue && !!projectId && (rejectedIds[projectId] ?? []).includes(trimmedValue);
+  const duplicateId =
+    typeof value === "string" &&
+    value !== "" &&
+    !!projectId &&
+    (rejectedIds[projectId] ?? []).includes(value);
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
@@ -108,20 +104,18 @@ export default function LockableIdWidget<
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = normalizeHumanId(event.target.value);
+      const newValue = event.target.value;
       onChange(newValue === "" ? undefined : newValue);
     },
     [onChange],
   );
 
   const hasError = rawErrors && rawErrors.length > 0;
-  const errorMessage = invalidId
-    ? INVALID_ID_MESSAGE
-    : slugConflict
-      ? SLUG_CONFLICT_MESSAGE
-      : hasError
-        ? rawErrors.join(", ")
-        : undefined;
+  const errorMessage = duplicateId
+    ? DUPLICATE_ID_MESSAGE
+    : hasError
+      ? rawErrors.join(", ")
+      : undefined;
 
   const lockedStyles = {
     input: {

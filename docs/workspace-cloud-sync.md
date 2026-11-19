@@ -32,11 +32,10 @@ Guests and the memory auth provider retain browser persistence. Enable with
   the overview.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
 - Stopgap until submarine-mrv/oae-data-commons#236: the backend's
-  `metadata_builder_slugs` table reserves human project and experiment IDs on
-  each save, case-insensitively, and rejects IDs with characters other than
-  letters, digits, `-` and `_`; whitespace entered in the ID fields is replaced
-  with `-`. A rejected save names the offending IDs; the ID
-  field shows a warning (format problems show before saving), the save is not retried automatically, and the next
+  `metadata_builder_unique_ids` table reserves project and experiment IDs,
+  exactly as typed, on each save; uniqueness ignores case. A save with an ID
+  already in use is rejected and names the duplicate IDs; the ID
+  field shows a warning, the save is not retried automatically, and the next
   edit (a unique or empty ID) syncs again. Other projects still save.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every

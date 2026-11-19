@@ -14,9 +14,9 @@ you use it; minor versions add features or adopt a new protocol version; patches
   "Copy link" in the menu and the Share dialog copies it. A link to something that can't be found
   says so. The old `/overview`, `/project`, `/experiment` and `/dataset` addresses still open the
   current project.
-- Project and experiment IDs must be unique across all projects, ignoring case, and may use only
-  letters, numbers, `-` and `_`. A project with an invalid or already used ID shows a warning on
-  the ID field and doesn't sync to the cloud until you choose a unique ID or leave it empty.
+- Project and experiment IDs must be unique across all projects and experiments, ignoring case. A
+  project with an ID that is already in use shows a warning on the ID field and doesn't sync to the
+  cloud until you choose a unique ID or leave it empty.
 
 ### Updated
 

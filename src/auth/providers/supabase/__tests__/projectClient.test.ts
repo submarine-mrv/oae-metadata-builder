@@ -37,8 +37,8 @@ vi.mock("@supabase/supabase-js", () => ({
   },
 }));
 
+import { DuplicateIdError } from "@/workspace/duplicateIds";
 import { ProjectAccessError } from "@/workspace/projectCloudSync";
-import { SlugConflictError } from "@/workspace/slugConflicts";
 import { createProjectCloudClient, createProjectMembersClient } from "../projectClient";
 
 const ownerAccess = {
@@ -103,25 +103,13 @@ describe("owner-bound project Supabase client", () => {
       error: {
         code: "23505",
         message: "ID in use",
-        details: "metadata_builder_slug_conflict",
+        details: "metadata_builder_duplicate_id",
         hint: '["TAKEN"]',
       },
     });
     await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toEqual(
-      new SlugConflictError(project.id, ["TAKEN"]),
+      new DuplicateIdError(project.id, ["TAKEN"]),
     );
-    mocks.rpc.mockResolvedValue({
-      data: null,
-      error: {
-        code: "23514",
-        message: "Invalid ID",
-        details: "metadata_builder_slug_invalid",
-        hint: '["has space"]',
-      },
-    });
-    await expect(
-      createProjectCloudClient("owner").save(project, "next", "hash"),
-    ).rejects.toMatchObject({ ids: ["has space"], reason: "invalid" });
   });
 
   it("manages members through the member RPCs", async () => {

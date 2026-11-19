@@ -1,7 +1,7 @@
 import { atom } from "jotai";
+import { DuplicateIdError } from "./duplicateIds";
 import { ProjectAccessError, UnsupportedProjectVersionError } from "./projectCloudSync/helper";
 import type { ProjectAccess } from "./projectCloudSync/types";
-import { SlugConflictError } from "./slugConflicts";
 
 export type ProjectSyncStatus =
   | { state: "disabled" | "loading" | "syncing" | "synced" }
@@ -27,7 +27,7 @@ export function projectSyncErrorStatus(error: unknown): ProjectSyncStatus {
     ...(error instanceof ProjectConflictError ||
     error instanceof UnsupportedProjectVersionError ||
     error instanceof ProjectAccessError ||
-    error instanceof SlugConflictError
+    error instanceof DuplicateIdError
       ? { noRetry: true as const }
       : {}),
   };

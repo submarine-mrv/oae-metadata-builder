@@ -1,8 +1,8 @@
 import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
+import { DuplicateIdError } from "../duplicateIds";
 import { adoptUnseenProject, equalData, reconcileProjectRecord } from "../merge";
-import { SlugConflictError } from "../slugConflicts";
 import { readLocalProjectSources } from "../storage";
 import {
   ProjectConflictError,
@@ -180,8 +180,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       try {
         result = await client.save(project, hash, previous?.hash ?? null);
       } catch (error) {
-        if (error instanceof SlugConflictError) setRejectedIds(id, error.ids);
-        if (error instanceof ProjectAccessError || error instanceof SlugConflictError) throw error;
+        if (error instanceof DuplicateIdError) setRejectedIds(id, error.ids);
+        if (error instanceof ProjectAccessError || error instanceof DuplicateIdError) throw error;
         if (!(error instanceof UnsupportedProjectVersionError)) {
           throw new RequestError(errorMessage(error), { cause: error });
         }

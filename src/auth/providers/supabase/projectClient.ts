@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/auth/providers/supabase/client";
+import { DuplicateIdError } from "@/workspace/duplicateIds";
 import {
   checkProjectVersion,
   type ProjectAccess,
@@ -12,7 +13,6 @@ import {
   readRemoteProject,
   UnsupportedProjectVersionError,
 } from "@/workspace/projectCloudSync";
-import { SlugConflictError } from "@/workspace/slugConflicts";
 import { PROJECT_SCHEMA_VERSION, type ProjectRecord } from "@/workspace/types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -130,11 +130,8 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         p_client_updated_at: new Date().toISOString(),
       });
       if (error) {
-        if (error.details === "metadata_builder_slug_conflict") {
-          throw new SlugConflictError(project.id, JSON.parse(error.hint) as string[]);
-        }
-        if (error.details === "metadata_builder_slug_invalid") {
-          throw new SlugConflictError(project.id, JSON.parse(error.hint) as string[], "invalid");
+        if (error.details === "metadata_builder_duplicate_id") {
+          throw new DuplicateIdError(project.id, JSON.parse(error.hint) as string[]);
         }
         if (error.details === "metadata_builder_schema_version_downgrade") {
           throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);

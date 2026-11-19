@@ -3,9 +3,9 @@ import { createStore } from "jotai";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
 import { publicationProject } from "@/workspace/__tests__/publicationFixtures";
+import { DuplicateIdError } from "@/workspace/duplicateIds";
 import { ProjectAccessError, startProjectCloudSync } from "@/workspace/projectCloudSync";
 import { buildProjectPublicationPayload } from "@/workspace/publicationPayload";
-import { SlugConflictError } from "@/workspace/slugConflicts";
 import { WORKSPACE_KEY } from "@/workspace/storage";
 import { createPublicationClient } from "@/workspace/supabasePublicationClient";
 import { emptyProjectState, newProjectRecord } from "@/workspace/types";
@@ -163,7 +163,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       expect(await isolated.load()).toEqual([]);
     });
 
-    it("reserves human IDs globally and case-insensitively, and rejects invalid IDs", async () => {
+    it("reserves IDs globally and case-insensitively, accepting any characters", async () => {
       auth.session = owner;
       const suffix = crypto.randomUUID().slice(0, 8);
       const taken = newProjectRecord({
@@ -179,12 +179,9 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
           newProjectRecord({ ...emptyProjectState(), projectData: { project_id: id } });
         const duplicate = draft(`SITE-${suffix}`);
         await expect(client.save(duplicate, "duplicate", null)).rejects.toEqual(
-          new SlugConflictError(duplicate.id, [`SITE-${suffix}`]),
+          new DuplicateIdError(duplicate.id, [`SITE-${suffix}`]),
         );
-        const invalid = draft("has space");
-        await expect(client.save(invalid, "invalid", null)).rejects.toEqual(
-          new SlugConflictError(invalid.id, ["has space"], "invalid"),
-        );
+        expect((await client.save(draft(` Site ${suffix} / #1`), "any", null)).saved).toBe(true);
         expect((await client.save(draft(""), "empty", null)).saved).toBe(true);
       } finally {
         auth.session = owner;
@@ -302,7 +299,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       // Another account cannot even save a draft that reuses the owner's IDs.
       await expect(
         createProjectCloudClient(other.user.id).save(foreign, "foreign-v1", null),
-      ).rejects.toBeInstanceOf(SlugConflictError);
+      ).rejects.toBeInstanceOf(DuplicateIdError);
       await expect(
         createPublicationClient(other.user.id).publish(
           foreign.id,
