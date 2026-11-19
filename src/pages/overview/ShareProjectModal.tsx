@@ -31,26 +31,12 @@ const MEMBER_ERROR_MESSAGES: Record<string, string> = {
   invite_failed: "We couldn't send the invitation email. Please try again.",
 };
 
-function inviteMessage(result: InviteResult, email: string): { text: string; ok: boolean } {
-  switch (result.status) {
-    case "added":
-      return {
-        text: `Added ${email}. They already have an account, so no email was sent.`,
-        ok: true,
-      };
-    case "invited":
-      return { text: `Invitation sent to ${email}.`, ok: true };
-    case "role_updated":
-      return { text: `${email} is already on this project; their role was updated.`, ok: true };
-    case "invite_failed":
-      return {
-        text:
-          result.reason === "rate_limited"
-            ? `Added ${email}, but too many invitations were sent recently. Use Resend in an hour.`
-            : `Added ${email}, but the invitation email couldn't be sent. Try Resend.`,
-        ok: false,
-      };
-  }
+/** Only a failed invitation email needs a message; the list shows who is pending. */
+function inviteWarning(result: InviteResult, email: string): string | undefined {
+  if (result.status !== "invite_failed") return undefined;
+  return result.reason === "rate_limited"
+    ? `Added ${email}, but too many invitations were sent recently. Use Resend in an hour.`
+    : `Added ${email}, but the invitation email couldn't be sent. Try Resend.`;
 }
 
 function errorMessage(cause: unknown, fallback: string) {
@@ -87,7 +73,7 @@ export default function ShareProjectModal({
   const [role, setRole] = useState<"editor" | "viewer">("editor");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -116,15 +102,13 @@ export default function ShareProjectModal({
   }, [reload]);
 
   /** Runs a change, then reloads the list and checks the project's access again. */
-  const run = async (
-    change: (members: MembersClient) => Promise<{ text: string; ok: boolean } | undefined>,
-  ) => {
+  const run = async (change: (members: MembersClient) => Promise<string | undefined>) => {
     if (!client || busy) return false;
     setBusy(true);
     setError(null);
-    setNotice(null);
+    setWarning(null);
     try {
-      setNotice((await change(client)) ?? null);
+      setWarning((await change(client)) ?? null);
       await reload();
       void store.get(projectSyncActionsAtom)?.refresh();
       return true;
@@ -140,7 +124,7 @@ export default function ShareProjectModal({
     const address = email.trim();
     if (!address) return;
     const added = await run(async (members) =>
-      inviteMessage(await members.invite(projectId, address, role), address),
+      inviteWarning(await members.invite(projectId, address, role), address),
     );
     if (added) setEmail("");
   };
@@ -203,12 +187,12 @@ export default function ShareProjectModal({
                           aria-label={`Resend invitation to ${member.email}`}
                           disabled={busy}
                           onClick={() =>
-                            void run(async (client) => {
-                              const result = await client.resend(projectId, member.userId);
-                              return result.status === "invite_failed"
-                                ? inviteMessage(result, member.email)
-                                : { text: `Invitation resent to ${member.email}.`, ok: true };
-                            })
+                            void run(async (client) =>
+                              inviteWarning(
+                                await client.resend(projectId, member.userId),
+                                member.email,
+                              ),
+                            )
                           }
                         >
                           <IconMailForward size={16} />
@@ -260,7 +244,7 @@ export default function ShareProjectModal({
         )}
 
         {error && <Alert color="red">{error}</Alert>}
-        {notice && <Alert color={notice.ok ? "teal" : "yellow"}>{notice.text}</Alert>}
+        {warning && <Alert color="yellow">{warning}</Alert>}
 
         {isOwner ? (
           <Stack gap={4}>

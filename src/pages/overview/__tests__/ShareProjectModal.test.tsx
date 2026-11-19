@@ -61,25 +61,18 @@ describe("ShareProjectModal", () => {
     members.remove.mockResolvedValue(undefined);
   });
 
-  it("invites someone by email with a role and says what happened", async () => {
+  it.each([
+    "invited",
+    "added",
+  ] as const)("adds someone by email without a message when they are %s", async (status) => {
+    members.invite.mockResolvedValueOnce({ status, userId: "n1" });
     renderModal(true);
     await add("  new@example.com ");
     await waitFor(() =>
       expect(members.invite).toHaveBeenCalledWith("p", "new@example.com", "editor"),
     );
-    expect(await screen.findByText("Invitation sent to new@example.com.")).toBeInTheDocument();
-    expect(members.list).toHaveBeenCalledTimes(2);
-  });
-
-  it("tells the owner when an existing account was added without an email", async () => {
-    members.invite.mockResolvedValueOnce({ status: "added", userId: "b2" });
-    renderModal(true);
-    await add("known@example.com");
-    expect(
-      await screen.findByText(
-        "Added known@example.com. They already have an account, so no email was sent.",
-      ),
-    ).toBeInTheDocument();
+    await waitFor(() => expect(members.list).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("keeps a pending person when their invitation email fails", async () => {
@@ -104,9 +97,8 @@ describe("ShareProjectModal", () => {
       screen.getByRole("button", { name: "Resend invitation to pending@example.com" }),
     );
     await waitFor(() => expect(members.resend).toHaveBeenCalledWith("p", "p1"));
-    expect(
-      await screen.findByText("Invitation resent to pending@example.com."),
-    ).toBeInTheDocument();
+    await waitFor(() => expect(members.list).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("explains a resend cooldown", async () => {
