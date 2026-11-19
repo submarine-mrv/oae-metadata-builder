@@ -47,25 +47,25 @@ describe("slugs", () => {
     expect(projectSlug(notString, all)).toBe("uuid-3");
   });
 
-  it("keeps a shared human ID, but not one equal to another record's internal ID", () => {
+  it("uses internal IDs for duplicate human IDs and internal-ID shadowing", () => {
     const a = project("uuid-a", "DUP");
     const b = project("uuid-b", "DUP");
     const c = project("uuid-c", "uuid-a");
     const all = [a, b, c];
-    expect(projectSlug(a, all)).toBe("DUP");
-    expect(projectSlug(b, all)).toBe("DUP");
+    expect(projectSlug(a, all)).toBe("uuid-a");
+    expect(projectSlug(b, all)).toBe("uuid-b");
     expect(projectSlug(c, all)).toBe("uuid-c");
   });
 
-  it("keeps a shared experiment ID, and keys datasets by internal ID", () => {
+  it("uses internal IDs for duplicate experiments and datasets", () => {
     const one = experiment("e1", "SITE-A");
     const two = experiment("e2", "SITE-A");
     expect(experimentSlug(one, [one])).toBe("SITE-A");
-    expect(experimentSlug(one, [one, two])).toBe("SITE-A");
+    expect(experimentSlug(one, [one, two])).toBe("e1");
     expect(datasetSlug(dataset("d1"))).toBe("d1");
   });
 
-  it("navigates to a shared human ID by internal ID, but shares the human ID", () => {
+  it("uses deterministic internal IDs for duplicate draft links", () => {
     const a = project("uuid-a", "DUP", {
       experiments: [experiment("e1", "S"), experiment("e2", "S")],
     });
@@ -74,10 +74,6 @@ describe("slugs", () => {
     expect(entityLocation(workspace, a.id, "experiment", "e2")?.params).toEqual({
       projectId: "uuid-a",
       experimentId: "e2",
-    });
-    expect(entityLocation(workspace, a.id, "experiment", "e2", { share: true })?.params).toEqual({
-      projectId: "DUP",
-      experimentId: "S",
     });
   });
 
@@ -90,17 +86,28 @@ describe("slugs", () => {
     expect(resolveProject("", [project("uuid-c")])).toEqual({ kind: "not-found" });
   });
 
-  it("reports every match for a duplicated human ID instead of picking one", () => {
+  it("does not resolve duplicated human IDs or ask users to choose a match", () => {
     const a = project("uuid-a", "DUP");
     const b = project("uuid-b", "DUP");
-    expect(resolveProject("DUP", [a, b])).toEqual({ kind: "ambiguous", matches: [a, b] });
+    expect(resolveProject("DUP", [a, b])).toEqual({ kind: "not-found" });
     const one = experiment("e1", "SITE");
     const two = experiment("e2", "SITE");
     expect(resolveExperiment("SITE", [one, two])).toEqual({
-      kind: "ambiguous",
-      matches: [one, two],
+      kind: "not-found",
     });
     expect(resolveExperiment("e2", [one, two])).toEqual({ kind: "found", value: two });
+  });
+
+  it("shares one namespace across projects and experiments, including hidden server conflicts", () => {
+    const e = experiment("e1", "TAKEN");
+    const a = project("p1", "TAKEN", { experiments: [e] });
+    const b = project("p2", "FREE", { experiments: [experiment("e2", "TAKEN")] });
+    expect(projectSlug(a, [a, b])).toBe("p1");
+    expect(experimentSlug(e, [e], [a, b])).toBe("e1");
+    expect(resolveExperiment("TAKEN", [e], [a, b])).toEqual({ kind: "not-found" });
+    const conflicts = [{ entityType: "project" as const, entityId: "p2", slug: "FREE" }];
+    expect(projectSlug(b, [a, b], conflicts)).toBe("p2");
+    expect(resolveProject("FREE", [a, b], conflicts)).toEqual({ kind: "not-found" });
   });
 
   it("resolves legacy numbered IDs within their project, and datasets by internal ID only", () => {

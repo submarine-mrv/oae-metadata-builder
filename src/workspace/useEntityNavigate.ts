@@ -3,6 +3,7 @@ import { useStore } from "jotai";
 import { useCallback } from "react";
 import { activeDatasetIdAtom, activeExperimentIdAtom, workspaceAtom } from "@/state/atoms";
 import { type EntityPage, entityLocation } from "./slugs";
+import { projectSlugConflictsAtom } from "./syncState";
 
 /** These read the active project and selection, and show the empty state when there is none. */
 const ACTIVE_PATHS = {
@@ -38,7 +39,11 @@ export function useEntityNavigate() {
           : page === "dataset"
             ? store.get(activeDatasetIdAtom)
             : null);
-      const location = project ? entityLocation(workspace, project, page, entity) : null;
+      const location = project
+        ? entityLocation(workspace, project, page, entity, {
+            conflicts: store.get(projectSlugConflictsAtom),
+          })
+        : null;
       return location
         ? navigate({ ...location, replace })
         : navigate({ to: ACTIVE_PATHS[page], replace });

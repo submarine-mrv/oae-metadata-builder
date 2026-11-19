@@ -1,7 +1,6 @@
 import { Outlet, useMatch, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import { useAtom, useAtomValue, useSetAtom, type WritableAtom } from "jotai";
 import { useEffect, useLayoutEffect } from "react";
-import AmbiguousIdPage from "@/pages/not-found/AmbiguousIdPage";
 import NotFoundPage, { type NotFoundEntity } from "@/pages/not-found/NotFoundPage";
 import { switchProjectAtom } from "@/state/actions";
 import {
@@ -12,7 +11,6 @@ import {
   experimentsAtom,
   workspaceAtom,
 } from "@/state/atoms";
-import { formatRelativeTime } from "@/utils/relativeTime";
 import {
   datasetSlug,
   experimentSlug,
@@ -22,8 +20,7 @@ import {
   resolveExperiment,
   resolveProject,
 } from "./slugs";
-import { projectAccessAtom } from "./syncState";
-import { projectDisplayName } from "./types";
+import { projectSlugConflictsAtom } from "./syncState";
 import { useProjectTransition } from "./useProjectTransition";
 import { useSlugResolution } from "./useSlugResolution";
 
@@ -59,12 +56,17 @@ export function ProjectRoute() {
   const slug = useParams({ strict: false }).projectId ?? "";
   const { projects } = useAtomValue(workspaceAtom);
   const activeId = useAtomValue(activeProjectIdAtom);
-  const access = useAtomValue(projectAccessAtom);
+  const conflicts = Object.values(useAtomValue(projectSlugConflictsAtom)).flat();
   const switchProject = useSetAtom(switchProjectAtom);
   const transition = useProjectTransition();
   const replaceSlug = useReplaceParam("projectId");
   const leaving = useLeaving();
-  const { resolution, canonical } = useSlugResolution(slug, projects, resolveProject, projectSlug);
+  const { resolution, canonical } = useSlugResolution(
+    slug,
+    projects,
+    (value, items) => resolveProject(value, items, conflicts),
+    (project, items) => projectSlug(project, items, conflicts),
+  );
   const project = resolution.kind === "found" ? resolution.value : null;
 
   useLayoutEffect(() => {
@@ -78,24 +80,6 @@ export function ProjectRoute() {
   });
 
   if (resolution.kind === "not-found") return <NotFoundPage entity="Project" id={slug} />;
-  if (resolution.kind === "ambiguous") {
-    return (
-      <AmbiguousIdPage
-        entity="Project"
-        id={slug}
-        matches={resolution.matches.map((p) => {
-          const owner = access[p.id]?.ownerEmail;
-          const updated = `updated ${formatRelativeTime(p.updatedAt)}`;
-          return {
-            id: p.id,
-            name: projectDisplayName(p.state),
-            detail: owner ? `Owner ${owner} · ${updated}` : updated,
-          };
-        })}
-        onChoose={(id) => void replaceSlug(id, false)}
-      />
-    );
-  }
   if (project?.id !== activeId) return null;
   return <Outlet />;
 }
@@ -139,33 +123,23 @@ function EntityRoute<T extends { id: string; name: string }>({
   if (resolution.kind === "not-found") {
     return <NotFoundPage entity={entity} id={slug} projectSlug={params.projectId} />;
   }
-  if (resolution.kind === "ambiguous") {
-    return (
-      <AmbiguousIdPage
-        entity={entity}
-        id={slug}
-        matches={resolution.matches.map((item) => ({
-          id: item.id,
-          name: item.name || `Unnamed ${entity.toLowerCase()}`,
-          detail: `Internal ID ${item.id}`,
-        }))}
-        onChoose={(id) => void replaceSlug(id, false)}
-      />
-    );
-  }
   if (found?.id !== selected) return null;
   return <>{children}</>;
 }
 
 export function ExperimentRoute({ children }: { children: React.ReactNode }) {
+  const { projects } = useAtomValue(workspaceAtom);
+  const conflicts = Object.values(useAtomValue(projectSlugConflictsAtom)).flat();
   return (
     <EntityRoute
       entity="Experiment"
       param="experimentId"
       items={useAtomValue(experimentsAtom)}
       selection={activeExperimentIdAtom}
-      resolve={resolveExperiment}
-      canonicalSlug={experimentSlug}
+      resolve={(slug, experiments) => resolveExperiment(slug, experiments, projects, conflicts)}
+      canonicalSlug={(experiment, experiments) =>
+        experimentSlug(experiment, experiments, projects, conflicts)
+      }
     >
       {children}
     </EntityRoute>

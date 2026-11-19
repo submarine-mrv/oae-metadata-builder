@@ -201,7 +201,7 @@ describe("slug routes", () => {
     expect(screen.getByText("Overview of A")).toBeInTheDocument();
   });
 
-  it("copies an absolute link with human IDs, even one another project shares", async () => {
+  it("copies an internal project ID when local drafts conflict", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     renderAt(
@@ -213,11 +213,11 @@ describe("slug routes", () => {
     );
     fireEvent.click(await screen.findByRole("button", { name: "Copy" }));
     expect(writeText).toHaveBeenCalledWith(
-      `${window.location.origin}/projects/KIEL/experiments/EXP-1`,
+      `${window.location.origin}/projects/p1/experiments/EXP-1`,
     );
   });
 
-  it("opens the exact project in-app when its human ID is shared, then shows the human ID", async () => {
+  it("opens duplicate drafts by their internal ID without a chooser", async () => {
     const { store, router } = renderAt(
       "/experiment",
       workspaceOf(
@@ -226,7 +226,7 @@ describe("slug routes", () => {
       ),
     );
     expect(await screen.findByText("Editing experiment e1")).toBeInTheDocument();
-    await waitFor(() => expect(pathname(router)).toBe("/projects/DUP/experiments/SITE-A"));
+    await waitFor(() => expect(pathname(router)).toBe("/projects/p1/experiments/SITE-A"));
     expect(store.get(activeProjectIdAtom)).toBe("p1");
     expect(screen.getByText("Editing experiment e1")).toBeInTheDocument();
   });
@@ -251,8 +251,8 @@ describe("slug routes", () => {
     expect(await screen.findByText("Dataset not found")).toBeInTheDocument();
   });
 
-  it("asks which project a duplicated human ID means, then opens the choice", async () => {
-    const { store, router } = renderAt(
+  it("treats a legacy duplicated human URL as not found instead of guessing", async () => {
+    const { store } = renderAt(
       "/projects/DUP",
       workspaceOf(
         project("p0", "Unrelated"),
@@ -260,13 +260,8 @@ describe("slug routes", () => {
         project("p2", "Second", "DUP"),
       ),
     );
-    expect(await screen.findByText(/Project ID "DUP" matches 2 projects/)).toBeInTheDocument();
+    expect(await screen.findByText("Project not found")).toBeInTheDocument();
     expect(store.get(activeProjectIdAtom)).toBe("p0");
-    fireEvent.click(screen.getByText("Second"));
-    expect(await screen.findByText("Overview of Second")).toBeInTheDocument();
-    expect(store.get(activeProjectIdAtom)).toBe("p2");
-    await waitFor(() => expect(pathname(router)).toBe("/projects/DUP"));
-    expect(screen.getByText("Overview of Second")).toBeInTheDocument();
   });
 
   it("redirects the legacy experiment path to the selected experiment's slug", async () => {

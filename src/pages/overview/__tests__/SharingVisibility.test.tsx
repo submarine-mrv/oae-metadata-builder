@@ -2,7 +2,6 @@ import { MantineProvider } from "@mantine/core";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import AmbiguousIdPage from "@/pages/not-found/AmbiguousIdPage";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import { createTestStore, StoreWrapper, workspaceWithProject } from "@/state/testing";
 import type { ProjectRole } from "@/workspace/projectCloudSync";
@@ -173,20 +172,6 @@ describe("sharing visibility", () => {
     [
       "an unknown experiment",
       () => <NotFoundPage entity="Experiment" id="GONE" projectSlug="KIEL" />,
-    ],
-    [
-      "an ambiguous project",
-      () => (
-        <AmbiguousIdPage
-          entity="Project"
-          id="KIEL"
-          matches={[
-            { id: "p1", name: "First" },
-            { id: "p2", name: "Second" },
-          ]}
-          onChoose={vi.fn()}
-        />
-      ),
     ],
   ] as const)("does not offer a stale active-project link on %s", async (_, page) => {
     mocks.user = { id: "owner", email: "owner@example.test" };

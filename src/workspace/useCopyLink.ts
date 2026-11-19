@@ -5,11 +5,11 @@ import { useStore } from "jotai";
 import { useCallback } from "react";
 import { workspaceAtom } from "@/state/atoms";
 import { type EntityPage, entityLocation } from "./slugs";
+import { projectSlugConflictsAtom } from "./syncState";
 
 /**
  * Copies an absolute link to a project page, using the same slugs as the address bar: human IDs
- * whenever set, even if shared. Such a link may match a different or several projects for someone
- * else, which the routes handle; see `EntityRoutes`.
+ * when unique, internal IDs for conflicting drafts.
  */
 export function useCopyLink() {
   const store = useStore();
@@ -18,7 +18,7 @@ export function useCopyLink() {
   return useCallback(
     (page: EntityPage, projectId: string, entityId?: string) => {
       const location = entityLocation(store.get(workspaceAtom), projectId, page, entityId, {
-        share: true,
+        conflicts: store.get(projectSlugConflictsAtom),
       });
       if (!location) return;
       const { href } = router.buildLocation(location);
