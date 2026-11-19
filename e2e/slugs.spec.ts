@@ -52,7 +52,7 @@ test.describe("Project URLs", () => {
     await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   });
 
-  test("keep a project ID another project shares, and open the project that was clicked", async ({
+  test("keep duplicate drafts on internal-ID URLs and explain how to fix their IDs", async ({
     page,
   }) => {
     await page.goto("/overview");
@@ -75,21 +75,62 @@ test.describe("Project URLs", () => {
       .getByLabel(/Project ID/)
       .first()
       .fill("DUP");
-    await expect(page).toHaveURL(/\/projects\/DUP\/metadata$/);
+    await expect(page).not.toHaveURL(/\/projects\/DUP\/metadata$/);
+    await expect(page.getByText(/This ID is already in use/)).toBeVisible();
     await expect(switcher).toHaveText("Second");
+    const secondUrl = page.url();
 
-    // Opening either from the list shows the shared ID, on the project that was clicked.
+    // Both drafts remain directly addressable, including after a reload.
     await switcher.click();
     await page.getByRole("menuitem", { name: /All projects/ }).click();
     await page.getByRole("button", { name: "Open First" }).click();
-    await expect(page).toHaveURL(/\/projects\/DUP$/);
+    await expect(page).not.toHaveURL(/\/projects\/DUP$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("First");
-
-    // Opened afresh, the shared ID asks which project it means.
     await page.reload();
-    await expect(page.getByText(/Project ID "DUP" matches 2 projects/)).toBeVisible();
-    await page.getByText("Second").click();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Second");
-    await expect(page).toHaveURL(/\/projects\/DUP$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("First");
+    await page.goto("/projects/DUP");
+    await expect(page.getByRole("heading", { name: "Project not found" })).toBeVisible();
+
+    await page.goto(secondUrl);
+    await expect(page.getByText(/This ID is already in use/)).toBeVisible();
+    await page.getByRole("button", { name: "Click to edit", exact: true }).click();
+    await page
+      .getByLabel(/Project ID/)
+      .first()
+      .fill("");
+    await expect(page.getByText(/This ID is already in use/)).not.toBeVisible();
+    await expect(page).toHaveURL(secondUrl);
+    await page.goto("/projects/DUP");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("First");
+  });
+
+  test("warns when an experiment reuses a project ID and recovers with a unique ID", async ({
+    page,
+  }) => {
+    await page.goto("/overview");
+    const create = page.getByRole("button", { name: "Create your first project" });
+    await waitForRoute(create);
+    await create.click();
+    await page
+      .getByLabel(/Project ID/)
+      .first()
+      .fill("GLOBAL-ID");
+    await page.goto("/projects/GLOBAL-ID");
+    await page.getByRole("button", { name: /Create.*Experiment/i }).click();
+    await expect(page).toHaveURL(ROUTE.experiment);
+    const internalId = new URL(page.url()).pathname.split("/").pop();
+    await page
+      .getByLabel(/^Experiment ID/)
+      .first()
+      .fill("GLOBAL-ID");
+    await expect(page.getByText(/This ID is already in use/)).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/experiments/${internalId}$`));
+    await expect(page).not.toHaveURL(/\/projects\/GLOBAL-ID\//);
+    await page
+      .getByLabel(/^Experiment ID/)
+      .first()
+      .fill("UNIQUE-EXPERIMENT");
+    await expect(page.getByText(/This ID is already in use/)).not.toBeVisible();
+    await expect(page).toHaveURL(/\/experiments\/UNIQUE-EXPERIMENT$/);
   });
 });

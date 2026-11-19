@@ -22,14 +22,23 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - Signed-in users can copy links to saved cloud project pages from the menu or
   Share dialog; the controls are hidden for guests and until a new project is
   saved. Project members, including viewers, can open those links. Copy link is
-  also hidden on not-found and multiple-matches pages, where no specific entity
+  also hidden on not-found pages, where no specific entity
   is selected. A link resolves only among projects the recipient can access, and
   a missing match reads as "can't be found", just like a deleted project. Human
-  IDs may match a different project or multiple drafts; see `docs/multi-project.md`.
+  IDs share a global project/experiment namespace; conflicting local drafts use
+  internal-ID links, with no multiple-matches chooser. See `docs/multi-project.md`.
   Signing in from the not-found page returns to the link, unless it contains
   characters that need encoding, which `safeReturnTo` rejects; those land on
   the overview.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
+- A private `metadata_builder_slugs` registry reserves human project and experiment
+  IDs atomically with each save. IDs are trimmed and case-sensitive, and cannot
+  shadow another entity's internal ID. Existing conflicting snapshots remain
+  readable, but edits cannot sync until the ID is unique or cleared. Field-level
+  feedback and the cloud status explain this; unchanged duplicate saves are not
+  automatically retried. Other projects can still save. Renaming or deleting an
+  entity releases its previous slug. The project list and hash polls include only
+  the caller's conflicting IDs, never another private project's identity.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.
