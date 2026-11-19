@@ -98,4 +98,20 @@ test.describe("Project URLs", () => {
     await page.goto("/projects/DUP");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("First");
   });
+
+  test("use the project ID exactly as typed", async ({ page }) => {
+    await page.goto("/overview");
+    const firstProject = page.getByRole("button", { name: "Create your first project" });
+    await waitForRoute(firstProject);
+    await firstProject.click();
+    const projectId = page.getByLabel(/Project ID/).first();
+    await projectId.fill("  Kiel site #1 ");
+    await expect(page).toHaveURL(/\/projects\/%20%20Kiel%20site%20%231%20\/metadata$/);
+    await expect(page.getByText(/already in use|Use only letters/)).toHaveCount(0);
+
+    await page.reload();
+    await expect(projectId).toHaveValue("  Kiel site #1 ");
+    await page.goto("/projects/Kiel%20site%20%231");
+    await expect(page.getByRole("heading", { name: "Project not found" })).toBeVisible();
+  });
 });

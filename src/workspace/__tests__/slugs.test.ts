@@ -37,13 +37,15 @@ function dataset(id: string): DatasetRecord {
 }
 
 describe("slugs", () => {
-  it("uses the trimmed human ID, else the internal ID", () => {
-    const named = project("uuid-1", "  KIEL-01 ");
-    const blank = project("uuid-2", "   ");
+  it("uses the exact human ID, else the internal ID", () => {
+    const named = project("uuid-1", "  KIEL 01 ");
+    const empty = project("uuid-2", "");
     const notString = project("uuid-3", 42);
-    const all = [named, blank, notString];
-    expect(projectSlug(named, all)).toBe("KIEL-01");
-    expect(projectSlug(blank, all)).toBe("uuid-2");
+    const all = [named, empty, notString];
+    expect(projectSlug(named, all)).toBe("  KIEL 01 ");
+    expect(resolveProject("  KIEL 01 ", all)).toEqual({ kind: "found", value: named });
+    expect(resolveProject("KIEL 01", all)).toEqual({ kind: "not-found" });
+    expect(projectSlug(empty, all)).toBe("uuid-2");
     expect(projectSlug(notString, all)).toBe("uuid-3");
   });
 
@@ -77,7 +79,7 @@ describe("slugs", () => {
     });
   });
 
-  it("resolves the internal ID before a human ID, and a unique trimmed human ID", () => {
+  it("resolves the internal ID before a human ID, and a unique human ID", () => {
     const a = project("uuid-a", "KIEL");
     const b = project("uuid-b", "uuid-a");
     expect(resolveProject("uuid-a", [a, b])).toEqual({ kind: "found", value: a });

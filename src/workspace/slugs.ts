@@ -12,17 +12,17 @@ export type Resolution<T> = { kind: "found"; value: T } | { kind: "not-found" };
 
 type Identified = { id: string };
 
-/** Imported JSON isn't type-checked, so the field may not be a string. */
-function trimmed(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
+/** The ID exactly as typed. Imported JSON isn't type-checked, so the field may not be a string. */
+function exactId(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 export function humanProjectId(project: ProjectRecord): string {
-  return trimmed(project.state.projectData.project_id);
+  return exactId(project.state.projectData.project_id);
 }
 
 export function humanExperimentId(experiment: ExperimentRecord): string {
-  return trimmed(experiment.formData.experiment_id);
+  return exactId(experiment.formData.experiment_id);
 }
 
 function sameId(a: string, b: string): boolean {
@@ -47,8 +47,7 @@ function resolve<T extends Identified>(
 ): Resolution<T> {
   const byId = items.find((item) => item.id === slug);
   if (byId) return { kind: "found", value: byId };
-  const id = slug.trim();
-  const matches = human && id ? items.filter((item) => sameId(human(item), id)) : [];
+  const matches = human && slug ? items.filter((item) => sameId(human(item), slug)) : [];
   if (matches.length === 1) return { kind: "found", value: matches[0] };
   return { kind: "not-found" };
 }
