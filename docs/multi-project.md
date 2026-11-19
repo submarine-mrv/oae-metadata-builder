@@ -37,7 +37,7 @@ Each project page has its own URL:
 | Experiment | `/projects/<project>/experiments/<experiment>` |
 | Dataset | `/projects/<project>/datasets/<dataset>` |
 
-The slugs come from `src/workspace/slugs.ts`. Human project and experiment IDs (`project_id`, `experiment_id`, trimmed) share one global, case-insensitive namespace across cloud drafts and may use only letters, digits, `-` and `_`. Empty IDs are acceptable for draft sync and use internal-ID URLs. Datasets always use their internal IDs. Slugs are percent-encoded, so IDs with `/`, `#` or spaces work.
+The slugs come from `src/workspace/slugs.ts`. Human project and experiment IDs (`project_id`, `experiment_id`, trimmed) share one global, case-insensitive namespace across cloud drafts and may use only letters, digits, `-` and `_`; whitespace entered in these fields is replaced with `-`. Empty IDs are acceptable for draft sync and use internal-ID URLs. Datasets always use their internal IDs. Slugs are percent-encoded for URLs.
 
 Nothing is fetched by slug. Every project the user can open is already in the workspace (one `list_metadata_builder_projects` call when signed in, `localStorage` for guests), and `ProjectPersistenceController` holds the routes until it is, so the routes in `src/workspace/EntityRoutes.tsx` resolve slugs synchronously:
 

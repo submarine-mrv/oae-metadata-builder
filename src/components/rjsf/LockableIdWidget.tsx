@@ -22,6 +22,7 @@ import { activeProjectIdAtom } from "@/state/atoms";
 import {
   INVALID_ID_MESSAGE,
   isValidHumanId,
+  normalizeHumanId,
   SLUG_CONFLICT_MESSAGE,
 } from "@/workspace/slugConflicts";
 import { rejectedIdsAtom } from "@/workspace/syncState";
@@ -107,7 +108,7 @@ export default function LockableIdWidget<
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
+      const newValue = normalizeHumanId(event.target.value);
       onChange(newValue === "" ? undefined : newValue);
     },
     [onChange],

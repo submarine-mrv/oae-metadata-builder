@@ -4,6 +4,10 @@ export const SLUG_CONFLICT_MESSAGE =
 export const INVALID_ID_MESSAGE =
   "Use only letters, numbers, - and _. Changes to this project will not sync to the cloud until this is fixed.";
 
+export function normalizeHumanId(id: string): string {
+  return id.trim().replace(/\s+/g, "-");
+}
+
 /** Human project and experiment IDs: case-insensitive, letters, digits, `-` and `_` only. */
 export function isValidHumanId(id: string): boolean {
   return /^[A-Za-z0-9_-]+$/.test(id);

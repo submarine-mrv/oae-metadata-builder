@@ -34,7 +34,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - Stopgap until submarine-mrv/oae-data-commons#236: the backend's
   `metadata_builder_slugs` table reserves human project and experiment IDs on
   each save, case-insensitively, and rejects IDs with characters other than
-  letters, digits, `-` and `_`. A rejected save names the offending IDs; the ID
+  letters, digits, `-` and `_`; whitespace entered in the ID fields is replaced
+  with `-`. A rejected save names the offending IDs; the ID
   field shows a warning (format problems show before saving), the save is not retried automatically, and the next
   edit (a unique or empty ID) syncs again. Other projects still save.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
