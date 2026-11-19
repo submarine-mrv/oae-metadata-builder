@@ -31,14 +31,12 @@ Guests and the memory auth provider retain browser persistence. Enable with
   characters that need encoding, which `safeReturnTo` rejects; those land on
   the overview.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
-- A private `metadata_builder_slugs` registry reserves human project and experiment
-  IDs atomically with each save. IDs are trimmed and case-sensitive, and cannot
-  shadow another entity's internal ID. Existing conflicting snapshots remain
-  readable, but edits cannot sync until the ID is unique or cleared. Field-level
-  feedback and the cloud status explain this; unchanged duplicate saves are not
-  automatically retried. Other projects can still save. Renaming or deleting an
-  entity releases its previous slug. The project list and hash polls include only
-  the caller's conflicting IDs, never another private project's identity.
+- Stopgap until submarine-mrv/oae-data-commons#236: the backend's
+  `metadata_builder_slugs` table reserves human project and experiment IDs on
+  each save, case-insensitively, and rejects IDs with characters other than
+  letters, digits, `-` and `_`. A rejected save names the offending IDs; the ID
+  field shows a warning (format problems show before saving), the save is not retried automatically, and the next
+  edit (a unique or empty ID) syncs again. Other projects still save.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.
