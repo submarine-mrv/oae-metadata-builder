@@ -15,8 +15,12 @@
 import { ActionIcon, Box, Text, TextInput, Tooltip } from "@mantine/core";
 import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
 import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { activeExperimentIdAtom, activeProjectIdAtom, workspaceAtom } from "@/state/atoms";
+import { SLUG_CONFLICT_MESSAGE, workspaceSlugConflicts } from "@/workspace/slugConflicts";
+import { projectSlugConflictsAtom } from "@/workspace/syncState";
 import DescriptionModal from "./DescriptionModal";
 
 interface LockableIdOptions {
@@ -45,6 +49,24 @@ export default function LockableIdWidget<
     uiSchema,
   } = props;
 
+  const workspace = useAtomValue(workspaceAtom);
+  const projectId = useAtomValue(activeProjectIdAtom);
+  const experimentId = useAtomValue(activeExperimentIdAtom);
+  const serverConflicts = useAtomValue(projectSlugConflictsAtom);
+  const entityType = id === "root_project_id" ? "project" : "experiment";
+  const entityId = entityType === "project" ? projectId : experimentId;
+  const conflicts = projectId
+    ? [
+        ...(workspaceSlugConflicts(workspace.projects)[projectId] ?? []),
+        ...(serverConflicts[projectId] ?? []),
+      ]
+    : [];
+  const slugConflict = conflicts.some(
+    (conflict) =>
+      conflict.entityType === entityType &&
+      conflict.entityId === entityId &&
+      conflict.slug === (typeof value === "string" ? value.trim() : ""),
+  );
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
@@ -100,7 +122,11 @@ export default function LockableIdWidget<
   );
 
   const hasError = rawErrors && rawErrors.length > 0;
-  const errorMessage = hasError ? rawErrors.join(", ") : undefined;
+  const errorMessage = slugConflict
+    ? SLUG_CONFLICT_MESSAGE
+    : hasError
+      ? rawErrors.join(", ")
+      : undefined;
 
   const lockedStyles = {
     input: {
