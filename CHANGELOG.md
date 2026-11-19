@@ -6,8 +6,16 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ## Unreleased
 
+### Added
+
+- Sharing a project with someone who has no account emails them an invitation. They set a
+  password when they accept it and then see the project. The Share dialog shows invited people as
+  Pending, with Resend, and says whether an email was sent.
+
 ### Updated
 
+- Project sharing is tied to each person's account rather than their email address, so it
+  follows an email change.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
   instead of copying each project into the page being edited. Typing in a form no longer redraws the
   header and other parts of the page that didn't change. (#82)

@@ -8,10 +8,18 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - One `metadata_builder_sessions` row stores each project. Whoever first saves it
   owns it for good.
 - The owner shares a project by email as **editor** (edits everything) or
-  **viewer** (read only), from Share on its Overview. A grant applies to whoever
-  signs in with that confirmed email, so people can be added before they have an
-  account; there is no accept step. Only the owner deletes the project or manages
+  **viewer** (read only), from Share on its Overview. Grants belong to the
+  person's account, not the address, so they follow email changes. Someone with
+  a confirmed account gets access at once and no email. Anyone else is created
+  as a pending account and emailed an invitation (the `project-members` Edge
+  Function in oae-iac); they get access once they accept it. Only the owner sees
+  pending people, with Resend. Only the owner deletes the project or manages
   people; members can leave.
+- An invited account has no password of its own until it sets one, flagged by
+  `invited_at` without `user_metadata.password_set` (`AuthUser.needsPassword`).
+  The root route sends it to `/auth/set-password` and cloud sync waits until
+  then. An expired or superseded invitation link lands on sign-up, which works
+  for the invited address and shows the shared projects once confirmed.
 - Projects load through one RPC that returns each project's role, owner email,
   last editor and member count (`projectAccessAtom`). Viewers get disabled forms
   and no add, delete, duplicate or merge-import actions; their copies never save,

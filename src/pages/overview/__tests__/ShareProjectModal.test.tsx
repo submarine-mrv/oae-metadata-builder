@@ -6,7 +6,9 @@ import ShareProjectModal from "../ShareProjectModal";
 
 const members = vi.hoisted(() => ({
   list: vi.fn(),
-  set: vi.fn(),
+  invite: vi.fn(),
+  resend: vi.fn(),
+  setRole: vi.fn(),
   remove: vi.fn(),
   user: { id: "u1", email: "Me@Example.com" },
 }));
@@ -14,6 +16,16 @@ vi.mock("@/auth/useAuth", () => ({ useAuth: () => ({ user: members.user }) }));
 vi.mock("@/auth/providers/supabase/projectClient", () => ({
   createProjectMembersClient: () => members,
 }));
+
+function member(userId: string, email: string, role: string, status = "active") {
+  return {
+    userId,
+    email,
+    role,
+    status,
+    lastInvitedAt: status === "pending" ? "2026-09-20T10:00:00Z" : null,
+  };
+}
 
 function renderModal(isOwner: boolean) {
   const onClose = vi.fn();
@@ -28,51 +40,108 @@ function renderModal(isOwner: boolean) {
   return { onClose, onLeft };
 }
 
+async function add(email: string) {
+  await screen.findByText("bob@example.com");
+  fireEvent.change(screen.getByLabelText("Add by email"), { target: { value: email } });
+  fireEvent.click(screen.getByRole("button", { name: "Add" }));
+}
+
 describe("ShareProjectModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     members.list.mockResolvedValue([
-      { email: "owner@example.com", role: "owner" },
-      { email: "bob@example.com", role: "editor" },
-      { email: "me@example.com", role: "viewer" },
+      member("o1", "owner@example.com", "owner"),
+      member("b1", "bob@example.com", "editor"),
+      member("u1", "me@example.com", "viewer"),
+      member("p1", "pending@example.com", "viewer", "pending"),
     ]);
-    members.set.mockResolvedValue(undefined);
+    members.invite.mockResolvedValue({ status: "invited", userId: "n1" });
+    members.resend.mockResolvedValue({ status: "invited", userId: "p1" });
+    members.setRole.mockResolvedValue(undefined);
     members.remove.mockResolvedValue(undefined);
   });
 
-  it("lets the owner add someone by email with a role", async () => {
+  it("invites someone by email with a role and says what happened", async () => {
     renderModal(true);
-    await screen.findByText("bob@example.com");
-    fireEvent.change(screen.getByLabelText("Add by email"), {
-      target: { value: "  new@example.com " },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    await waitFor(() => expect(members.set).toHaveBeenCalledWith("p", "new@example.com", "editor"));
+    await add("  new@example.com ");
+    await waitFor(() =>
+      expect(members.invite).toHaveBeenCalledWith("p", "new@example.com", "editor"),
+    );
+    expect(await screen.findByText("Invitation sent to new@example.com.")).toBeInTheDocument();
     expect(members.list).toHaveBeenCalledTimes(2);
   });
 
-  it("lets the owner remove a member", async () => {
+  it("tells the owner when an existing account was added without an email", async () => {
+    members.invite.mockResolvedValueOnce({ status: "added", userId: "b2" });
+    renderModal(true);
+    await add("known@example.com");
+    expect(
+      await screen.findByText(
+        "Added known@example.com. They already have an account, so no email was sent.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a pending person when their invitation email fails", async () => {
+    members.invite.mockResolvedValueOnce({
+      status: "invite_failed",
+      reason: "send_failed",
+      userId: "n1",
+    });
+    renderModal(true);
+    await add("new@example.com");
+    expect(
+      await screen.findByText(
+        "Added new@example.com, but the invitation email couldn't be sent. Try Resend.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows pending people with a resend control", async () => {
+    renderModal(true);
+    expect(await screen.findByText("Pending")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Resend invitation to pending@example.com" }),
+    );
+    await waitFor(() => expect(members.resend).toHaveBeenCalledWith("p", "p1"));
+    expect(
+      await screen.findByText("Invitation resent to pending@example.com."),
+    ).toBeInTheDocument();
+  });
+
+  it("explains a resend cooldown", async () => {
+    members.resend.mockRejectedValueOnce(
+      Object.assign(new Error("Wait before resending"), { code: "cooldown" }),
+    );
+    renderModal(true);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Resend invitation to pending@example.com" }),
+    );
+    expect(
+      await screen.findByText("Please wait a minute before resending this invitation."),
+    ).toBeInTheDocument();
+  });
+
+  it("removes members by user ID", async () => {
     renderModal(true);
     fireEvent.click(await screen.findByRole("button", { name: "Remove bob@example.com" }));
-    await waitFor(() => expect(members.remove).toHaveBeenCalledWith("p", "bob@example.com"));
+    await waitFor(() => expect(members.remove).toHaveBeenCalledWith("p", "b1"));
   });
 
   it("shows members a read-only list and lets them leave", async () => {
     const { onLeft } = renderModal(false);
     expect(await screen.findByText("me@example.com (you)")).toBeInTheDocument();
     expect(screen.queryByLabelText("Add by email")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove|Resend/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Leave project" }));
-    await waitFor(() => expect(members.remove).toHaveBeenCalledWith("p", "Me@Example.com"));
+    await waitFor(() => expect(members.remove).toHaveBeenCalledWith("p", "u1"));
     await waitFor(() => expect(onLeft).toHaveBeenCalled());
   });
 
   it("shows why a change failed", async () => {
-    members.set.mockRejectedValueOnce(new Error("Could not add this person: denied"));
+    members.invite.mockRejectedValueOnce(new Error("Could not add this person: denied"));
     renderModal(true);
-    await screen.findByText("bob@example.com");
-    fireEvent.change(screen.getByLabelText("Add by email"), { target: { value: "x@example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    await add("x@example.com");
     expect(await screen.findByText("Could not add this person: denied")).toBeInTheDocument();
   });
 });

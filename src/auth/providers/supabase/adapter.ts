@@ -2,7 +2,7 @@ import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { failedResult, mapAuthError } from "../../errors";
 import type { AuthClient, AuthEvent, AuthOtpType, AuthResult } from "../../types";
 import { supabase } from "./client";
-import { mapSession, mapUser } from "./mapUser";
+import { mapSession, mapUser, PASSWORD_SET_METADATA_KEY } from "./mapUser";
 
 function mapEvent(event: AuthChangeEvent): AuthEvent {
   return event as AuthEvent;
@@ -78,7 +78,10 @@ export const supabaseAuthClient: AuthClient = {
   },
 
   async updatePassword(newPassword) {
-    const response = await supabase.auth.updateUser({ password: newPassword });
+    const response = await supabase.auth.updateUser({
+      password: newPassword,
+      data: { [PASSWORD_SET_METADATA_KEY]: true },
+    });
     return result(null, response.error);
   },
 
