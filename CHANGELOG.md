@@ -10,11 +10,13 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 - Each project, experiment and dataset has its own URL, such as
   `/projects/KIEL-2025/experiments/EXP-1`, so you can bookmark a page or send it to someone on the
-  project. The URL uses the project and experiment IDs whenever they're set, even if another
-  project shares them, and follows them as you edit them. "Copy link" in the menu and the Share
-  dialog copies it. A link to something that can't
-  be found says so, and one that matches several projects lets you choose. The old `/overview`,
-  `/project`, `/experiment` and `/dataset` addresses still open the current project.
+  project. The URL uses the project and experiment IDs, which follows them as you edit them.
+  "Copy link" in the menu and the Share dialog copies it. A link to something that can't be found
+  says so. The old `/overview`, `/project`, `/experiment` and `/dataset` addresses still open the
+  current project.
+- Project and experiment IDs must be unique across all projects, ignoring case, and may use only
+  letters, numbers, `-` and `_`. A project with an invalid or already used ID shows a warning on
+  the ID field and doesn't sync to the cloud until you choose a unique ID or leave it empty.
 
 ### Updated
 
