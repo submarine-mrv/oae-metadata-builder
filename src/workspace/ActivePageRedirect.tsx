@@ -9,7 +9,6 @@ import {
   workspaceAtom,
 } from "@/state/atoms";
 import { type EntityPage, entityLocation } from "./slugs";
-import { projectSlugConflictsAtom } from "./syncState";
 
 /**
  * The pre-slug paths (`/overview`, `/project`, `/experiment`, `/dataset`) open the active project's
@@ -29,11 +28,8 @@ export default function ActivePageRedirect({
   const projectId = useAtomValue(activeProjectIdAtom);
   const experimentId = useAtomValue(activeExperimentIdAtom);
   const datasetId = useAtomValue(activeDatasetIdAtom);
-  const conflicts = useAtomValue(projectSlugConflictsAtom);
   const entityId = page === "experiment" ? experimentId : page === "dataset" ? datasetId : null;
-  const location = projectId
-    ? entityLocation(workspace, projectId, page, entityId, { conflicts })
-    : null;
+  const location = projectId ? entityLocation(workspace, projectId, page, entityId) : null;
   const router = useRouter();
   // The rendered route's path: during a navigation `useLocation` already reports the next one.
   const pathname = useMatch({ strict: false, select: (m) => m.pathname });

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
 import { type ProjectCloudClient, startProjectCloudSync } from "../projectCloudSync";
 import { SlugConflictError } from "../slugConflicts";
-import { projectSlugConflictsAtom, projectSyncStatusAtom } from "../syncState";
+import { projectSyncStatusAtom, rejectedIdsAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { updateProject } from "../workspace";
 
@@ -145,12 +145,11 @@ describe("automatic sync retries", () => {
 
   it("keeps duplicate edits unsynced without retrying, then recovers when the ID is cleared", async () => {
     const { client, store, sync, edit } = await setup();
-    const conflicts = [{ entityType: "project" as const, entityId: "one", slug: "one" }];
-    vi.mocked(client.save).mockRejectedValueOnce(new SlugConflictError("one", conflicts));
+    vi.mocked(client.save).mockRejectedValueOnce(new SlugConflictError("one", ["one"]));
     edit("unsaved");
     await expect(sync.flush()).rejects.toBeInstanceOf(SlugConflictError);
     expect(store.get(projectSyncStatusAtom)).toMatchObject({ state: "error", noRetry: true });
-    expect(store.get(projectSlugConflictsAtom).one).toEqual(conflicts);
+    expect(store.get(rejectedIdsAtom).one).toEqual(["one"]);
     await vi.advanceTimersByTimeAsync(120_000);
     expect(client.save).toHaveBeenCalledTimes(1);
     expect(sync.hasPendingChanges()).toBe(true);
@@ -163,66 +162,7 @@ describe("automatic sync retries", () => {
       })),
     }));
     await sync.flush();
-    expect(store.get(projectSlugConflictsAtom).one).toEqual([]);
-    expect(store.get(projectSyncStatusAtom).state).toBe("synced");
-  });
-
-  it("blocks known cross-project/type duplicates while other projects still save", async () => {
-    const { client, store, sync } = await setup();
-    const duplicate = project("two");
-    duplicate.state.experiments = [
-      {
-        id: "exp-two",
-        name: "Duplicate",
-        formData: { experiment_id: "one" },
-        createdAt: 1,
-        updatedAt: 1,
-      },
-    ];
-    const healthy = project("three");
-    store.set(workspaceAtom, (workspace) => ({
-      ...workspace,
-      projects: [...workspace.projects, duplicate, healthy],
-    }));
-    await expect(sync.flush()).rejects.toBeInstanceOf(SlugConflictError);
-    expect(client.save).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(client.save).mock.calls[0][0].id).toBe("three");
-    expect(store.get(projectSlugConflictsAtom).two).toEqual([
-      { entityType: "experiment", entityId: "exp-two", slug: "one" },
-    ]);
-  });
-
-  it("shows legacy conflicts on load and clears them after a hash-only refresh", async () => {
-    vi.useFakeTimers();
-    const store = createStore();
-    const { client } = clientWith([project()]);
-    vi.mocked(client.load).mockResolvedValueOnce([
-      {
-        project: project(),
-        hash: "one",
-        slugConflicts: [{ entityType: "project", entityId: "one", slug: "one" }],
-      },
-    ]);
-    const sync = startProjectCloudSync(store, client);
-    stop = sync.stop;
-    await sync.load();
-    expect(store.get(projectSyncStatusAtom)).toMatchObject({ state: "error", noRetry: true });
-    expect(store.get(projectSlugConflictsAtom).one).toHaveLength(1);
-    await expect(sync.flush()).rejects.toBeInstanceOf(SlugConflictError);
-    await sync.refresh();
-    expect(store.get(projectSlugConflictsAtom).one).toEqual([]);
-    expect(store.get(projectSyncStatusAtom).state).toBe("synced");
-  });
-
-  it("clears a slug error when its project is deleted", async () => {
-    const { client, store, sync, edit } = await setup();
-    vi.mocked(client.save).mockRejectedValue(
-      new SlugConflictError("one", [{ entityType: "project", entityId: "one", slug: "one" }]),
-    );
-    edit("unsynced");
-    await expect(sync.flush()).rejects.toBeInstanceOf(SlugConflictError);
-    await sync.remove("one");
-    expect(store.get(projectSlugConflictsAtom).one).toEqual([]);
+    expect(store.get(rejectedIdsAtom).one).toEqual([]);
     expect(store.get(projectSyncStatusAtom).state).toBe("synced");
   });
 });

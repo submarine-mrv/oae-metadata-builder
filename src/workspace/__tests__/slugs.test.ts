@@ -98,18 +98,6 @@ describe("slugs", () => {
     expect(resolveExperiment("e2", [one, two])).toEqual({ kind: "found", value: two });
   });
 
-  it("shares one namespace across projects and experiments, including hidden server conflicts", () => {
-    const e = experiment("e1", "TAKEN");
-    const a = project("p1", "TAKEN", { experiments: [e] });
-    const b = project("p2", "FREE", { experiments: [experiment("e2", "TAKEN")] });
-    expect(projectSlug(a, [a, b])).toBe("p1");
-    expect(experimentSlug(e, [e], [a, b])).toBe("e1");
-    expect(resolveExperiment("TAKEN", [e], [a, b])).toEqual({ kind: "not-found" });
-    const conflicts = [{ entityType: "project" as const, entityId: "p2", slug: "FREE" }];
-    expect(projectSlug(b, [a, b], conflicts)).toBe("p2");
-    expect(resolveProject("FREE", [a, b], conflicts)).toEqual({ kind: "not-found" });
-  });
-
   it("resolves legacy numbered IDs within their project, and datasets by internal ID only", () => {
     const legacy = experiment("experiment-1");
     expect(resolveExperiment("experiment-1", [legacy])).toEqual({ kind: "found", value: legacy });

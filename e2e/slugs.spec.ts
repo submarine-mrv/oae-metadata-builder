@@ -52,9 +52,7 @@ test.describe("Project URLs", () => {
     await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   });
 
-  test("keep duplicate drafts on internal-ID URLs and explain how to fix their IDs", async ({
-    page,
-  }) => {
+  test("keep duplicate local drafts on internal-ID URLs", async ({ page }) => {
     await page.goto("/overview");
     const switcher = page.getByRole("button", { name: /Current project:/ });
     const firstProject = page.getByRole("button", { name: "Create your first project" });
@@ -76,7 +74,6 @@ test.describe("Project URLs", () => {
       .first()
       .fill("DUP");
     await expect(page).not.toHaveURL(/\/projects\/DUP\/metadata$/);
-    await expect(page.getByText(/This ID is already in use/)).toBeVisible();
     await expect(switcher).toHaveText("Second");
     const secondUrl = page.url();
 
@@ -92,45 +89,13 @@ test.describe("Project URLs", () => {
     await expect(page.getByRole("heading", { name: "Project not found" })).toBeVisible();
 
     await page.goto(secondUrl);
-    await expect(page.getByText(/This ID is already in use/)).toBeVisible();
     await page.getByRole("button", { name: "Click to edit", exact: true }).click();
     await page
       .getByLabel(/Project ID/)
       .first()
       .fill("");
-    await expect(page.getByText(/This ID is already in use/)).not.toBeVisible();
     await expect(page).toHaveURL(secondUrl);
     await page.goto("/projects/DUP");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("First");
-  });
-
-  test("warns when an experiment reuses a project ID and recovers with a unique ID", async ({
-    page,
-  }) => {
-    await page.goto("/overview");
-    const create = page.getByRole("button", { name: "Create your first project" });
-    await waitForRoute(create);
-    await create.click();
-    await page
-      .getByLabel(/Project ID/)
-      .first()
-      .fill("GLOBAL-ID");
-    await page.goto("/projects/GLOBAL-ID");
-    await page.getByRole("button", { name: /Create.*Experiment/i }).click();
-    await expect(page).toHaveURL(ROUTE.experiment);
-    const internalId = new URL(page.url()).pathname.split("/").pop();
-    await page
-      .getByLabel(/^Experiment ID/)
-      .first()
-      .fill("GLOBAL-ID");
-    await expect(page.getByText(/This ID is already in use/)).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`/experiments/${internalId}$`));
-    await expect(page).not.toHaveURL(/\/projects\/GLOBAL-ID\//);
-    await page
-      .getByLabel(/^Experiment ID/)
-      .first()
-      .fill("UNIQUE-EXPERIMENT");
-    await expect(page.getByText(/This ID is already in use/)).not.toBeVisible();
-    await expect(page).toHaveURL(/\/experiments\/UNIQUE-EXPERIMENT$/);
   });
 });

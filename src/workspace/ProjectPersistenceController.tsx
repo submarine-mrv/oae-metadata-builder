@@ -13,10 +13,10 @@ import { startProjectCloudSync } from "./projectCloudSync";
 import { localStorageWorkspaceStore } from "./storage";
 import { LocalProjectMigration } from "./sync";
 import {
-  projectSlugConflictsAtom,
   projectSyncActionsAtom,
   projectSyncErrorStatus,
   projectSyncStatusAtom,
+  rejectedIdsAtom,
 } from "./syncState";
 import { type ProjectRecord, projectDisplayName, type Workspace } from "./types";
 import { emptyWorkspace } from "./workspace";
@@ -48,7 +48,7 @@ export default function ProjectPersistenceController({ children }: { children: R
     let cancelled = false;
     let cloud: ReturnType<typeof startProjectCloudSync> | null = null;
     store.set(projectSyncActionsAtom, null);
-    store.set(projectSlugConflictsAtom, {});
+    store.set(rejectedIdsAtom, {});
     store.set(workspaceAtom, emptyWorkspace());
     if (identity === "guest") {
       hydrate(store, localStorageWorkspaceStore);

@@ -2,22 +2,17 @@ import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
 import { adoptUnseenProject, equalData, reconcileProjectRecord } from "../merge";
-import {
-  matchingSlugConflicts,
-  type SlugConflict,
-  SlugConflictError,
-  workspaceSlugConflicts,
-} from "../slugConflicts";
-import { type LocalProjectSource, readLocalProjectSources } from "../storage";
+import { SlugConflictError } from "../slugConflicts";
+import { readLocalProjectSources } from "../storage";
 import {
   ProjectConflictError,
   type ProjectSyncStatus,
   projectAccessAtom,
-  projectSlugConflictsAtom,
   projectSyncErrorStatus,
   projectSyncStatusAtom,
   type RemoteDeletion,
   refreshPausesAtom,
+  rejectedIdsAtom,
   remoteDeletionsAtom,
 } from "../syncState";
 import { type ProjectRecord, projectDisplayName } from "../types";
@@ -106,17 +101,9 @@ const requestDelay = (failures: number) => {
 export function startProjectCloudSync(store: AppStore, client: ProjectCloudClient) {
   const acknowledged = new Map<string, RemoteProject>();
   const unsupported = new Map<string, UnsupportedProjectVersionError>();
-  const pendingLocalImports = new Map<string, LocalProjectSource>();
   const versionError = () => unsupported.values().next().value;
-  const slugError = () => {
-    const conflicts = store.get(projectSlugConflictsAtom);
-    for (const project of store.get(workspaceAtom).projects) {
-      const current = matchingSlugConflicts(project, conflicts[project.id] ?? []);
-      if (current.length) return new SlugConflictError(project.id, current);
-    }
-  };
   const settledStatus = () => {
-    const error = versionError() ?? slugError();
+    const error = versionError();
     status(error ? projectSyncErrorStatus(error) : { state: "synced" });
   };
   let stopped = false;
@@ -136,9 +123,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   const paused = () => store.get(refreshPausesAtom) > 0;
   const currentProject = (id: string) =>
     store.get(workspaceAtom).projects.find((project) => project.id === id);
-  const updateSlugConflicts = (id: string, conflicts: SlugConflict[]) => {
-    if (!equalData(store.get(projectSlugConflictsAtom)[id] ?? [], conflicts)) {
-      store.set(projectSlugConflictsAtom, (previous) => ({ ...previous, [id]: conflicts }));
+  const setRejectedIds = (id: string, ids: string[]) => {
+    if (!equalData(store.get(rejectedIdsAtom)[id] ?? [], ids)) {
+      store.set(rejectedIdsAtom, (previous) => ({ ...previous, [id]: ids }));
     }
   };
   const pendingVersionError = () => {
@@ -187,22 +174,14 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         return;
       }
       checkProjectVersion(project);
-      const localConflicts = workspaceSlugConflicts(store.get(workspaceAtom).projects)[id] ?? [];
-      if (localConflicts.length) {
-        updateSlugConflicts(id, localConflicts);
-        throw new SlugConflictError(id, localConflicts);
-      }
       const hash = await hashProject(project);
       assertActive();
       let result: ProjectSaveResult;
       try {
         result = await client.save(project, hash, previous?.hash ?? null);
       } catch (error) {
-        if (error instanceof SlugConflictError) {
-          updateSlugConflicts(id, error.conflicts);
-          throw error;
-        }
-        if (error instanceof ProjectAccessError) throw error;
+        if (error instanceof SlugConflictError) setRejectedIds(id, error.ids);
+        if (error instanceof ProjectAccessError || error instanceof SlugConflictError) throw error;
         if (!(error instanceof UnsupportedProjectVersionError)) {
           throw new RequestError(errorMessage(error), { cause: error });
         }
@@ -213,7 +192,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       if (result.saved) {
         if (!result.hash) throw new Error("The cloud did not acknowledge the saved project.");
         acknowledged.set(id, { project, hash: result.hash });
-        updateSlugConflicts(id, []);
+        setRejectedIds(id, []);
         // A first save makes this user the owner; the next hash check fills in the rest.
         if (!previous && !accessOf(id)) {
           updateAccess(
@@ -226,7 +205,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       if (!result.project || !result.hash) {
         // Deleted elsewhere: the delete wins over local edits.
         acknowledged.delete(id);
-        updateSlugConflicts(id, []);
         store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
         noteDeletions([
           {
@@ -282,10 +260,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       expected = result.hash;
     }
     acknowledged.delete(id);
-    updateSlugConflicts(id, []);
     // Drop it locally too, or a flush in between would re-create the row.
     store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
-    if (!dirty()) settledStatus();
   };
 
   const flush = (): Promise<void> => {
@@ -295,8 +271,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     if (inFlight) return inFlight;
     if (!dirty()) {
       settledStatus();
-      const error = slugError();
-      return error ? Promise.reject(error) : Promise.resolve();
+      return Promise.resolve();
     }
     inFlight = Promise.resolve().then(async () => {
       try {
@@ -328,8 +303,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           if (versionError) failures.push(versionError);
           if (failures.length) throw new FlushFailures(failures);
         }
-        const conflict = slugError();
-        if (conflict) throw conflict;
         failingSince = null;
         requestFailures = 0;
         settledStatus();
@@ -408,10 +381,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     const deletions: RemoteDeletion[] = [];
     const seen = new Set<string>();
     for (const row of rows) {
-      const id = "projectId" in row ? row.projectId : row.project.id;
-      if (!currentProject(id) || currentProject(id) === acknowledged.get(id)?.project) {
-        updateSlugConflicts(id, row.slugConflicts ?? []);
-      }
       if ("projectId" in row) {
         seen.add(row.projectId);
         if (unsupported.has(row.projectId)) continue;
@@ -476,7 +445,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         workspace = deleteProject(workspace, id);
       }
       acknowledged.delete(id);
-      updateSlugConflicts(id, []);
     }
     if (workspace !== store.get(workspaceAtom)) store.set(workspaceAtom, workspace);
     noteDeletions(deletions);
@@ -494,11 +462,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       try {
         const versions = await client.hashes();
         assertActive();
-        for (const [id, version] of versions) {
-          if (currentProject(id) === acknowledged.get(id)?.project) {
-            updateSlugConflicts(id, version.slugConflicts ?? []);
-          }
-        }
         // Roles and who saved last can change without the draft changing.
         const known = [...versions].filter(([id]) => acknowledged.has(id));
         updateAccess(
@@ -529,10 +492,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           [...versions].some(
             ([id, version]) => !unsupported.has(id) && acknowledged.get(id)?.hash !== version.hash,
           ) || [...acknowledged.keys()].some((id) => !versions.has(id));
-        if (!changed) {
-          if (!dirty()) settledStatus();
-          return;
-        }
+        if (!changed) return;
         const before = new Map(acknowledged);
         const rows = await client.load();
         assertActive();
@@ -676,13 +636,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     try {
       const rows = await client.load();
       assertActive();
-      store.set(projectSlugConflictsAtom, {});
-      for (const row of rows) {
-        updateSlugConflicts(
-          "projectId" in row ? row.projectId : row.project.id,
-          row.slugConflicts ?? [],
-        );
-      }
       updateAccess(
         rows.map((row) => ["projectId" in row ? row.projectId : row.project.id, row.access]),
       );
@@ -721,19 +674,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   const migrateLocalProjects = async () => {
     // Explicit consent is handled by the UI. Retain every source until its save is acknowledged.
     await flush();
-    let resumed = false;
-    for (const [id, source] of pendingLocalImports) {
-      const saved = acknowledged.get(id);
-      if (!saved || saved.project !== currentProject(id)) continue;
-      source.remove();
-      pendingLocalImports.delete(id);
-      resumed = true;
-    }
     const sources = readLocalProjectSources();
-    if (!sources.length) {
-      if (resumed) return;
-      throw new Error("There are no readable local projects to migrate.");
-    }
+    if (!sources.length) throw new Error("There are no readable local projects to migrate.");
     for (const source of sources) {
       assertActive();
       const incoming = parseCloudProject(source.project);
@@ -741,7 +683,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       // Always a new project, so importing never changes one already in the account.
       const taken = workspace.projects.some((project) => project.id === incoming.id);
       const record = taken ? { ...incoming, id: crypto.randomUUID() } : incoming;
-      pendingLocalImports.set(record.id, source);
       store.set(workspaceAtom, {
         ...workspace,
         projects: [...workspace.projects, record],
@@ -755,7 +696,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         );
       }
       source.remove();
-      pendingLocalImports.delete(record.id);
     }
   };
 

@@ -1,11 +1,10 @@
 import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
-import { type SlugConflict, workspaceSlugConflicts } from "./slugConflicts";
 import type { ProjectRecord, Workspace } from "./types";
 
 /**
  * URL slugs for shareable links. A project or experiment slug is its human-readable ID whenever
- * unique in the workspace, else its internal ID. The backend reserves human IDs globally.
- * Unsynced local duplicates and legacy conflicts never require a multiple-matches chooser.
+ * unique in the workspace, else its internal ID. The backend reserves human IDs globally, so a
+ * duplicate is only ever local and unsynced; it uses the internal ID rather than a chooser.
  */
 
 export type Resolution<T> = { kind: "found"; value: T } | { kind: "not-found" };
@@ -25,9 +24,6 @@ export function humanExperimentId(experiment: ExperimentRecord): string {
   return trimmed(experiment.formData.experiment_id);
 }
 
-/**
- * Conflicting local drafts retain deterministic internal-ID URLs.
- */
 function slugFor<T extends Identified>(item: T, siblings: T[], human: (item: T) => string): string {
   const id = human(item);
   if (!id) return item.id;
@@ -36,7 +32,7 @@ function slugFor<T extends Identified>(item: T, siblings: T[], human: (item: T) 
     : id;
 }
 
-/** Internal ID first, since it is unique; then the human ID, which may match several. */
+/** Internal ID first, since it is unique; then a human ID that only one item uses. */
 function resolve<T extends Identified>(
   slug: string,
   items: T[],
@@ -50,68 +46,30 @@ function resolve<T extends Identified>(
   return { kind: "not-found" };
 }
 
-export function projectSlug(
-  project: ProjectRecord,
-  projects: ProjectRecord[],
-  conflicts: SlugConflict[] = [],
-): string {
-  if (
-    [...(workspaceSlugConflicts(projects)[project.id] ?? []), ...conflicts].some(
-      (c) =>
-        c.entityType === "project" &&
-        c.entityId === project.id &&
-        c.slug === humanProjectId(project),
-    )
-  ) {
-    return project.id;
-  }
+export function projectSlug(project: ProjectRecord, projects: ProjectRecord[]): string {
   return slugFor(project, projects, humanProjectId);
 }
 
 export function experimentSlug(
   experiment: ExperimentRecord,
   experiments: ExperimentRecord[],
-  projects?: ProjectRecord[],
-  conflicts: SlugConflict[] = [],
 ): string {
-  if (
-    [...Object.values(workspaceSlugConflicts(projects ?? [])).flat(), ...conflicts].some(
-      (c) =>
-        c.entityType === "experiment" &&
-        c.entityId === experiment.id &&
-        c.slug === humanExperimentId(experiment),
-    )
-  )
-    return experiment.id;
   return slugFor(experiment, experiments, humanExperimentId);
 }
 
-/** Datasets have no human ID of their own, so their slug is always the internal ID. */
 export function datasetSlug(dataset: DatasetRecord): string {
   return dataset.id;
 }
 
-export function resolveProject(
-  slug: string,
-  projects: ProjectRecord[],
-  conflicts: SlugConflict[] = [],
-): Resolution<ProjectRecord> {
-  return resolve(slug, projects, (project) =>
-    projectSlug(project, projects, conflicts) === project.id ? "" : humanProjectId(project),
-  );
+export function resolveProject(slug: string, projects: ProjectRecord[]): Resolution<ProjectRecord> {
+  return resolve(slug, projects, humanProjectId);
 }
 
 export function resolveExperiment(
   slug: string,
   experiments: ExperimentRecord[],
-  projects?: ProjectRecord[],
-  conflicts: SlugConflict[] = [],
 ): Resolution<ExperimentRecord> {
-  return resolve(slug, experiments, (experiment) =>
-    experimentSlug(experiment, experiments, projects, conflicts) === experiment.id
-      ? ""
-      : humanExperimentId(experiment),
-  );
+  return resolve(slug, experiments, humanExperimentId);
 }
 
 export function resolveDataset(slug: string, datasets: DatasetRecord[]): Resolution<DatasetRecord> {
@@ -134,19 +92,17 @@ export type EntityLocation =
 
 /**
  * Where a page of a project lives, or null when the project or entity doesn't exist.
- * Copied URLs and navigation both use internal IDs for conflicting local drafts.
+ * Copied links and in-app navigation use the same URL.
  */
 export function entityLocation(
   workspace: Workspace,
   projectId: string,
   page: EntityPage,
   entityId?: string | null,
-  { conflicts = {} }: { conflicts?: Record<string, SlugConflict[]> } = {},
 ): EntityLocation | null {
   const project = workspace.projects.find((p) => p.id === projectId);
   if (!project) return null;
-  const projectConflicts = conflicts[project.id] ?? [];
-  const params = { projectId: projectSlug(project, workspace.projects, projectConflicts) };
+  const params = { projectId: projectSlug(project, workspace.projects) };
   switch (page) {
     case "overview":
       return { to: "/projects/$projectId", params };
@@ -160,12 +116,7 @@ export function entityLocation(
         to: "/projects/$projectId/experiments/$experimentId",
         params: {
           ...params,
-          experimentId: experimentSlug(
-            experiment,
-            experiments,
-            workspace.projects,
-            projectConflicts,
-          ),
+          experimentId: experimentSlug(experiment, experiments),
         },
       };
     }

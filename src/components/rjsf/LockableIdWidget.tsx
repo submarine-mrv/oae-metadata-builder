@@ -18,9 +18,9 @@ import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { activeExperimentIdAtom, activeProjectIdAtom, workspaceAtom } from "@/state/atoms";
-import { SLUG_CONFLICT_MESSAGE, workspaceSlugConflicts } from "@/workspace/slugConflicts";
-import { projectSlugConflictsAtom } from "@/workspace/syncState";
+import { activeProjectIdAtom } from "@/state/atoms";
+import { SLUG_CONFLICT_MESSAGE } from "@/workspace/slugConflicts";
+import { rejectedIdsAtom } from "@/workspace/syncState";
 import DescriptionModal from "./DescriptionModal";
 
 interface LockableIdOptions {
@@ -49,24 +49,11 @@ export default function LockableIdWidget<
     uiSchema,
   } = props;
 
-  const workspace = useAtomValue(workspaceAtom);
   const projectId = useAtomValue(activeProjectIdAtom);
-  const experimentId = useAtomValue(activeExperimentIdAtom);
-  const serverConflicts = useAtomValue(projectSlugConflictsAtom);
-  const entityType = id === "root_project_id" ? "project" : "experiment";
-  const entityId = entityType === "project" ? projectId : experimentId;
-  const conflicts = projectId
-    ? [
-        ...(workspaceSlugConflicts(workspace.projects)[projectId] ?? []),
-        ...(serverConflicts[projectId] ?? []),
-      ]
-    : [];
-  const slugConflict = conflicts.some(
-    (conflict) =>
-      conflict.entityType === entityType &&
-      conflict.entityId === entityId &&
-      conflict.slug === (typeof value === "string" ? value.trim() : ""),
-  );
+  const rejectedIds = useAtomValue(rejectedIdsAtom);
+  const trimmedValue = typeof value === "string" ? value.trim() : "";
+  const slugConflict =
+    !!trimmedValue && !!projectId && (rejectedIds[projectId] ?? []).includes(trimmedValue);
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);

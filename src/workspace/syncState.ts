@@ -1,7 +1,7 @@
 import { atom } from "jotai";
 import { ProjectAccessError, UnsupportedProjectVersionError } from "./projectCloudSync/helper";
 import type { ProjectAccess } from "./projectCloudSync/types";
-import { type SlugConflict, SlugConflictError } from "./slugConflicts";
+import { SlugConflictError } from "./slugConflicts";
 
 export type ProjectSyncStatus =
   | { state: "disabled" | "loading" | "syncing" | "synced" }
@@ -23,7 +23,7 @@ export function projectSyncErrorStatus(error: unknown): ProjectSyncStatus {
     state: "error",
     message: error instanceof Error ? error.message : "Could not sync this project.",
     ...(error instanceof ProjectConflictError ? { projectId: error.projectId } : {}),
-    // These failures need an ID edit, conflict resolution, access change, or newer client.
+    // Saving again can't settle these; a duplicate ID waits for the next edit.
     ...(error instanceof ProjectConflictError ||
     error instanceof UnsupportedProjectVersionError ||
     error instanceof ProjectAccessError ||
@@ -63,6 +63,7 @@ export const remoteDeletionsAtom = atom<RemoteDeletion[]>([]);
 export const refreshPausesAtom = atom(0);
 /** The signed-in user's access to each cloud project, by project ID. */
 export const projectAccessAtom = atom<Record<string, ProjectAccess>>({});
-export const projectSlugConflictsAtom = atom<Record<string, SlugConflict[]>>({});
+/** Human IDs the backend rejected as already in use, by project ID. */
+export const rejectedIdsAtom = atom<Record<string, string[]>>({});
 export const projectSyncStatusAtom = atom<ProjectSyncStatus>({ state: "disabled" });
 export const projectSyncActionsAtom = atom<ProjectSyncActions | null>(null);

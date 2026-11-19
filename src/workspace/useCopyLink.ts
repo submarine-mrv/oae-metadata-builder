@@ -5,11 +5,10 @@ import { useStore } from "jotai";
 import { useCallback } from "react";
 import { workspaceAtom } from "@/state/atoms";
 import { type EntityPage, entityLocation } from "./slugs";
-import { projectSlugConflictsAtom } from "./syncState";
 
 /**
  * Copies an absolute link to a project page, using the same slugs as the address bar: human IDs
- * when unique, internal IDs for conflicting drafts.
+ * when unique in the workspace, otherwise internal IDs.
  */
 export function useCopyLink() {
   const store = useStore();
@@ -17,9 +16,7 @@ export function useCopyLink() {
   const clipboard = useClipboard();
   return useCallback(
     (page: EntityPage, projectId: string, entityId?: string) => {
-      const location = entityLocation(store.get(workspaceAtom), projectId, page, entityId, {
-        conflicts: store.get(projectSlugConflictsAtom),
-      });
+      const location = entityLocation(store.get(workspaceAtom), projectId, page, entityId);
       if (!location) return;
       const { href } = router.buildLocation(location);
       clipboard.copy(new URL(href, window.location.origin).toString());

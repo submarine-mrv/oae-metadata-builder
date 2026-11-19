@@ -20,7 +20,6 @@ import {
   resolveExperiment,
   resolveProject,
 } from "./slugs";
-import { projectSlugConflictsAtom } from "./syncState";
 import { useProjectTransition } from "./useProjectTransition";
 import { useSlugResolution } from "./useSlugResolution";
 
@@ -56,17 +55,11 @@ export function ProjectRoute() {
   const slug = useParams({ strict: false }).projectId ?? "";
   const { projects } = useAtomValue(workspaceAtom);
   const activeId = useAtomValue(activeProjectIdAtom);
-  const conflicts = Object.values(useAtomValue(projectSlugConflictsAtom)).flat();
   const switchProject = useSetAtom(switchProjectAtom);
   const transition = useProjectTransition();
   const replaceSlug = useReplaceParam("projectId");
   const leaving = useLeaving();
-  const { resolution, canonical } = useSlugResolution(
-    slug,
-    projects,
-    (value, items) => resolveProject(value, items, conflicts),
-    (project, items) => projectSlug(project, items, conflicts),
-  );
+  const { resolution, canonical } = useSlugResolution(slug, projects, resolveProject, projectSlug);
   const project = resolution.kind === "found" ? resolution.value : null;
 
   useLayoutEffect(() => {
@@ -128,18 +121,14 @@ function EntityRoute<T extends { id: string; name: string }>({
 }
 
 export function ExperimentRoute({ children }: { children: React.ReactNode }) {
-  const { projects } = useAtomValue(workspaceAtom);
-  const conflicts = Object.values(useAtomValue(projectSlugConflictsAtom)).flat();
   return (
     <EntityRoute
       entity="Experiment"
       param="experimentId"
       items={useAtomValue(experimentsAtom)}
       selection={activeExperimentIdAtom}
-      resolve={(slug, experiments) => resolveExperiment(slug, experiments, projects, conflicts)}
-      canonicalSlug={(experiment, experiments) =>
-        experimentSlug(experiment, experiments, projects, conflicts)
-      }
+      resolve={resolveExperiment}
+      canonicalSlug={experimentSlug}
     >
       {children}
     </EntityRoute>
