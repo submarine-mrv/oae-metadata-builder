@@ -2,7 +2,7 @@ import { MantineProvider } from "@mantine/core";
 import { act, render, screen } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { projectCountAtom } from "@/state/atoms";
+import { activeProjectIdAtom, projectCountAtom } from "@/state/atoms";
 import { createTestStore, StoreWrapper } from "@/state/testing";
 import WelcomePage from "../WelcomePage";
 
@@ -13,8 +13,10 @@ vi.mock("@/auth/useAuth", () => ({
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
+  useRouter: () => ({ buildLocation: () => ({ href: "/" }) }),
   useLocation: ({ select }: { select?: (s: { pathname: string }) => unknown }) =>
     select ? select({ pathname: "/overview" }) : { pathname: "/overview" },
+  useMatches: ({ select }: { select: (matches: { routeId: string }[]) => unknown }) => select([]),
   Link: ({ children }: { children: React.ReactNode }) => <a href="/">{children}</a>,
 }));
 
@@ -38,6 +40,9 @@ describe("WelcomePage", () => {
     ).toBeInTheDocument();
     act(() => screen.getByRole("button", { name: "Create your first project" }).click());
     expect(store.get(projectCountAtom)).toBe(1);
-    expect(navigate).toHaveBeenCalledWith({ to: "/project" });
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/projects/$projectId/metadata",
+      params: { projectId: store.get(activeProjectIdAtom) },
+    });
   });
 });

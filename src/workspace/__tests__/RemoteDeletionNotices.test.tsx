@@ -7,17 +7,18 @@ import RemoteDeletionNotices, { remoteDeletionMessage } from "../sync/RemoteDele
 import { remoteDeletionsAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord } from "../types";
 
-const router = vi.hoisted(() => ({ pathname: "/overview", navigate: vi.fn() }));
+const router = vi.hoisted(() => ({ routeId: "/projects/$projectId/", navigate: vi.fn() }));
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => router.navigate,
-  useLocation: () => ({ pathname: router.pathname }),
+  useMatches: ({ select }: { select: (matches: { routeId: string }[]) => unknown }) =>
+    select([{ routeId: "/projects/$projectId" }, { routeId: router.routeId }]),
 }));
 
 describe("remote deletion notices", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    router.pathname = "/overview";
+    router.routeId = "/projects/$projectId/";
   });
 
   function setup() {
@@ -90,7 +91,7 @@ describe("remote deletion notices", () => {
   });
 
   it("stays on the project after a downgrade to viewer", () => {
-    router.pathname = "/project";
+    router.routeId = "/projects/$projectId/metadata";
     const store = setup();
     act(() =>
       store.set(remoteDeletionsAtom, [
@@ -120,7 +121,7 @@ describe("remote deletion notices", () => {
   });
 
   it("leaves the page of the open experiment when it is deleted, and stays otherwise", () => {
-    router.pathname = "/experiment";
+    router.routeId = "/projects/$projectId/experiments/$experimentId";
     const store = setup();
     act(() => store.set(activeExperimentIdAtom, "2"));
     act(() =>
@@ -134,7 +135,7 @@ describe("remote deletion notices", () => {
   });
 
   it("goes to All projects when the open project is deleted", () => {
-    router.pathname = "/project";
+    router.routeId = "/projects/$projectId/metadata";
     const store = setup();
     act(() => store.set(remoteDeletionsAtom, [{ type: "project", name: "P", projectId: "p" }]));
     expect(router.navigate).toHaveBeenCalledWith({ to: "/projects" });

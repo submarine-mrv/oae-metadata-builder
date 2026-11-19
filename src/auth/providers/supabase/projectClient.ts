@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/auth/providers/supabase/client";
+import { DuplicateIdError } from "@/workspace/duplicateIds";
 import {
   checkProjectVersion,
   type ProjectAccess,
@@ -129,6 +130,9 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         p_client_updated_at: new Date().toISOString(),
       });
       if (error) {
+        if (error.details === "metadata_builder_duplicate_id") {
+          throw new DuplicateIdError(project.id, JSON.parse(error.hint) as string[]);
+        }
         if (error.details === "metadata_builder_schema_version_downgrade") {
           throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);
         }

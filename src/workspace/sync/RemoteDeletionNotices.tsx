@@ -1,9 +1,10 @@
 import { notifications } from "@mantine/notifications";
-import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useStore } from "jotai";
 import { useEffect, useRef } from "react";
 import { activeDatasetIdAtom, activeExperimentIdAtom, activeProjectIdAtom } from "@/state/atoms";
 import { type RemoteDeletion, remoteDeletionsAtom } from "../syncState";
+import { useCurrentEntityPage } from "../useEntityNavigate";
 
 const label = ({ type, name }: RemoteDeletion) => `${type} "${name}"`;
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -39,14 +40,14 @@ export function remoteDeletionMessage(deletions: RemoteDeletion[]): string {
 export default function RemoteDeletionNotices() {
   const store = useStore();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const page = useCurrentEntityPage();
   const projectId = useAtomValue(activeProjectIdAtom);
   const experimentId = useAtomValue(activeExperimentIdAtom);
   const datasetId = useAtomValue(activeDatasetIdAtom);
   // What was on screen at the last render; the store has already moved on when a notice arrives.
-  const shown = useRef({ pathname, projectId, experimentId, datasetId });
+  const shown = useRef({ page, projectId, experimentId, datasetId });
   useEffect(() => {
-    shown.current = { pathname, projectId, experimentId, datasetId };
+    shown.current = { page, projectId, experimentId, datasetId };
   });
 
   useEffect(() => {
@@ -69,10 +70,10 @@ export default function RemoteDeletionNotices() {
         (deletion) =>
           deletion.projectId === view.projectId &&
           ((deletion.type === "experiment" &&
-            view.pathname === "/experiment" &&
+            view.page === "experiment" &&
             deletion.id === view.experimentId) ||
             (deletion.type === "dataset" &&
-              view.pathname === "/dataset" &&
+              view.page === "dataset" &&
               deletion.id === view.datasetId)),
       );
       const lostProject = pending.some(

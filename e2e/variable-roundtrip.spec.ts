@@ -1,7 +1,7 @@
 import type { Download, Page } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
-import { createFromOverview } from "./fixtures/app";
+import { createFromOverview, ROUTE } from "./fixtures/app";
 import { expect, test } from "./fixtures/test";
 
 /**
@@ -293,7 +293,7 @@ test.describe("Variable Round-Trip", () => {
     await expect(importButton).toBeVisible({ timeout: 3000 });
     await importButton.click();
     await page.waitForTimeout(500);
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
 
     // Click the imported dataset from overview to open it
     await page.waitForLoadState("networkidle");
@@ -303,7 +303,7 @@ test.describe("Variable Round-Trip", () => {
     // Click the dataset name/card to navigate to it
     const datasetLink = page.getByText("Dataset 1").first();
     await datasetLink.click();
-    await page.waitForURL("**/dataset");
+    await page.waitForURL(ROUTE.dataset);
     await page.waitForLoadState("networkidle");
 
     // Verify variables are present after import

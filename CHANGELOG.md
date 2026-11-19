@@ -6,6 +6,18 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ## Unreleased
 
+### Added
+
+- Each project, experiment and dataset has its own URL, such as
+  `/projects/KIEL-2025/experiments/EXP-1`, so you can bookmark a page or send it to someone on the
+  project. The URL uses the project and experiment IDs, which follows them as you edit them.
+  "Copy link" in the menu and the Share dialog copies it. A link to something that can't be found
+  says so. The old `/overview`, `/project`, `/experiment` and `/dataset` addresses still open the
+  current project.
+- Project and experiment IDs must be unique across all projects and experiments, ignoring case. A
+  project with an ID that is already in use shows a warning on the ID field and doesn't sync to the
+  cloud until you choose a unique ID or leave it empty.
+
 ### Updated
 
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,

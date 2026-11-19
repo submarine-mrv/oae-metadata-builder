@@ -1,5 +1,5 @@
 import * as path from "path";
-import { createFromOverview } from "./fixtures/app";
+import { createFromOverview, ROUTE } from "./fixtures/app";
 import { ExperimentPage } from "./fixtures/experiment-page";
 import { expect, test } from "./fixtures/test";
 
@@ -178,12 +178,12 @@ test.describe("Import preserves conditional field values", () => {
     await expect(importButton).toBeVisible({ timeout: 3000 });
     await importButton.click();
     await page.waitForTimeout(500);
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
 
     // Navigate to the first experiment (intervention with feedstock customs)
     await page.getByText("Conditional Fields Test").click();
-    await page.waitForURL("**/experiment");
+    await page.waitForURL(ROUTE.experiment);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
@@ -216,12 +216,12 @@ test.describe("Import preserves conditional field values", () => {
     await expect(importButton).toBeVisible({ timeout: 3000 });
     await importButton.click();
     await page.waitForTimeout(500);
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
 
     // Navigate to the second experiment (tracer study with tracer_form_custom)
     await page.getByText("Tracer Conditional Test").click();
-    await page.waitForURL("**/experiment");
+    await page.waitForURL(ROUTE.experiment);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 

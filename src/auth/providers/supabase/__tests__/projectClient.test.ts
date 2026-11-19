@@ -37,6 +37,7 @@ vi.mock("@supabase/supabase-js", () => ({
   },
 }));
 
+import { DuplicateIdError } from "@/workspace/duplicateIds";
 import { ProjectAccessError } from "@/workspace/projectCloudSync";
 import { createProjectCloudClient, createProjectMembersClient } from "../projectClient";
 
@@ -93,6 +94,21 @@ describe("owner-bound project Supabase client", () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "denied", code: "42501" } });
     await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toThrow(
       ProjectAccessError,
+    );
+  });
+
+  it("reports the project's IDs that are already in use", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: "23505",
+        message: "ID in use",
+        details: "metadata_builder_duplicate_id",
+        hint: '["TAKEN"]',
+      },
+    });
+    await expect(createProjectCloudClient("owner").save(project, "next", "hash")).rejects.toEqual(
+      new DuplicateIdError(project.id, ["TAKEN"]),
     );
   });
 

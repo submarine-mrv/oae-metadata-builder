@@ -15,8 +15,12 @@
 import { ActionIcon, Box, Text, TextInput, Tooltip } from "@mantine/core";
 import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
 import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { activeProjectIdAtom } from "@/state/atoms";
+import { DUPLICATE_ID_MESSAGE } from "@/workspace/duplicateIds";
+import { rejectedIdsAtom } from "@/workspace/syncState";
 import DescriptionModal from "./DescriptionModal";
 
 interface LockableIdOptions {
@@ -45,6 +49,13 @@ export default function LockableIdWidget<
     uiSchema,
   } = props;
 
+  const projectId = useAtomValue(activeProjectIdAtom);
+  const rejectedIds = useAtomValue(rejectedIdsAtom);
+  const duplicateId =
+    typeof value === "string" &&
+    value !== "" &&
+    !!projectId &&
+    (rejectedIds[projectId] ?? []).includes(value);
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
@@ -100,7 +111,11 @@ export default function LockableIdWidget<
   );
 
   const hasError = rawErrors && rawErrors.length > 0;
-  const errorMessage = hasError ? rawErrors.join(", ") : undefined;
+  const errorMessage = duplicateId
+    ? DUPLICATE_ID_MESSAGE
+    : hasError
+      ? rawErrors.join(", ")
+      : undefined;
 
   const lockedStyles = {
     input: {

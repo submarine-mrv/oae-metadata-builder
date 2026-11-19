@@ -11,12 +11,13 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { IconLink, IconX } from "@tabler/icons-react";
 import { useStore } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth/useAuth";
 import type { ProjectMember } from "@/workspace/projectCloudSync";
 import { projectSyncActionsAtom } from "@/workspace/syncState";
+import { useCopyLink } from "@/workspace/useCopyLink";
 
 type MembersClient = ReturnType<
   typeof import("@/auth/providers/supabase/projectClient").createProjectMembersClient
@@ -44,6 +45,7 @@ export default function ShareProjectModal({
 }: ShareProjectModalProps) {
   const { user } = useAuth();
   const store = useStore();
+  const copyLink = useCopyLink();
   const [client, setClient] = useState<MembersClient | null>(null);
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [email, setEmail] = useState("");
@@ -123,6 +125,20 @@ export default function ShareProjectModal({
   return (
     <Modal opened onClose={onClose} title={isOwner ? "Share project" : "People on this project"}>
       <Stack>
+        <Group justify="space-between" wrap="nowrap">
+          <Text size="sm" c="dimmed">
+            Only people on this project can open its link.
+          </Text>
+          <Button
+            className="shrink-0"
+            variant="light"
+            size="xs"
+            leftSection={<IconLink size={14} />}
+            onClick={() => copyLink("overview", projectId)}
+          >
+            Copy link
+          </Button>
+        </Group>
         {members === null && !error ? (
           <Loader size="sm" aria-label="Loading people" />
         ) : (

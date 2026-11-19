@@ -16,6 +16,7 @@ import {
   IconFileImport,
   IconHelp,
   IconInfoCircle,
+  IconLink,
   IconLogout,
   IconUser,
 } from "@tabler/icons-react";
@@ -30,14 +31,20 @@ import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportFlow } from "@/hooks/useImportFlow";
 import { toggleJsonPreviewAtom } from "@/state/actions";
 import {
+  activeDatasetIdAtom,
+  activeExperimentIdAtom,
   activeProjectIdAtom,
   projectCountAtom,
   projectStateAtom,
   showJsonPreviewAtom,
 } from "@/state/atoms";
 import { trackEvent } from "@/utils/analytics";
+import type { EntityPage } from "@/workspace/slugs";
 import { ProjectSyncIndicator } from "@/workspace/sync";
-import { projectSyncStatusAtom } from "@/workspace/syncState";
+import { projectSyncActionsAtom, projectSyncStatusAtom } from "@/workspace/syncState";
+import { useCopyLink } from "@/workspace/useCopyLink";
+import { useCurrentEntityPage, useEntityNavigate } from "@/workspace/useEntityNavigate";
+import { useActiveProjectAccess } from "@/workspace/useProjectAccess";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -46,7 +53,7 @@ const TABS = [
   { value: "dataset", label: "Datasets" },
 ];
 
-export default function Navigation() {
+export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: boolean }) {
   const { client, user } = useAuth();
   const showJsonPreview = useAtomValue(showJsonPreviewAtom);
   const toggleJsonPreview = useSetAtom(toggleJsonPreviewAtom);
@@ -54,6 +61,11 @@ export default function Navigation() {
   const hasActiveProject = useAtomValue(activeProjectIdAtom) !== null;
   const store = useStore();
   const navigate = useNavigate();
+  const goTo = useEntityNavigate();
+  const copyLink = useCopyLink();
+  // Only projects saved to the cloud can be opened in another browser.
+  const cloud = useAtomValue(projectSyncActionsAtom) !== null;
+  const access = useActiveProjectAccess();
   const importFlow = useImportFlow();
 
   const { showModal, sections, openModal, closeModal, handleDownload, handleSectionToggle } =
@@ -64,25 +76,25 @@ export default function Navigation() {
     });
 
   const handleNavigation = (value: string) => {
-    const paths = {
-      overview: "/overview",
-      project: "/project",
-      experiment: "/experiment",
-      dataset: "/dataset",
-      "how-to": "/how-to",
-    } as const;
-    navigate({ to: paths[value as keyof typeof paths] });
+    if (value === "how-to") navigate({ to: "/how-to" });
+    else goTo(value === "project" ? "metadata" : (value as EntityPage));
   };
 
   const pathname = useLocation({ select: (s) => s.pathname });
-  const pathToTab: Record<string, string> = {
-    "/overview": "overview",
-    "/project": "project",
-    "/experiment": "experiment",
-    "/dataset": "dataset",
-    "/how-to": "how-to",
+  const entityPage = useCurrentEntityPage();
+  const copyPageLink = () => {
+    const projectId = store.get(activeProjectIdAtom);
+    if (!projectId || !entityPage) return;
+    const entityId =
+      entityPage === "experiment"
+        ? store.get(activeExperimentIdAtom)
+        : entityPage === "dataset"
+          ? store.get(activeDatasetIdAtom)
+          : null;
+    copyLink(entityPage, projectId, entityId ?? undefined);
   };
-  const currentTab = pathToTab[pathname] ?? "";
+  const currentTab =
+    pathname === "/how-to" ? "how-to" : entityPage === "metadata" ? "project" : (entityPage ?? "");
 
   const isMobile = useMediaQuery("(max-width: 768px)", undefined, {
     getInitialValueInEffect: false,
@@ -239,6 +251,14 @@ export default function Navigation() {
                         Export
                       </Menu.Item>
                     )}
+                    <Menu.Divider />
+                  </>
+                )}
+                {!hideCopyLink && user && cloud && access && entityPage && (
+                  <>
+                    <Menu.Item leftSection={<IconLink size={16} />} onClick={copyPageLink}>
+                      Copy link to this page
+                    </Menu.Item>
                     <Menu.Divider />
                   </>
                 )}

@@ -19,7 +19,24 @@ Guests and the memory auth provider retain browser persistence. Enable with
   shows "You can no longer edit this project."
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
+- Signed-in users can copy links to saved cloud project pages from the menu or
+  Share dialog; the controls are hidden for guests and until a new project is
+  saved. Project members, including viewers, can open those links. Copy link is
+  also hidden on not-found pages, where no specific entity
+  is selected. A link resolves only among projects the recipient can access, and
+  a missing match reads as "can't be found", just like a deleted project. Human
+  IDs share a global project/experiment namespace; conflicting local drafts use
+  internal-ID links, with no multiple-matches chooser. See `docs/multi-project.md`.
+  Signing in from the not-found page returns to the link, unless it contains
+  characters that need encoding, which `safeReturnTo` rejects; those land on
+  the overview.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
+- Stopgap until submarine-mrv/oae-data-commons#236: the backend's
+  `metadata_builder_unique_ids` table reserves project and experiment IDs,
+  exactly as typed, on each save; uniqueness ignores case. A save with an ID
+  already in use is rejected and names the duplicate IDs; the ID
+  field shows a warning, the save is not retried automatically, and the next
+  edit (a unique or empty ID) syncs again. Other projects still save.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.

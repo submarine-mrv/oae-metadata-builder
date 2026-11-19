@@ -53,7 +53,7 @@ describe("useImportFlow", () => {
     act(() => result.current.previewProps.onImport());
     expect(projects()).toHaveLength(1);
     expect(projects()[0].name).toBe("Imported");
-    expect(navigate).toHaveBeenCalledWith({ to: "/overview" });
+    expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ to: "/projects/$projectId" }));
     expect(result.current.previewProps.opened).toBe(false);
   });
 
@@ -81,7 +81,7 @@ describe("useImportFlow", () => {
     act(() => result.current.previewProps.onImport());
     expect(projects()).toHaveLength(1);
     expect(store.get(projectStateAtom).projectData.name).toBe("Imported");
-    expect(navigate).toHaveBeenCalledWith({ to: "/overview" });
+    expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ to: "/projects/$projectId" }));
   });
 
   it("links a re-imported dataset to its imported experiment in new mode", async () => {
