@@ -2,7 +2,7 @@ import { Alert, Center, Loader, Stack, Text } from "@mantine/core";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { safeReturnTo } from "@/auth/redirects";
-import type { AuthOtpType } from "@/auth/types";
+import type { AuthClient, AuthOtpType } from "@/auth/types";
 import { useAuth } from "@/auth/useAuth";
 import HomeBrandLink from "@/components/HomeBrandLink";
 
@@ -44,7 +44,9 @@ export const Route = createFileRoute("/auth/callback")({
             ? "/auth/forgot-password"
             : search.type === "email_change"
               ? "/profile"
-              : "/auth/login"
+              : search.type === "invite"
+                ? "/auth/sign-up"
+                : "/auth/login"
           : (safeReturnTo(search.returnTo) ??
             (search.type === "email_change" ? "/profile" : "/overview")),
       search:
@@ -55,7 +57,9 @@ export const Route = createFileRoute("/auth/callback")({
                   ? "recovery_failed"
                   : search.type === "email_change"
                     ? "email_change_failed"
-                    : undefined,
+                    : search.type === "invite"
+                      ? "invite_expired"
+                      : undefined,
             }
           : undefined,
       replace: true,
@@ -63,6 +67,21 @@ export const Route = createFileRoute("/auth/callback")({
   },
   component: CallbackPage,
 });
+
+type VerifyResult = Awaited<ReturnType<AuthClient["verifyOtp"]>>;
+
+// Tokens are single-use: StrictMode's second mount or a re-render must reuse the first attempt,
+// otherwise the repeat fails and sends a now-signed-in user to the link-expired page.
+const verifications = new Map<string, Promise<VerifyResult>>();
+
+function verifyOnce(client: AuthClient, tokenHash: string, type: AuthOtpType) {
+  let verification = verifications.get(tokenHash);
+  if (!verification) {
+    verification = client.verifyOtp(tokenHash, type);
+    verifications.set(tokenHash, verification);
+  }
+  return verification;
+}
 
 function CallbackPage() {
   const { client } = useAuth();
@@ -77,13 +96,14 @@ function CallbackPage() {
         ? (() => {
             const type: AuthOtpType | null = [
               "signup",
+              "invite",
               "email",
               "recovery",
               "email_change",
             ].includes(search.type)
               ? (search.type as AuthOtpType)
               : null;
-            return type ? client.verifyOtp(search.tokenHash, type) : null;
+            return type ? verifyOnce(client, search.tokenHash, type) : null;
           })()
         : null;
 
@@ -110,7 +130,9 @@ function CallbackPage() {
             ? { to: "/auth/forgot-password", search: { error: "recovery_failed" } }
             : search.type === "email_change"
               ? { to: "/profile", search: { error: "email_change_failed" } }
-              : { to: "/auth/login", search: { error: undefined, returnTo: undefined } };
+              : search.type === "invite"
+                ? { to: "/auth/sign-up", search: { error: "invite_expired" } }
+                : { to: "/auth/login", search: { error: undefined, returnTo: undefined } };
         void navigate({ ...destination, replace: true });
         return;
       }

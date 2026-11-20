@@ -61,6 +61,15 @@ export default function LoginForm() {
             <Alert color="red">
               <Stack gap={4}>
                 <Text>{error}</Text>
+                {errorCode === "invalid_credentials" && (
+                  <Text size="sm">
+                    Invited to a project? Use the link in your invitation email first, or{" "}
+                    <Anchor component={Link} to="/auth/sign-up">
+                      sign up
+                    </Anchor>{" "}
+                    with that address if the link has expired.
+                  </Text>
+                )}
                 {errorCode === "email_not_confirmed" && email && (
                   <Anchor
                     href="/auth/verify-email"
