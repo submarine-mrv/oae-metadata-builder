@@ -22,7 +22,7 @@ describe("remote deletion notices", () => {
 
   function setup() {
     const store = createStore();
-    const experiment = (id: number) => ({
+    const experiment = (id: string) => ({
       id,
       name: `E${id}`,
       formData: { experiment_id: `E${id}` },
@@ -33,8 +33,7 @@ describe("remote deletion notices", () => {
       ...newProjectRecord(
         {
           ...emptyProjectState(),
-          experiments: [experiment(1), experiment(2)],
-          nextExperimentId: 3,
+          experiments: [experiment("1"), experiment("2")],
         },
         1,
       ),
@@ -69,6 +68,41 @@ describe("remote deletion notices", () => {
     );
   });
 
+  it("says when a project is no longer shared rather than deleted", () => {
+    expect(
+      remoteDeletionMessage([
+        { type: "project", name: "Shared", projectId: "p", reason: "access" },
+      ]),
+    ).toBe('Project "Shared" is no longer shared with you.');
+  });
+
+  it("says when lost access or a downgrade discarded unsaved edits", () => {
+    expect(
+      remoteDeletionMessage([
+        { type: "project", name: "Shared", projectId: "p", reason: "access", unsavedEdits: true },
+      ]),
+    ).toBe('Project "Shared" is no longer shared with you. Your recent edits weren\'t saved.');
+    expect(
+      remoteDeletionMessage([
+        { type: "project", name: "Shared", projectId: "p", reason: "viewOnly", unsavedEdits: true },
+      ]),
+    ).toBe('You can now only view "Shared". Your unsaved changes there were discarded.');
+  });
+
+  it("stays on the project after a downgrade to viewer", () => {
+    router.pathname = "/project";
+    const store = setup();
+    act(() =>
+      store.set(remoteDeletionsAtom, [
+        { type: "project", name: "P", projectId: "p", reason: "viewOnly", unsavedEdits: true },
+      ]),
+    );
+    expect(notifications.show).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "View only" }),
+    );
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it("shows one notice per batch and clears it", () => {
     const store = setup();
     expect(notifications.show).not.toHaveBeenCalled();
@@ -88,13 +122,13 @@ describe("remote deletion notices", () => {
   it("leaves the page of the open experiment when it is deleted, and stays otherwise", () => {
     router.pathname = "/experiment";
     const store = setup();
-    act(() => store.set(activeExperimentIdAtom, 2));
+    act(() => store.set(activeExperimentIdAtom, "2"));
     act(() =>
-      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E1", projectId: "p", id: 1 }]),
+      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E1", projectId: "p", id: "1" }]),
     );
     expect(router.navigate).not.toHaveBeenCalled();
     act(() =>
-      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E2", projectId: "p", id: 2 }]),
+      store.set(remoteDeletionsAtom, [{ type: "experiment", name: "E2", projectId: "p", id: "2" }]),
     );
     expect(router.navigate).toHaveBeenCalledWith({ to: "/overview" });
   });

@@ -27,7 +27,7 @@ export interface ExportOptions {
 }
 
 /**
- * Exports project, experiment, and dataset data wrapped in a Container object
+ * Builds project, experiment, and dataset data wrapped in a Container object
  * with version metadata from the protocol.
  *
  * Container structure matches the JSON Schema:
@@ -40,12 +40,12 @@ export interface ExportOptions {
  * @param datasets - Array of dataset states
  * @param options - Export options including section selection
  */
-export function exportMetadata(
+export function buildMetadataDocument(
   projectData: DraftProject,
   experiments: ExperimentRecord[],
   datasets: DatasetRecord[],
   options?: ExportOptions,
-): void {
+): ExportContainer {
   // Determine which sections to include (default to all)
   const selectedSections = options?.selectedSections || ["project", "experiment", "dataset"];
   const includeProject = selectedSections.includes("project");
@@ -58,7 +58,7 @@ export function exportMetadata(
   const cleanedProjectData = includeProject ? projectData : {};
 
   // Build Container object matching schema structure
-  const exportData: ExportContainer = {
+  return {
     version: protocolMetadata.version,
     protocol_git_hash: protocolMetadata.gitHash,
     metadata_builder_git_hash: "", // TODO: populate from build metadata
@@ -66,6 +66,15 @@ export function exportMetadata(
     experiments: includeExperiments ? experiments.map((exp) => exp.formData) : [],
     datasets: includeDatasets ? datasets.map((ds) => ds.formData) : [],
   };
+}
+
+export function exportMetadata(
+  projectData: DraftProject,
+  experiments: ExperimentRecord[],
+  datasets: DatasetRecord[],
+  options?: ExportOptions,
+): void {
+  const exportData = buildMetadataDocument(projectData, experiments, datasets, options);
 
   // Create blob and download
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -87,9 +96,9 @@ export function exportMetadata(
 
   // Counts only, never field values.
   trackEvent("metadata_export", {
-    sections: selectedSections.join(","),
-    experiments: includeExperiments ? experiments.length : 0,
-    datasets: includeDatasets ? datasets.length : 0,
+    sections: (options?.selectedSections ?? ["project", "experiment", "dataset"]).join(","),
+    experiments: exportData.experiments?.length ?? 0,
+    datasets: exportData.datasets?.length ?? 0,
   });
 }
 
@@ -139,7 +148,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
           (raw: unknown, index: number) => {
             const expData = parseExperiment(migrateExperiment(asImportRecord(raw)));
             return {
-              id: index + 1, // Will be reassigned based on nextExperimentId
+              id: crypto.randomUUID(),
               name:
                 (expData.name as string) ||
                 (expData.experiment_id as string) ||
@@ -158,7 +167,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             getBaseSchema() as JSONSchema,
           );
           return {
-            id: index + 1,
+            id: crypto.randomUUID(),
             name: (dsData.name as string) || `Dataset ${index + 1}`,
             formData: dsData,
             linking: {

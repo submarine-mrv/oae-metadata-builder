@@ -1,5 +1,6 @@
 export {
   checkProjectVersion,
+  ProjectAccessError,
   parseCloudProject,
   readRemoteProject,
   UnsupportedProjectVersionError,
@@ -7,8 +8,12 @@ export {
 export { startProjectCloudSync } from "./project";
 export type {
   CloudProject,
+  ProjectAccess,
   ProjectCloudClient,
+  ProjectMember,
+  ProjectRole,
   ProjectSaveResult,
+  ProjectVersion,
   RemoteProject,
   UnsupportedCloudProject,
 } from "./types";

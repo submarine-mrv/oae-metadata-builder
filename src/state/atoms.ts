@@ -33,7 +33,7 @@ export const showJsonPreviewAtom = atom(false);
 
 interface Selection {
   projectId: string;
-  id: number | null;
+  id: string | null;
 }
 
 /**
@@ -41,10 +41,10 @@ interface Selection {
  * active project, or a deleted selection, reads as that project's first entity.
  * Clearing the selection reads as null until the next selection or switch.
  */
-function selectedIdAtom(entities: (state: ProjectState) => { id: number }[]) {
+function selectedIdAtom(entities: (state: ProjectState) => { id: string }[]) {
   const stored = atom<Selection | null>(null);
   return atom(
-    (get): number | null => {
+    (get): string | null => {
       const active = get(activeProjectAtom);
       if (!active) return null;
       const list = entities(active.state);
@@ -55,7 +55,7 @@ function selectedIdAtom(entities: (state: ProjectState) => { id: number }[]) {
       }
       return list[0]?.id ?? null;
     },
-    (get, set, id: number | null) => {
+    (get, set, id: string | null) => {
       const active = get(activeProjectAtom);
       if (!active) return;
       set(stored, { projectId: active.id, id });

@@ -1,11 +1,28 @@
-# Private project cloud sync
+# Project cloud sync and sharing
 
-Signed-in Supabase users now edit private cloud projects directly from Jotai.
+Signed-in Supabase users edit cloud projects directly from Jotai, and can share
+them with other people.
 Guests and the memory auth provider retain browser persistence. Enable with
 `VITE_AUTH_ENABLED=true` and a Supabase URL/publishable key.
 
-- One owner-isolated `metadata_builder_sessions` row stores each project.
+- One `metadata_builder_sessions` row stores each project. Whoever first saves it
+  owns it for good.
+- The owner shares a project by email as **editor** (edits everything) or
+  **viewer** (read only), from Share on its Overview. A grant applies to whoever
+  signs in with that confirmed email, so people can be added before they have an
+  account; there is no accept step. Only the owner deletes the project or manages
+  people; members can leave.
+- Projects load through one RPC that returns each project's role, owner email,
+  last editor and member count (`projectAccessAtom`). Viewers get disabled forms
+  and no add, delete, duplicate or merge-import actions; their copies never save,
+  and refresh replaces anything they change locally, including after a downgrade, with a notice when that discards unsaved edits. A save refused because the role changed
+  shows "You can no longer edit this project."
+- Losing access to a shared project removes it like a delete, with a "No longer
+  shared" notice.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
+- Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
+  browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
+  tab, so two people loading one old draft agree on its IDs.
 - Drafts carry `schemaVersion` (missing means 1). Bump `PROJECT_SCHEMA_VERSION`
   with state migrations. Newer drafts are never parsed, merged or saved by an
   older build; reload is required for those projects while others can still save.
@@ -14,8 +31,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
   the cloud copy field by field, for project fields and each experiment and
   dataset's top-level fields; edits to the same field conflict and stay in memory.
   Changing an experiment's or dataset's type conflicts with any other edit to it.
-  Experiments (or datasets) added on both sides conflict, because the counter
-  IDs collide; UUIDs remove that with collaboration. Remote additions keep their IDs.
+  Lists such as a dataset's variables count as one field. Experiments and datasets
+  added on both sides are all kept.
 - Deletes win: something deleted elsewhere is removed here even over unsaved
   edits. A yellow "Deleted" notice names it and says when edits were
   lost. If it was open, the app goes to All projects for a project, or Overview for an experiment or dataset.
@@ -30,13 +47,17 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices: keep my changes or use newer changes. Other errors show the message, with Retry save unless the project has a
+with two choices, keep my changes or use newer changes. The choice applies only
+where both sides edited the same thing; every other edit from either side is
+kept. On a shared project,
+Overview shows who last edited it ("you" for your own edits). Other errors show the message, with Retry save unless the project has a
 newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only
 when one differs. Checks run on project switch, opening All projects, page
 changes within a project (at most every 10 s), returning to the tab, coming back
-online, and every 60 s while visible; never while a save runs. A project with
+online, and while visible every 10 s when the open project is shared, otherwise
+every 60 s; never while a save runs. A project with
 unsaved edits keeps them and merges the newer copy on its next save. Projects
 added or deleted elsewhere appear or disappear, with the usual notice. While a variable editor
 is open, background saves and checks wait, because Save writes the draft back by
@@ -54,5 +75,41 @@ and brings back any that differ from the cloud as a "(recovered)" copy, since
 without the saved baseline it can't merge them safely. Snapshots move into Jotai
 once, so a failed save retries the live draft rather than importing it again.
 
-Run the workspace, project page, import, and auth lifecycle tests plus
-`npm run build`. The opt-in local Supabase integration test uses disposable users.
+## Project publication
+
+With Supabase authentication enabled, the project owner can select **Publish**
+below the project title on Overview to review and publish its complete metadata
+tree. Published projects show **Publish Updates** and a separate **Unpublish**
+action, which opens the unpublish confirmation directly. **Publish Updates** is
+disabled when the current metadata matches the published snapshot, including
+after a reload or reverting an edit. Internal workspace timestamps and selection
+changes do not count as updates. The Projects list shows
+a **Published** badge only for projects confirmed as public; private projects
+have no publication badge. All project,
+experiment and dataset metadata must pass validation. The confirmation explains
+that names, emails, identifiers and access links become publicly downloadable.
+Publishing first saves the private draft and refuses to publish if that save
+fails or the reviewed content changes.
+
+- **Publish project / Update publication** atomically replaces the public tree.
+  Removed experiments and datasets disappear from the publication.
+- **Unpublish** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
+  reads without deleting metadata or the private draft. Existing downloads and
+  already-open browser pages cannot be recalled. Unpublishing does not depend
+  on private draft saves, so a draft conflict cannot prevent hiding public data.
+- **Republish** uses the same reviewed publication action.
+- Publication is bound to the internal draft identity. Changing the editable
+  metadata project ID and publishing again replaces the previous public ID;
+  IDs belonging to another draft or owner are rejected.
+- Draft edits remain private until the next explicit publication. Unpublish
+  before deleting a published draft; deletion is blocked while it is public.
+  The delete buttons on Overview and Projects are disabled for published
+  projects, with a tooltip explaining that the project must be unpublished first.
+
+The client uses owner-bound tokens and the `publish_oae_project` and
+`unpublish_oae_project` RPCs. Direct authenticated catalog mutations are denied.
+The normalized public rows retain complete source objects and the exported
+document envelope for lossless Data Commons downloads; no private workspace
+wrappers, internal counters or auth credentials are included in those documents.
+Guests, auth-disabled builds and the memory auth provider have no publication
+controls or requests.

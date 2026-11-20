@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import {
   IconCircleCheck,
@@ -19,11 +20,14 @@ import {
   IconFolder,
   IconPlus,
   IconTrash,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import type React from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { authEnabled, authProvider } from "@/auth/config";
+import { useAuth } from "@/auth/useAuth";
 import AppLayout from "@/components/AppLayout";
 import DeleteProjectModal from "@/pages/projects/DeleteProjectModal";
 import {
@@ -46,7 +50,14 @@ import {
 } from "@/state/atoms";
 import { formStatus } from "@/utils/formStatus";
 import { validateDataset, validateExperiment, validateProject } from "@/utils/validation";
+import ProjectPublicationControl from "@/workspace/ProjectPublicationControl";
+import {
+  isProjectOwner,
+  isSharedProject,
+  useActiveProjectAccess,
+} from "@/workspace/useProjectAccess";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
+import ShareProjectModal from "./ShareProjectModal";
 
 export default function OverviewPage() {
   const projectData = useAtomValue(projectDataAtom);
@@ -64,8 +75,29 @@ export default function OverviewPage() {
   const duplicateDataset = useSetAtom(duplicateDatasetAtom);
   const deleteProject = useSetAtom(deleteProjectAtom);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const access = useActiveProjectAccess();
+  const { user } = useAuth();
+  const canEdit = access?.role !== "viewer";
+  const isOwner = isProjectOwner(access);
+  const [sharing, setSharing] = useState(false);
   const navigate = useNavigate();
   const transition = useProjectTransition();
+  const projectId = activeSummary?.id;
+  const [publication, setPublication] = useState<{
+    projectId: string | undefined;
+    published: boolean | null;
+  } | null>(null);
+  const onPublishedChange = useCallback(
+    (published: boolean | null) => setPublication({ projectId, published }),
+    [projectId],
+  );
+  const published = publication?.projectId === projectId ? publication?.published : null;
+  const deleteDisabledReason =
+    published === true
+      ? "Unpublish this project before deleting it."
+      : authEnabled && authProvider === "supabase" && user && published == null
+        ? "Check publication status before deleting this project."
+        : null;
 
   const projectStatus = formStatus(projectData, validateProject);
   const projectCompletion = projectStatus.percentage;
@@ -95,19 +127,19 @@ export default function OverviewPage() {
     navigate({ to: "/project" });
   };
 
-  const handleEditExperiment = (id: number) => {
+  const handleEditExperiment = (id: string) => {
     setActiveExperiment(id);
     navigate({ to: "/experiment" });
   };
 
-  const handleDeleteExperiment = (id: number, e: React.MouseEvent) => {
+  const handleDeleteExperiment = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this experiment?")) {
       deleteExperiment(id);
     }
   };
 
-  const handleDuplicateExperiment = (id: number, e: React.MouseEvent) => {
+  const handleDuplicateExperiment = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     duplicateExperiment(id);
   };
@@ -117,19 +149,19 @@ export default function OverviewPage() {
     navigate({ to: "/dataset" });
   };
 
-  const handleEditDataset = (id: number) => {
+  const handleEditDataset = (id: string) => {
     setActiveDataset(id);
     navigate({ to: "/dataset" });
   };
 
-  const handleDeleteDataset = (id: number, e: React.MouseEvent) => {
+  const handleDeleteDataset = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this dataset?")) {
       deleteDataset(id);
     }
   };
 
-  const handleDuplicateDataset = (id: number, e: React.MouseEvent) => {
+  const handleDuplicateDataset = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     duplicateDataset(id);
   };
@@ -162,14 +194,14 @@ export default function OverviewPage() {
     label: string;
     onClick: () => void;
   }> = [];
-  if (experiments.length === 0)
+  if (canEdit && experiments.length === 0)
     uncreatedEntities.push({
       key: "experiment",
       icon: IconFlask,
       label: "Experiment",
       onClick: handleCreateExperiment,
     });
-  if (datasets.length === 0)
+  if (canEdit && datasets.length === 0)
     uncreatedEntities.push({
       key: "dataset",
       icon: IconDatabase,
@@ -185,7 +217,7 @@ export default function OverviewPage() {
             <Title order={1} lineClamp={1}>
               {projectName}
             </Title>
-            <Text c="dimmed">Overview</Text>
+            <ProjectPublicationControl onPublishedChange={onPublishedChange} />
           </div>
 
           <div>
@@ -228,18 +260,52 @@ export default function OverviewPage() {
                       >
                         {projectData.project_id || "No project ID set"}
                       </Text>
+                      {isSharedProject(access) && access?.updatedByEmail && (
+                        <Text size="sm" c="dimmed" truncate>
+                          Last edited by{" "}
+                          {access.updatedByEmail === user?.email.toLowerCase()
+                            ? "you"
+                            : access.updatedByEmail}
+                        </Text>
+                      )}
                     </div>
                   </Group>
-                  <Button
-                    variant="subtle"
-                    color="red"
-                    size="xs"
-                    style={{ flexShrink: 0 }}
-                    onClick={handleDeleteProject}
-                    aria-label="Delete project"
-                  >
-                    <IconTrash size={16} />
-                  </Button>
+                  <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+                    {access && (
+                      <Button
+                        variant="subtle"
+                        size="xs"
+                        leftSection={<IconUsers size={16} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSharing(true);
+                        }}
+                      >
+                        {isOwner ? "Share" : "People"}
+                      </Button>
+                    )}
+                    {isOwner && (
+                      <Tooltip label={deleteDisabledReason ?? "Delete project"}>
+                        <span
+                          className="inline-flex"
+                          role="presentation"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Button
+                            variant="subtle"
+                            color="red"
+                            size="xs"
+                            style={{ flexShrink: 0 }}
+                            onClick={handleDeleteProject}
+                            aria-label="Delete project"
+                            disabled={deleteDisabledReason !== null}
+                          >
+                            <IconTrash size={16} />
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Group>
                 </Group>
 
                 <Stack gap="xs">
@@ -271,9 +337,11 @@ export default function OverviewPage() {
                     {experiments.length !== 1 ? "s" : ""} created
                   </Text>
                 </div>
-                <Button leftSection={<IconPlus size={16} />} onClick={handleCreateExperiment}>
-                  New Experiment
-                </Button>
+                {canEdit && (
+                  <Button leftSection={<IconPlus size={16} />} onClick={handleCreateExperiment}>
+                    New Experiment
+                  </Button>
+                )}
               </Group>
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
@@ -315,28 +383,30 @@ export default function OverviewPage() {
                               />
                             )}
                           </Group>
-                          <Group gap={2} wrap="nowrap" style={{ flexShrink: 0 }}>
-                            <ActionIcon
-                              variant="subtle"
-                              color="gray"
-                              size="md"
-                              title="Duplicate experiment"
-                              aria-label="Duplicate experiment"
-                              onClick={(e) => handleDuplicateExperiment(experiment.id, e)}
-                            >
-                              <IconCopy size={16} />
-                            </ActionIcon>
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              size="md"
-                              title="Delete experiment"
-                              aria-label="Delete experiment"
-                              onClick={(e) => handleDeleteExperiment(experiment.id, e)}
-                            >
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
+                          {canEdit && (
+                            <Group gap={2} wrap="nowrap" style={{ flexShrink: 0 }}>
+                              <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="md"
+                                title="Duplicate experiment"
+                                aria-label="Duplicate experiment"
+                                onClick={(e) => handleDuplicateExperiment(experiment.id, e)}
+                              >
+                                <IconCopy size={16} />
+                              </ActionIcon>
+                              <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                size="md"
+                                title="Delete experiment"
+                                aria-label="Delete experiment"
+                                onClick={(e) => handleDeleteExperiment(experiment.id, e)}
+                              >
+                                <IconTrash size={16} />
+                              </ActionIcon>
+                            </Group>
+                          )}
                         </Group>
 
                         {experiment.formData.experiment_types &&
@@ -389,9 +459,11 @@ export default function OverviewPage() {
                     {datasets.length !== 1 ? "s" : ""} created
                   </Text>
                 </div>
-                <Button leftSection={<IconPlus size={16} />} onClick={handleCreateDataset}>
-                  New Dataset
-                </Button>
+                {canEdit && (
+                  <Button leftSection={<IconPlus size={16} />} onClick={handleCreateDataset}>
+                    New Dataset
+                  </Button>
+                )}
               </Group>
 
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
@@ -437,28 +509,30 @@ export default function OverviewPage() {
                               />
                             )}
                           </Group>
-                          <Group gap={2} wrap="nowrap" style={{ flexShrink: 0 }}>
-                            <ActionIcon
-                              variant="subtle"
-                              color="gray"
-                              size="md"
-                              title="Duplicate dataset"
-                              aria-label="Duplicate dataset"
-                              onClick={(e) => handleDuplicateDataset(dataset.id, e)}
-                            >
-                              <IconCopy size={16} />
-                            </ActionIcon>
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              size="md"
-                              title="Delete dataset"
-                              aria-label="Delete dataset"
-                              onClick={(e) => handleDeleteDataset(dataset.id, e)}
-                            >
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
+                          {canEdit && (
+                            <Group gap={2} wrap="nowrap" style={{ flexShrink: 0 }}>
+                              <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="md"
+                                title="Duplicate dataset"
+                                aria-label="Duplicate dataset"
+                                onClick={(e) => handleDuplicateDataset(dataset.id, e)}
+                              >
+                                <IconCopy size={16} />
+                              </ActionIcon>
+                              <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                size="md"
+                                title="Delete dataset"
+                                aria-label="Delete dataset"
+                                onClick={(e) => handleDeleteDataset(dataset.id, e)}
+                              >
+                                <IconTrash size={16} />
+                              </ActionIcon>
+                            </Group>
+                          )}
                         </Group>
                         {linkedExperiment && (
                           <Group gap="xs" wrap="nowrap" align="flex-start">
@@ -574,6 +648,14 @@ export default function OverviewPage() {
           )}
         </Stack>
       </Container>
+      {sharing && activeSummary && (
+        <ShareProjectModal
+          projectId={activeSummary.id}
+          isOwner={isOwner}
+          onClose={() => setSharing(false)}
+          onLeft={() => void navigate({ to: "/projects" })}
+        />
+      )}
       <DeleteProjectModal
         project={confirmingDelete ? activeSummary : null}
         onConfirm={confirmDeleteProject}

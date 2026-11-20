@@ -320,7 +320,7 @@ describe("auth-aware project persistence", () => {
               ...project.state,
               datasets: [
                 {
-                  id: 1,
+                  id: "1",
                   name: "Recovered dataset",
                   formData: { name: "Recovered dataset" },
                   createdAt: 1,
@@ -328,7 +328,6 @@ describe("auth-aware project persistence", () => {
                   linking: { linkedExperimentInternalId: null },
                 },
               ],
-              nextDatasetId: 2,
             },
           })),
           named("unsaved"),

@@ -29,7 +29,7 @@ interface ImportPreviewModalProps {
   onSetDatasetLinking: (
     datasetKey: string,
     mode: "use-file" | "explicit",
-    explicitExperimentInternalId?: number,
+    explicitExperimentInternalId?: string,
     explicitImportKey?: string,
   ) => void;
   getExperimentLinkOptions: (datasetKey: string) => ExperimentLinkOption[];
@@ -93,7 +93,7 @@ export default function ImportPreviewModal({
     if (value === "use-file") {
       onSetDatasetLinking(datasetKey, "use-file");
     } else if (value.startsWith("existing-")) {
-      const internalId = parseInt(value.replace("existing-", ""), 10);
+      const internalId = value.replace("existing-", "");
       onSetDatasetLinking(datasetKey, "explicit", internalId, undefined);
     } else if (value.startsWith("importing-")) {
       const importKey = value.replace("importing-", "");

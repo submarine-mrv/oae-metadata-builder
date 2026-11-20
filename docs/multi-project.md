@@ -34,7 +34,7 @@ The crumb is `ProjectSwitcher` (`src/components/ProjectSwitcher.tsx`). Its menu 
 
 ## Deleting
 
-You delete a whole project from its `/projects` card or the overview. `DeleteProjectModal` confirms first. Deleting the open project goes to All projects, as does a project deleted in another tab while open. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place. The restore prompt's Start fresh deletes every project at once.
+You delete a whole project from its `/projects` card or the overview. For a shared cloud project only the owner sees delete; the card shows "Shared by" the owner for everyone else. `DeleteProjectModal` confirms first. Deleting the open project goes to All projects, as does a project deleted in another tab while open. Deleting the last one returns to the empty workspace. There is no action that clears a project's metadata in place. The restore prompt's Start fresh deletes every project at once.
 
 ## Restore prompt
 
@@ -79,6 +79,6 @@ A file with duplicate experiment ids is blocked in both modes.
 
 `applyImport` (`src/utils/applyImport.ts`) builds the result for both modes. It drops a dataset link whose experiment isn't in the result. `getSelectedItems` renumbers dataset links to match the ticked experiments. A dataset linked to an unticked experiment imports unlinked.
 
-The app owns `project_id` and `experiment_id` on imported records and ignores the file's values.
+The app owns `project_id` on imported records and ignores the file's value. An imported experiment keeps its `experiment_id`, and a dataset takes its `experiment_id` from the experiment it links to. Experiments match on `experiment_id` only: one with no `experiment_id`, or with the same name as an existing experiment, is added as new.
 
 `localStorageWorkspaceStore.load` runs `migrateProject`, `migrateExperiment` and `migrateDataset` (`src/utils/migrations.ts`) on every stored project and saves the result, so the project list shows current field names. `hydrate` then parses and migrates each project again through `parseProjectState`.

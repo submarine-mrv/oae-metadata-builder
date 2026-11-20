@@ -2,8 +2,11 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
 import { createStore } from "jotai";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
-import { startProjectCloudSync } from "@/workspace/projectCloudSync";
+import { publicationProject } from "@/workspace/__tests__/publicationFixtures";
+import { ProjectAccessError, startProjectCloudSync } from "@/workspace/projectCloudSync";
+import { buildProjectPublicationPayload } from "@/workspace/publicationPayload";
 import { WORKSPACE_KEY } from "@/workspace/storage";
+import { createPublicationClient } from "@/workspace/supabasePublicationClient";
 import { emptyProjectState, newProjectRecord } from "@/workspace/types";
 import { addProject, deleteProject, updateProject } from "@/workspace/workspace";
 
@@ -130,7 +133,10 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
           projectData: { project_id: "other-owner", name: "Private other owner" },
         },
       };
-      expect((await isolated.save(sameId, "other-owner-hash", null)).saved).toBe(true);
+      // Project ids are global: a non-member can't claim an existing one.
+      await expect(isolated.save(sameId, "other-owner-hash", null)).rejects.toThrow(
+        ProjectAccessError,
+      );
 
       const anonymous = createClient(url, key, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -153,9 +159,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         (await client.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
       ).toEqual([second.id]);
       auth.session = other;
-      expect(
-        (await isolated.load()).map((row) => ("project" in row ? row.project.id : row.projectId)),
-      ).toEqual([first.id]);
+      expect(await isolated.load()).toEqual([]);
     });
 
     it("protects a newer draft from an old device even with the latest hash", async () => {
@@ -176,7 +180,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       });
       const future = {
         id: first.id,
-        schemaVersion: 2,
+        schemaVersion: 3,
         newEnvelopeField: { keep: true },
         state: { newDraftField: ["must survive"], nextExperimentId: "new representation" },
       };
@@ -199,21 +203,120 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       await expect(client.save(first, "old-with-latest-hash", "version-two")).rejects.toThrow(
         "Reload",
       );
-      const stored = await newer
+      // Signed-in clients can't read the table directly, so inspect it as the admin.
+      const stored = await admin
         .from("metadata_builder_sessions")
         .select("state, state_hash")
         .eq("project_id", first.id)
         .single();
       expect(stored.error).toBeNull();
       expect(stored.data).toEqual({ state: future, state_hash: "version-two" });
-      const supported = await newer
+      const supported = await admin
         .from("metadata_builder_sessions")
         .select("state")
         .eq("project_id", second.id)
         .single();
       expect(supported.error).toBeNull();
       expect(supported.data?.state.state.projectData.name).toBe("old device edit");
-      expect(await client.load()).toContainEqual({ projectId: first.id, schemaVersion: 2 });
+      expect(await client.load()).toContainEqual(
+        expect.objectContaining({ projectId: first.id, schemaVersion: 3 }),
+      );
+    });
+
+    it("publishes, updates, renames, unpublishes and republishes without exposing private edits", async () => {
+      auth.session = owner;
+      const drafts = createProjectCloudClient(owner.user.id);
+      const publication = createPublicationClient(owner.user.id);
+      const project = publicationProject();
+      const suffix = crypto.randomUUID();
+      project.id = `publication-${suffix}`;
+      project.state.projectData.project_id = `PUBLICATION-${suffix}`;
+      project.state.experiments[0].formData.project_id = project.state.projectData.project_id;
+      project.state.experiments[0].formData.experiment_id = `EXP-${suffix}`;
+      project.state.datasets[0].formData.project_id = project.state.projectData.project_id;
+      project.state.datasets[0].formData.experiment_id = `EXP-${suffix}`;
+      expect((await drafts.save(project, "publication-v1", null)).saved).toBe(true);
+      expect(await publication.status(project.id)).toBeNull();
+      const anonymous = createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const readTree = async (projectId: string) => {
+        const results = await Promise.all(
+          ["oae_projects", "oae_experiments", "oae_datasets"].map((table) =>
+            anonymous.from(table).select("*").eq("project_id", projectId),
+          ),
+        );
+        for (const result of results) expect(result.error).toBeNull();
+        return results.map((result) => result.data ?? []);
+      };
+      const publicId = project.state.projectData.project_id;
+      expect((await readTree(publicId)).map((rows) => rows.length)).toEqual([0, 0, 0]);
+      await publication.publish(project.id, buildProjectPublicationPayload(project));
+      const firstTree = await readTree(publicId);
+      expect(firstTree.map((rows) => rows.length)).toEqual([1, 1, 1]);
+      expect(firstTree[2][0].extras._source).toEqual(project.state.datasets[0].formData);
+      await expect(drafts.remove(project.id, "publication-v1")).rejects.toThrow("Unpublish");
+
+      const edited = structuredClone(project);
+      edited.state.projectData.description = "Private edit until explicitly published";
+      expect((await drafts.save(edited, "publication-v2", "publication-v1")).saved).toBe(true);
+      expect((await readTree(publicId))[0][0].description).toBe(
+        project.state.projectData.description,
+      );
+      await publication.publish(edited.id, buildProjectPublicationPayload(edited));
+      expect((await readTree(publicId))[0][0].description).toBe(
+        edited.state.projectData.description,
+      );
+
+      auth.session = other;
+      const foreign = { ...edited, id: `foreign-${suffix}` };
+      await createProjectCloudClient(other.user.id).save(foreign, "foreign-v1", null);
+      await expect(
+        createPublicationClient(other.user.id).publish(
+          foreign.id,
+          buildProjectPublicationPayload(foreign),
+        ),
+      ).rejects.toThrow();
+      await expect(createPublicationClient(other.user.id).unpublish(project.id)).rejects.toThrow(
+        "No matching",
+      );
+      await expect(
+        publication.publish(edited.id, buildProjectPublicationPayload(edited)),
+      ).rejects.toThrow("account changed");
+      auth.session = owner;
+
+      const renamed = structuredClone(edited);
+      renamed.state.projectData.project_id = `RENAMED-${suffix}`;
+      renamed.state.experiments[0].formData.project_id = renamed.state.projectData.project_id;
+      renamed.state.datasets[0].formData.project_id = renamed.state.projectData.project_id;
+      await drafts.save(renamed, "publication-v3", "publication-v2");
+      await publication.publish(renamed.id, buildProjectPublicationPayload(renamed));
+      expect((await readTree(publicId)).map((rows) => rows.length)).toEqual([0, 0, 0]);
+      expect((await publication.status(project.id))?.projectId).toBe(
+        renamed.state.projectData.project_id,
+      );
+      await publication.unpublish(project.id);
+      expect(
+        (await readTree(renamed.state.projectData.project_id)).map((rows) => rows.length),
+      ).toEqual([0, 0, 0]);
+      expect(
+        (await drafts.load()).some((row) => "project" in row && row.project.id === project.id),
+      ).toBe(true);
+      await publication.publish(renamed.id, buildProjectPublicationPayload(renamed));
+      expect(
+        (await readTree(renamed.state.projectData.project_id)).map((rows) => rows.length),
+      ).toEqual([1, 1, 1]);
+      const trimmed = {
+        ...renamed,
+        state: { ...renamed.state, experiments: [], datasets: [] },
+      };
+      await drafts.save(trimmed, "publication-v4", "publication-v3");
+      await publication.publish(trimmed.id, buildProjectPublicationPayload(trimmed));
+      expect(
+        (await readTree(renamed.state.projectData.project_id)).map((rows) => rows.length),
+      ).toEqual([1, 0, 0]);
+      await publication.unpublish(project.id);
+      expect((await drafts.remove(project.id, "publication-v4")).saved).toBe(true);
     });
   },
 );
