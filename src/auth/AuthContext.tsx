@@ -58,16 +58,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Apply only the profile: a later auth event (e.g. USER_UPDATED after
+      // setting a password) may already have published a newer session.
       authClient
         .getProfile()
         .then((profile) => {
           if (mounted && activeUserId === targetUserId) {
-            publish(session, profile, event);
+            setProfile(profile);
           }
         })
         .catch(() => {
           if (mounted && activeUserId === targetUserId) {
-            publish(session, existingProfile, event);
+            setProfile(existingProfile);
           }
         });
     };
@@ -95,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [setProfile]);
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
 }
