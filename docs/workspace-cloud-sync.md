@@ -13,9 +13,9 @@ Guests and the memory auth provider retain browser persistence. Enable with
   a confirmed account gets access at once and no email. Anyone else is created
   as a pending account and emailed an invitation (the `project-members` Edge
   Function in oae-iac); they get access once they accept it. Only the owner sees
-  pending people, marked Pending, with Resend; adding or resending shows no
-  confirmation, only a warning if the email fails. Only the owner deletes the project or manages
-  people; members can leave.
+  pending people, marked Pending, with Resend. If the invitation email can't be
+  sent, the person isn't added and the owner sees an error. Only the owner
+  deletes the project or manages people; members can leave.
 - An invited account has no password of its own until it sets one, flagged by
   `invited_at` without `user_metadata.password_set` (`AuthUser.needsPassword`).
   The root route sends it to `/auth/set-password` and cloud sync waits until

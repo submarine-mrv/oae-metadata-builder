@@ -22,22 +22,13 @@ import { projectSyncActionsAtom } from "@/workspace/syncState";
 
 type ProjectClientModule = typeof import("@/auth/providers/supabase/projectClient");
 type MembersClient = ReturnType<ProjectClientModule["createProjectMembersClient"]>;
-type InviteResult = Awaited<ReturnType<MembersClient["invite"]>>;
 
 /** Messages for the project-members function's error codes. */
 const MEMBER_ERROR_MESSAGES: Record<string, string> = {
   cooldown: "Please wait a minute before resending this invitation.",
   rate_limited: "Too many invitations were sent recently. Try again in an hour.",
-  invite_failed: "We couldn't send the invitation email. Please try again.",
+  invite_failed: "We couldn't send the invitation email, so they weren't added. Please try again.",
 };
-
-/** Only a failed invitation email needs a message; the list shows who is pending. */
-function inviteWarning(result: InviteResult, email: string): string | undefined {
-  if (result.status !== "invite_failed") return undefined;
-  return result.reason === "rate_limited"
-    ? `Added ${email}, but too many invitations were sent recently. Use Resend in an hour.`
-    : `Added ${email}, but the invitation email couldn't be sent. Try Resend.`;
-}
 
 function errorMessage(cause: unknown, fallback: string) {
   if (!(cause instanceof Error)) return fallback;
@@ -73,7 +64,6 @@ export default function ShareProjectModal({
   const [role, setRole] = useState<"editor" | "viewer">("editor");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -102,13 +92,12 @@ export default function ShareProjectModal({
   }, [reload]);
 
   /** Runs a change, then reloads the list and checks the project's access again. */
-  const run = async (change: (members: MembersClient) => Promise<string | undefined>) => {
+  const run = async (change: (members: MembersClient) => Promise<unknown>) => {
     if (!client || busy) return false;
     setBusy(true);
     setError(null);
-    setWarning(null);
     try {
-      setWarning((await change(client)) ?? null);
+      await change(client);
       await reload();
       void store.get(projectSyncActionsAtom)?.refresh();
       return true;
@@ -123,9 +112,7 @@ export default function ShareProjectModal({
   const add = async () => {
     const address = email.trim();
     if (!address) return;
-    const added = await run(async (members) =>
-      inviteWarning(await members.invite(projectId, address, role), address),
-    );
+    const added = await run((members) => members.invite(projectId, address, role));
     if (added) setEmail("");
   };
 
@@ -187,12 +174,7 @@ export default function ShareProjectModal({
                           aria-label={`Resend invitation to ${member.email}`}
                           disabled={busy}
                           onClick={() =>
-                            void run(async (client) =>
-                              inviteWarning(
-                                await client.resend(projectId, member.userId),
-                                member.email,
-                              ),
-                            )
+                            void run((client) => client.resend(projectId, member.userId))
                           }
                         >
                           <IconMailForward size={16} />
@@ -209,10 +191,7 @@ export default function ShareProjectModal({
                       disabled={busy}
                       onChange={(value) => {
                         if (value === "editor" || value === "viewer") {
-                          void run(async (client) => {
-                            await client.setRole(projectId, member.userId, value);
-                            return undefined;
-                          });
+                          void run((client) => client.setRole(projectId, member.userId, value));
                         }
                       }}
                     />
@@ -223,10 +202,7 @@ export default function ShareProjectModal({
                         aria-label={`Remove ${member.email}`}
                         disabled={busy}
                         onClick={() =>
-                          void run(async (client) => {
-                            await client.remove(projectId, member.userId);
-                            return undefined;
-                          })
+                          void run((client) => client.remove(projectId, member.userId))
                         }
                       >
                         <IconX size={16} />
@@ -244,7 +220,6 @@ export default function ShareProjectModal({
         )}
 
         {error && <Alert color="red">{error}</Alert>}
-        {warning && <Alert color="yellow">{warning}</Alert>}
 
         {isOwner ? (
           <Stack gap={4}>

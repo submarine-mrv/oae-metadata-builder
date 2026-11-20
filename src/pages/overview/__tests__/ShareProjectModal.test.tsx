@@ -75,19 +75,15 @@ describe("ShareProjectModal", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("keeps a pending person when their invitation email fails", async () => {
-    members.invite.mockResolvedValueOnce({
-      status: "invite_failed",
-      reason: "send_failed",
-      userId: "n1",
-    });
+  it.each([
+    ["invite_failed", "We couldn't send the invitation email, so they weren't added."],
+    ["rate_limited", "Too many invitations were sent recently. Try again in an hour."],
+  ])("explains a refused invitation (%s)", async (code, message) => {
+    members.invite.mockRejectedValueOnce(Object.assign(new Error("refused"), { code }));
     renderModal(true);
     await add("new@example.com");
-    expect(
-      await screen.findByText(
-        "Added new@example.com, but the invitation email couldn't be sent. Try Resend.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByLabelText("Add by email")).toHaveValue("new@example.com");
   });
 
   it("shows pending people with a resend control", async () => {

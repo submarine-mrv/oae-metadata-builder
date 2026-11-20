@@ -10,7 +10,7 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 - Sharing a project with someone who has no account emails them an invitation. They set a
   password when they accept it and then see the project. The Share dialog shows invited people as
-  Pending, with Resend, and says whether an email was sent.
+  Pending, with Resend. If the invitation email can't be sent, the person isn't added.
 
 ### Updated
 

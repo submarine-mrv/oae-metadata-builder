@@ -151,10 +151,11 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
 
 export type MemberRole = Exclude<ProjectRole, "owner">;
 
-/** What adding someone did. Pending people stay on the project even when their email fails. */
-export type InviteResult =
-  | { status: "added" | "role_updated" | "invited"; userId: string }
-  | { status: "invite_failed"; reason: "rate_limited" | "send_failed"; userId: string };
+/**
+ * What adding someone did. If their invitation email can't be sent, they aren't added and the
+ * call throws a MemberRequestError (`rate_limited` or `invite_failed`).
+ */
+export type InviteResult = { status: "added" | "role_updated" | "invited"; userId: string };
 
 /** A refused member change; `code` is the project-members function's error code when known. */
 export class MemberRequestError extends Error {
@@ -167,7 +168,7 @@ export class MemberRequestError extends Error {
   }
 }
 
-const INVITE_STATUSES = new Set(["added", "role_updated", "invited", "invite_failed"]);
+const INVITE_STATUSES = new Set(["added", "role_updated", "invited"]);
 
 function parseMember(row: unknown): ProjectMember {
   if (
