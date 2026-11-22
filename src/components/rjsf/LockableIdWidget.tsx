@@ -95,7 +95,7 @@ export default function LockableIdWidget<
       kept = valueOnFocus.current;
       onChange(kept);
     }
-    // An ID imported before the pattern existed stays editable until it is fixed.
+    // An invalid ID that was already there stays editable rather than locked.
     if (lockOnBlur && kept && matchesPattern(kept, schema?.pattern)) {
       setIsLocked(true);
       setHasBeenUnlockedManually(false);

@@ -16,7 +16,36 @@
  *   3. Add tests in __tests__/migrations.test.ts
  */
 
+import schema from "@/schema/schema.bundled.json";
 import { migrateFormDataBoxStrings } from "./spatialUtils";
+
+const ID_PATTERN = new RegExp(schema.$defs.Project.properties.project_id.pattern, "u");
+const ID_MAX_LENGTH = 64;
+
+/** Turns a free-text ID into one the 0.7.0 pattern accepts: "Café Run/1" → "Cafe_Run_1". */
+export function sanitizeId(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^A-Za-z0-9._-]/g, "_")
+    .replace(/^[._-]+/, "")
+    .slice(0, ID_MAX_LENGTH);
+}
+
+/**
+ * Protocol 0.7.0 restricted project_id and experiment_id. Invalid IDs are
+ * cleaned rather than dropped, and the same input always gives the same ID, so
+ * a dataset's experiment_id still matches its experiment.
+ */
+export function migrateIds(data: Record<string, any>): Record<string, any> {
+  let result = data;
+  for (const key of ["project_id", "experiment_id"]) {
+    const value = result?.[key];
+    if (typeof value !== "string" || value === "" || ID_PATTERN.test(value)) continue;
+    result = { ...result, [key]: sanitizeId(value) };
+  }
+  return result;
+}
 
 /**
  * Protocol 0.4.0 turned `public_comments` from one free-text string into a list
@@ -116,13 +145,16 @@ type Migration = (data: Record<string, any>) => Record<string, any>;
 const PROJECT_MIGRATIONS: Migration[] = [
   migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
   migrateResearchProject, // 0.6.0: research_project → name
+  migrateIds, // 0.7.0: project_id pattern
 ];
 const EXPERIMENT_MIGRATIONS: Migration[] = [
   migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
   migratePublicComments, // 0.4.0: old text → one [{ description, comment_type }]
+  migrateIds, // 0.7.0: project_id, experiment_id pattern
 ];
 const DATASET_MIGRATIONS: Migration[] = [
   migratePHCalibrationStandard, // 0.6.0: pH calibration standard_used, dye type rename
+  migrateIds, // 0.7.0: project_id, experiment_id pattern
 ];
 
 function runMigrations<T extends Record<string, any>>(migrations: Migration[], data: T): T {
