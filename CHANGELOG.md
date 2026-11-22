@@ -8,6 +8,10 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ### Updated
 
+- Uses protocol 0.7.0, which limits project and experiment IDs to 64 letters, numbers, hyphens,
+  underscores and periods. The ID field shows the rule as you type, and leaving it with an invalid ID
+  restores the previous one. Saved IDs that break the rule stay as they are and show an error until
+  edited.
 - Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,

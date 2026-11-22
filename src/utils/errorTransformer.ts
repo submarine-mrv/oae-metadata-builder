@@ -53,14 +53,27 @@ function discriminatorAsFieldError(e: RJSFValidationError): RJSFValidationError 
   };
 }
 
+const ID_FIELDS = ["project_id", "experiment_id"];
+
+/** The builder stores "" for an ID not set yet; the required rules cover that, not the pattern. */
+function isEmptyIdPatternError(
+  e: RJSFValidationError,
+  formData?: Record<string, unknown>,
+): boolean {
+  const field = e.property?.slice(1) ?? "";
+  return e.name === "pattern" && ID_FIELDS.includes(field) && formData?.[field] === "";
+}
+
 /**
- * Transform RJSF validation errors to provide better user-facing messages
- * @param errors - Array of validation errors from RJSF
- * @returns Transformed errors with improved messaging
+ * Transform RJSF validation errors to provide better user-facing messages.
+ * Pass the validated formData so empty IDs aren't reported as malformed.
  */
-export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidationError[] {
+export function transformFormErrors(
+  errors: RJSFValidationError[],
+  formData?: Record<string, unknown>,
+): RJSFValidationError[] {
   return errors
-    .filter((e) => !isIfThenEnvelopeError(e))
+    .filter((e) => !isIfThenEnvelopeError(e) && !isEmptyIdPatternError(e, formData))
     .map((e) => {
       // AJV reports a missing or unknown discriminator tag on the parent object.
       if (e.name === "discriminator") {
@@ -125,6 +138,13 @@ export function transformFormErrors(errors: RJSFValidationError[]): RJSFValidati
           ...e,
           message: MESSAGES.validation.experimentIdRequired,
         };
+      }
+
+      if (
+        e.name === "pattern" &&
+        (e.property?.endsWith(".project_id") || e.property?.endsWith(".experiment_id"))
+      ) {
+        return { ...e, message: MESSAGES.validation.invalidIdentifier };
       }
 
       // Improve email pattern error message

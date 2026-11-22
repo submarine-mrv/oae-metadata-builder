@@ -10,6 +10,7 @@
  * - When locked: dimmed input with pencil icon inside (right section)
  * - Click pencil to unlock and edit; pencil disappears while editing
  * - Auto-locks on blur, pencil reappears, input dims again
+ * - Leaving the field with an ID that fails the schema pattern restores the ID it had on focus
  */
 
 import { ActionIcon, Box, Text, TextInput, Tooltip } from "@mantine/core";
@@ -18,6 +19,10 @@ import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import DescriptionModal from "./DescriptionModal";
+
+function matchesPattern(value: unknown, pattern: string | undefined): boolean {
+  return !value || !pattern || new RegExp(pattern, "u").test(String(value));
+}
 
 interface LockableIdOptions {
   lockOnBlur?: boolean;
@@ -54,18 +59,21 @@ export default function LockableIdWidget<
   const defaultLocked = options.defaultLocked || false;
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const valueOnFocus = useRef(value);
+  const [rejected, setRejected] = useState<string | null>(null);
+  const isValid = matchesPattern(value, schema?.pattern);
 
   // Lock state - start locked if there's a value
-  const [isLocked, setIsLocked] = useState(() => (value ? true : defaultLocked));
+  const [isLocked, setIsLocked] = useState(() => (value && isValid ? true : defaultLocked));
   const [hasBeenUnlockedManually, setHasBeenUnlockedManually] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
   // Auto-lock when value appears (if not manually unlocked and not focused)
   useEffect(() => {
-    if (value && !hasBeenUnlockedManually && !isFocused) {
+    if (value && isValid && !hasBeenUnlockedManually && !isFocused) {
       setIsLocked(true);
     }
-  }, [value, hasBeenUnlockedManually, isFocused]);
+  }, [value, isValid, hasBeenUnlockedManually, isFocused]);
 
   const handlePencilClick = useCallback(() => {
     setIsLocked(false);
@@ -78,18 +86,27 @@ export default function LockableIdWidget<
 
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-  }, []);
+    setRejected(null);
+    valueOnFocus.current = value;
+  }, [value]);
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
-    if (lockOnBlur) {
+    let kept = value;
+    if (!isValid && value !== valueOnFocus.current) {
+      kept = valueOnFocus.current;
+      setRejected(String(value));
+      onChange(kept);
+    }
+    // An ID imported before the pattern existed stays editable until it is fixed.
+    if (lockOnBlur && kept && matchesPattern(kept, schema?.pattern)) {
       setIsLocked(true);
       setHasBeenUnlockedManually(false);
     }
     if (onBlur) {
-      onBlur(id, value);
+      onBlur(id, kept);
     }
-  }, [lockOnBlur, onBlur, id, value]);
+  }, [lockOnBlur, onBlur, onChange, id, value, isValid, schema?.pattern]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,6 +139,7 @@ export default function LockableIdWidget<
           disabled={disabled}
           readOnly={readonly || isLocked}
           error={errorMessage}
+          description={rejected ? `"${rejected}" isn't a valid ID and wasn't kept.` : undefined}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
