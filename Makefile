@@ -76,12 +76,8 @@ schema: nvs-vocabs
 			echo "Please commit or stash changes before running 'make schema'."; \
 			exit 1; \
 		fi
-	@echo "Repository is clean. Getting git hash..."
-	$(eval PROTOCOL_GIT_HASH := $(shell cd $(SCHEMA_REPO_PATH) && git rev-parse HEAD))
-	@if [ -z "$(PROTOCOL_GIT_HASH)" ]; then \
-		echo "Error: Failed to get git hash from $(SCHEMA_REPO_PATH)"; \
-		exit 1; \
-	fi
-	@echo "Protocol git hash: $(PROTOCOL_GIT_HASH)"
+	@echo "Repository is clean."
+	@# Empty on a release tag; otherwise the short hash marks a dev version.
+	$(eval PROTOCOL_DEV_HASH := $(shell cd $(SCHEMA_REPO_PATH) && (git describe --tags --exact-match >/dev/null 2>&1 || git rev-parse --short HEAD)))
 	cp $(SCHEMA_SOURCE) $(SCHEMA_DEST)
-	node scripts/bundle-schema.mjs $(SCHEMA_DEST) $(PROTOCOL_GIT_HASH)
+	node scripts/bundle-schema.mjs $(SCHEMA_DEST) $(PROTOCOL_DEV_HASH)

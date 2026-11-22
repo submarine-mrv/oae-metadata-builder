@@ -128,7 +128,7 @@ export function buildProjectPublicationPayload(project: ProjectRecord): ProjectP
   requiredPersonNames(projectData.project_leads, "Project leads");
   requiredSpatialBox(projectData.spatial_coverage, "Project spatial coverage");
   const document = buildMetadataDocument(projectData, experiments, datasets);
-  if (!document.version || !document.protocol_git_hash) {
+  if (!document.version) {
     throw new Error("Protocol version metadata is missing; this project cannot be published.");
   }
   const mappedExperiments = experiments.map((experiment) => mapExperiment(projectId, experiment));
@@ -140,7 +140,8 @@ export function buildProjectPublicationPayload(project: ProjectRecord): ProjectP
     project: {
       project_id: projectId,
       protocol_version: document.version,
-      protocol_git_hash: document.protocol_git_hash,
+      // The Data Commons still requires these two until it drops them.
+      protocol_git_hash: "DEPRECATED",
       description: requiredString(projectData.description, "Project description"),
       temporal_coverage: requiredString(projectData.temporal_coverage, "Project temporal coverage"),
       spatial_coverage: projectData.spatial_coverage,
@@ -148,7 +149,7 @@ export function buildProjectPublicationPayload(project: ProjectRecord): ProjectP
       mcdr_pathway: requiredString(projectData.mcdr_pathway, "Project MCDR pathway"),
       extras: {
         _source_file: `${projectId}.json`,
-        metadata_builder_git_hash: document.metadata_builder_git_hash,
+        metadata_builder_git_hash: "DEPRECATED",
         _document: document,
         _source: projectData,
       },

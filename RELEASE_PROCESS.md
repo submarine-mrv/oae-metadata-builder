@@ -55,17 +55,13 @@ the oae-data-protocol version it follows.
   changelog says what changes for existing files.
 - **Patch:** fixes.
 
-Every changelog section opens with the oae-data-protocol it was built against. Read both values
-out of `src/schema/schema.bundled.json` — `version` and `x-protocol-git-hash` — and check the hash
-against the protocol's tags:
+Every changelog section opens with the oae-data-protocol version it was built against: `version`
+in `src/schema/schema.bundled.json`.
 
-```bash
-cd ../oae-data-protocol && git describe --tags <x-protocol-git-hash>
-```
+Between releases, `dev` can pull the schema from protocol `main` at any time; `make schema` records
+an untagged commit as `<last release>+dev.<short hash>`. A release can't ship a `+dev` version: if
+the bundled `version` has one, release the protocol first (its `RELEASE_PROCESS.md`), check out the
+new tag in `../oae-data-protocol`, and run `make schema` again.
 
-If that returns a bare tag (`v0.2.0`), cite the version. If it returns a `-N-g` suffix
-(`v0.1.0-6-ge48c48b9`), the schema was pulled mid-cycle and its `version` field is stale — cite the
-commit instead, since the version alone would be wrong.
-
-If a release depends on a new protocol version, pull the schema first with `make schema`; it
-requires a clean protocol tree and records the source commit for you.
+Exports record the builder's own version in `metadata_builder_version`. A build from `main` writes
+the `package.json` version; any other branch appends `+dev.<short hash>`.

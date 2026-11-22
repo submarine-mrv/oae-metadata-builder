@@ -272,44 +272,6 @@ describe.skip('Bundle Schema Script', () => {
     });
   });
 
-  describe('Git Hash Injection', () => {
-    it('should inject git hash into schema root', () => {
-      const mockSchema = {
-        $defs: {},
-        version: '0.1.0'
-      };
-
-      const gitHash = 'a'.repeat(40);
-
-      const decorated = {
-        ...mockSchema,
-        'x-protocol-git-hash': gitHash
-      };
-
-      expect(decorated['x-protocol-git-hash']).toBe(gitHash);
-      expect(decorated.version).toBe('0.1.0');
-    });
-
-    it('should preserve other root/extension fields', () => {
-      const mockSchema = {
-        $defs: {},
-        version: '0.1.0',
-        'x-custom-field': 'custom-value'
-      };
-
-      const gitHash = 'b'.repeat(40);
-
-      const decorated = {
-        ...mockSchema,
-        'x-protocol-git-hash': gitHash
-      };
-
-      expect(decorated['x-custom-field']).toBe('custom-value');
-      expect(decorated.version).toBe('0.1.0');
-      expect(decorated['x-protocol-git-hash']).toBe(gitHash);
-    });
-  });
-
   describe('Conditional Fields Fixing', () => {
     it('should remove conditional _custom fields from root properties', () => {
       const mockSchema = {
@@ -428,8 +390,7 @@ describe.skip('Bundle Schema Script', () => {
       const mockSchema = {
         $id: 'test-schema',
         $defs: {},
-        version: '0.1.0',
-        'x-protocol-git-hash': 'a'.repeat(40)
+        version: '0.1.0'
       };
 
       const jsonString = JSON.stringify(mockSchema, null, 2);

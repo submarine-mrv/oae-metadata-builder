@@ -69,7 +69,7 @@ function PublicationControl({
   const request = useRef(0);
   /**
    * Compare the complete exported draft with the published snapshot, including
-   * `version` and `protocol_git_hash`. Protocol-only changes can enable "Publish
+   * `version`. Protocol-only changes can enable "Publish
    * Updates" even when project metadata is unchanged.
    * TODO: Revisit protocol version handling:
    * https://github.com/submarine-mrv/oae-data-commons/issues/231

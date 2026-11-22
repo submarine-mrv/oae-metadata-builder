@@ -8,8 +8,9 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ### Updated
 
-- Exported files record the builder commit they came from in `metadata_builder_git_hash`, which
-  was always empty before.
+- Exported files record the builder version in `metadata_builder_version` (`1.2.0`, or
+  `1.1.0+dev.ac24e9a` from a development build) in place of the two git-hash fields. A protocol
+  version built from an unreleased commit reads `0.6.1+dev.883bcf7f`.
 - Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,

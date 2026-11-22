@@ -9,7 +9,7 @@ import {
   getInterventionWithTracerSchema,
   getModelOutputDatasetSchema,
   getProjectSchema,
-  getProtocolMetadata,
+  getProtocolVersion,
   getTracerSchema,
 } from "../schemaViews";
 
@@ -39,19 +39,9 @@ describe("Schema Views", () => {
     });
   });
 
-  describe("getProtocolMetadata", () => {
-    it("should extract version and git hash from schema", () => {
-      const metadata = getProtocolMetadata();
-
-      expect(metadata).toHaveProperty("version");
-      expect(metadata).toHaveProperty("gitHash");
-    });
-
-    it("should return strings for version and gitHash", () => {
-      const metadata = getProtocolMetadata();
-
-      expect(typeof metadata.version).toBe("string");
-      expect(typeof metadata.gitHash).toBe("string");
+  describe("getProtocolVersion", () => {
+    it("reads the bundled schema's version", () => {
+      expect(getProtocolVersion()).toMatch(/^\d+\.\d+\.\d+(\+dev\.[0-9a-f]+)?$/);
     });
   });
 

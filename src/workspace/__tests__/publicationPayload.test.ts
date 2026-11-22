@@ -10,7 +10,7 @@ describe("complete project publication payload", () => {
     expect(payload.project.extras).toEqual({
       _source: project.state.projectData,
       _source_file: "PUBLICATION-TEST.json",
-      metadata_builder_git_hash: "",
+      metadata_builder_git_hash: "DEPRECATED",
       _document: buildMetadataDocument(
         project.state.projectData,
         project.state.experiments,

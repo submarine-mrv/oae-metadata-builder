@@ -17,18 +17,11 @@ export function getBaseSchema() {
 }
 
 /**
- * Gets protocol version metadata from the schema.
- *
- * `version` is the schema's own semantic version, declared as `version:` in the
- * LinkML source and emitted at the JSON Schema root. (It replaced the former
- * injected `x-protocol-version` field, which the protocol no longer emits.)
- * `gitHash` is injected by the schema bundler (see scripts/bundle-schema.mjs).
+ * The protocol version, such as 0.7.0, or 0.6.1+dev.3c014f7 when `make schema`
+ * ran on an untagged protocol commit.
  */
-export function getProtocolMetadata() {
-  return {
-    version: baseSchema["version"] || "",
-    gitHash: baseSchema["x-protocol-git-hash"] || "",
-  };
+export function getProtocolVersion(): string {
+  return baseSchema["version"] || "";
 }
 
 /**

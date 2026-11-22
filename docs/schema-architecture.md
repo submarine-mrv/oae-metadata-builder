@@ -22,7 +22,7 @@ LinkML (oae-data-protocol)
 - **Never hand-duplicate the schema** in TypeScript (no parallel Zod/TypeBox model). LinkML is
   the upstream source of truth; the bundled JSON Schema is the runtime source of truth.
 - **Never copy the schema between repos manually** — always `make schema` (checks a clean tree,
-  records the protocol git hash as `x-protocol-git-hash`).
+  and on an untagged protocol commit records `version` as `<last release>+dev.<short hash>`).
 - `bundle-schema.mjs` does real schema *surgery* (NVS label decoration, enum-array inlining,
   conditional-field relocation, the `ModelOutputDataset.if` patch). It is the right place to add
   schema transforms that RJSF/AJV need but LinkML doesn't emit — see §5.
