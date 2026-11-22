@@ -60,7 +60,6 @@ export default function LockableIdWidget<
 
   const inputRef = useRef<HTMLInputElement>(null);
   const valueOnFocus = useRef(value);
-  const [rejected, setRejected] = useState<string | null>(null);
   const isValid = matchesPattern(value, schema?.pattern);
 
   // Lock state - start locked if there's a value
@@ -86,7 +85,6 @@ export default function LockableIdWidget<
 
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-    setRejected(null);
     valueOnFocus.current = value;
   }, [value]);
 
@@ -95,7 +93,6 @@ export default function LockableIdWidget<
     let kept = value;
     if (!isValid && value !== valueOnFocus.current) {
       kept = valueOnFocus.current;
-      setRejected(String(value));
       onChange(kept);
     }
     // An ID imported before the pattern existed stays editable until it is fixed.
@@ -139,7 +136,6 @@ export default function LockableIdWidget<
           disabled={disabled}
           readOnly={readonly || isLocked}
           error={errorMessage}
-          description={rejected ? `"${rejected}" isn't a valid ID and wasn't kept.` : undefined}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

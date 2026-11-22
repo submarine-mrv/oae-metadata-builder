@@ -52,7 +52,6 @@ describe("LockableIdWidget", () => {
     await user.click(screen.getByText("elsewhere"));
     expect(input().value).toBe("PROJ-01");
     expect(input().readOnly).toBe(true);
-    expect(screen.getByText(/"PROJ-01 bad" isn't a valid ID/)).toBeTruthy();
   });
 
   it("clears a new invalid ID", async () => {
