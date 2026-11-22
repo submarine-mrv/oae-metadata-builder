@@ -181,9 +181,6 @@ const projectUiSchema = {
     },
   },
   additional_details: textAreaWidget,
-  experiments: {
-    "ui:widget": "hidden",
-  },
 };
 
 export default projectUiSchema;
