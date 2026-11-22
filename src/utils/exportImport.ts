@@ -61,7 +61,7 @@ export function buildMetadataDocument(
   return {
     version: protocolMetadata.version,
     protocol_git_hash: protocolMetadata.gitHash,
-    metadata_builder_git_hash: "", // TODO: populate from build metadata
+    metadata_builder_git_hash: import.meta.env.VITE_BUILDER_GIT_HASH ?? "",
     project: cleanedProjectData,
     experiments: includeExperiments ? experiments.map((exp) => exp.formData) : [],
     datasets: includeDatasets ? datasets.map((ds) => ds.formData) : [],
