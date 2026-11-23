@@ -33,7 +33,7 @@ export function sanitizeId(value: string): string {
 }
 
 /**
- * Protocol 0.7.0 restricted project_id and experiment_id. Invalid IDs are
+ * Schema 0.7.0 restricted project_id and experiment_id. Invalid IDs are
  * cleaned rather than dropped, and the same input always gives the same ID, so
  * a dataset's experiment_id still matches its experiment.
  */
