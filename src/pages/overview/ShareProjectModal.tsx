@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Badge,
   Button,
   Group,
   Loader,
@@ -11,16 +12,29 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { IconMailForward, IconX } from "@tabler/icons-react";
+import dayjs from "dayjs";
 import { useStore } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth/useAuth";
 import type { ProjectMember } from "@/workspace/projectCloudSync";
 import { projectSyncActionsAtom } from "@/workspace/syncState";
 
-type MembersClient = ReturnType<
-  typeof import("@/auth/providers/supabase/projectClient").createProjectMembersClient
->;
+type ProjectClientModule = typeof import("@/auth/providers/supabase/projectClient");
+type MembersClient = ReturnType<ProjectClientModule["createProjectMembersClient"]>;
+
+/** Messages for the project-members function's error codes. */
+const MEMBER_ERROR_MESSAGES: Record<string, string> = {
+  cooldown: "Please wait a minute before resending this invitation.",
+  rate_limited: "Too many invitations were sent recently. Try again in an hour.",
+  invite_failed: "We couldn't send the invitation email, so they weren't added. Please try again.",
+};
+
+function errorMessage(cause: unknown, fallback: string) {
+  if (!(cause instanceof Error)) return fallback;
+  const code = (cause as { code?: unknown }).code;
+  return (typeof code === "string" && MEMBER_ERROR_MESSAGES[code]) || cause.message;
+}
 
 const ROLE_OPTIONS = [
   { value: "editor", label: "Editor" },
@@ -78,7 +92,7 @@ export default function ShareProjectModal({
   }, [reload]);
 
   /** Runs a change, then reloads the list and checks the project's access again. */
-  const run = async (change: (members: MembersClient) => Promise<void>) => {
+  const run = async (change: (members: MembersClient) => Promise<unknown>) => {
     if (!client || busy) return false;
     setBusy(true);
     setError(null);
@@ -88,7 +102,7 @@ export default function ShareProjectModal({
       void store.get(projectSyncActionsAtom)?.refresh();
       return true;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not update this project.");
+      setError(errorMessage(cause, "Could not update this project."));
       return false;
     } finally {
       setBusy(false);
@@ -98,7 +112,8 @@ export default function ShareProjectModal({
   const add = async () => {
     const address = email.trim();
     if (!address) return;
-    if (await run((members) => members.set(projectId, address, role))) setEmail("");
+    const added = await run((members) => members.invite(projectId, address, role));
+    if (added) setEmail("");
   };
 
   // Leaving ends access, so the member list can't be reloaded afterwards.
@@ -107,7 +122,7 @@ export default function ShareProjectModal({
     setBusy(true);
     setError(null);
     try {
-      await client.remove(projectId, user.email);
+      await client.remove(projectId, user.id);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not leave this project.");
       setBusy(false);
@@ -118,8 +133,6 @@ export default function ShareProjectModal({
     onLeft();
   };
 
-  const ownEmail = user?.email.toLowerCase();
-
   return (
     <Modal opened onClose={onClose} title={isOwner ? "Share project" : "People on this project"}>
       <Stack>
@@ -128,17 +141,46 @@ export default function ShareProjectModal({
         ) : (
           <Stack gap="xs">
             {members?.map((member) => (
-              <Group key={member.email} justify="space-between" wrap="nowrap">
-                <Text size="sm" truncate>
-                  {member.email}
-                  {member.email === ownEmail ? " (you)" : ""}
-                </Text>
+              <Group key={member.userId} justify="space-between" wrap="nowrap">
+                <Stack gap={0} className="min-w-0">
+                  <Group gap={6} wrap="nowrap" className="min-w-0">
+                    <Text size="sm" truncate>
+                      {member.email}
+                      {member.userId === user?.id ? " (you)" : ""}
+                    </Text>
+                    {member.status === "pending" && (
+                      <Badge size="xs" variant="light" color="yellow" className="shrink-0">
+                        Pending
+                      </Badge>
+                    )}
+                  </Group>
+                  {member.status === "pending" && member.lastInvitedAt && (
+                    <Text size="xs" c="dimmed">
+                      Invited {dayjs(member.lastInvitedAt).format("D MMM YYYY, HH:mm")}
+                    </Text>
+                  )}
+                </Stack>
                 {member.role === "owner" ? (
                   <Text size="sm" c="dimmed">
                     Owner
                   </Text>
                 ) : isOwner ? (
                   <Group gap={4} wrap="nowrap">
+                    {member.status === "pending" && (
+                      <Tooltip label="Resend invitation">
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label={`Resend invitation to ${member.email}`}
+                          disabled={busy}
+                          onClick={() =>
+                            void run((client) => client.resend(projectId, member.userId))
+                          }
+                        >
+                          <IconMailForward size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
                     <Select
                       size="xs"
                       w={110}
@@ -149,7 +191,7 @@ export default function ShareProjectModal({
                       disabled={busy}
                       onChange={(value) => {
                         if (value === "editor" || value === "viewer") {
-                          void run((client) => client.set(projectId, member.email, value));
+                          void run((client) => client.setRole(projectId, member.userId, value));
                         }
                       }}
                     />
@@ -159,7 +201,9 @@ export default function ShareProjectModal({
                         color="gray"
                         aria-label={`Remove ${member.email}`}
                         disabled={busy}
-                        onClick={() => void run((client) => client.remove(projectId, member.email))}
+                        onClick={() =>
+                          void run((client) => client.remove(projectId, member.userId))
+                        }
                       >
                         <IconX size={16} />
                       </ActionIcon>
@@ -207,7 +251,8 @@ export default function ShareProjectModal({
               </Button>
             </Group>
             <Text size="xs" c="dimmed">
-              They'll see this project when they sign in with this email.
+              People with an account get access right away. Anyone else gets an email invitation to
+              create one.
             </Text>
           </Stack>
         ) : (

@@ -202,6 +202,42 @@ describe("supabaseAuthClient", () => {
     });
   });
 
+  it("marks the password as set when updating it", async () => {
+    updateUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    const { supabaseAuthClient } = await import("../adapter");
+
+    await supabaseAuthClient.updatePassword("correct horse battery");
+    expect(updateUser).toHaveBeenCalledWith({
+      password: "correct horse battery",
+      data: { password_set: true },
+    });
+  });
+
+  it("flags invited users who have not set their own password", async () => {
+    const { mapUser } = await import("../mapUser");
+    const user = {
+      id: "user-1",
+      email: "bob@example.com",
+      email_confirmed_at: "2026-09-01T00:00:00Z",
+      created_at: "2026-09-01T00:00:00Z",
+      app_metadata: {},
+      aud: "authenticated",
+    };
+
+    expect(mapUser({ ...user, user_metadata: {} }).needsPassword).toBeUndefined();
+    expect(
+      mapUser({ ...user, invited_at: "2026-09-01T00:00:00Z", user_metadata: {} }).needsPassword,
+    ).toBe(true);
+    expect(
+      mapUser({
+        ...user,
+        invited_at: "2026-09-01T00:00:00Z",
+        user_metadata: { password_set: true },
+      }).needsPassword,
+    ).toBeUndefined();
+  });
+
   it("starts a Supabase email change with a new-email confirmation link", async () => {
     updateUser.mockResolvedValue({ data: { user: null }, error: null });
 

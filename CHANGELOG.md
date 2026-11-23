@@ -6,8 +6,16 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ## Unreleased
 
+### Added
+
+- Sharing a project with someone who has no account emails them an invitation. They set a
+  password when they accept it and then see the project. The Share dialog shows invited people as
+  Pending, with Resend. If the invitation email can't be sent, the person isn't added.
+
 ### Updated
 
+- Project sharing is tied to each person's account rather than their email address, so it
+  follows an email change.
 - Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
