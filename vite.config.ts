@@ -14,7 +14,7 @@ function git(args: string): string {
   }
 }
 
-// Exports record the builder version: 1.2.0 from main, 1.1.0+dev.ac24e9a from anything else.
+// Exports record the builder version: 1.2.0 from main, 1.1.0+dev.ac24e9af from anything else.
 // Netlify sets BRANCH and COMMIT_REF. The release tag is pushed after Netlify builds main,
 // so the branch decides, not the tag.
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
