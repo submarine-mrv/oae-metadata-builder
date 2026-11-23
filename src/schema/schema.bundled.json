@@ -625,7 +625,7 @@
           "type": "string"
         },
         "schema_version": {
-          "description": "Version of this schema the file follows, such as 0.7.0. A file built from an unreleased commit reads 0.6.1+dev.3c014f7: the last release, then the commit.",
+          "description": "Version of this schema the file follows, such as 0.7.0. A file built from an unreleased commit reads 0.6.1+dev.3c014f73: the last release, then the commit.",
           "type": "string"
         }
       },
@@ -8112,11 +8112,11 @@
       "type": "string"
     },
     "schema_version": {
-      "description": "Version of this schema the file follows, such as 0.7.0. A file built from an unreleased commit reads 0.6.1+dev.3c014f7: the last release, then the commit.",
+      "description": "Version of this schema the file follows, such as 0.7.0. A file built from an unreleased commit reads 0.6.1+dev.3c014f73: the last release, then the commit.",
       "type": "string"
     }
   },
   "title": "OAE Data Protocol - Technical Documentation",
   "type": "object",
-  "version": "0.6.1+dev.7b73e587"
+  "version": "0.6.1+dev.a9abe438"
 }

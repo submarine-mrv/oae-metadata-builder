@@ -78,6 +78,10 @@ schema: nvs-vocabs
 		fi
 	@echo "Repository is clean."
 	@# Empty on a release tag; otherwise the short hash marks a dev version.
-	$(eval PROTOCOL_DEV_HASH := $(shell cd $(SCHEMA_REPO_PATH) && (git describe --tags --exact-match >/dev/null 2>&1 || git rev-parse --short=8 HEAD)))
+	$(eval PROTOCOL_DEV_HASH := $(shell cd $(SCHEMA_REPO_PATH) && (git describe --tags --exact-match --match 'v[0-9]*' >/dev/null 2>&1 || git rev-parse --short=8 HEAD)))
+	@if [ -n "$(PROTOCOL_DEV_HASH)" ] && ! (cd $(SCHEMA_REPO_PATH) && git merge-base --is-ancestor HEAD origin/main 2>/dev/null); then \
+		echo "Warning: $(PROTOCOL_DEV_HASH) is not on oae-data-protocol main (as of your last fetch)."; \
+		echo "Rerun make schema after its PR merges; CI blocks merging until then."; \
+	fi
 	cp $(SCHEMA_SOURCE) $(SCHEMA_DEST)
 	node scripts/bundle-schema.mjs $(SCHEMA_DEST) $(PROTOCOL_DEV_HASH)

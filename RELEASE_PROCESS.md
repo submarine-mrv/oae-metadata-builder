@@ -64,5 +64,16 @@ the bundled `version` has one, cut a schema release first (oae-data-protocol's `
 check out the new tag in `../oae-data-protocol`, and run `make schema` again. A build from `main`
 fails if the bundled schema version still has `+dev`.
 
+### Developing against an unmerged schema PR
+
+A builder PR can depend on an open oae-data-protocol PR:
+
+1. Check out the protocol PR in its own worktree and run `make schema SCHEMA_REPO_PATH=<that worktree>`.
+   `make schema` warns that the commit isn't on protocol `main` yet.
+2. The builder PR's "Schema source" check (`scripts/check-schema-source.sh`) stays red until the
+   bundled schema is a release tag or a commit on protocol `main`. Squash-merging deletes the PR's
+   commits, so a schema bundled from one would point at a commit that no longer exists.
+3. Once the protocol PR merges, rerun `make schema` from protocol `main` and push.
+
 Exports record the builder's own version in `metadata_builder_version`. A build from `main` writes
 the `package.json` version; any other branch appends `+dev.<short hash>`.

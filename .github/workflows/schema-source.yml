@@ -1,0 +1,17 @@
+name: Schema source
+
+# Blocks merging a schema bundled from an unmerged oae-data-protocol PR (see RELEASE_PROCESS.md).
+on:
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  schema-source:
+    name: Schema is released or on protocol main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-schema-source.sh
