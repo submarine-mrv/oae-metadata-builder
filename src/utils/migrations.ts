@@ -27,8 +27,8 @@ export function sanitizeId(value: string): string {
   return value
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
-    .replace(/[^A-Za-z0-9._-]/g, "_")
-    .replace(/^[._-]+/, "")
+    .replace(/[^A-Za-z0-9_-]/g, "_")
+    .replace(/^[_-]+/, "")
     .slice(0, ID_MAX_LENGTH);
 }
 

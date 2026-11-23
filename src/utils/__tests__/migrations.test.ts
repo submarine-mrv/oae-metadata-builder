@@ -188,6 +188,7 @@ describe("migrateIds", () => {
     ["Ebb Carbon/2024", "Ebb_Carbon_2024"],
     ["Café run", "Cafe_run"],
     ["-lead", "lead"],
+    ["tc26.1", "tc26_1"],
     ["A".repeat(70), "A".repeat(64)],
   ])("cleans %s", (input, expected) => {
     expect(migrateIds({ project_id: input }).project_id).toBe(expected);
@@ -200,7 +201,7 @@ describe("migrateIds", () => {
   });
 
   it("returns the same object when every ID is valid or empty", () => {
-    const data = { project_id: "", experiment_id: "planetary_tc26.1" };
+    const data = { project_id: "", experiment_id: "planetary_tc26-1" };
     expect(migrateIds(data)).toBe(data);
   });
 });
