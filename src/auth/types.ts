@@ -8,13 +8,15 @@ export type AuthEvent =
   | "USER_UPDATED"
   | "PASSWORD_RECOVERY";
 
-export type AuthOtpType = "signup" | "email" | "recovery" | "email_change";
+export type AuthOtpType = "signup" | "invite" | "email" | "recovery" | "email_change";
 
 export interface AuthUser {
   id: string;
   email: string;
   emailVerified: boolean;
   createdAt: string;
+  /** Invited accounts start without a password of their own and must set one first. */
+  needsPassword?: boolean;
 }
 
 export interface AuthSession {

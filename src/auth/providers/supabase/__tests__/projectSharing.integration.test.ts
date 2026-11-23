@@ -101,7 +101,11 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       a.store.set(workspaceAtom, (workspace) => addProject(workspace, shared));
       await a.sync.flush();
       const members = createProjectMembersClient(owner.user.id);
-      await members.set(shared.id, editor.user.email ?? "", "editor");
+      // An existing account is added straight away, without an email.
+      await expect(members.invite(shared.id, editor.user.email ?? "", "editor")).resolves.toEqual({
+        status: "added",
+        userId: editor.user.id,
+      });
 
       const b = await startAs(editor);
       expect(b.store.get(projectAccessAtom)[shared.id]).toMatchObject({ role: "editor" });
@@ -133,7 +137,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
 
       // Downgraded to viewer: the next save is refused, then refresh applies the role.
       auth.session = owner;
-      await members.set(shared.id, editor.user.email ?? "", "viewer");
+      await members.setRole(shared.id, editor.user.id, "viewer");
       auth.session = editor;
       rename(b.store, shared.id, { description: "After downgrade" });
       await expect(b.sync.flush()).rejects.toThrow(ProjectAccessError);
@@ -146,7 +150,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
 
       // Removed: the project disappears with its own reason.
       auth.session = owner;
-      await members.remove(shared.id, editor.user.email ?? "");
+      await members.remove(shared.id, editor.user.id);
       auth.session = editor;
       await b.sync.refresh();
       expect(b.store.get(workspaceAtom).projects).toEqual([]);
@@ -155,15 +159,36 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       );
     });
 
-    it("applies a grant made before the person had an account", async () => {
+    it("invites someone without an account and shares once they accept", async () => {
       const a = await startAs(owner);
       const project = newProjectRecord({ ...emptyProjectState(), projectData: { name: "Early" } });
       a.store.set(workspaceAtom, (workspace) => addProject(workspace, project));
       await a.sync.flush();
       const email = `later-${crypto.randomUUID()}@example.test`;
-      await createProjectMembersClient(owner.user.id).set(project.id, email, "viewer");
+      const members = createProjectMembersClient(owner.user.id);
+      const invited = await members.invite(project.id, email, "viewer");
+      expect(invited.status).toBe("invited");
+      userIds.push(invited.userId);
+      expect(await members.list(project.id)).toContainEqual(
+        expect.objectContaining({ userId: invited.userId, email, status: "pending" }),
+      );
 
-      const later = await createSession(email);
+      // Accepting the invitation confirms the account the invite created.
+      const password = `${crypto.randomUUID()}Aa1!`;
+      const accepted = await admin.auth.admin.updateUserById(invited.userId, {
+        email_confirm: true,
+        password,
+      });
+      if (accepted.error) throw accepted.error;
+      const signedIn = await createClient(url, key, options).auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signedIn.error || !signedIn.data.session) throw signedIn.error;
+      const later = signedIn.data.session;
+      expect((await members.list(project.id)).find((m) => m.email === email)?.status).toBe(
+        "active",
+      );
       const c = await startAs(later);
       expect(c.store.get(workspaceAtom).projects.map((record) => record.id)).toEqual([project.id]);
       expect(c.store.get(projectAccessAtom)[project.id]).toMatchObject({

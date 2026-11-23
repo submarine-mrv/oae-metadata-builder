@@ -3,3 +3,6 @@ export const authEnabled = import.meta.env.VITE_AUTH_ENABLED === "true";
 
 /** "supabase" for deployments; "memory" is an in-browser fake for end-to-end tests and demos. */
 export const authProvider = import.meta.env.VITE_AUTH_PROVIDER ?? "supabase";
+
+/** Where people go for account problems the app can't resolve itself. */
+export const SUPPORT_EMAIL = "data@carbontosea.org";

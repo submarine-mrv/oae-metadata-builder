@@ -6,12 +6,20 @@ you use it; minor versions add features or adopt a new schema version; patches f
 
 ## Unreleased
 
+### Added
+
+- Sharing a project with someone who has no account emails them an invitation. They set a
+  password when they accept it and then see the project. The Share dialog shows invited people as
+  Pending, with Resend. If the invitation email can't be sent, the person isn't added.
+
 ### Updated
 
 - Exported files record three versions in place of `version` and the two git-hash fields:
   `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.8.0`, or
   `0.7.0+dev.3c014f73` from an unreleased schema commit) and `metadata_builder_version` (`1.2.0`, or
   `1.1.0+dev.ac24e9af` from a development build).
+- Project sharing is tied to each person's account rather than their email address, so it
+  follows an email change.
 - Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,

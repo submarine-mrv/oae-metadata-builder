@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/auth/providers/supabase/client";
+import { buildAuthRedirectUrl } from "@/auth/redirects";
 import {
   checkProjectVersion,
   type ProjectAccess,
@@ -148,34 +149,111 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
   };
 }
 
+export type MemberRole = Exclude<ProjectRole, "owner">;
+
+/**
+ * What adding someone did. If their invitation email can't be sent, they aren't added and the
+ * call throws a MemberRequestError (`rate_limited` or `invite_failed`).
+ */
+export type InviteResult = { status: "added" | "role_updated" | "invited"; userId: string };
+
+/** A refused member change; `code` is the project-members function's error code when known. */
+export class MemberRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | null = null,
+  ) {
+    super(message);
+    this.name = "MemberRequestError";
+  }
+}
+
+const INVITE_STATUSES = new Set(["added", "role_updated", "invited"]);
+
+function parseMember(row: unknown): ProjectMember {
+  if (
+    !isRecord(row) ||
+    typeof row.user_id !== "string" ||
+    typeof row.email !== "string" ||
+    !ROLES.includes(row.role as ProjectRole) ||
+    (row.status !== "active" && row.status !== "pending") ||
+    (row.last_invited_at !== null && typeof row.last_invited_at !== "string")
+  ) {
+    throw new Error("Supabase returned an invalid project member row.");
+  }
+  return {
+    userId: row.user_id,
+    email: row.email,
+    role: row.role as ProjectRole,
+    status: row.status,
+    lastInvitedAt: row.last_invited_at,
+  };
+}
+
 /** Who is on a project, and the owner's controls for changing that. */
 export function createProjectMembersClient(userId: string) {
-  const client = createAccountClient(userId);
+  const client = createAccountClient(userId, false);
   const call = async (name: string, args: Record<string, unknown>, failure: string) => {
     const { data, error } = await client.rpc(name, args);
-    if (error) throw new Error(`${failure}: ${error.message}`);
+    if (error) throw new MemberRequestError(`${failure}: ${error.message}`, error.code ?? null);
     return data;
+  };
+  // Invites go through the project-members Edge Function, which may create the person's account.
+  const invoke = async (body: Record<string, unknown>, failure: string) => {
+    const { data, error } = await client.functions.invoke("project-members", {
+      body: {
+        ...body,
+        redirectTo: buildAuthRedirectUrl({ type: "invite", returnTo: "/overview" }),
+      },
+    });
+    if (error) {
+      const context: unknown = (error as { context?: unknown }).context;
+      const details: unknown =
+        context instanceof Response ? await context.json().catch(() => null) : null;
+      throw new MemberRequestError(
+        isRecord(details) && typeof details.error === "string"
+          ? details.error
+          : `${failure}: ${error.message}`,
+        isRecord(details) && typeof details.code === "string" ? details.code : null,
+      );
+    }
+    if (!isRecord(data) || !INVITE_STATUSES.has(data.status as string)) {
+      throw new Error("The project-members function returned an invalid response.");
+    }
+    return data as InviteResult;
   };
   return {
     async list(projectId: string): Promise<ProjectMember[]> {
-      const rows = (await call(
+      const rows = await call(
         "list_metadata_builder_project_members",
         { p_project_id: projectId },
         "Could not load the people on this project",
-      )) as { email: string; role: ProjectRole }[] | null;
-      return (rows ?? []).map(({ email, role }) => ({ email, role }));
+      );
+      return ((rows ?? []) as unknown[]).map(parseMember);
     },
-    async set(projectId: string, email: string, role: "editor" | "viewer") {
-      await call(
-        "set_metadata_builder_project_member",
-        { p_project_id: projectId, p_email: email, p_role: role },
-        "Could not add this person",
+    /** Adds someone by email: existing accounts at once, anyone else by invitation. */
+    invite(projectId: string, email: string, role: MemberRole): Promise<InviteResult> {
+      return invoke({ action: "invite", projectId, email, role }, "Could not add this person");
+    },
+    /** Emails a pending person a fresh invitation link. */
+    resend(projectId: string, memberId: string): Promise<InviteResult> {
+      return invoke(
+        { action: "resend", projectId, userId: memberId },
+        "Could not resend this invitation",
       );
     },
-    async remove(projectId: string, email: string) {
+    async setRole(projectId: string, memberId: string, role: MemberRole) {
+      await call(
+        "set_metadata_builder_project_member_role",
+        { p_project_id: projectId, p_user_id: memberId, p_role: role },
+        "Could not change this person's role",
+      );
+    },
+    /** Removes someone; members pass their own ID to leave. */
+    async remove(projectId: string, memberId: string) {
       await call(
         "remove_metadata_builder_project_member",
-        { p_project_id: projectId, p_email: email },
+        { p_project_id: projectId, p_user_id: memberId },
         "Could not remove this person",
       );
     },
