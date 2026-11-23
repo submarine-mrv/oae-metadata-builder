@@ -14,8 +14,8 @@ you use it; minor versions add features or adopt a new schema version; patches f
 
 ### Updated
 
-- Uses schema 0.8.0, which limits project and experiment IDs to 64 letters, numbers, hyphens and
-  underscores. The ID field shows the rule as you type, and leaving it with an invalid ID
+- Uses schema 0.8.0, which limits project and experiment IDs to letters, numbers, hyphens and
+  underscores, up to 64 characters. The ID field shows the rule as you type, and leaving it with an invalid ID
   restores the previous one. Saved projects and imported files with IDs that break the rule are cleaned
   when they load (`Ebb Carbon/2024` becomes `Ebb_Carbon_2024`).
 - Project sharing is tied to each person's account rather than their email address, so it

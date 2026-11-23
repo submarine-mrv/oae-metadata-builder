@@ -7,7 +7,7 @@ export const MESSAGES = {
     spatialCoverage: "Spatial Coverage is required",
     experimentIdRequired: "Please select an experiment for your dataset.",
     invalidIdentifier:
-      "Use up to 64 letters, numbers, hyphens or underscores, starting with a letter or number.",
+      "Use only letters, numbers, hyphens and underscores, starting with a letter or number, up to 64 characters.",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
     depthOrder: "Minimum depth must be greater than or equal to maximum depth.",
     temporalCoverageRequired: "Start date is required.",
