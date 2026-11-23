@@ -22,7 +22,7 @@ import { migrateFormDataBoxStrings } from "./spatialUtils";
 const ID_PATTERN = new RegExp(schema.$defs.Project.properties.project_id.pattern, "u");
 const ID_MAX_LENGTH = 64;
 
-/** Turns a free-text ID into one the 0.7.0 pattern accepts: "Café Run/1" → "Cafe_Run_1". */
+/** Turns a free-text ID into one the 0.8.0 pattern accepts: "Café Run/1" → "Cafe_Run_1". */
 export function sanitizeId(value: string): string {
   return value
     .normalize("NFD")
@@ -33,7 +33,7 @@ export function sanitizeId(value: string): string {
 }
 
 /**
- * Schema 0.7.0 restricted project_id and experiment_id. Invalid IDs are
+ * Schema 0.8.0 restricted project_id and experiment_id. Invalid IDs are
  * cleaned rather than dropped, and the same input always gives the same ID, so
  * a dataset's experiment_id still matches its experiment.
  */
@@ -145,16 +145,16 @@ type Migration = (data: Record<string, any>) => Record<string, any>;
 const PROJECT_MIGRATIONS: Migration[] = [
   migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
   migrateResearchProject, // 0.6.0: research_project → name
-  migrateIds, // 0.7.0: project_id pattern
+  migrateIds, // 0.8.0: project_id pattern
 ];
 const EXPERIMENT_MIGRATIONS: Migration[] = [
   migrateFormDataBoxStrings, // v0: W S E N → S W N E (SOSO format)
   migratePublicComments, // 0.4.0: old text → one [{ description, comment_type }]
-  migrateIds, // 0.7.0: project_id, experiment_id pattern
+  migrateIds, // 0.8.0: project_id, experiment_id pattern
 ];
 const DATASET_MIGRATIONS: Migration[] = [
   migratePHCalibrationStandard, // 0.6.0: pH calibration standard_used, dye type rename
-  migrateIds, // 0.7.0: project_id, experiment_id pattern
+  migrateIds, // 0.8.0: project_id, experiment_id pattern
 ];
 
 function runMigrations<T extends Record<string, any>>(migrations: Migration[], data: T): T {
