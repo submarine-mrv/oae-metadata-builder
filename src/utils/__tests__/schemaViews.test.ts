@@ -10,6 +10,7 @@ import {
   getModelOutputDatasetSchema,
   getProjectSchema,
   getProtocolVersion,
+  getSchemaVersion,
   getTracerSchema,
 } from "../schemaViews";
 
@@ -23,7 +24,7 @@ describe("Schema Views", () => {
       expect(typeof schema.$defs).toBe("object");
     });
 
-    it("should have protocol version metadata", () => {
+    it("should have schema version metadata", () => {
       const schema = getBaseSchema();
 
       expect(schema["version"]).toBeDefined();
@@ -39,9 +40,15 @@ describe("Schema Views", () => {
     });
   });
 
-  describe("getProtocolVersion", () => {
+  describe("getSchemaVersion", () => {
     it("reads the bundled schema's version", () => {
-      expect(getProtocolVersion()).toMatch(/^\d+\.\d+\.\d+(\+dev\.[0-9a-f]+)?$/);
+      expect(getSchemaVersion()).toMatch(/^\d+\.\d+\.\d+(\+dev\.[0-9a-f]+)?$/);
+    });
+  });
+
+  describe("getProtocolVersion", () => {
+    it("reads the protocol version the schema fixes", () => {
+      expect(getProtocolVersion()).toMatch(/^\d+\.\d+\.\d+$/);
     });
   });
 

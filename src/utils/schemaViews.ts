@@ -3,7 +3,7 @@
  *
  * The base schema has Container as the root, but our forms need specific views
  * (Project, Experiment, Intervention, etc.). These utilities extract the relevant
- * schema definition and preserve metadata like protocol version and git hash.
+ * schema definition and preserve root metadata such as the schema version.
  */
 
 import type { RJSFSchema } from "@rjsf/utils";
@@ -17,11 +17,16 @@ export function getBaseSchema() {
 }
 
 /**
- * The protocol version, such as 0.7.0, or 0.6.1+dev.3c014f7 when `make schema`
- * ran on an untagged protocol commit.
+ * The schema version, such as 0.7.0, or 0.6.1+dev.3c014f73 when `make schema`
+ * ran on an untagged oae-data-protocol commit.
  */
-export function getProtocolVersion(): string {
+export function getSchemaVersion(): string {
   return baseSchema["version"] || "";
+}
+
+/** The OAE Data Management Protocol version the schema is based on, such as 1.0.0. */
+export function getProtocolVersion(): string {
+  return baseSchema.properties.protocol_version.const;
 }
 
 /**

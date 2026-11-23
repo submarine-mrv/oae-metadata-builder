@@ -1,17 +1,18 @@
 # Changelog
 
 Notable changes to the OAE Metadata Builder. Major versions change what the builder can open or how
-you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
+you use it; minor versions add features or adopt a new schema version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
 ## Unreleased
 
 ### Updated
 
-- Exported files record the builder version in `metadata_builder_version` (`1.2.0`, or
-  `1.1.0+dev.ac24e9a` from a development build) in place of the two git-hash fields. A protocol
-  version built from an unreleased commit reads `0.6.1+dev.5ece5b23`.
-- Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
+- Exported files record three versions in place of `version` and the two git-hash fields:
+  `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.7.0`, or
+  `0.6.1+dev.7b73e587` from an unreleased schema commit) and `metadata_builder_version` (`1.2.0`, or
+  `1.1.0+dev.ac24e9af` from a development build).
+- Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
   instead of copying each project into the page being edited. Typing in a form no longer redraws the

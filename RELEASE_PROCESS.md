@@ -47,21 +47,22 @@ instead (`git push origin origin/dev:main`), which removes the merge commit, the
 paragraph.
 
 Version numbers track changes to the app. The data format has its own version: each export records
-the oae-data-protocol version it follows.
+the oae-data-protocol schema version it follows in `schema_version`.
 
 - **Major:** the builder can no longer open work from an earlier version (exported files or projects
   saved in the browser), or you have to use it differently, such as needing an account.
-- **Minor:** new features, or adopting a new protocol version, including a breaking one. The
+- **Minor:** new features, or adopting a new schema version, including a breaking one. The
   changelog says what changes for existing files.
 - **Patch:** fixes.
 
-Every changelog section opens with the oae-data-protocol version it was built against: `version`
-in `src/schema/schema.bundled.json`.
+Every changelog section opens with the schema version it was built against: `version` in
+`src/schema/schema.bundled.json`.
 
 Between releases, `dev` can pull the schema from protocol `main` at any time; `make schema` records
 an untagged commit as `<last release>+dev.<short hash>`. A release can't ship a `+dev` version: if
-the bundled `version` has one, release the protocol first (its `RELEASE_PROCESS.md`), check out the
-new tag in `../oae-data-protocol`, and run `make schema` again.
+the bundled `version` has one, cut a schema release first (oae-data-protocol's `RELEASE_PROCESS.md`),
+check out the new tag in `../oae-data-protocol`, and run `make schema` again. A build from `main`
+fails if the bundled schema version still has `+dev`.
 
 Exports record the builder's own version in `metadata_builder_version`. A build from `main` writes
 the `package.json` version; any other branch appends `+dev.<short hash>`.

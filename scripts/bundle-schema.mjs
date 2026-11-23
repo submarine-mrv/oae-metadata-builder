@@ -538,7 +538,7 @@ if (protocolDevHash) {
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log("✅ Bundled schema written to", OUTPUT);
 console.log(
-  `   - Protocol version: ${decorated["version"] || "unknown"}`
+  `   - Schema version: ${decorated["version"] || "unknown"}`
 );
 console.log(
   "\nSchema views (Project, Experiment, etc.) are created at runtime in src/utils/schemaViews.ts"

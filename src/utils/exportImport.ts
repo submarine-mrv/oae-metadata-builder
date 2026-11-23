@@ -9,7 +9,7 @@ import type {
 import { trackEvent } from "@/utils/analytics";
 import { migrateDataset, migrateExperiment, migrateProject } from "@/utils/migrations";
 import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
-import { getBaseSchema, getProtocolVersion } from "./schemaViews";
+import { getBaseSchema, getProtocolVersion, getSchemaVersion } from "./schemaViews";
 
 /** Defensive record coercion for entries of imported arrays. */
 function asImportRecord(raw: unknown): Record<string, unknown> {
@@ -56,7 +56,8 @@ export function buildMetadataDocument(
 
   // Build Container object matching schema structure
   return {
-    version: getProtocolVersion(),
+    protocol_version: getProtocolVersion(),
+    schema_version: getSchemaVersion(),
     metadata_builder_version: import.meta.env.VITE_BUILDER_VERSION ?? "",
     project: cleanedProjectData,
     experiments: includeExperiments ? experiments.map((exp) => exp.formData) : [],

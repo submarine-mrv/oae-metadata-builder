@@ -78,6 +78,6 @@ schema: nvs-vocabs
 		fi
 	@echo "Repository is clean."
 	@# Empty on a release tag; otherwise the short hash marks a dev version.
-	$(eval PROTOCOL_DEV_HASH := $(shell cd $(SCHEMA_REPO_PATH) && (git describe --tags --exact-match >/dev/null 2>&1 || git rev-parse --short HEAD)))
+	$(eval PROTOCOL_DEV_HASH := $(shell cd $(SCHEMA_REPO_PATH) && (git describe --tags --exact-match >/dev/null 2>&1 || git rev-parse --short=8 HEAD)))
 	cp $(SCHEMA_SOURCE) $(SCHEMA_DEST)
 	node scripts/bundle-schema.mjs $(SCHEMA_DEST) $(PROTOCOL_DEV_HASH)

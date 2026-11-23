@@ -24,9 +24,8 @@ Schema documentation is at [schema.oaedata.org](https://schema.oaedata.org).
 
 The schema lives in [submarine-mrv/oae-data-protocol](https://github.com/submarine-mrv/oae-data-protocol),
 written in LinkML and generated to JSON Schema. This repo keeps a bundled copy in
-`src/schema/schema.bundled.json`; the protocol version it was built against is in its `version` and
-`x-protocol-git-hash` fields. [CHANGELOG.md](CHANGELOG.md) notes the protocol version for each
-release.
+`src/schema/schema.bundled.json`; the schema version it was built against is its `version` field.
+[CHANGELOG.md](CHANGELOG.md) notes the schema version for each release.
 
 ## Development
 

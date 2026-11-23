@@ -7,7 +7,7 @@
  * form change.
  *
  * Migrations detect the old shape instead of checking a version: stored
- * projects carry no protocol version, and a file's `version` can be wrong.
+ * projects carry no schema version, and a file's `schema_version` can be wrong.
  * Gate a migration on version only if its old shape is also valid today.
  *
  * When adding a new migration:
@@ -19,7 +19,7 @@
 import { migrateFormDataBoxStrings } from "./spatialUtils";
 
 /**
- * Protocol 0.4.0 turned `public_comments` from one free-text string into a list
+ * Schema 0.4.0 turned `public_comments` from one free-text string into a list
  * of `{ url, comment_type, description }`. The old text was filenames, not
  * links, so it is kept whole as the description of a single entry rather than
  * guessed into URLs. `url` is left empty and required, which flags the entry
@@ -53,7 +53,7 @@ export function migratePublicComments(data: Record<string, any>): Record<string,
 }
 
 /**
- * Protocol 0.6.0 renamed the project's `research_project` to `name`. An existing
+ * Schema 0.6.0 renamed the project's `research_project` to `name`. An existing
  * non-empty `name` wins.
  */
 export function migrateResearchProject(data: Record<string, any>): Record<string, any> {
@@ -86,7 +86,7 @@ function migratePHCalibration(cal: Record<string, any>): Record<string, any> {
 }
 
 /**
- * Protocol 0.6.0 added `standard_used` to pH calibration and renamed
+ * Schema 0.6.0 added `standard_used` to pH calibration and renamed
  * `dye_type_and_manufacturer` to `standard_type_and_production`. A calibration
  * with any dye field filled in gets `standard_used: "dye"`, since the dye
  * fields are hidden until that standard is picked.

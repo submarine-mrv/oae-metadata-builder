@@ -10,7 +10,7 @@
 ```
 LinkML (oae-data-protocol)
   └─ just gen-all ─→ JSON Schema (Draft 2019-09)
-       └─ make schema ─→ oae-metadata-builder/schemas/schema.json   (verbatim copy, git-hash tracked)
+       └─ make schema ─→ oae-metadata-builder/schemas/schema.json   (verbatim copy, schema version recorded)
             └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json
                  ├─ AJV validation        (runtime authority)
                  ├─ RJSF rendering         (project / experiment / dataset forms)

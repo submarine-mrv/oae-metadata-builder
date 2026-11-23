@@ -19,8 +19,14 @@ function git(args: string): string {
 // so the branch decides, not the tag.
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 const branch = process.env.BRANCH || git("rev-parse --abbrev-ref HEAD");
-const commit = (process.env.COMMIT_REF || git("rev-parse HEAD")).slice(0, 7);
+const commit = (process.env.COMMIT_REF || git("rev-parse HEAD")).slice(0, 8);
 process.env.VITE_BUILDER_VERSION ??= branch === "main" ? version : `${version}+dev.${commit}`;
+
+// A release must ship a released schema, never one pulled from an unreleased commit.
+const schemaVersion = JSON.parse(readFileSync("src/schema/schema.bundled.json", "utf8")).version;
+if (branch === "main" && schemaVersion.includes("+dev")) {
+  throw new Error(`main can't ship unreleased schema ${schemaVersion}; see RELEASE_PROCESS.md`);
+}
 
 // https://vite.dev/config/
 export default defineConfig({
