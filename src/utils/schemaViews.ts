@@ -17,7 +17,7 @@ export function getBaseSchema() {
 }
 
 /**
- * The schema version, such as 0.7.0, or 0.6.1+dev.3c014f73 when `make schema`
+ * The schema version, such as 0.8.0, or 0.7.0+dev.3c014f73 when `make schema`
  * ran on an untagged oae-data-protocol commit.
  */
 export function getSchemaVersion(): string {

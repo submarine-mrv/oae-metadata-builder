@@ -9,8 +9,8 @@ you use it; minor versions add features or adopt a new schema version; patches f
 ### Updated
 
 - Exported files record three versions in place of `version` and the two git-hash fields:
-  `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.7.0`, or
-  `0.6.1+dev.7b73e587` from an unreleased schema commit) and `metadata_builder_version` (`1.2.0`, or
+  `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.8.0`, or
+  `0.7.0+dev.3c014f73` from an unreleased schema commit) and `metadata_builder_version` (`1.2.0`, or
   `1.1.0+dev.ac24e9af` from a development build).
 - Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
