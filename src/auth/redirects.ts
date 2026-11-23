@@ -3,7 +3,7 @@ export function buildAuthRedirectUrl({
   returnTo,
   origin = window.location.origin,
 }: {
-  type: "signup" | "recovery" | "email_change";
+  type: "signup" | "invite" | "recovery" | "email_change";
   returnTo: string;
   origin?: string;
 }): string {

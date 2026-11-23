@@ -1,10 +1,16 @@
 # Changelog
 
 Notable changes to the OAE Metadata Builder. Major versions change what the builder can open or how
-you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
+you use it; minor versions add features or adopt a new schema version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
 ## Unreleased
+
+### Added
+
+- Sharing a project with someone who has no account emails them an invitation. They set a
+  password when they accept it and then see the project. The Share dialog shows invited people as
+  Pending, with Resend. If the invitation email can't be sent, the person isn't added.
 
 ### Updated
 
@@ -12,7 +18,9 @@ you use it; minor versions add features or adopt a new protocol version; patches
   underscores. The ID field shows the rule as you type, and leaving it with an invalid ID
   restores the previous one. Saved projects and imported files with IDs that break the rule are cleaned
   when they load (`Ebb Carbon/2024` becomes `Ebb_Carbon_2024`).
-- Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
+- Project sharing is tied to each person's account rather than their email address, so it
+  follows an email change.
+- Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
   instead of copying each project into the page being edited. Typing in a form no longer redraws the

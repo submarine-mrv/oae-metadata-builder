@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   loadError: null as { message: string } | null,
   rpc: vi.fn(),
   list: vi.fn(),
+  invoke: vi.fn(),
 }));
 vi.mock("../client", () => ({
   supabase: {
@@ -21,6 +22,7 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: (_url: string, _key: string, options: { accessToken(): Promise<string> }) => {
     mocks.options = options;
     return {
+      functions: { invoke: mocks.invoke },
       rpc: async (name: string, args: unknown) => {
         await options.accessToken();
         if (name !== "list_metadata_builder_projects") return mocks.rpc(name, args);
@@ -96,23 +98,91 @@ describe("owner-bound project Supabase client", () => {
     );
   });
 
-  it("manages members through the member RPCs", async () => {
+  it("manages members by user ID through the member RPCs", async () => {
     mocks.rpc.mockResolvedValue({
-      data: [{ email: "bob@example.com", role: "editor" }],
+      data: [
+        {
+          user_id: "bob",
+          email: "bob@example.com",
+          role: "editor",
+          status: "pending",
+          last_invited_at: "2026-09-20T10:00:00Z",
+        },
+      ],
       error: null,
     });
     const members = createProjectMembersClient("owner");
-    expect(await members.list("p")).toEqual([{ email: "bob@example.com", role: "editor" }]);
-    await members.set("p", "bob@example.com", "viewer");
-    expect(mocks.rpc).toHaveBeenCalledWith("set_metadata_builder_project_member", {
+    expect(await members.list("p")).toEqual([
+      {
+        userId: "bob",
+        email: "bob@example.com",
+        role: "editor",
+        status: "pending",
+        lastInvitedAt: "2026-09-20T10:00:00Z",
+      },
+    ]);
+    await members.setRole("p", "bob", "viewer");
+    expect(mocks.rpc).toHaveBeenCalledWith("set_metadata_builder_project_member_role", {
       p_project_id: "p",
-      p_email: "bob@example.com",
+      p_user_id: "bob",
       p_role: "viewer",
     });
-    await members.remove("p", "bob@example.com");
+    await members.remove("p", "bob");
     expect(mocks.rpc).toHaveBeenCalledWith("remove_metadata_builder_project_member", {
       p_project_id: "p",
-      p_email: "bob@example.com",
+      p_user_id: "bob",
+    });
+  });
+
+  it("rejects member rows without a status", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ user_id: "bob", email: "bob@example.com", role: "editor", last_invited_at: null }],
+      error: null,
+    });
+    await expect(createProjectMembersClient("owner").list("p")).rejects.toThrow("invalid");
+  });
+
+  it("invites and resends through the project-members function with an invite link", async () => {
+    mocks.invoke.mockResolvedValue({ data: { status: "invited", userId: "bob" }, error: null });
+    const members = createProjectMembersClient("owner");
+    await expect(members.invite("p", "bob@example.com", "viewer")).resolves.toEqual({
+      status: "invited",
+      userId: "bob",
+    });
+    const [name, { body }] = mocks.invoke.mock.calls[0];
+    expect(name).toBe("project-members");
+    expect(body).toMatchObject({
+      action: "invite",
+      projectId: "p",
+      email: "bob@example.com",
+      role: "viewer",
+    });
+    const redirect = new URL(body.redirectTo);
+    expect(redirect.pathname).toBe("/auth/callback");
+    expect(redirect.searchParams.get("type")).toBe("invite");
+    expect(redirect.searchParams.get("returnTo")).toBe("/overview");
+
+    await members.resend("p", "bob");
+    expect(mocks.invoke.mock.calls[1][1].body).toMatchObject({
+      action: "resend",
+      projectId: "p",
+      userId: "bob",
+    });
+  });
+
+  it("surfaces the project-members function's error code", async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: "Edge Function returned a non-2xx status code",
+        context: new Response(JSON.stringify({ error: "Slow down", code: "cooldown" }), {
+          status: 429,
+        }),
+      },
+    });
+    await expect(createProjectMembersClient("owner").resend("p", "bob")).rejects.toMatchObject({
+      message: "Slow down",
+      code: "cooldown",
     });
   });
 

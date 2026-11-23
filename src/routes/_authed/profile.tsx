@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Button,
   Container,
   Divider,
@@ -15,7 +16,8 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { SUPPORT_EMAIL } from "@/auth/config";
 import { getPasswordUpdateErrorMessage, getReauthErrorMessage } from "@/auth/errors";
 import { getPasswordStrength } from "@/auth/passwordStrength";
 import { buildAuthRedirectUrl } from "@/auth/redirects";
@@ -56,7 +58,7 @@ function ProfilePage({ error }: { error?: string }) {
   const [emailPending, setEmailPending] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<ReactNode>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -148,7 +150,16 @@ function ProfilePage({ error }: { error?: string }) {
     );
     setEmailPending(false);
     if (result.error) {
-      setEmailError("We could not start the email change.");
+      setEmailError(
+        result.error.code === "email_taken" ? (
+          <>
+            This email is already in use. If it belongs to you, contact{" "}
+            <Anchor href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</Anchor>.
+          </>
+        ) : (
+          "We could not start the email change."
+        ),
+      );
       return;
     }
     closeEmailModal();
