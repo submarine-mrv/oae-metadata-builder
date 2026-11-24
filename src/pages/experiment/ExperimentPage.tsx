@@ -122,9 +122,9 @@ export default function ExperimentPage() {
       const filtered = validation.showErrorList
         ? errors
         : errors.filter((e) => e.name !== "required");
-      return transformFormErrors(filtered);
+      return transformFormErrors(filtered, formData);
     };
-  }, [validation.showErrorList, activeSchema]);
+  }, [validation.showErrorList, activeSchema, formData]);
 
   // Reset error-list visibility so the new entity doesn't inherit
   // the previous one's open/closed state.

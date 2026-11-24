@@ -1,7 +1,7 @@
 # Changelog
 
 Notable changes to the OAE Metadata Builder. Major versions change what the builder can open or how
-you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
+you use it; minor versions add features or adopt a new schema version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
 ## Unreleased
@@ -14,9 +14,15 @@ you use it; minor versions add features or adopt a new protocol version; patches
 
 ### Updated
 
+- Project and experiment IDs take only letters, numbers, hyphens and underscores, starting with a
+  letter or number, up to 64 characters. The ID field shows the rule as you type, and leaving it
+  with an invalid ID restores the previous one. Saved projects and imported files with IDs that
+  break the rule are cleaned when they load (`Ebb Carbon/2024` becomes `Ebb_Carbon_2024`).
+- Exported and published files no longer include `protocol_git_hash` or
+  `metadata_builder_git_hash`, which the schema dropped.
 - Project sharing is tied to each person's account rather than their email address, so it
   follows an email change.
-- Uses protocol 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
+- Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
   field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
   instead of copying each project into the page being edited. Typing in a form no longer redraws the

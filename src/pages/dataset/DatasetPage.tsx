@@ -159,7 +159,7 @@ export default function DatasetPage() {
   //    schema renders variables via VariablesField and omits their item schema)
   const customTransformErrors = useMemo(() => {
     return (errors: RJSFValidationError[]) => {
-      let transformed = transformFormErrors(errors);
+      let transformed = transformFormErrors(errors, formDataRef.current);
 
       // Hide required-field errors from inline display unless the user has
       // explicitly clicked the badge to reveal the full error list.
