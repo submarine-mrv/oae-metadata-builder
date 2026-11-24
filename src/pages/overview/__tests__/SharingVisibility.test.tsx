@@ -65,6 +65,8 @@ function renderPage(role: ProjectRole | null, cloud = role !== null, page?: Reac
       refresh: vi.fn(),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
+      previewProjectConflict: vi.fn(),
+      resolveProjectConflict: vi.fn(),
       stop: vi.fn(),
     });
   }

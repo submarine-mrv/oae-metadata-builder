@@ -1,9 +1,19 @@
 import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
-import { adoptUnseenProject, equalData, reconcileProjectRecord } from "../merge";
+import {
+  adoptUnseenProject,
+  type ConflictResolver,
+  collectProjectConflicts,
+  equalData,
+  projectConflict,
+  reconcileProjectRecord,
+  type SyncConflict,
+} from "../merge";
 import { readLocalProjectSources } from "../storage";
 import {
+  type ConflictChoices,
+  ProjectConflictChangedError,
   ProjectConflictError,
   type ProjectSyncStatus,
   projectAccessAtom,
@@ -510,10 +520,11 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       .finally(() => void refresh());
   };
 
-  /** Settles a conflict on one project by keeping this tab's version or taking the cloud's. */
-  const resolveConflict = async (id: string, keep: boolean) => {
+  /** The latest cloud copy, this tab's copy, the shared baseline and how they clash. */
+  const conflictSnapshot = async (id: string, resolving: boolean) => {
     await inFlight?.catch(() => {});
-    cancelTimer();
+    // Only resolving holds back background saves; previewing leaves them scheduled.
+    if (resolving) cancelTimer();
     const rows = await client.load();
     assertActive();
     const row = rows.find((candidate) =>
@@ -523,20 +534,28 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       throw new UnsupportedProjectVersionError(id, row.schemaVersion, row.reason);
     }
     const local = currentProject(id);
+    if (!local) throw new Error("This project is no longer open in this tab.");
     const previous = acknowledged.get(id);
-    if (row && local && previous) {
+    const conflicts = row
+      ? collectProjectConflicts(local, row.project, previous?.project)
+      : [projectConflict(local)];
+    return { row, local, previous, conflicts };
+  };
+
+  /** Settles a conflict on one project, taking each clashing value from the chosen side. */
+  const settleConflict = async (
+    id: string,
+    { row, local, previous, conflicts }: Awaited<ReturnType<typeof conflictSnapshot>>,
+    resolver: ConflictResolver,
+  ) => {
+    const put = (project: ProjectRecord) =>
+      store.set(workspaceAtom, (workspace) => ({
+        ...workspace,
+        projects: workspace.projects.map((record) => (record.id === id ? project : record)),
+      }));
+    if (row && previous) {
       // Settle only the clashing fields; other edits from both sides are kept.
-      const merged = reconcileProjectRecord(
-        local,
-        row.project,
-        previous.project,
-        keep ? "local" : "remote",
-      );
-      const put = (project: ProjectRecord) =>
-        store.set(workspaceAtom, (workspace) => ({
-          ...workspace,
-          projects: workspace.projects.map((record) => (record.id === id ? project : record)),
-        }));
+      const merged = reconcileProjectRecord(local, row.project, previous.project, resolver);
       acknowledged.set(id, row);
       put(merged);
       try {
@@ -546,52 +565,66 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         if (stopped) throw error;
         // Back to the original baseline so the next choice settles the same clash.
         acknowledged.set(id, previous);
-        put(local);
+        // Edits made here while saving are newer than the copy from before the choice.
+        if (currentProject(id) === merged) put(local);
         // Reported so the dialog stays open, e.g. on another clash.
         throw error;
       }
       noteDeletions(removedEntities(local, merged, previous.project));
-    } else if (keep) {
-      const project = currentProject(id);
-      if (!project) throw new Error("This project is no longer open in this tab.");
-      const hash = await hashProject(project);
-      assertActive();
-      const result = await client.save(project, hash, row?.hash ?? null);
-      assertActive();
-      if (!result.saved || !result.hash) {
-        throw new ProjectConflictError(
-          id,
-          "It changed again while you were choosing. Look again before keeping yours.",
-        );
-      }
-      acknowledged.set(id, { project, hash: result.hash });
     } else {
-      if (row) {
+      // No baseline to merge against: one side replaces the whole project.
+      const whole = conflicts[0];
+      const choice =
+        typeof resolver === "function" ? (whole ? resolver(whole) : "remote") : resolver;
+      if (!choice) throw new Error("Choose which version of this project to keep.");
+      if (choice === "local") {
+        const hash = await hashProject(local);
+        assertActive();
+        const result = await client.save(local, hash, row?.hash ?? null);
+        assertActive();
+        if (!result.saved || !result.hash) {
+          throw new ProjectConflictError(
+            id,
+            "It changed again while you were choosing. Look again before keeping yours.",
+          );
+        }
+        acknowledged.set(id, { project: local, hash: result.hash });
+      } else if (row) {
         acknowledged.set(id, row);
-        store.set(workspaceAtom, (workspace) => ({
-          ...workspace,
-          projects: workspace.projects.map((project) =>
-            project.id === id ? row.project : project,
-          ),
-        }));
-        if (local) noteDeletions(removedEntities(local, row.project, previous?.project));
+        put(row.project);
+        noteDeletions(removedEntities(local, row.project, previous?.project));
       } else {
         acknowledged.delete(id);
         store.set(workspaceAtom, (workspace) => deleteProject(workspace, id));
-        if (local) {
-          noteDeletions([
-            {
-              type: "project",
-              name: projectDisplayName(local.state),
-              projectId: id,
-              unsavedEdits: true,
-            },
-          ]);
-        }
+        noteDeletions([
+          {
+            type: "project",
+            name: projectDisplayName(local.state),
+            projectId: id,
+            unsavedEdits: true,
+          },
+        ]);
       }
     }
     // Saves anything else still waiting and clears the conflict status.
     await flush().catch(() => {});
+  };
+
+  /** Settles every clash on one project with this tab's version or the cloud's. */
+  const resolveConflict = async (id: string, keep: boolean) =>
+    settleConflict(id, await conflictSnapshot(id, true), keep ? "local" : "remote");
+
+  /** Applies per-conflict choices, but only to the same conflicts the user reviewed. */
+  const resolveWithChoices = async (
+    id: string,
+    choices: ConflictChoices,
+    reviewed: SyncConflict[],
+  ) => {
+    const snapshot = await conflictSnapshot(id, true);
+    if (!equalData(snapshot.conflicts, reviewed)) {
+      throw new ProjectConflictChangedError(id, snapshot.conflicts);
+    }
+    await settleConflict(id, snapshot, (conflict) => choices[conflict.key]);
   };
 
   const unsubscribe = store.sub(workspaceAtom, schedule);
@@ -702,6 +735,8 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
     refresh,
     keepProjectChanges: (id: string) => resolveConflict(id, true),
     discardProjectChanges: (id: string) => resolveConflict(id, false),
+    previewProjectConflict: async (id: string) => (await conflictSnapshot(id, false)).conflicts,
+    resolveProjectConflict: resolveWithChoices,
     hasPendingChanges: dirty,
     stop() {
       stopped = true;

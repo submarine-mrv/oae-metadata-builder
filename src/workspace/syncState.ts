@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import type { ConflictPreference, SyncConflict } from "./merge";
 import { ProjectAccessError, UnsupportedProjectVersionError } from "./projectCloudSync/helper";
 import type { ProjectAccess } from "./projectCloudSync/types";
 
@@ -14,6 +15,20 @@ export class ProjectConflictError extends Error {
   ) {
     super(message);
     this.name = "ProjectConflictError";
+  }
+}
+
+/** Each conflict's chosen side, by `SyncConflict.key`. */
+export type ConflictChoices = Record<string, ConflictPreference>;
+
+/** The conflicts changed after they were shown, so the choices need another look. */
+export class ProjectConflictChangedError extends Error {
+  constructor(
+    public readonly projectId: string,
+    public readonly conflicts: SyncConflict[],
+  ) {
+    super("Changes updated while you were reviewing. Review them again.");
+    this.name = "ProjectConflictChangedError";
   }
 }
 
@@ -39,6 +54,17 @@ export interface ProjectSyncActions {
   refresh(maxAgeMs?: number): Promise<void>;
   keepProjectChanges(projectId: string): Promise<void>;
   discardProjectChanges(projectId: string): Promise<void>;
+  /** Loads the latest cloud copy and lists what clashes with this tab. */
+  previewProjectConflict(projectId: string): Promise<SyncConflict[]>;
+  /**
+   * Saves with a side chosen for each of the `reviewed` conflicts. Throws
+   * `ProjectConflictChangedError` if they no longer match what is in conflict now.
+   */
+  resolveProjectConflict(
+    projectId: string,
+    choices: ConflictChoices,
+    reviewed: SyncConflict[],
+  ): Promise<void>;
   stop(): void;
 }
 

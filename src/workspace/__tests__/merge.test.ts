@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeProjectRecord, reconcileProjectRecord } from "../merge";
+import { collectProjectConflicts, mergeProjectRecord, reconcileProjectRecord } from "../merge";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 
 describe("project import reconciliation", () => {
@@ -209,6 +209,113 @@ describe("project import reconciliation", () => {
         description: "base",
         experiment_types: ["control"],
       });
+    });
+  });
+
+  describe("choosing a side per conflict", () => {
+    const base = newProjectRecord(
+      {
+        ...emptyProjectState(),
+        projectData: { name: "base", description: "base", purpose: "base" },
+        experiments: [
+          {
+            id: "e",
+            name: "E",
+            formData: { experiment_id: "E", description: "base" },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+      1,
+    );
+    const change = (
+      data: Record<string, unknown>,
+      experiment: Record<string, unknown> = {},
+    ): ProjectRecord => ({
+      ...base,
+      state: {
+        ...base.state,
+        projectData: { ...base.state.projectData, ...data },
+        experiments: [
+          {
+            ...base.state.experiments[0],
+            formData: { ...base.state.experiments[0].formData, ...experiment },
+          },
+        ],
+      },
+    });
+    const local = change({ name: "local", description: "local" }, { description: "mine" });
+    const remote = change(
+      { name: "remote", description: "remote", purpose: "theirs" },
+      { description: "theirs" },
+    );
+
+    it("lists every clash with both values, not just the first", () => {
+      const conflicts = collectProjectConflicts(local, remote, base);
+      expect(
+        conflicts.map(({ group, scope, local, remote }) => ({ group, scope, local, remote })),
+      ).toEqual([
+        {
+          group: "Project",
+          scope: "field",
+          local: { present: true, value: "local" },
+          remote: { present: true, value: "remote" },
+        },
+        {
+          group: "Project",
+          scope: "field",
+          local: { present: true, value: "local" },
+          remote: { present: true, value: "remote" },
+        },
+        {
+          group: 'Experiment "E"',
+          scope: "field",
+          local: { present: true, value: "mine" },
+          remote: { present: true, value: "theirs" },
+        },
+      ]);
+      expect(new Set(conflicts.map((conflict) => conflict.key)).size).toBe(3);
+    });
+
+    it("applies a different side to each clash and keeps the other edits", () => {
+      const [name, description, experiment] = collectProjectConflicts(local, remote, base);
+      const choices: Record<string, "local" | "remote"> = {
+        [name.key]: "local",
+        [description.key]: "remote",
+        [experiment.key]: "remote",
+      };
+      const merged = reconcileProjectRecord(local, remote, base, (c) => choices[c.key]);
+      expect(merged.state.projectData).toEqual({
+        name: "local",
+        description: "remote",
+        purpose: "theirs",
+      });
+      expect(merged.state.experiments[0].formData.description).toBe("theirs");
+    });
+
+    it("refuses to merge while any clash has no choice", () => {
+      const [name] = collectProjectConflicts(local, remote, base);
+      expect(() =>
+        reconcileProjectRecord(local, remote, base, (c) =>
+          c.key === name.key ? "local" : undefined,
+        ),
+      ).toThrow('Newer changes also edited "Project Description"');
+    });
+
+    it("offers a type change as one whole-experiment choice", () => {
+      const conflicts = collectProjectConflicts(
+        change({}, { experiment_types: ["control"] }),
+        change({}, { description: "theirs" }),
+        base,
+      );
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0]).toMatchObject({ scope: "entity", kind: "experiment", entityId: "e" });
+    });
+
+    it("offers the whole project when there is no shared baseline", () => {
+      expect(collectProjectConflicts(local, remote)).toMatchObject([{ scope: "project" }]);
+      expect(collectProjectConflicts(local, local)).toEqual([]);
     });
   });
 
