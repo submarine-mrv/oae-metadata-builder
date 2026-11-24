@@ -6,10 +6,7 @@ import { useCallback } from "react";
 import { workspaceAtom } from "@/state/atoms";
 import { type EntityPage, entityLocation } from "./slugs";
 
-/**
- * Copies an absolute link to a project page, using the same slugs as the address bar: human IDs
- * when unique in the workspace, otherwise internal IDs.
- */
+/** Copies an absolute link using the same stable internal IDs as the address bar. */
 export function useCopyLink() {
   const store = useStore();
   const router = useRouter();

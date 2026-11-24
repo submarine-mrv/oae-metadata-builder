@@ -1,5 +1,4 @@
 import { atom } from "jotai";
-import { DuplicateIdError } from "./duplicateIds";
 import { ProjectAccessError, UnsupportedProjectVersionError } from "./projectCloudSync/helper";
 import type { ProjectAccess } from "./projectCloudSync/types";
 
@@ -23,11 +22,10 @@ export function projectSyncErrorStatus(error: unknown): ProjectSyncStatus {
     state: "error",
     message: error instanceof Error ? error.message : "Could not sync this project.",
     ...(error instanceof ProjectConflictError ? { projectId: error.projectId } : {}),
-    // Saving again can't settle these; a duplicate ID waits for the next edit.
+    // Saving again can't settle a conflict or a newer-format project.
     ...(error instanceof ProjectConflictError ||
     error instanceof UnsupportedProjectVersionError ||
-    error instanceof ProjectAccessError ||
-    error instanceof DuplicateIdError
+    error instanceof ProjectAccessError
       ? { noRetry: true as const }
       : {}),
   };
@@ -63,7 +61,5 @@ export const remoteDeletionsAtom = atom<RemoteDeletion[]>([]);
 export const refreshPausesAtom = atom(0);
 /** The signed-in user's access to each cloud project, by project ID. */
 export const projectAccessAtom = atom<Record<string, ProjectAccess>>({});
-/** Human IDs the backend rejected as already in use, by project ID. */
-export const rejectedIdsAtom = atom<Record<string, string[]>>({});
 export const projectSyncStatusAtom = atom<ProjectSyncStatus>({ state: "disabled" });
 export const projectSyncActionsAtom = atom<ProjectSyncActions | null>(null);

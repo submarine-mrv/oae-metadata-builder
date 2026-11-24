@@ -12,10 +12,18 @@ export interface ProjectAccess {
   memberCount: number;
 }
 
-/** A person on a project, as the owner manages them. */
+/**
+ * A person on a project. Pending people were invited but haven't accepted yet; they have no
+ * access and only the owner sees them.
+ */
 export interface ProjectMember {
+  userId: string;
+  /** Their current account email, so it follows email changes. */
   email: string;
   role: ProjectRole;
+  status: "active" | "pending";
+  /** When an invitation was last emailed; null for people added with an existing account. */
+  lastInvitedAt: string | null;
 }
 
 export interface RemoteProject {

@@ -1,7 +1,6 @@
 import { workspaceAtom } from "@/state/atoms";
 import { SAVE_DEBOUNCE_MS } from "@/state/persistence";
 import type { AppStore } from "@/state/store";
-import { DuplicateIdError } from "../duplicateIds";
 import { adoptUnseenProject, equalData, reconcileProjectRecord } from "../merge";
 import { readLocalProjectSources } from "../storage";
 import {
@@ -12,7 +11,6 @@ import {
   projectSyncStatusAtom,
   type RemoteDeletion,
   refreshPausesAtom,
-  rejectedIdsAtom,
   remoteDeletionsAtom,
 } from "../syncState";
 import { type ProjectRecord, projectDisplayName } from "../types";
@@ -123,11 +121,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   const paused = () => store.get(refreshPausesAtom) > 0;
   const currentProject = (id: string) =>
     store.get(workspaceAtom).projects.find((project) => project.id === id);
-  const setRejectedIds = (id: string, ids: string[]) => {
-    if (!equalData(store.get(rejectedIdsAtom)[id] ?? [], ids)) {
-      store.set(rejectedIdsAtom, (previous) => ({ ...previous, [id]: ids }));
-    }
-  };
   const pendingVersionError = () => {
     for (const [id, error] of unsupported) {
       if (currentProject(id) !== acknowledged.get(id)?.project) return error;
@@ -180,8 +173,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       try {
         result = await client.save(project, hash, previous?.hash ?? null);
       } catch (error) {
-        if (error instanceof DuplicateIdError) setRejectedIds(id, error.ids);
-        if (error instanceof ProjectAccessError || error instanceof DuplicateIdError) throw error;
+        if (error instanceof ProjectAccessError) throw error;
         if (!(error instanceof UnsupportedProjectVersionError)) {
           throw new RequestError(errorMessage(error), { cause: error });
         }
@@ -192,7 +184,6 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       if (result.saved) {
         if (!result.hash) throw new Error("The cloud did not acknowledge the saved project.");
         acknowledged.set(id, { project, hash: result.hash });
-        setRejectedIds(id, []);
         // A first save makes this user the owner; the next hash check fills in the rest.
         if (!previous && !accessOf(id)) {
           updateAccess(

@@ -17,7 +17,7 @@ import { setPendingVerificationEmail } from "@/auth/verification";
 import { trackEvent } from "@/utils/analytics";
 import AuthShell from "./AuthShell";
 
-export default function SignUpForm() {
+export default function SignUpForm({ inviteExpired = false }: { inviteExpired?: boolean }) {
   const { client } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", displayName: "", password: "", confirm: "" });
@@ -74,6 +74,13 @@ export default function SignUpForm() {
     >
       <form onSubmit={submit}>
         <Stack>
+          {inviteExpired && !error && (
+            <Alert color="yellow">
+              Your invitation link has expired or was replaced by a newer one. Create an account
+              with the email address it was sent to; projects shared with you appear once you
+              confirm it.
+            </Alert>
+          )}
           {error && <Alert color="red">{error}</Alert>}
           <TextInput
             label="Full name"

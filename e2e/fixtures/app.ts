@@ -8,7 +8,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
  */
 export const COLD_START_TIMEOUT = 45_000;
 
-/** URLs of a project's pages; slugs are human IDs where unique, else internal IDs. */
+/** URLs of a project's pages, always using stable internal IDs. */
 export const ROUTE = {
   overview: /\/projects\/[^/]+$/,
   metadata: /\/projects\/[^/]+\/metadata$/,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   migrateDataset,
   migrateExperiment,
+  migrateIds,
   migratePHCalibrationStandard,
   migrateProject,
   migratePublicComments,
@@ -179,5 +180,28 @@ describe("migratePHCalibrationStandard", () => {
   it("runs as part of migrateDataset", () => {
     const result = migrateDataset(withCalibration({ dye_correction_method: "Liu 2011" }));
     expect(calibrationOf(result).standard_used).toBe("dye");
+  });
+});
+
+describe("migrateIds", () => {
+  it.each([
+    ["Ebb Carbon/2024", "Ebb_Carbon_2024"],
+    ["Café run", "Cafe_run"],
+    ["-lead", "lead"],
+    ["tc26.1", "tc26_1"],
+    ["A".repeat(70), "A".repeat(64)],
+  ])("cleans %s", (input, expected) => {
+    expect(migrateIds({ project_id: input }).project_id).toBe(expected);
+  });
+
+  it("gives an experiment and its dataset the same cleaned experiment_id", () => {
+    const exp = migrateExperiment({ experiment_id: "Site 1 baseline" });
+    const ds = migrateDataset({ experiment_id: "Site 1 baseline" });
+    expect(ds.experiment_id).toBe(exp.experiment_id);
+  });
+
+  it("returns the same object when every ID is valid or empty", () => {
+    const data = { project_id: "", experiment_id: "planetary_tc26-1" };
+    expect(migrateIds(data)).toBe(data);
   });
 });

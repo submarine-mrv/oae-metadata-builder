@@ -10,7 +10,6 @@ describe("complete project publication payload", () => {
     expect(payload.project.extras).toEqual({
       _source: project.state.projectData,
       _source_file: "PUBLICATION-TEST.json",
-      metadata_builder_git_hash: "",
       _document: buildMetadataDocument(
         project.state.projectData,
         project.state.experiments,
@@ -84,6 +83,14 @@ describe("complete project publication payload", () => {
     expect(() => buildProjectPublicationPayload(dataset)).toThrow("must link");
     const duplicate = publicationProject();
     duplicate.state.experiments.push({ ...duplicate.state.experiments[0], id: "experiment-2" });
+    expect(() => buildProjectPublicationPayload(duplicate)).toThrow("unique");
+    duplicate.state.experiments[1] = {
+      ...duplicate.state.experiments[1],
+      formData: {
+        ...duplicate.state.experiments[1].formData,
+        experiment_id: duplicate.state.experiments[0].formData.experiment_id?.toLowerCase(),
+      },
+    };
     expect(() => buildProjectPublicationPayload(duplicate)).toThrow("unique");
   });
 

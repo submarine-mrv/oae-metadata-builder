@@ -8,10 +8,19 @@ Guests and the memory auth provider retain browser persistence. Enable with
 - One `metadata_builder_sessions` row stores each project. Whoever first saves it
   owns it for good.
 - The owner shares a project by email as **editor** (edits everything) or
-  **viewer** (read only), from Share on its Overview. A grant applies to whoever
-  signs in with that confirmed email, so people can be added before they have an
-  account; there is no accept step. Only the owner deletes the project or manages
-  people; members can leave.
+  **viewer** (read only), from Share on its Overview. Grants belong to the
+  person's account, not the address, so they follow email changes. Someone with
+  a confirmed account gets access at once and no email. Anyone else is created
+  as a pending account and emailed an invitation (the `project-members` Edge
+  Function in oae-iac); they get access once they accept it. Only the owner sees
+  pending people, marked Pending, with Resend. If the invitation email can't be
+  sent, the person isn't added and the owner sees an error. Only the owner
+  deletes the project or manages people; members can leave.
+- An invited account has no password of its own until it sets one, flagged by
+  `invited_at` without `user_metadata.password_set` (`AuthUser.needsPassword`).
+  The root route sends it to `/auth/set-password` and cloud sync waits until
+  then. An expired or superseded invitation link lands on sign-up, which works
+  for the invited address and shows the shared projects once confirmed.
 - Projects load through one RPC that returns each project's role, owner email,
   last editor and member count (`projectAccessAtom`). Viewers get disabled forms
   and no add, delete, duplicate or merge-import actions; their copies never save,
@@ -24,19 +33,16 @@ Guests and the memory auth provider retain browser persistence. Enable with
   saved. Project members, including viewers, can open those links. Copy link is
   also hidden on not-found pages, where no specific entity
   is selected. A link resolves only among projects the recipient can access, and
-  a missing match reads as "can't be found", just like a deleted project. Human
-  IDs share a global project/experiment namespace; conflicting local drafts use
-  internal-ID links, with no multiple-matches chooser. See `docs/multi-project.md`.
-  Signing in from the not-found page returns to the link, unless it contains
-  characters that need encoding, which `safeReturnTo` rejects; those land on
-  the overview.
+  a missing match reads as "can't be found", just like a deleted project. All
+  links use stable internal IDs, including after publication. Human metadata IDs
+  never enter URLs. See `docs/multi-project.md`.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
-- Stopgap until submarine-mrv/oae-data-commons#236: the backend's
-  `metadata_builder_unique_ids` table reserves project and experiment IDs,
-  exactly as typed, on each save; uniqueness ignores case. A save with an ID
-  already in use is rejected and names the duplicate IDs; the ID
-  field shows a warning, the save is not retried automatically, and the next
-  edit (a unique or empty ID) syncs again. Other projects still save.
+- Draft saves accept duplicate project and experiment metadata IDs unchanged.
+  `check_metadata_builder_id_availability` checks catalog availability when an
+  ID field loads or loses focus, not on every keystroke. A field advisory explains
+  conflicts or check failures without blocking edits or sync, and offers Recheck ID.
+  Publication still enforces uniqueness case-insensitively with database indexes.
+  Drafts do not reserve names, so an available ID may be claimed before publication.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.

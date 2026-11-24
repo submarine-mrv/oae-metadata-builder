@@ -12,12 +12,7 @@ import { equalData } from "./merge";
 import { startProjectCloudSync } from "./projectCloudSync";
 import { localStorageWorkspaceStore } from "./storage";
 import { LocalProjectMigration } from "./sync";
-import {
-  projectSyncActionsAtom,
-  projectSyncErrorStatus,
-  projectSyncStatusAtom,
-  rejectedIdsAtom,
-} from "./syncState";
+import { projectSyncActionsAtom, projectSyncErrorStatus, projectSyncStatusAtom } from "./syncState";
 import { type ProjectRecord, projectDisplayName, type Workspace } from "./types";
 import { emptyWorkspace } from "./workspace";
 
@@ -33,7 +28,13 @@ function recoveredCopy(project: ProjectRecord): ProjectRecord {
 export default function ProjectPersistenceController({ children }: { children: ReactNode }) {
   const { status, user } = useAuth();
   const cloudEnabled = authEnabled && authProvider === "supabase";
-  const identity = !cloudEnabled ? "guest" : status === "loading" ? null : (user?.id ?? "guest");
+  // An invited account syncs nothing until it has set its own password.
+  const awaitingPassword = cloudEnabled && status === "authenticated" && !!user?.needsPassword;
+  const identity = !cloudEnabled
+    ? "guest"
+    : status === "loading" || awaitingPassword
+      ? null
+      : (user?.id ?? "guest");
   const store = useStore();
   const syncStatus = useAtomValue(projectSyncStatusAtom);
   const [prepared, setPrepared] = useState<string | null>(null);
@@ -48,7 +49,6 @@ export default function ProjectPersistenceController({ children }: { children: R
     let cancelled = false;
     let cloud: ReturnType<typeof startProjectCloudSync> | null = null;
     store.set(projectSyncActionsAtom, null);
-    store.set(rejectedIdsAtom, {});
     store.set(workspaceAtom, emptyWorkspace());
     if (identity === "guest") {
       hydrate(store, localStorageWorkspaceStore);
@@ -147,6 +147,8 @@ export default function ProjectPersistenceController({ children }: { children: R
     }
   };
 
+  // The router stays up so the set-password page can render; it redirects everything else there.
+  if (awaitingPassword) return <>{children}</>;
   if (identity !== null && prepared === preparationKey) {
     return (
       <>

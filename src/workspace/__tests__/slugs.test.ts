@@ -1,141 +1,75 @@
 import { describe, expect, it } from "vitest";
-import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
-import {
-  datasetSlug,
-  entityLocation,
-  experimentSlug,
-  projectSlug,
-  resolveDataset,
-  resolveExperiment,
-  resolveProject,
-} from "../slugs";
-import { emptyProjectState, newProjectRecord, type ProjectRecord, type Workspace } from "../types";
+import type { ExperimentRecord } from "@/types/forms";
+import { entityLocation, resolveDataset, resolveExperiment, resolveProject } from "../slugs";
+import { emptyProjectState, newProjectRecord, type Workspace } from "../types";
 
-function project(id: string, projectId: unknown = "", extra: Partial<ProjectRecord["state"]> = {}) {
-  return {
-    ...newProjectRecord({
-      ...emptyProjectState(),
-      ...extra,
-      projectData: { project_id: projectId as string },
-    }),
-    id,
-  };
-}
+const experiment: ExperimentRecord = {
+  id: "internal-experiment",
+  name: "Experiment",
+  formData: { experiment_id: "HUMAN-EXP" },
+  createdAt: 1,
+  updatedAt: 1,
+};
+const project = {
+  ...newProjectRecord({
+    ...emptyProjectState(),
+    projectData: { project_id: "HUMAN-PROJECT" },
+    experiments: [experiment],
+    datasets: [{ ...experiment, id: "internal-dataset", formData: {} }],
+  }),
+  id: "internal-project",
+};
+const workspace: Workspace = { version: 1, activeProjectId: project.id, projects: [project] };
 
-function experiment(id: string, experimentId = ""): ExperimentRecord {
-  return {
-    id,
-    name: `Exp ${id}`,
-    formData: { experiment_id: experimentId },
-    createdAt: 1,
-    updatedAt: 1,
-  };
-}
-
-function dataset(id: string): DatasetRecord {
-  return { id, name: `Data ${id}`, formData: {}, createdAt: 1, updatedAt: 1 };
-}
-
-describe("slugs", () => {
-  it("uses the exact human ID, else the internal ID", () => {
-    const named = project("uuid-1", "  KIEL 01 ");
-    const empty = project("uuid-2", "");
-    const notString = project("uuid-3", 42);
-    const all = [named, empty, notString];
-    expect(projectSlug(named, all)).toBe("  KIEL 01 ");
-    expect(resolveProject("  KIEL 01 ", all)).toEqual({ kind: "found", value: named });
-    expect(resolveProject("KIEL 01", all)).toEqual({ kind: "not-found" });
-    expect(projectSlug(empty, all)).toBe("uuid-2");
-    expect(projectSlug(notString, all)).toBe("uuid-3");
-  });
-
-  it("uses internal IDs for duplicate human IDs and internal-ID shadowing", () => {
-    const a = project("uuid-a", "DUP");
-    const b = project("uuid-b", "DUP");
-    const c = project("uuid-c", "uuid-a");
-    const all = [a, b, c];
-    expect(projectSlug(a, all)).toBe("uuid-a");
-    expect(projectSlug(b, all)).toBe("uuid-b");
-    expect(projectSlug(c, all)).toBe("uuid-c");
-  });
-
-  it("uses internal IDs for duplicate experiments and datasets", () => {
-    const one = experiment("e1", "SITE-A");
-    const two = experiment("e2", "SITE-A");
-    expect(experimentSlug(one, [one])).toBe("SITE-A");
-    expect(experimentSlug(one, [one, two])).toBe("e1");
-    expect(datasetSlug(dataset("d1"))).toBe("d1");
-  });
-
-  it("uses deterministic internal IDs for duplicate draft links", () => {
-    const a = project("uuid-a", "DUP", {
-      experiments: [experiment("e1", "S"), experiment("e2", "S")],
+describe("internal-ID slugs", () => {
+  it("resolves only internal IDs, never human IDs or case variants", () => {
+    expect(resolveProject(project.id, [project])).toEqual({ kind: "found", value: project });
+    expect(resolveProject("HUMAN-PROJECT", [project])).toEqual({ kind: "not-found" });
+    expect(resolveProject("INTERNAL-PROJECT", [project])).toEqual({ kind: "not-found" });
+    expect(resolveExperiment("HUMAN-EXP", [experiment])).toEqual({ kind: "not-found" });
+    expect(resolveExperiment(experiment.id, [experiment])).toEqual({
+      kind: "found",
+      value: experiment,
     });
-    const b = project("uuid-b", "DUP");
-    const workspace: Workspace = { version: 1, activeProjectId: a.id, projects: [a, b] };
-    expect(entityLocation(workspace, a.id, "experiment", "e2")?.params).toEqual({
-      projectId: "uuid-a",
-      experimentId: "e2",
-    });
+    expect(resolveDataset("internal-dataset", project.state.datasets).kind).toBe("found");
   });
 
-  it("resolves the internal ID before a human ID, and a unique human ID", () => {
-    const a = project("uuid-a", "KIEL");
-    const b = project("uuid-b", "uuid-a");
-    expect(resolveProject("uuid-a", [a, b])).toEqual({ kind: "found", value: a });
-    expect(resolveProject("KIEL", [a, b])).toEqual({ kind: "found", value: a });
-    expect(resolveProject("missing", [a, b])).toEqual({ kind: "not-found" });
-    expect(resolveProject("", [project("uuid-c")])).toEqual({ kind: "not-found" });
-  });
-
-  it("does not resolve duplicated human IDs or ask users to choose a match", () => {
-    const a = project("uuid-a", "DUP");
-    const b = project("uuid-b", "DUP");
-    expect(resolveProject("DUP", [a, b])).toEqual({ kind: "not-found" });
-    const one = experiment("e1", "SITE");
-    const two = experiment("e2", "SITE");
-    expect(resolveExperiment("SITE", [one, two])).toEqual({
-      kind: "not-found",
-    });
-    expect(resolveExperiment("e2", [one, two])).toEqual({ kind: "found", value: two });
-  });
-
-  it("treats human IDs case-insensitively", () => {
-    const a = project("uuid-a", "Site-A");
-    expect(resolveProject("site-a", [a])).toEqual({ kind: "found", value: a });
-    const b = project("uuid-b", "SITE-A");
-    expect(projectSlug(a, [a, b])).toBe("uuid-a");
-    expect(resolveProject("site-a", [a, b])).toEqual({ kind: "not-found" });
-  });
-
-  it("resolves legacy numbered IDs within their project, and datasets by internal ID only", () => {
-    const legacy = experiment("experiment-1");
-    expect(resolveExperiment("experiment-1", [legacy])).toEqual({ kind: "found", value: legacy });
-    const d = dataset("dataset-1");
-    expect(resolveDataset("dataset-1", [d])).toEqual({ kind: "found", value: d });
-    expect(resolveDataset("Data dataset-1", [d])).toEqual({ kind: "not-found" });
-  });
-
-  it("builds locations from slugs, or null for a missing project or entity", () => {
-    const p = project("uuid-p", "KIEL", {
-      experiments: [experiment("e1", "SITE-A")],
-      datasets: [dataset("d1")],
-    });
-    const workspace: Workspace = { version: 1, activeProjectId: p.id, projects: [p] };
-    expect(entityLocation(workspace, p.id, "overview")).toEqual({
-      to: "/projects/$projectId",
-      params: { projectId: "KIEL" },
-    });
-    expect(entityLocation(workspace, p.id, "metadata")?.to).toBe("/projects/$projectId/metadata");
-    expect(entityLocation(workspace, p.id, "experiment", "e1")).toEqual({
+  it("keeps all links stable across human-ID renames and duplicates", () => {
+    const before = entityLocation(workspace, project.id, "experiment", experiment.id);
+    const renamed: Workspace = {
+      ...workspace,
+      projects: [
+        {
+          ...project,
+          state: {
+            ...project.state,
+            projectData: { project_id: "CHANGED" },
+            experiments: [
+              { ...experiment, formData: { experiment_id: "DUP" } },
+              { ...experiment, id: "other", formData: { experiment_id: "DUP" } },
+            ],
+          },
+        },
+      ],
+    };
+    expect(before).toEqual({
       to: "/projects/$projectId/experiments/$experimentId",
-      params: { projectId: "KIEL", experimentId: "SITE-A" },
+      params: { projectId: project.id, experimentId: experiment.id },
     });
-    expect(entityLocation(workspace, p.id, "dataset", "d1")?.params).toEqual({
-      projectId: "KIEL",
-      datasetId: "d1",
+    expect(entityLocation(renamed, project.id, "experiment", experiment.id)).toEqual(before);
+    expect(entityLocation(workspace, project.id, "overview")?.params).toEqual({
+      projectId: project.id,
     });
-    expect(entityLocation(workspace, p.id, "experiment", "gone")).toBeNull();
-    expect(entityLocation(workspace, "gone", "overview")).toBeNull();
+    expect(entityLocation(workspace, project.id, "dataset", "internal-dataset")?.params).toEqual({
+      projectId: project.id,
+      datasetId: "internal-dataset",
+    });
+    expect(entityLocation(workspace, "missing", "overview")).toBeNull();
+    expect(entityLocation(workspace, project.id, "experiment", "missing")).toBeNull();
+  });
+
+  it("retains legacy internal entity IDs without regenerating them", () => {
+    const legacy = { ...experiment, id: "experiment-1" };
+    expect(resolveExperiment("experiment-1", [legacy])).toEqual({ kind: "found", value: legacy });
   });
 });

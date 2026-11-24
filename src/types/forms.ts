@@ -165,8 +165,6 @@ export interface DatasetRecord {
  */
 export interface ExportContainer {
   version?: string;
-  protocol_git_hash?: string;
-  metadata_builder_git_hash?: string;
   project?: DraftProject;
   experiments?: DraftExperiment[];
   datasets?: DraftDataset[];

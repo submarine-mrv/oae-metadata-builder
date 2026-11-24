@@ -146,22 +146,22 @@ function workspaceOf(...projects: ReturnType<typeof project>[]): Workspace {
 const pathname = (router: ReturnType<typeof renderAt>["router"]) => router.state.location.pathname;
 
 describe("slug routes", () => {
-  it("opens the project named by a human ID and switches to it", async () => {
+  it("opens the project named by its internal ID and switches to it", async () => {
     const { store } = renderAt(
-      "/projects/KIEL",
+      "/projects/p2",
       workspaceOf(project("p1", "Other"), project("p2", "Kiel trial", "KIEL")),
     );
     expect(await screen.findByText("Overview of Kiel trial")).toBeInTheDocument();
     expect(store.get(activeProjectIdAtom)).toBe("p2");
   });
 
-  it("replaces a UUID URL with the human slug without adding history", async () => {
+  it("keeps the UUID URL even when the project has a human ID", async () => {
     const { router, history } = renderAt(
       "/projects/p2",
       workspaceOf(project("p1", "A"), project("p2", "B", "KIEL")),
     );
     await screen.findByText("Overview of B");
-    await waitFor(() => expect(pathname(router)).toBe("/projects/KIEL"));
+    expect(pathname(router)).toBe("/projects/p2");
     expect(history.length).toBe(1);
   });
 
@@ -169,7 +169,7 @@ describe("slug routes", () => {
     const workspace = workspaceOf(
       project("p1", "A", "KIEL", [experiment("e1", "SITE-A"), experiment("e2", "SITE-B")]),
     );
-    const { store } = renderAt("/projects/KIEL/experiments/SITE-B", workspace);
+    const { store } = renderAt("/projects/p1/experiments/e2", workspace);
     expect(await screen.findByText("Editing experiment e2")).toBeInTheDocument();
     expect(store.get(activeExperimentIdAtom)).toBe("e2");
   });
@@ -179,26 +179,17 @@ describe("slug routes", () => {
     expect(await screen.findByText("Editing dataset p1-d1")).toBeInTheDocument();
   });
 
-  it("follows edits to the project and experiment IDs in the URL", async () => {
+  it("keeps the URL unchanged when project and experiment IDs are edited", async () => {
     const { store, router } = renderAt(
-      "/projects/KIEL/experiments/SITE-A",
+      "/projects/p1/experiments/e1",
       workspaceOf(project("p1", "A", "KIEL", [experiment("e1", "SITE-A")])),
     );
     await screen.findByText("Editing experiment e1");
     act(() => store.set(updateProjectDataAtom, { project_id: "KIEL-2", name: "A" }));
-    await waitFor(() => expect(pathname(router)).toBe("/projects/KIEL-2/experiments/SITE-A"));
+    expect(pathname(router)).toBe("/projects/p1/experiments/e1");
     act(() => store.set(replaceExperimentFormDataAtom, "e1", { experiment_id: "SITE-Z" }));
-    await waitFor(() => expect(pathname(router)).toBe("/projects/KIEL-2/experiments/SITE-Z"));
+    expect(pathname(router)).toBe("/projects/p1/experiments/e1");
     expect(screen.getByText("Editing experiment e1")).toBeInTheDocument();
-  });
-
-  it("encodes IDs with URL characters and resolves them back", async () => {
-    const { history } = renderAt("/projects/p1", workspaceOf(project("p1", "A", "Kiel/2025 #1")));
-    await screen.findByText("Overview of A");
-    await waitFor(() =>
-      expect(history.location.pathname).toMatch(/^\/projects\/Kiel%2F2025.*%231$/),
-    );
-    expect(screen.getByText("Overview of A")).toBeInTheDocument();
   });
 
   it("copies an internal project ID when local drafts conflict", async () => {
@@ -212,9 +203,7 @@ describe("slug routes", () => {
       ),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Copy" }));
-    expect(writeText).toHaveBeenCalledWith(
-      `${window.location.origin}/projects/p1/experiments/EXP-1`,
-    );
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/projects/p1/experiments/e1`);
   });
 
   it("opens duplicate drafts by their internal ID without a chooser", async () => {
@@ -226,7 +215,7 @@ describe("slug routes", () => {
       ),
     );
     expect(await screen.findByText("Editing experiment e1")).toBeInTheDocument();
-    await waitFor(() => expect(pathname(router)).toBe("/projects/p1/experiments/SITE-A"));
+    await waitFor(() => expect(pathname(router)).toBe("/projects/p1/experiments/e1"));
     expect(store.get(activeProjectIdAtom)).toBe("p1");
     expect(screen.getByText("Editing experiment e1")).toBeInTheDocument();
   });
@@ -270,6 +259,6 @@ describe("slug routes", () => {
       workspaceOf(project("p1", "A", "KIEL", [experiment("e1", "SITE-A")])),
     );
     expect(await screen.findByText("Editing experiment e1")).toBeInTheDocument();
-    expect(pathname(router)).toBe("/projects/KIEL/experiments/SITE-A");
+    expect(pathname(router)).toBe("/projects/p1/experiments/e1");
   });
 });

@@ -10,18 +10,20 @@
  * - When locked: dimmed input with pencil icon inside (right section)
  * - Click pencil to unlock and edit; pencil disappears while editing
  * - Auto-locks on blur, pencil reappears, input dims again
+ * - Leaving the field with an ID that fails the schema pattern restores the ID it had on focus
  */
 
 import { ActionIcon, Box, Text, TextInput, Tooltip } from "@mantine/core";
 import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from "@rjsf/utils";
 import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
-import { useAtomValue } from "jotai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { activeProjectIdAtom } from "@/state/atoms";
-import { DUPLICATE_ID_MESSAGE } from "@/workspace/duplicateIds";
-import { rejectedIdsAtom } from "@/workspace/syncState";
+import { useIdAvailability } from "@/workspace/useIdAvailability";
 import DescriptionModal from "./DescriptionModal";
+
+function matchesPattern(value: unknown, pattern: string | undefined): boolean {
+  return !value || !pattern || new RegExp(pattern, "u").test(String(value));
+}
 
 interface LockableIdOptions {
   lockOnBlur?: boolean;
@@ -35,6 +37,7 @@ export default function LockableIdWidget<
 >(props: WidgetProps<T, S, F>) {
   const {
     id,
+    name,
     value,
     placeholder,
     required,
@@ -49,13 +52,6 @@ export default function LockableIdWidget<
     uiSchema,
   } = props;
 
-  const projectId = useAtomValue(activeProjectIdAtom);
-  const rejectedIds = useAtomValue(rejectedIdsAtom);
-  const duplicateId =
-    typeof value === "string" &&
-    value !== "" &&
-    !!projectId &&
-    (rejectedIds[projectId] ?? []).includes(value);
   const description = schema?.description;
   const useModal = uiSchema?.["ui:descriptionModal"] === true;
   const [modalOpened, setModalOpened] = useState(false);
@@ -65,18 +61,26 @@ export default function LockableIdWidget<
   const defaultLocked = options.defaultLocked || false;
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const valueOnFocus = useRef(value);
+  const isValid = matchesPattern(value, schema?.pattern);
 
   // Lock state - start locked if there's a value
-  const [isLocked, setIsLocked] = useState(() => (value ? true : defaultLocked));
+  const [isLocked, setIsLocked] = useState(() => (value && isValid ? true : defaultLocked));
   const [hasBeenUnlockedManually, setHasBeenUnlockedManually] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const availability = useIdAvailability(
+    name === "project_id" ? "project" : "experiment",
+    value,
+    isFocused,
+    isValid,
+  );
 
   // Auto-lock when value appears (if not manually unlocked and not focused)
   useEffect(() => {
-    if (value && !hasBeenUnlockedManually && !isFocused) {
+    if (value && isValid && !hasBeenUnlockedManually && !isFocused) {
       setIsLocked(true);
     }
-  }, [value, hasBeenUnlockedManually, isFocused]);
+  }, [value, isValid, hasBeenUnlockedManually, isFocused]);
 
   const handlePencilClick = useCallback(() => {
     setIsLocked(false);
@@ -89,18 +93,25 @@ export default function LockableIdWidget<
 
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-  }, []);
+    valueOnFocus.current = value;
+  }, [value]);
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
-    if (lockOnBlur) {
+    let kept = value;
+    if (!isValid && value !== valueOnFocus.current) {
+      kept = valueOnFocus.current;
+      onChange(kept);
+    }
+    // An invalid ID that was already there stays editable rather than locked.
+    if (lockOnBlur && kept && matchesPattern(kept, schema?.pattern)) {
       setIsLocked(true);
       setHasBeenUnlockedManually(false);
     }
     if (onBlur) {
-      onBlur(id, value);
+      onBlur(id, kept);
     }
-  }, [lockOnBlur, onBlur, id, value]);
+  }, [lockOnBlur, onBlur, onChange, id, value, isValid, schema?.pattern]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,11 +122,7 @@ export default function LockableIdWidget<
   );
 
   const hasError = rawErrors && rawErrors.length > 0;
-  const errorMessage = duplicateId
-    ? DUPLICATE_ID_MESSAGE
-    : hasError
-      ? rawErrors.join(", ")
-      : undefined;
+  const errorMessage = hasError ? rawErrors.join(", ") : undefined;
 
   const lockedStyles = {
     input: {
@@ -137,6 +144,16 @@ export default function LockableIdWidget<
           disabled={disabled}
           readOnly={readonly || isLocked}
           error={errorMessage}
+          description={
+            availability.message ? (
+              <span role="status">
+                {availability.message}{" "}
+                <button type="button" className="underline" onClick={availability.retry}>
+                  Recheck ID
+                </button>
+              </span>
+            ) : undefined
+          }
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

@@ -1,9 +1,8 @@
 import { createStore } from "jotai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
-import { DuplicateIdError } from "../duplicateIds";
 import { type ProjectCloudClient, startProjectCloudSync } from "../projectCloudSync";
-import { projectSyncStatusAtom, rejectedIdsAtom } from "../syncState";
+import { projectSyncStatusAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { updateProject } from "../workspace";
 
@@ -143,26 +142,15 @@ describe("automatic sync retries", () => {
     expect(client.save).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps duplicate edits unsynced without retrying, then recovers when the ID is cleared", async () => {
-    const { client, store, sync, edit } = await setup();
-    vi.mocked(client.save).mockRejectedValueOnce(new DuplicateIdError("one", ["one"]));
-    edit("unsaved");
-    await expect(sync.flush()).rejects.toBeInstanceOf(DuplicateIdError);
-    expect(store.get(projectSyncStatusAtom)).toMatchObject({ state: "error", noRetry: true });
-    expect(store.get(rejectedIdsAtom).one).toEqual(["one"]);
-    await vi.advanceTimersByTimeAsync(120_000);
-    expect(client.save).toHaveBeenCalledTimes(1);
-    expect(sync.hasPendingChanges()).toBe(true);
-
+  it("saves complete drafts even when human IDs duplicate another draft", async () => {
+    const { rows, store, sync } = await setup();
     store.set(workspaceAtom, (workspace) => ({
       ...workspace,
-      projects: workspace.projects.map((record) => ({
-        ...record,
-        state: { ...record.state, projectData: { ...record.state.projectData, project_id: "" } },
-      })),
+      projects: [...workspace.projects, { ...project("two"), state: project().state }],
     }));
     await sync.flush();
-    expect(store.get(rejectedIdsAtom).one).toEqual([]);
+    expect(rows.get("two")?.project.state.projectData.project_id).toBe("one");
+    expect(sync.hasPendingChanges()).toBe(false);
     expect(store.get(projectSyncStatusAtom).state).toBe("synced");
   });
 });

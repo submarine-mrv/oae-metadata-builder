@@ -77,9 +77,9 @@ export default function ProjectPage() {
       const filtered = validation.showErrorList
         ? errors
         : errors.filter((e) => e.name !== "required");
-      return transformFormErrors(filtered);
+      return transformFormErrors(filtered, projectData);
     };
-  }, [validation.showErrorList]);
+  }, [validation.showErrorList, projectData]);
 
   return (
     <AppLayout noScroll>

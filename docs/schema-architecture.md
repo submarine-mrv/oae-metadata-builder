@@ -64,11 +64,11 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
 - Each concrete variable class emits `schema_class` as a **required, single-value enum**
   (`DiscretePHVariable.schema_class = { enum: ["DiscretePHVariable"] }`) — i.e. a real
   discriminator tag.
-- `FieldDataset.variables.items` is a union of all 18 concrete **field** variable classes. This
-  union is produced because the slot's range, `FieldVariable`, is `abstract: true` — **not** by
-  `include_range_class_descendants`. (An abstract range has no instantiable base, so LinkML expands
-  it to concrete descendants in every generation mode.) `bundle-schema.mjs` rewrites the emitted
-  `anyOf` into `oneOf` + `discriminator` — see §4.
+- `FieldDataset.variables.items` is a union of all 18 concrete **field** variable classes. The
+  union comes from the type designator: `FieldVariable` inherits `schema_class` from `Variable`, and
+  LinkML expands a range that carries a type designator to its concrete descendants in every
+  generation mode. `abstract: true` only keeps `FieldVariable` itself out of the union.
+  `bundle-schema.mjs` rewrites the emitted `anyOf` into `oneOf` + `discriminator` — see §4.
 - The range is `FieldVariable`, not `Variable`, on purpose. `ModelOutputVariable` descends from `Variable`
   but *not* from `FieldVariable`, so it is excluded from this union and a model variable is invalid
   inside a `FieldDataset`. Ranging over `Variable` would silently admit it. See
@@ -84,10 +84,10 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
 their specific ones. The type-specific fields *are* valid against their `schema_class`. Do not try
 to "expand" or "complete" the nested polymorphism.
 
-Corollary: `oae_data_protocol.validation.schema.json` (generated with
-`include_range_class_descendants=True`) is intentionally **not** used in the builder. For these nested
-slots it is *looser* than the form schema (it turns `analyzing_instrument` into an `anyOf` of all
-instrument subtypes). It exists for other programmatic-validation use cases, not the builder.
+The protocol publishes one JSON Schema. `Container.experiments` and `Container.datasets` are explicit
+unions of the base class and its subclasses, so the schema validates a whole exported file; no form
+renders them. The nested `analyzing_instrument`, `calibration` and `standard_gas_info` slots are single
+classes, so a generic variable cannot carry a subclass instrument.
 
 ### Model output variables
 

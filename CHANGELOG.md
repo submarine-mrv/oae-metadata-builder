@@ -1,7 +1,7 @@
 # Changelog
 
 Notable changes to the OAE Metadata Builder. Major versions change what the builder can open or how
-you use it; minor versions add features or adopt a new protocol version; patches fix bugs. See
+you use it; minor versions add features or adopt a new schema version; patches fix bugs. See
 [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
 
 ## Unreleased
@@ -9,17 +9,29 @@ you use it; minor versions add features or adopt a new protocol version; patches
 ### Added
 
 - Each project, experiment and dataset has its own URL, such as
-  `/projects/KIEL-2025/experiments/EXP-1`, so you can bookmark a page or send it to someone on the
-  project. The URL uses the project and experiment IDs, which follows them as you edit them.
+  `/projects/<project-uuid>/experiments/<experiment-uuid>`, so you can bookmark a page or send it
+  to someone on the project. Links use internal IDs and stay the same when metadata IDs change.
   "Copy link" in the menu and the Share dialog copies it. A link to something that can't be found
   says so. The old `/overview`, `/project`, `/experiment` and `/dataset` addresses still open the
   current project.
-- Project and experiment IDs must be unique across all projects and experiments, ignoring case. A
-  project with an ID that is already in use shows a warning on the ID field and doesn't sync to the
-  cloud until you choose a unique ID or leave it empty.
+- Project and experiment IDs are checked against published metadata, ignoring case. An ID already
+  in use shows an advisory to change it before publishing; the complete draft still saves.
+- Sharing a project with someone who has no account emails them an invitation. They set a
+  password when they accept it and then see the project. The Share dialog shows invited people as
+  Pending, with Resend. If the invitation email can't be sent, the person isn't added.
 
 ### Updated
 
+- Project and experiment IDs take only letters, numbers, hyphens and underscores, starting with a
+  letter or number, up to 64 characters. The ID field shows the rule as you type, and leaving it
+  with an invalid ID restores the previous one. Saved projects and imported files with IDs that
+  break the rule are cleaned when they load (`Ebb Carbon/2024` becomes `Ebb_Carbon_2024`).
+- Exported and published files no longer include `protocol_git_hash` or
+  `metadata_builder_git_hash`, which the schema dropped.
+- Project sharing is tied to each person's account rather than their email address, so it
+  follows an email change.
+- Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`
+  field on a project. No change to what the builder opens or exports.
 - The builder keeps its working data in one store (Jotai) that the forms read and write directly,
   instead of copying each project into the page being edited. Typing in a form no longer redraws the
   header and other parts of the page that didn't change. (#82)

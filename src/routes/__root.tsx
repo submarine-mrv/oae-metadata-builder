@@ -27,6 +27,19 @@ export const Route = createRootRouteWithContext<{ auth: AuthStore }>()({
     if (context.auth.isRecoverySession && location.pathname !== "/auth/reset-password") {
       throw redirect({ to: "/auth/reset-password", search: { type: "recovery" } });
     }
+    // An invited account has no password of its own yet; nothing else opens until it sets one.
+    if (
+      context.auth.user?.needsPassword &&
+      !context.auth.isRecoverySession &&
+      location.pathname !== "/auth/set-password" &&
+      location.pathname !== "/auth/callback"
+    ) {
+      throw redirect({
+        to: "/auth/set-password",
+        search: { returnTo: location.pathname.startsWith("/auth") ? undefined : location.href },
+        replace: true,
+      });
+    }
   },
   component: ProjectScopedOutlet,
 });

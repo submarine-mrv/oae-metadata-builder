@@ -1,81 +1,23 @@
 import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
 import type { ProjectRecord, Workspace } from "./types";
 
-/**
- * URL slugs for shareable links. A project or experiment slug is its human-readable ID whenever
- * unique in the workspace (case-insensitively), else its internal ID. The backend reserves human
- * IDs globally, so a duplicate is only ever local and unsynced; it uses the internal ID rather than
- * a chooser.
- */
-
 export type Resolution<T> = { kind: "found"; value: T } | { kind: "not-found" };
 
-type Identified = { id: string };
-
-/** The ID exactly as typed. Imported JSON isn't type-checked, so the field may not be a string. */
-function exactId(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
-export function humanProjectId(project: ProjectRecord): string {
-  return exactId(project.state.projectData.project_id);
-}
-
-export function humanExperimentId(experiment: ExperimentRecord): string {
-  return exactId(experiment.formData.experiment_id);
-}
-
-function sameId(a: string, b: string): boolean {
-  return a.toLowerCase() === b.toLowerCase();
-}
-
-function slugFor<T extends Identified>(item: T, siblings: T[], human: (item: T) => string): string {
-  const id = human(item);
-  if (!id) return item.id;
-  return siblings.some(
-    (other) => other.id !== item.id && (sameId(other.id, id) || sameId(human(other), id)),
-  )
-    ? item.id
-    : id;
-}
-
-/** Internal ID first, since it is unique; then a human ID that only one item uses. */
-function resolve<T extends Identified>(
-  slug: string,
-  items: T[],
-  human?: (item: T) => string,
-): Resolution<T> {
+/** Builder URLs use stable internal IDs, never editable metadata IDs. */
+function resolve<T extends { id: string }>(slug: string, items: T[]): Resolution<T> {
   const byId = items.find((item) => item.id === slug);
-  if (byId) return { kind: "found", value: byId };
-  const matches = human && slug ? items.filter((item) => sameId(human(item), slug)) : [];
-  if (matches.length === 1) return { kind: "found", value: matches[0] };
-  return { kind: "not-found" };
-}
-
-export function projectSlug(project: ProjectRecord, projects: ProjectRecord[]): string {
-  return slugFor(project, projects, humanProjectId);
-}
-
-export function experimentSlug(
-  experiment: ExperimentRecord,
-  experiments: ExperimentRecord[],
-): string {
-  return slugFor(experiment, experiments, humanExperimentId);
-}
-
-export function datasetSlug(dataset: DatasetRecord): string {
-  return dataset.id;
+  return byId ? { kind: "found", value: byId } : { kind: "not-found" };
 }
 
 export function resolveProject(slug: string, projects: ProjectRecord[]): Resolution<ProjectRecord> {
-  return resolve(slug, projects, humanProjectId);
+  return resolve(slug, projects);
 }
 
 export function resolveExperiment(
   slug: string,
   experiments: ExperimentRecord[],
 ): Resolution<ExperimentRecord> {
-  return resolve(slug, experiments, humanExperimentId);
+  return resolve(slug, experiments);
 }
 
 export function resolveDataset(slug: string, datasets: DatasetRecord[]): Resolution<DatasetRecord> {
@@ -108,7 +50,7 @@ export function entityLocation(
 ): EntityLocation | null {
   const project = workspace.projects.find((p) => p.id === projectId);
   if (!project) return null;
-  const params = { projectId: projectSlug(project, workspace.projects) };
+  const params = { projectId: project.id };
   switch (page) {
     case "overview":
       return { to: "/projects/$projectId", params };
@@ -122,7 +64,7 @@ export function entityLocation(
         to: "/projects/$projectId/experiments/$experimentId",
         params: {
           ...params,
-          experimentId: experimentSlug(experiment, experiments),
+          experimentId: experiment.id,
         },
       };
     }
@@ -131,7 +73,7 @@ export function entityLocation(
       if (!dataset) return null;
       return {
         to: "/projects/$projectId/datasets/$datasetId",
-        params: { ...params, datasetId: datasetSlug(dataset) },
+        params: { ...params, datasetId: dataset.id },
       };
     }
   }
