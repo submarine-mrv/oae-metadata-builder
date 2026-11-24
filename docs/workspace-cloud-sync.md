@@ -5,8 +5,11 @@ them with other people.
 Guests and the memory auth provider retain browser persistence. Enable with
 `VITE_AUTH_ENABLED=true` and a Supabase URL/publishable key.
 
-- One `metadata_builder_sessions` row stores each project. Whoever first saves it
-  owns it for good.
+- `mb_project` stores each draft's project envelope, ownership and hash.
+  `mb_experiment` and `mb_dataset` store its ordered entity records. Sync still
+  saves and returns one complete ProjectRecord transactionally; whoever first
+  saves it owns it for good. Internal database identities use `project_uuid`,
+  `experiment_uuid` and `dataset_uuid` (text for legacy imported identities).
 - The owner shares a project by email as **editor** (edits everything) or
   **viewer** (read only), from Share on its Overview. Grants belong to the
   person's account, not the address, so they follow email changes. Someone with
@@ -16,6 +19,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
   pending people, marked Pending, with Resend. If the invitation email can't be
   sent, the person isn't added and the owner sees an error. Only the owner
   deletes the project or manages people; members can leave.
+  Grants live in `mb_members`; `mb_invites` records invitation-send attempts.
 - An invited account has no password of its own until it sets one, flagged by
   `invited_at` without `user_metadata.password_set` (`AuthUser.needsPassword`).
   The root route sends it to `/auth/set-password` and cloud sync waits until
@@ -43,6 +47,8 @@ Guests and the memory auth provider retain browser persistence. Enable with
   conflicts or check failures without blocking edits or sync, and offers Recheck ID.
   At publication, the database enforces one case-insensitive namespace for project and experiment IDs.
   Drafts do not reserve names, so an available ID may be claimed before publication.
+  Unpublishing retains the last published ID reservations, including after
+  deleting the unpublished draft; deleting the owner account releases them.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.
@@ -135,8 +141,8 @@ fails or the reviewed content changes.
 
 - **Publish project / Update publication** atomically replaces the public tree.
   Removed experiments and datasets disappear from the publication.
-- **Unpublish** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
-  reads without deleting metadata or the private draft. Existing downloads and
+- **Unpublish** followed by **Confirm unpublish** removes the live document from
+  `projects` without deleting the private draft or its reserved IDs. Existing downloads and
   already-open browser pages cannot be recalled. Unpublishing does not depend
   on private draft saves, so a draft conflict cannot prevent hiding public data.
 - **Republish** uses the same reviewed publication action.
@@ -150,8 +156,14 @@ fails or the reviewed content changes.
 
 The client uses owner-bound tokens and the `publish_oae_project` and
 `unpublish_oae_project` RPCs. Direct authenticated catalog mutations are denied.
-The normalized public rows retain complete source objects and the exported
-document envelope for lossless Data Commons downloads; no private workspace
+The single public `projects` row retains the complete exported metadata document
+for lossless Data Commons downloads; no private workspace
 wrappers, internal counters or auth credentials are included in those documents.
 Guests, auth-disabled builds and the memory auth provider have no publication
 controls or requests.
+
+The RPC names are unchanged, but internal-ID arguments/results are now
+`p_project_uuid`, `p_source_project_uuid` and `project_uuid`; editable metadata
+IDs remain `project_id`/`experiment_id`. Rebuild a development database from the
+rewritten IaC migrations before using this client; this is not an additive
+upgrade for a previously applied migration history.

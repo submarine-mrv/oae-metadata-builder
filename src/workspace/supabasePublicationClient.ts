@@ -54,7 +54,7 @@ export function createPublicationClient(ownerId: string) {
       experimentIds: string[],
     ): Promise<IdConflict[]> {
       const { data, error } = await client.rpc("check_metadata_builder_id_availability", {
-        p_source_project_id: sourceProjectId,
+        p_source_project_uuid: sourceProjectId,
         p_project_id: projectId,
         p_experiment_ids: experimentIds,
       });
@@ -64,10 +64,9 @@ export function createPublicationClient(ownerId: string) {
     async publishedProjectIds(sourceProjectIds: string[]): Promise<string[]> {
       if (sourceProjectIds.length === 0) return [];
       const { data, error } = await client
-        .from("oae_projects")
-        .select("builder_project_id")
-        .eq("published", true)
-        .in("builder_project_id", sourceProjectIds);
+        .from("projects")
+        .select("project_uuid")
+        .in("project_uuid", sourceProjectIds);
       if (error) throw new Error(`Could not check project publications: ${error.message}`);
       if (!Array.isArray(data)) {
         throw new Error("Supabase returned invalid project publication statuses.");
@@ -75,27 +74,26 @@ export function createPublicationClient(ownerId: string) {
       return data.map((row: unknown) => {
         if (
           !isRecord(row) ||
-          typeof row.builder_project_id !== "string" ||
-          !sourceProjectIds.includes(row.builder_project_id)
+          typeof row.project_uuid !== "string" ||
+          !sourceProjectIds.includes(row.project_uuid)
         ) {
           throw new Error("Supabase returned invalid project publication statuses.");
         }
-        return row.builder_project_id;
+        return row.project_uuid;
       });
     },
     async status(sourceProjectId: string): Promise<ProjectPublicationStatus | null> {
       const { data, error } = await client
-        .from("oae_projects")
-        .select("project_id, published, updated_at, document:extras->_document")
+        .from("projects")
+        .select("project_id, updated_at, document")
         .eq("owner_id", ownerId)
-        .eq("builder_project_id", sourceProjectId)
+        .eq("project_uuid", sourceProjectId)
         .maybeSingle();
       if (error) throw new Error(`Could not check publication: ${error.message}`);
       if (data === null) return null;
       if (
         !isRecord(data) ||
         typeof data.project_id !== "string" ||
-        typeof data.published !== "boolean" ||
         !validDate(data.updated_at) ||
         !isRecord(data.document)
       ) {
@@ -103,7 +101,7 @@ export function createPublicationClient(ownerId: string) {
       }
       return {
         projectId: data.project_id,
-        published: data.published,
+        published: true,
         updatedAt: data.updated_at,
         document: data.document,
       };
@@ -117,7 +115,7 @@ export function createPublicationClient(ownerId: string) {
         throw new Error("The publication payload is missing its metadata document.");
       }
       const { data, error } = await client.rpc("publish_oae_project", {
-        p_source_project_id: sourceProjectId,
+        p_source_project_uuid: sourceProjectId,
         p_project: payload.project,
         p_experiments: payload.experiments,
         p_datasets: payload.datasets,
@@ -161,7 +159,7 @@ export function createPublicationClient(ownerId: string) {
     },
     async unpublish(sourceProjectId: string): Promise<void> {
       const { data, error } = await client.rpc("unpublish_oae_project", {
-        p_source_project_id: sourceProjectId,
+        p_source_project_uuid: sourceProjectId,
       });
       if (error) throw new Error(`Could not unpublish project: ${error.message}`);
       if (data !== true) {

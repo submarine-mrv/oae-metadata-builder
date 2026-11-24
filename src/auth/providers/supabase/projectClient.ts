@@ -82,7 +82,7 @@ async function listProjects(client: ReturnType<typeof createAccountClient>, with
   if (error) throw new Error(`Could not load cloud projects: ${error.message}`);
   return ((data ?? []) as Record<string, unknown>[]).map((row) => {
     if (
-      typeof row.project_id !== "string" ||
+      typeof row.project_uuid !== "string" ||
       typeof row.state_hash !== "string" ||
       row.state_hash.length === 0 ||
       !ROLES.includes(row.role as ProjectRole) ||
@@ -98,7 +98,7 @@ async function listProjects(client: ReturnType<typeof createAccountClient>, with
       updatedByEmail: (row.updated_by_email as string | null) ?? null,
       memberCount: row.member_count,
     };
-    return { id: row.project_id, hash: row.state_hash, state: row.state, access };
+    return { id: row.project_uuid, hash: row.state_hash, state: row.state, access };
   });
 }
 
@@ -123,7 +123,7 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
       checkProjectVersion(project);
       const state = { ...project, schemaVersion: project.schemaVersion ?? PROJECT_SCHEMA_VERSION };
       const { data, error } = await client.rpc("save_metadata_builder_session", {
-        p_project_id: project.id,
+        p_project_uuid: project.id,
         p_state: state,
         p_state_hash: hash,
         p_expected_hash: expectedHash,
@@ -140,7 +140,7 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
     },
     async remove(projectId, expectedHash) {
       const { data, error } = await client.rpc("delete_metadata_builder_session", {
-        p_project_id: projectId,
+        p_project_uuid: projectId,
         p_expected_hash: expectedHash,
       });
       if (error) throw new Error(`Could not delete this cloud project: ${error.message}`);
@@ -226,7 +226,7 @@ export function createProjectMembersClient(userId: string) {
     async list(projectId: string): Promise<ProjectMember[]> {
       const rows = await call(
         "list_metadata_builder_project_members",
-        { p_project_id: projectId },
+        { p_project_uuid: projectId },
         "Could not load the people on this project",
       );
       return ((rows ?? []) as unknown[]).map(parseMember);
@@ -245,7 +245,7 @@ export function createProjectMembersClient(userId: string) {
     async setRole(projectId: string, memberId: string, role: MemberRole) {
       await call(
         "set_metadata_builder_project_member_role",
-        { p_project_id: projectId, p_user_id: memberId, p_role: role },
+        { p_project_uuid: projectId, p_user_id: memberId, p_role: role },
         "Could not change this person's role",
       );
     },
@@ -253,7 +253,7 @@ export function createProjectMembersClient(userId: string) {
     async remove(projectId: string, memberId: string) {
       await call(
         "remove_metadata_builder_project_member",
-        { p_project_id: projectId, p_user_id: memberId },
+        { p_project_uuid: projectId, p_user_id: memberId },
         "Could not remove this person",
       );
     },

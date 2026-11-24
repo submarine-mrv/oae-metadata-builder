@@ -16,6 +16,7 @@ vi.mock("@/auth/providers/supabase/projectClient", () => ({
     return {
       from: () => ({
         select: () => ({
+          in: mocks.list,
           eq: (...args: unknown[]) => {
             mocks.eq(...args);
             return {
@@ -39,7 +40,7 @@ describe("owner-bound publication client", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.single.mockResolvedValue({ data: null, error: null });
-    mocks.list.mockResolvedValue({ data: [{ builder_project_id: "draft-id" }], error: null });
+    mocks.list.mockResolvedValue({ data: [{ project_uuid: "draft-id" }], error: null });
     mocks.rpc.mockResolvedValue({
       data: [
         {
@@ -60,7 +61,7 @@ describe("owner-bound publication client", () => {
       conflicts,
     );
     expect(mocks.rpc).toHaveBeenCalledWith("check_metadata_builder_id_availability", {
-      p_source_project_id: "draft-id",
+      p_source_project_uuid: "draft-id",
       p_project_id: "FREE",
       p_experiment_ids: ["TAKEN"],
     });
@@ -96,15 +97,15 @@ describe("owner-bound publication client", () => {
     expect(mocks.account).toHaveBeenCalledWith("owner", false);
     expect(mocks.eq.mock.calls).toEqual([
       ["owner_id", "owner"],
-      ["builder_project_id", "draft-id"],
+      ["project_uuid", "draft-id"],
     ]);
   });
 
   it("loads published draft IDs in one request, including visible shared projects", async () => {
     const client = createPublicationClient("owner");
     expect(await client.publishedProjectIds(["draft-id", "private-draft"])).toEqual(["draft-id"]);
-    expect(mocks.eq).toHaveBeenCalledWith("published", true);
-    expect(mocks.list).toHaveBeenCalledWith("builder_project_id", ["draft-id", "private-draft"]);
+    expect(mocks.eq).not.toHaveBeenCalledWith("published", true);
+    expect(mocks.list).toHaveBeenCalledWith("project_uuid", ["draft-id", "private-draft"]);
     mocks.list.mockClear();
     expect(await client.publishedProjectIds([])).toEqual([]);
     expect(mocks.list).not.toHaveBeenCalled();
@@ -114,7 +115,6 @@ describe("owner-bound publication client", () => {
     mocks.single.mockResolvedValue({
       data: {
         project_id: "PUBLICATION-TEST",
-        published: true,
         updated_at: timestamp,
         document: { project: { name: "Published project" }, experiments: [], datasets: [] },
       },
@@ -137,14 +137,14 @@ describe("owner-bound publication client", () => {
     const client = createPublicationClient("owner");
     mocks.list.mockResolvedValue({ data: null, error: { message: "offline" } });
     await expect(client.publishedProjectIds(["draft-id"])).rejects.toThrow("offline");
-    mocks.list.mockResolvedValue({ data: [{ builder_project_id: 123 }], error: null });
+    mocks.list.mockResolvedValue({ data: [{ project_uuid: 123 }], error: null });
     await expect(client.publishedProjectIds(["draft-id"])).rejects.toThrow("invalid");
   });
 
   it("publishes the complete normalized payload and validates the server acknowledgement", async () => {
     const result = await createPublicationClient("owner").publish("draft-id", payload);
     expect(mocks.rpc).toHaveBeenCalledWith("publish_oae_project", {
-      p_source_project_id: "draft-id",
+      p_source_project_uuid: "draft-id",
       p_project: payload.project,
       p_experiments: payload.experiments,
       p_datasets: payload.datasets,
@@ -177,7 +177,7 @@ describe("owner-bound publication client", () => {
     mocks.rpc.mockResolvedValue({ data: true, error: null });
     await createPublicationClient("owner").unpublish("draft-id");
     expect(mocks.rpc).toHaveBeenCalledWith("unpublish_oae_project", {
-      p_source_project_id: "draft-id",
+      p_source_project_uuid: "draft-id",
     });
     mocks.rpc.mockResolvedValue({ data: false, error: null });
     await expect(createPublicationClient("owner").unpublish("draft-id")).rejects.toThrow(

@@ -141,10 +141,10 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       const anonymous = createClient(url, key, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
-      const anonRead = await anonymous.from("metadata_builder_sessions").select("project_id");
+      const anonRead = await anonymous.from("mb_project").select("project_uuid");
       expect(anonRead.error).not.toBeNull();
       const anonWrite = await anonymous.rpc("save_metadata_builder_session", {
-        p_project_id: first.id,
+        p_project_uuid: first.id,
         p_state: first,
         p_state_hash: "anon",
         p_expected_hash: null,
@@ -185,6 +185,51 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       }
     });
 
+    it("resolves mixed field choices through normalized project and dataset storage", async () => {
+      auth.session = owner;
+      const client = createProjectCloudClient(owner.user.id);
+      const project = { ...publicationProject(), id: crypto.randomUUID() };
+      await client.save(project, "conflict-base", null);
+      const store = createStore();
+      const sync = startProjectCloudSync(store, client);
+      stops.push(sync.stop);
+      await sync.load();
+
+      const incoming = structuredClone(project);
+      incoming.state.projectData.name = "Incoming project name";
+      incoming.state.datasets[0].formData.description = "Incoming dataset description";
+      await client.save(incoming, "conflict-incoming", "conflict-base");
+      const local = structuredClone(project.state);
+      local.projectData.name = "My project name";
+      local.datasets[0].formData.description = "My dataset description";
+      store.set(workspaceAtom, (workspace) => updateProject(workspace, project.id, local));
+      await expect(sync.flush()).rejects.toThrow();
+
+      const conflicts = await sync.previewProjectConflict(project.id);
+      expect(conflicts).toHaveLength(2);
+      await sync.resolveProjectConflict(
+        project.id,
+        Object.fromEntries(
+          conflicts.map((conflict) => [
+            conflict.key,
+            conflict.kind === "project" ? "local" : "remote",
+          ]),
+        ),
+        conflicts,
+      );
+      const saved = (await client.load()).find(
+        (row) => "project" in row && row.project.id === project.id,
+      );
+      expect(saved).toMatchObject({
+        project: {
+          state: {
+            projectData: { name: "My project name" },
+            datasets: [{ formData: { description: "Incoming dataset description" } }],
+          },
+        },
+      });
+    });
+
     it("protects a newer draft from an old device even with the latest hash", async () => {
       auth.session = owner;
       const client = createProjectCloudClient(owner.user.id);
@@ -208,7 +253,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         state: { newDraftField: ["must survive"], nextExperimentId: "new representation" },
       };
       const upgraded = await newer.rpc("save_metadata_builder_session", {
-        p_project_id: first.id,
+        p_project_uuid: first.id,
         p_state: future,
         p_state_hash: "version-two",
         p_expected_hash: "version-one",
@@ -228,16 +273,16 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       );
       // Signed-in clients can't read the table directly, so inspect it as the admin.
       const stored = await admin
-        .from("metadata_builder_sessions")
+        .from("mb_project")
         .select("state, state_hash")
-        .eq("project_id", first.id)
+        .eq("project_uuid", first.id)
         .single();
       expect(stored.error).toBeNull();
       expect(stored.data).toEqual({ state: future, state_hash: "version-two" });
       const supported = await admin
-        .from("metadata_builder_sessions")
+        .from("mb_project")
         .select("state")
-        .eq("project_id", second.id)
+        .eq("project_uuid", second.id)
         .single();
       expect(supported.error).toBeNull();
       expect(supported.data?.state.state.projectData.name).toBe("old device edit");
@@ -264,20 +309,23 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
         auth: { persistSession: false, autoRefreshToken: false },
       });
       const readTree = async (projectId: string) => {
-        const results = await Promise.all(
-          ["oae_projects", "oae_experiments", "oae_datasets"].map((table) =>
-            anonymous.from(table).select("*").eq("project_id", projectId),
-          ),
-        );
-        for (const result of results) expect(result.error).toBeNull();
-        return results.map((result) => result.data ?? []);
+        const { data, error } = await anonymous
+          .from("projects")
+          .select("document")
+          .eq("project_id", projectId)
+          .maybeSingle();
+        expect(error).toBeNull();
+        const document = data?.document;
+        return document
+          ? [[document.project], document.experiments ?? [], document.datasets ?? []]
+          : [[], [], []];
       };
       const publicId = project.state.projectData.project_id;
       expect((await readTree(publicId)).map((rows) => rows.length)).toEqual([0, 0, 0]);
       await publication.publish(project.id, buildProjectPublicationPayload(project));
       const firstTree = await readTree(publicId);
       expect(firstTree.map((rows) => rows.length)).toEqual([1, 1, 1]);
-      expect(firstTree[2][0].extras._source).toEqual(project.state.datasets[0].formData);
+      expect(firstTree[2][0]).toEqual(project.state.datasets[0].formData);
       await expect(drafts.remove(project.id, "publication-v1")).rejects.toThrow("Unpublish");
 
       const edited = structuredClone(project);
@@ -343,6 +391,55 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       ).toEqual([1, 0, 0]);
       await publication.unpublish(project.id);
       expect((await drafts.remove(project.id, "publication-v4")).saved).toBe(true);
+    });
+
+    it.each([
+      "project",
+      "experiment",
+    ])("serializes competing case-insensitive %s ID claims and retains unpublished reservations", async (kind) => {
+      const suffix = crypto.randomUUID();
+      const contenders = await Promise.all(
+        [owner, other].map(async (session, index) => {
+          const api = createClient(url, key, {
+            accessToken: async () => session.access_token,
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          const draft = { ...publicationProject(), id: crypto.randomUUID() };
+          const projectId = kind === "project" ? `Race-${suffix}` : `Race-${index}-${suffix}`;
+          const experimentId = kind === "experiment" ? `Exp-${suffix}` : `Exp-${index}-${suffix}`;
+          draft.state.projectData.project_id = index === 1 ? projectId.toLowerCase() : projectId;
+          draft.state.experiments[0].formData.project_id = draft.state.projectData.project_id;
+          draft.state.datasets[0].formData.project_id = draft.state.projectData.project_id;
+          draft.state.experiments[0].formData.experiment_id =
+            index === 1 ? experimentId.toLowerCase() : experimentId;
+          draft.state.datasets[0].formData.experiment_id =
+            draft.state.experiments[0].formData.experiment_id;
+          const saved = await api.rpc("save_metadata_builder_session", {
+            p_project_uuid: draft.id,
+            p_state: draft,
+            p_state_hash: "race",
+          });
+          expect(saved.error).toBeNull();
+          const payload = buildProjectPublicationPayload(draft);
+          const publish = () =>
+            api.rpc("publish_oae_project", {
+              p_source_project_uuid: draft.id,
+              p_project: payload.project,
+              p_experiments: payload.experiments,
+              p_datasets: payload.datasets,
+            });
+          return { api, draft, publish };
+        }),
+      );
+      const outcomes = await Promise.all(contenders.map((contender) => contender.publish()));
+      expect(outcomes.filter((result) => result.error === null)).toHaveLength(1);
+      expect(outcomes.find((result) => result.error)?.error?.code).toBe("23505");
+      const winner = outcomes.findIndex((result) => result.error === null);
+      const unpublished = await contenders[winner].api.rpc("unpublish_oae_project", {
+        p_source_project_uuid: contenders[winner].draft.id,
+      });
+      expect(unpublished.error).toBeNull();
+      expect((await contenders[1 - winner].publish()).error?.code).toBe("23505");
     });
   },
 );

@@ -59,7 +59,7 @@ describe("owner-bound project Supabase client", () => {
   const project = { ...newProjectRecord(emptyProjectState(), 100), id: "internal-project" };
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.rows = [{ project_id: project.id, state: project, state_hash: "hash" }];
+    mocks.rows = [{ project_uuid: project.id, state: project, state_hash: "hash" }];
     mocks.loadError = null;
     mocks.session = { user: { id: "owner" }, access_token: "owner-token" };
     mocks.rpc.mockResolvedValue({
@@ -77,7 +77,7 @@ describe("owner-bound project Supabase client", () => {
   });
 
   it("checks hashes and access without loading state", async () => {
-    mocks.rows = [{ project_id: project.id, state: null, state_hash: "hash", role: "viewer" }];
+    mocks.rows = [{ project_uuid: project.id, state: null, state_hash: "hash", role: "viewer" }];
     const versions = await createProjectCloudClient("owner").hashes();
     expect(mocks.list).toHaveBeenCalledWith({ p_include_state: false });
     expect(versions.get(project.id)).toEqual({
@@ -87,7 +87,7 @@ describe("owner-bound project Supabase client", () => {
   });
 
   it("rejects rows with an unknown role", async () => {
-    mocks.rows = [{ project_id: project.id, state: project, state_hash: "hash", role: "admin" }];
+    mocks.rows = [{ project_uuid: project.id, state: project, state_hash: "hash", role: "admin" }];
     await expect(createProjectCloudClient("owner").load()).rejects.toThrow("invalid");
   });
 
@@ -123,13 +123,13 @@ describe("owner-bound project Supabase client", () => {
     ]);
     await members.setRole("p", "bob", "viewer");
     expect(mocks.rpc).toHaveBeenCalledWith("set_metadata_builder_project_member_role", {
-      p_project_id: "p",
+      p_project_uuid: "p",
       p_user_id: "bob",
       p_role: "viewer",
     });
     await members.remove("p", "bob");
     expect(mocks.rpc).toHaveBeenCalledWith("remove_metadata_builder_project_member", {
-      p_project_id: "p",
+      p_project_uuid: "p",
       p_user_id: "bob",
     });
   });
@@ -190,7 +190,7 @@ describe("owner-bound project Supabase client", () => {
     const client = createProjectCloudClient("owner");
     await client.save(project, "next", "previous");
     expect(mocks.rpc).toHaveBeenCalledWith("save_metadata_builder_session", {
-      p_project_id: project.id,
+      p_project_uuid: project.id,
       p_state: project,
       p_state_hash: "next",
       p_expected_hash: "previous",
@@ -200,7 +200,7 @@ describe("owner-bound project Supabase client", () => {
 
   it("reports future projects without parsing their state or hiding supported projects", async () => {
     mocks.rows.push({
-      project_id: "future",
+      project_uuid: "future",
       state: { id: "future", schemaVersion: 3, state: { futureField: true } },
       state_hash: "future-hash",
     });
@@ -238,7 +238,7 @@ describe("owner-bound project Supabase client", () => {
     const result = await createProjectCloudClient("owner").remove(project.id, "previous");
     expect(result).toEqual({ saved: true, project: null, hash: null });
     expect(mocks.rpc).toHaveBeenCalledWith("delete_metadata_builder_session", {
-      p_project_id: project.id,
+      p_project_uuid: project.id,
       p_expected_hash: "previous",
     });
   });
@@ -281,7 +281,7 @@ describe("owner-bound project Supabase client", () => {
 
   it("rejects malformed, mismatched and partial responses", async () => {
     const client = createProjectCloudClient("owner");
-    mocks.rows = [{ project_id: "different", state: project, state_hash: "hash" }];
+    mocks.rows = [{ project_uuid: "different", state: project, state_hash: "hash" }];
     await expect(client.load()).resolves.toEqual([
       { projectId: "different", reason: expect.stringContaining("invalid"), access },
     ]);
