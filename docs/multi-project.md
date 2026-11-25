@@ -37,13 +37,12 @@ Each project page has its own URL:
 | Experiment | `/projects/<project>/experiments/<experiment>` |
 | Dataset | `/projects/<project>/datasets/<dataset>` |
 
-The slugs come from `src/workspace/slugs.ts`. Every URL uses internal IDs (UUIDs for new records), never editable `project_id` or `experiment_id` metadata. Legacy numbered internal IDs remain compatible. Links stay the same before and after publication and through metadata renames. Empty or duplicate metadata IDs do not affect routing or draft sync.
+The slugs come from `src/workspace/slugs.ts`. Every URL uses internal IDs (UUIDs for new records), never editable `project_id` or `experiment_id` metadata. Links stay the same before and after publication and through metadata renames. Empty or duplicate metadata IDs do not affect routing or draft sync.
 
 Nothing is fetched by slug. Every project the user can open is already in the workspace (one `list_metadata_builder_projects` call when signed in, `localStorage` for guests), and `ProjectPersistenceController` holds the routes until it is, so the routes in `src/workspace/EntityRoutes.tsx` resolve slugs synchronously:
 
 - `ProjectRoute`, the `/projects/$projectId` layout, matches only the internal ID. It makes the project active, then renders the page, so a page never shows the previously active project. `ExperimentRoute` and `DatasetRoute` select their record the same way.
-- Human-ID URLs are not supported, whether the ID is unique or not.
-- Project and experiment ID fields check availability against the catalog when loaded and after editing. Conflicts are advisory: the full draft saves unchanged. Project IDs and experiment IDs have separate case-insensitive published namespaces. Publication always checks again atomically; availability checks do not reserve names. Retained unpublished catalog rows still claim their IDs until renamed or deleted.
+- Project and experiment ID fields check availability against the catalog when loaded and after editing. Conflicts are advisory: the full draft saves unchanged. Project and experiment IDs share one case-insensitive namespace, including within a publication. Publication always checks again atomically; availability checks do not reserve names. Retained unpublished catalog rows still claim their IDs until renamed or deleted.
 - No match shows `NotFoundPage`: "Project ID "X" can't be found", or the experiment or dataset equivalent with a link back to the project. It doesn't say whether a project exists that you can't open. Unknown paths get the generic "Page not found".
 - Guests with auth enabled also get Sign in, which returns to the link.
 
@@ -51,7 +50,7 @@ Code navigates with `useEntityNavigate` (`src/workspace/useEntityNavigate.ts`), 
 
 The pre-slug paths `/overview`, `/project`, `/experiment` and `/dataset` still work: `ActivePageRedirect` replaces them with the active project's URL, and `/overview` stays the welcome screen while the workspace is empty.
 
-Signed-in users get "Copy link to this page" in the menu and "Copy link" in the Share dialog (`useCopyLink`). The link uses the same slugs as the address bar. Guest projects live in one browser, so guests get neither.
+On a cloud project page, **Share this project** beside the cloud icon opens the Share dialog. Its **Copy link** action uses the current page's stable URL (`useCopyLink`). Guest projects live in one browser, so guests don't get sharing controls.
 
 ## Header and /projects
 

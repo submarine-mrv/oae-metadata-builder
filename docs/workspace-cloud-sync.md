@@ -41,7 +41,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
   `check_metadata_builder_id_availability` checks catalog availability when an
   ID field loads or loses focus, not on every keystroke. A field advisory explains
   conflicts or check failures without blocking edits or sync, and offers Recheck ID.
-  Publication still enforces uniqueness case-insensitively with database indexes.
+  At publication, the database enforces one case-insensitive namespace for project and experiment IDs.
   Drafts do not reserve names, so an available ID may be claimed before publication.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every

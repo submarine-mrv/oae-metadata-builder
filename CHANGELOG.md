@@ -11,11 +11,12 @@ you use it; minor versions add features or adopt a new schema version; patches f
 - Each project, experiment and dataset has its own URL, such as
   `/projects/<project-uuid>/experiments/<experiment-uuid>`, so you can bookmark a page or send it
   to someone on the project. Links use internal IDs and stay the same when metadata IDs change.
-  "Copy link" in the menu and the Share dialog copies it. A link to something that can't be found
+  The share button beside the cloud icon opens the Share dialog, where "Copy link" copies the
+  current page's URL. A link to something that can't be found
   says so. The old `/overview`, `/project`, `/experiment` and `/dataset` addresses still open the
   current project.
-- Project and experiment IDs are checked against published metadata, ignoring case. An ID already
-  in use shows an advisory to change it before publishing; the complete draft still saves.
+- Project and experiment IDs share one case-insensitive namespace. Conflicts show an advisory and
+  prevent publication, not draft saves.
 - Sharing a project with someone who has no account emails them an invitation. They set a
   password when they accept it and then see the project. The Share dialog shows invited people as
   Pending, with Resend. If the invitation email can't be sent, the person isn't added.
