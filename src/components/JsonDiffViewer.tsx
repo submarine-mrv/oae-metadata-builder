@@ -9,10 +9,10 @@ const CHANGE_LABELS: Record<JsonDiffRow["change"], string> = {
 };
 
 const CHANGE_COLORS: Record<JsonDiffRow["change"], string> = {
-  added: "green",
-  removed: "red",
-  changed: "yellow",
-  moved: "gray",
+  added: "coral",
+  removed: "progressBlue",
+  changed: "midnight",
+  moved: "midnight",
 };
 
 export function formatJson(side: DiffSide): string {
@@ -21,7 +21,7 @@ export function formatJson(side: DiffSide): string {
 
 type DiffValueProps = {
   side: DiffSide;
-  tone: "local" | "remote";
+  tone: "local" | "cloud";
   heading: string;
 };
 
@@ -35,7 +35,7 @@ function DiffValue({ side, tone, heading }: DiffValueProps) {
       {side.present ? (
         <Code
           block
-          color={tone === "local" ? "red.0" : "green.0"}
+          color={tone === "local" ? "progressBlue.0" : "coral.0"}
           className="max-h-64 overflow-auto whitespace-pre-wrap break-words"
         >
           {formatJson(side)}
@@ -60,8 +60,8 @@ type JsonDiffViewerProps = {
 export function JsonDiffViewer({
   left,
   right,
-  leftLabel = "My current value",
-  rightLabel = "Incoming value",
+  leftLabel = "Local version",
+  rightLabel = "Cloud version",
 }: JsonDiffViewerProps) {
   const rows = jsonDiff(left, right);
   if (!rows.length) {
@@ -84,7 +84,7 @@ export function JsonDiffViewer({
       {rows.map((row) => (
         <div
           key={`${row.change}:${row.path}`}
-          className="flex flex-col gap-1 border-t border-gray-200 pt-2"
+          className="flex flex-col gap-1 border-t border-twilight pt-2"
         >
           <div className="flex items-center gap-2">
             <Text size="xs" ff="monospace" className="break-all">
@@ -96,7 +96,7 @@ export function JsonDiffViewer({
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DiffValue side={row.left} tone="local" heading={leftLabel} />
-            <DiffValue side={row.right} tone="remote" heading={rightLabel} />
+            <DiffValue side={row.right} tone="cloud" heading={rightLabel} />
           </div>
         </div>
       ))}
