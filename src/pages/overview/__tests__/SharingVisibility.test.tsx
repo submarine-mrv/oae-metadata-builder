@@ -11,6 +11,7 @@ import OverviewPage from "../OverviewPage";
 
 const mocks = vi.hoisted(() => ({
   user: null as { id: string; email: string } | null,
+  entityPage: "overview" as "overview" | "metadata",
   copy: vi.fn(),
   navigate: vi.fn(),
   members: {
@@ -30,7 +31,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
 }));
 vi.mock("@/workspace/useEntityNavigate", () => ({
-  useCurrentEntityPage: () => "overview",
+  useCurrentEntityPage: () => mocks.entityPage,
   useEntityNavigate: () => mocks.navigate,
 }));
 vi.mock("@/workspace/useCopyLink", () => ({ useCopyLink: () => mocks.copy }));
@@ -79,6 +80,7 @@ describe("sharing visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = null;
+    mocks.entityPage = "overview";
     mocks.members.list.mockResolvedValue([{ email: "owner@example.test", role: "owner" }]);
   });
 
@@ -86,29 +88,28 @@ describe("sharing visibility", () => {
     renderPage("owner");
 
     expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-    await screen.findByRole("menuitem", { name: "How-to Guide" });
-    expect(
-      screen.queryByRole("menuitem", { name: "Copy link to this page", hidden: true }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share this project" })).not.toBeInTheDocument();
   });
 
   it("lets a signed-in owner copy links and closes sharing on sign-out", async () => {
     mocks.user = { id: "owner", email: "owner@example.test" };
+    mocks.entityPage = "metadata";
     const { element, projectId, rerender } = renderPage("owner");
 
-    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Copy link to this page" }));
-    expect(mocks.copy).toHaveBeenCalledWith("overview", projectId, undefined);
+    const menu = screen.getByRole("button", { name: "Menu" });
+    fireEvent.click(menu);
+    expect(await screen.findByText("How-to Guide")).toBeInTheDocument();
+    expect(screen.queryByText("Copy link to this page")).toBeNull();
+    fireEvent.click(menu);
 
-    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share this project" }));
     expect(await screen.findByRole("dialog", { name: "Share project" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
-    expect(mocks.copy).toHaveBeenCalledWith("overview", projectId);
+    expect(mocks.copy).toHaveBeenCalledWith("metadata", projectId);
 
     mocks.user = null;
     rerender(element());
-    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share this project" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Share project" })).not.toBeInTheDocument();
   });
 
@@ -119,7 +120,7 @@ describe("sharing visibility", () => {
     mocks.user = { id: "member", email: "member@example.test" };
     const { projectId } = renderPage(role);
 
-    fireEvent.click(screen.getByRole("button", { name: "People" }));
+    fireEvent.click(screen.getByRole("button", { name: "Share this project" }));
     expect(
       await screen.findByRole("dialog", { name: "People on this project" }),
     ).toBeInTheDocument();
@@ -135,22 +136,14 @@ describe("sharing visibility", () => {
     renderPage(null, cloud);
 
     expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-    await screen.findByRole("menuitem", { name: "How-to Guide" });
-    expect(
-      screen.queryByRole("menuitem", { name: "Copy link to this page", hidden: true }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share this project" })).not.toBeInTheDocument();
   });
 
   it("offers sharing once a new project is saved to the cloud", async () => {
     mocks.user = { id: "owner", email: "owner@example.test" };
     const { projectId, store } = renderPage(null, true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-    await screen.findByRole("menuitem", { name: "How-to Guide" });
-    expect(
-      screen.queryByRole("menuitem", { name: "Copy link to this page", hidden: true }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share this project" })).not.toBeInTheDocument();
     act(() => {
       store.set(projectAccessAtom, {
         [projectId]: {
@@ -162,9 +155,7 @@ describe("sharing visibility", () => {
       });
     });
 
-    expect(
-      screen.getByRole("menuitem", { name: "Copy link to this page", hidden: true }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Share this project" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Share" })).toBeVisible();
   });
 
@@ -177,10 +168,6 @@ describe("sharing visibility", () => {
     mocks.user = { id: "owner", email: "owner@example.test" };
     renderPage("owner", true, page());
 
-    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-    await screen.findByRole("menuitem", { name: "How-to Guide" });
-    expect(
-      screen.queryByRole("menuitem", { name: "Copy link to this page", hidden: true }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share this project" })).not.toBeInTheDocument();
   });
 });

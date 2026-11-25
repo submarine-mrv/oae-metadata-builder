@@ -5,7 +5,7 @@ interface AppLayoutProps {
   children: React.ReactNode;
   /** When true, children manage their own scrolling (e.g., form pages with sidebars) */
   noScroll?: boolean;
-  hideCopyLink?: boolean;
+  hideShare?: boolean;
 }
 
 /**
@@ -17,7 +17,7 @@ interface AppLayoutProps {
 export default function AppLayout({
   children,
   noScroll = false,
-  hideCopyLink = false,
+  hideShare = false,
 }: AppLayoutProps) {
   return (
     <div
@@ -28,7 +28,7 @@ export default function AppLayout({
         overflow: "hidden",
       }}
     >
-      <Navigation hideCopyLink={hideCopyLink} />
+      <Navigation hideShare={hideShare} />
       {noScroll ? (
         // Children manage their own scrolling (e.g., form + sidebar layout)
         <main style={{ display: "flex", flex: 1, minHeight: 0 }}>{children}</main>

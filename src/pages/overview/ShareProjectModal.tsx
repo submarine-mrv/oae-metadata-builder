@@ -17,7 +17,9 @@ import dayjs from "dayjs";
 import { useStore } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth/useAuth";
+import { activeDatasetIdAtom, activeExperimentIdAtom } from "@/state/atoms";
 import type { ProjectMember } from "@/workspace/projectCloudSync";
+import type { EntityPage } from "@/workspace/slugs";
 import { projectSyncActionsAtom } from "@/workspace/syncState";
 import { useCopyLink } from "@/workspace/useCopyLink";
 
@@ -45,6 +47,7 @@ const ROLE_OPTIONS = [
 interface ShareProjectModalProps {
   projectId: string;
   isOwner: boolean;
+  copyPage?: EntityPage;
   onClose(): void;
   /** Called after the user removes themselves from the project. */
   onLeft(): void;
@@ -54,6 +57,7 @@ interface ShareProjectModalProps {
 export default function ShareProjectModal({
   projectId,
   isOwner,
+  copyPage = "overview",
   onClose,
   onLeft,
 }: ShareProjectModalProps) {
@@ -147,7 +151,16 @@ export default function ShareProjectModal({
             variant="light"
             size="xs"
             leftSection={<IconLink size={14} />}
-            onClick={() => copyLink("overview", projectId)}
+            onClick={() => {
+              const entityId =
+                copyPage === "experiment"
+                  ? store.get(activeExperimentIdAtom)
+                  : copyPage === "dataset"
+                    ? store.get(activeDatasetIdAtom)
+                    : null;
+              if (entityId) copyLink(copyPage, projectId, entityId);
+              else copyLink(copyPage, projectId);
+            }}
           >
             Copy link
           </Button>

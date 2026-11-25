@@ -33,7 +33,7 @@ export default function NotFoundPage({ entity, id, projectSlug }: NotFoundPagePr
       : `${entity} ID "${id}" can't be found in this project. It may have been renamed or deleted.`;
 
   return (
-    <AppLayout hideCopyLink>
+    <AppLayout hideShare>
       <Container size="md" py="xl">
         <Stack align="center" gap="md" py="xl">
           <Title order={2}>{title}</Title>

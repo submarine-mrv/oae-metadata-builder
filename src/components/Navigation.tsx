@@ -8,6 +8,7 @@ import {
   SegmentedControl,
   Switch,
   Text,
+  Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
@@ -16,12 +17,13 @@ import {
   IconFileImport,
   IconHelp,
   IconInfoCircle,
-  IconLink,
   IconLogout,
+  IconShare,
   IconUser,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
+import { useState } from "react";
 import { authEnabled } from "@/auth/config";
 import { useAuth } from "@/auth/useAuth";
 import DownloadModal from "@/components/DownloadModal";
@@ -29,10 +31,9 @@ import ImportFlow from "@/components/ImportFlow";
 import ProjectSwitcher from "@/components/ProjectSwitcher";
 import { useDownloadModal } from "@/hooks/useDownloadModal";
 import { useImportFlow } from "@/hooks/useImportFlow";
+import ShareProjectModal from "@/pages/overview/ShareProjectModal";
 import { toggleJsonPreviewAtom } from "@/state/actions";
 import {
-  activeDatasetIdAtom,
-  activeExperimentIdAtom,
   activeProjectIdAtom,
   projectCountAtom,
   projectStateAtom,
@@ -42,7 +43,6 @@ import { trackEvent } from "@/utils/analytics";
 import type { EntityPage } from "@/workspace/slugs";
 import { ProjectSyncIndicator } from "@/workspace/sync";
 import { projectSyncActionsAtom, projectSyncStatusAtom } from "@/workspace/syncState";
-import { useCopyLink } from "@/workspace/useCopyLink";
 import { useCurrentEntityPage, useEntityNavigate } from "@/workspace/useEntityNavigate";
 import { useActiveProjectAccess } from "@/workspace/useProjectAccess";
 
@@ -53,16 +53,17 @@ const TABS = [
   { value: "dataset", label: "Datasets" },
 ];
 
-export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: boolean }) {
+export default function Navigation({ hideShare = false }: { hideShare?: boolean }) {
   const { client, user } = useAuth();
   const showJsonPreview = useAtomValue(showJsonPreviewAtom);
   const toggleJsonPreview = useSetAtom(toggleJsonPreviewAtom);
   const hasProjects = useAtomValue(projectCountAtom) > 0;
-  const hasActiveProject = useAtomValue(activeProjectIdAtom) !== null;
+  const projectId = useAtomValue(activeProjectIdAtom);
+  const hasActiveProject = projectId !== null;
+  const [sharingProjectId, setSharingProjectId] = useState<string | null>(null);
   const store = useStore();
   const navigate = useNavigate();
   const goTo = useEntityNavigate();
-  const copyLink = useCopyLink();
   // Only projects saved to the cloud can be opened in another browser.
   const cloud = useAtomValue(projectSyncActionsAtom) !== null;
   const access = useActiveProjectAccess();
@@ -82,17 +83,7 @@ export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: bo
 
   const pathname = useLocation({ select: (s) => s.pathname });
   const entityPage = useCurrentEntityPage();
-  const copyPageLink = () => {
-    const projectId = store.get(activeProjectIdAtom);
-    if (!projectId || !entityPage) return;
-    const entityId =
-      entityPage === "experiment"
-        ? store.get(activeExperimentIdAtom)
-        : entityPage === "dataset"
-          ? store.get(activeDatasetIdAtom)
-          : null;
-    copyLink(entityPage, projectId, entityId ?? undefined);
-  };
+  const canShare = !hideShare && user && cloud && access && entityPage && projectId;
   const currentTab =
     pathname === "/how-to" ? "how-to" : entityPage === "metadata" ? "project" : (entityPage ?? "");
 
@@ -174,6 +165,21 @@ export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: bo
           {/* Actions - right aligned. Pinned to the last column so an absent tab row can't pull them in. */}
           <Group gap="xs" justify="flex-end" style={{ gridColumn: isCompact ? 2 : 3 }}>
             <ProjectSyncIndicator />
+            {canShare && (
+              <Tooltip
+                label="Share this project"
+                events={{ hover: true, focus: true, touch: false }}
+              >
+                <ActionIcon
+                  variant="subtle"
+                  size="lg"
+                  aria-label="Share this project"
+                  onClick={() => setSharingProjectId(projectId)}
+                >
+                  <IconShare size={20} />
+                </ActionIcon>
+              </Tooltip>
+            )}
             {/* Import/Export buttons visible on desktop only */}
             {!isMobile && (
               <>
@@ -254,14 +260,6 @@ export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: bo
                     <Menu.Divider />
                   </>
                 )}
-                {!hideCopyLink && user && cloud && access && entityPage && (
-                  <>
-                    <Menu.Item leftSection={<IconLink size={16} />} onClick={copyPageLink}>
-                      Copy link to this page
-                    </Menu.Item>
-                    <Menu.Divider />
-                  </>
-                )}
                 <Menu.Item
                   leftSection={<IconHelp size={16} />}
                   onClick={() => navigate({ to: "/how-to" })}
@@ -326,6 +324,15 @@ export default function Navigation({ hideCopyLink = false }: { hideCopyLink?: bo
       />
 
       <ImportFlow flow={importFlow} />
+      {canShare && sharingProjectId === projectId && (
+        <ShareProjectModal
+          projectId={projectId}
+          isOwner={access.role === "owner"}
+          copyPage={entityPage}
+          onClose={() => setSharingProjectId(null)}
+          onLeft={() => void navigate({ to: "/projects" })}
+        />
+      )}
     </>
   );
 }
