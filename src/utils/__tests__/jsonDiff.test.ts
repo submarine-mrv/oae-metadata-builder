@@ -4,7 +4,9 @@ import { jsonDiff } from "../jsonDiff";
 const value = (v: unknown) => ({ present: true as const, value: v });
 const missing = { present: false as const };
 const paths = (a: unknown, b: unknown) =>
-  jsonDiff(value(a), value(b)).map(({ path, change }) => `${change} ${path}`);
+  jsonDiff(value(a), value(b)).map(({ path, change, to }) =>
+    [change, path, to].filter(Boolean).join(" "),
+  );
 
 describe("jsonDiff", () => {
   it("shows only changed nested paths and ignores key order", () => {
@@ -14,12 +16,7 @@ describe("jsonDiff", () => {
         value({ nested: { units: "mmol/kg", same: true }, a: 1 }),
       ),
     ).toEqual([
-      {
-        path: "/nested/units",
-        change: "changed",
-        left: value("mol/kg"),
-        right: value("mmol/kg"),
-      },
+      { path: "/nested/units", change: "changed", left: value("mol/kg"), right: value("mmol/kg") },
     ]);
   });
 
@@ -32,10 +29,19 @@ describe("jsonDiff", () => {
     expect(paths({ a: undefined }, {})).toEqual([]);
   });
 
-  it("compares arrays by position, including duplicates and reorders", () => {
-    expect(paths(["x", "y"], ["y", "x"])).toEqual(["changed /0", "changed /1"]);
-    expect(paths(["x"], ["x", "x"])).toEqual(["added /1"]);
-    expect(paths([1, 2, 3], [1, 2])).toEqual(["removed /2"]);
+  it("matches array items by content, not position", () => {
+    const jeanine = { name: "Jeanine Ash", email: "j@example.com" };
+    const sample = { name: "Sample Name", email: "sample@example.com" };
+    const newPerson = { name: "New Person", email: "new@example.com" };
+    const edited = { ...jeanine, name: "Jeanine 2" };
+    expect(paths([jeanine, sample], [jeanine, newPerson, sample])).toEqual(["added /1"]);
+    expect(paths([jeanine, sample], [edited, newPerson, sample])).toEqual([
+      "changed /0/name",
+      "added /1",
+    ]);
+    expect(paths([jeanine, sample], [sample])).toEqual(["removed /0"]);
+    expect(paths(["x", "y", "z"], ["w", "x", "y", "z"])).toEqual(["added /0"]);
+    expect(paths(["x", "y"], ["y", "x"])).toEqual(["moved /1 /0"]);
   });
 
   it("reports a container or type replacement as one row", () => {

@@ -5,12 +5,14 @@ const CHANGE_LABELS: Record<JsonDiffRow["change"], string> = {
   added: "Added",
   removed: "Removed",
   changed: "Changed",
+  moved: "Moved",
 };
 
 const CHANGE_COLORS: Record<JsonDiffRow["change"], string> = {
   added: "green",
   removed: "red",
   changed: "yellow",
+  moved: "gray",
 };
 
 export function formatJson(side: DiffSide): string {
@@ -80,10 +82,13 @@ export function JsonDiffViewer({
         </Text>
       </div>
       {rows.map((row) => (
-        <div key={row.path} className="flex flex-col gap-1 border-t border-gray-200 pt-2">
+        <div
+          key={`${row.change}:${row.path}`}
+          className="flex flex-col gap-1 border-t border-gray-200 pt-2"
+        >
           <div className="flex items-center gap-2">
             <Text size="xs" ff="monospace" className="break-all">
-              {row.path || "(whole value)"}
+              {row.to ? `${row.path} → ${row.to}` : row.path || "(whole value)"}
             </Text>
             <Badge size="xs" variant="light" color={CHANGE_COLORS[row.change]}>
               {CHANGE_LABELS[row.change]}
