@@ -42,6 +42,7 @@ describe("jsonDiff", () => {
     expect(paths([jeanine, sample], [sample])).toEqual(["removed /0"]);
     expect(paths(["x", "y", "z"], ["w", "x", "y", "z"])).toEqual(["added /0"]);
     expect(paths(["x", "y"], ["y", "x"])).toEqual(["moved /1 /0"]);
+    expect(paths([{ a: 1, b: 2 }, { c: 3 }], [{ c: 3 }, { b: 2, a: 1 }])).toEqual(["moved /1 /0"]);
   });
 
   it("reports a container or type replacement as one row", () => {

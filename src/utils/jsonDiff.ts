@@ -16,10 +16,18 @@ export type JsonDiffRow = {
 const MISSING: DiffSide = { present: false };
 const present = (value: unknown): DiffSide => ({ present: true, value });
 
+// Key-sorted JSON, so objects that differ only in key order hash the same.
+const canonical = (value: unknown): string =>
+  JSON.stringify(value, (_key, inner) =>
+    inner && typeof inner === "object" && !Array.isArray(inner)
+      ? Object.fromEntries(Object.entries(inner).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+      : inner,
+  );
+
 // Array items are matched by content so an insertion or deletion is one whole-item row rather
 // than shifting every later index. See `rows` for how edited objects are recovered.
 const differ = create({
-  objectHash: (item: object) => JSON.stringify(item),
+  objectHash: (item: object) => canonical(item),
   arrays: { detectMove: true, includeValueOnMove: true },
 });
 
