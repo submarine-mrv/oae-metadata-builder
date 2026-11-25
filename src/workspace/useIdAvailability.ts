@@ -4,10 +4,8 @@ import { authEnabled, authProvider } from "@/auth/config";
 import { useAuth } from "@/auth/useAuth";
 import { activeExperimentIdAtom, activeProjectAtom } from "@/state/atoms";
 
-const TAKEN =
-  "This ID is already in use. Choose a unique ID before publishing. Your draft still saves.";
-const LOCAL_DUPLICATE =
-  "Another experiment in this project has this ID. Choose a unique ID before publishing. Your draft still saves.";
+const UNIQUE_ID = "Choose a unique ID before publishing.";
+const TAKEN = `This ID is already in use. ${UNIQUE_ID}`;
 
 /** Availability is advisory: never change the draft or participate in cloud sync. */
 export function useIdAvailability(
@@ -22,14 +20,18 @@ export function useIdAvailability(
   const sourceId = project?.id;
   const userId = user?.id;
   const candidate = typeof value === "string" ? value : "";
-  const localDuplicate =
-    kind === "experiment" &&
-    !!candidate &&
-    !!project?.state.experiments.some(
-      (experiment) =>
-        experiment.id !== experimentId &&
-        experiment.formData.experiment_id?.toLowerCase() === candidate.toLowerCase(),
-    );
+  const normalized = candidate.toLowerCase();
+  const localConflict = !normalized
+    ? null
+    : kind === "experiment" && project?.state.projectData.project_id?.toLowerCase() === normalized
+      ? `The project has this ID. ${UNIQUE_ID}`
+      : project?.state.experiments.some(
+            (experiment) =>
+              (kind === "project" || experiment.id !== experimentId) &&
+              experiment.formData.experiment_id?.toLowerCase() === normalized,
+          )
+        ? `${kind === "experiment" ? "Another experiment" : "An experiment"} in this project has this ID. ${UNIQUE_ID}`
+        : null;
   const [revision, setRevision] = useState(0);
   const key = JSON.stringify([userId, sourceId, kind, experimentId, candidate, revision]);
   const [result, setResult] = useState<{ key: string; message: string | null } | null>(null);
@@ -43,7 +45,7 @@ export function useIdAvailability(
       !userId ||
       !authEnabled ||
       authProvider !== "supabase" ||
-      localDuplicate
+      localConflict
     ) {
       return;
     }
@@ -73,16 +75,12 @@ export function useIdAvailability(
     return () => {
       cancelled = true;
     };
-  }, [candidate, focused, key, kind, localDuplicate, sourceId, userId, valid]);
+  }, [candidate, focused, key, kind, localConflict, sourceId, userId, valid]);
 
   return {
     message:
       !focused && valid && candidate
-        ? localDuplicate
-          ? LOCAL_DUPLICATE
-          : result?.key === key
-            ? result.message
-            : null
+        ? (localConflict ?? (result?.key === key ? result.message : null))
         : null,
     retry: () => setRevision((previous) => previous + 1),
   };

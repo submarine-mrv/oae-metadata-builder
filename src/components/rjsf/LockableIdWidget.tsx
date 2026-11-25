@@ -148,7 +148,11 @@ export default function LockableIdWidget<
             availability.message ? (
               <span role="status">
                 {availability.message}{" "}
-                <button type="button" className="underline" onClick={availability.retry}>
+                <button
+                  type="button"
+                  className="underline cursor-pointer"
+                  onClick={availability.retry}
+                >
                   Recheck ID
                 </button>
               </span>
