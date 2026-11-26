@@ -396,6 +396,7 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
     it.each([
       "project",
       "experiment",
+      "cross-kind",
     ])("serializes competing case-insensitive %s ID claims and retains unpublished reservations", async (kind) => {
       const suffix = crypto.randomUUID();
       const contenders = await Promise.all(
@@ -405,8 +406,16 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
             auth: { persistSession: false, autoRefreshToken: false },
           });
           const draft = { ...publicationProject(), id: crypto.randomUUID() };
-          const projectId = kind === "project" ? `Race-${suffix}` : `Race-${index}-${suffix}`;
-          const experimentId = kind === "experiment" ? `Exp-${suffix}` : `Exp-${index}-${suffix}`;
+          const projectId =
+            kind === "project" || (kind === "cross-kind" && index === 0)
+              ? `Race-${suffix}`
+              : `Race-${index}-${suffix}`;
+          const experimentId =
+            kind === "cross-kind" && index === 1
+              ? `Race-${suffix}`
+              : kind === "experiment"
+                ? `Exp-${suffix}`
+                : `Exp-${index}-${suffix}`;
           draft.state.projectData.project_id = index === 1 ? projectId.toLowerCase() : projectId;
           draft.state.experiments[0].formData.project_id = draft.state.projectData.project_id;
           draft.state.datasets[0].formData.project_id = draft.state.projectData.project_id;
@@ -433,7 +442,22 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       );
       const outcomes = await Promise.all(contenders.map((contender) => contender.publish()));
       expect(outcomes.filter((result) => result.error === null)).toHaveLength(1);
-      expect(outcomes.find((result) => result.error)?.error?.code).toBe("23505");
+      const failure = outcomes.find((result) => result.error)?.error;
+      expect(failure?.code).toBe("23505");
+      expect(failure?.details).toBe("oae_duplicate_ids");
+      const loser = outcomes[0].error ? 0 : 1;
+      const conflictingKind =
+        kind === "cross-kind" ? (loser === 0 ? "project" : "experiment") : kind;
+      const losingDraft = contenders[loser].draft;
+      expect(JSON.parse(failure?.hint ?? "null")).toEqual([
+        {
+          entity_type: conflictingKind,
+          id:
+            conflictingKind === "experiment"
+              ? losingDraft.state.experiments[0].formData.experiment_id
+              : losingDraft.state.projectData.project_id,
+        },
+      ]);
       const winner = outcomes.findIndex((result) => result.error === null);
       const unpublished = await contenders[winner].api.rpc("unpublish_oae_project", {
         p_source_project_uuid: contenders[winner].draft.id,
