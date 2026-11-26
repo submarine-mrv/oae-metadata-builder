@@ -14,8 +14,12 @@ you use it; minor versions add features or adopt a new schema version; patches f
 
 ### Updated
 
+- Project and experiment IDs take only letters, numbers, hyphens and underscores, starting with a
+  letter or number, up to 64 characters. The ID field shows the rule as you type, and leaving it
+  with an invalid ID restores the previous one. Saved projects and imported files with IDs that
+  break the rule are cleaned when they load (`Ebb Carbon/2024` becomes `Ebb_Carbon_2024`).
 - Exported files record three versions in place of `version` and the two git-hash fields:
-  `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.8.0`, or
+  `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.7.0`, or
   `0.7.0+dev.3c014f73` from an unreleased schema commit) and `metadata_builder_version` (`1.2.0`, or
   `1.1.0+dev.ac24e9af` from a development build).
 - Project sharing is tied to each person's account rather than their email address, so it

@@ -191,4 +191,19 @@ describe("transformFormErrors", () => {
       expect(result).toHaveLength(1);
     });
   });
+
+  it.each([".project_id", ".experiment_id"])("explains the %s pattern", (property) => {
+    const [transformed] = transformFormErrors([
+      { property, name: "pattern", message: 'must match pattern "^[A-Za-z0-9]"' },
+    ] as RJSFValidationError[]);
+    expect(transformed.message).toBe(MESSAGES.validation.invalidIdentifier);
+  });
+
+  it("drops the pattern error for an ID the builder left empty", () => {
+    const errors = [
+      { property: ".project_id", name: "pattern", message: "must match pattern" },
+    ] as RJSFValidationError[];
+    expect(transformFormErrors(errors, { project_id: "" })).toHaveLength(0);
+    expect(transformFormErrors(errors, { project_id: "a b" })).toHaveLength(1);
+  });
 });

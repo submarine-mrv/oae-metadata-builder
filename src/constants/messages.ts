@@ -6,6 +6,8 @@ export const MESSAGES = {
     invalidDateFormat: "Invalid date format",
     spatialCoverage: "Spatial Coverage is required",
     experimentIdRequired: "Please select an experiment for your dataset.",
+    invalidIdentifier:
+      "Invalid format: Allowed characters are letters, numbers, - and _. Must begin with a letter or number. Max 64 characters.",
     depthInvalid: "Maximum depth must be 0 or negative (below sea surface).",
     depthOrder: "Minimum depth must be greater than or equal to maximum depth.",
     temporalCoverageRequired: "Start date is required.",
