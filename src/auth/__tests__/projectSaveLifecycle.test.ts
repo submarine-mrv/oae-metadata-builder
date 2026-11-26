@@ -23,6 +23,8 @@ describe("authenticated project save lifecycle", () => {
       refresh: vi.fn(),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
+      previewProjectConflict: vi.fn(),
+      resolveProjectConflict: vi.fn(),
       flush,
       stop,
       remove: vi.fn(),

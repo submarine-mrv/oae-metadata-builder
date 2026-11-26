@@ -22,6 +22,8 @@ describe("local project consent", () => {
       refresh: vi.fn(),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
+      previewProjectConflict: vi.fn(),
+      resolveProjectConflict: vi.fn(),
       flush: vi.fn(),
       remove: vi.fn(),
       stop: vi.fn(),

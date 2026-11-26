@@ -70,11 +70,30 @@ Guests and the memory auth provider retain browser persistence. Enable with
 
 The login-only cloud icon beside Import shows pending, saved, or failed state.
 Hover for details. Only the failed state is clickable. A conflict opens a dialog
-with two choices, keep my changes or use newer changes. The choice applies only
-where both sides edited the same thing; every other edit from either side is
-kept. On a shared project,
-Overview shows who last edited it ("you" for your own edits). Other errors show the message, with Retry save unless the project has a
-newer format.
+that loads the latest cloud copy. The widened modal uses a field navigator on
+desktop when several clashes need review, grouped under each project,
+experiment or dataset; with one clash, the navigator is hidden. Local for all /
+Cloud for all sit beside the Text / JSON diff toggle under the description.
+Below the comparison, choose Keep Local version or Use Cloud version; on
+desktop, Next field moves to the following clash. On mobile, the modal fills
+the screen and shows one field at a time with previous/next navigation. Apply
+stays disabled until
+every clash has a choice. A global Text / JSON diff toggle switches the
+comparison: Text shows strings, numbers and booleans in full, while objects
+and arrays always use the generic JSON diff, which lists only the changed JSON
+Pointer paths (object key order is ignored). The diff uses `jsondiffpatch`:
+array items are matched by content, so an inserted or deleted entry is one
+whole-item Added/Removed row instead of shifting every later index, and a
+reorder is a Moved row. An object removed and another added at the same index
+are shown as one edited item, so a single changed property stays one row.
+There are no field-specific differs. A choice covers that whole top-level
+field; a type change, a clashing addition, or a project with no shared baseline
+is one whole-item choice. Every other edit from either side is kept. If the
+clashes change before Apply (an edit elsewhere or here), nothing is saved: the
+dialog refreshes, keeps choices whose values are unchanged, and asks for
+another look. On a shared project, Overview shows who last edited it ("you"
+for your own edits). Other errors show the message, with Retry save unless the
+project has a newer format.
 
 Tabs pick up changes made elsewhere by comparing hashes, loading projects only
 when one differs. Checks run on project switch, opening All projects, page

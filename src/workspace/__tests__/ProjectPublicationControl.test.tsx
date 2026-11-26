@@ -60,6 +60,8 @@ function setup(
     refresh: vi.fn(),
     keepProjectChanges: vi.fn(),
     discardProjectChanges: vi.fn(),
+    previewProjectConflict: vi.fn(),
+    resolveProjectConflict: vi.fn(),
     stop: vi.fn(),
     migrateLocalProjects: vi.fn(),
     remove: vi.fn(),

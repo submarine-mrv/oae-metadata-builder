@@ -2,6 +2,7 @@ import type { DatasetRecord, ExperimentRecord } from "@/types/forms";
 import { applyImport, type ImportSelection } from "@/utils/applyImport";
 import { fieldLabel } from "@/utils/fieldLabels";
 import { propagateExperimentIdToDatasets, propagateProjectId } from "@/utils/idPropagation";
+import type { DiffSide } from "@/utils/jsonDiff";
 import type { ProjectRecord, ProjectState } from "./types";
 
 function canonicalize(value: unknown): unknown {
@@ -110,31 +111,105 @@ export function mergeProjectRecord(target: ProjectRecord, incoming: ProjectRecor
 /** Which side wins where both edited the same thing; unset means throw a conflict. */
 export type ConflictPreference = "local" | "remote";
 
-function conflict(field: string): never {
-  throw new Error(`Newer changes also edited ${field}.`);
+/** One side's value; a missing property is distinct from `null`. */
+export type ConflictValue = DiffSide;
+
+/** Something both sides changed differently, settled by choosing one side's whole value. */
+export interface SyncConflict {
+  /** Stable across label changes: kind, internal ID, part and field. */
+  key: string;
+  /** `field` settles one field; `entity` and `project` replace that whole item. */
+  scope: "field" | "entity" | "project";
+  kind: "project" | "experiment" | "dataset";
+  entityId?: string;
+  /** Where it is, e.g. `Experiment "Trial"`. */
+  group: string;
+  /** What it is, e.g. a field label. */
+  label: string;
+  /** The same wording the conflict error uses. */
+  message: string;
+  local: ConflictValue;
+  remote: ConflictValue;
+}
+
+/** Settles each conflict: one side for all, or a choice per conflict (unset leaves it unresolved). */
+export type ConflictResolver =
+  | ConflictPreference
+  | ((conflict: SyncConflict) => ConflictPreference | undefined);
+
+const sideOf = (record: Record<string, unknown>, key: string): ConflictValue =>
+  record[key] !== undefined ? { present: true, value: record[key] } : { present: false };
+
+const conflictKey = (kind: string, entityId: string | null, part: string, field: string) =>
+  JSON.stringify([kind, entityId, part, field]);
+
+function conflictError(entry: SyncConflict) {
+  return new Error(`Newer changes also edited ${entry.message}.`);
+}
+
+/** The chosen side for `entry`, or throws when no choice was made. */
+function decide(entry: SyncConflict, resolver?: ConflictResolver): ConflictPreference {
+  const choice = typeof resolver === "function" ? resolver(entry) : resolver;
+  if (!choice) throw conflictError(entry);
+  return choice;
+}
+
+/** The whole-project choice when there is no shared baseline (or one side is gone). */
+export function projectConflict(local?: ProjectRecord, remote?: ProjectRecord): SyncConflict {
+  const side = (record?: ProjectRecord): ConflictValue =>
+    record ? { present: true, value: record.state } : { present: false };
+  return {
+    key: conflictKey("project", null, "record", ""),
+    scope: "project",
+    kind: "project",
+    group: "Project",
+    label: "Whole project",
+    message: "this project",
+    local: side(local),
+    remote: side(remote),
+  };
 }
 
 /** With no shared baseline, only an identical copy can be adopted safely. */
 export function adoptUnseenProject(local: ProjectRecord, remote: ProjectRecord): ProjectRecord {
-  if (!equalData(local.state, remote.state)) conflict("this project");
+  if (!equalData(local.state, remote.state)) throw conflictError(projectConflict(local, remote));
   return remote;
 }
+
+type FieldContext = {
+  kind: SyncConflict["kind"];
+  entityId: string | null;
+  part: "formData" | "record";
+  group: string;
+  label: (key: string) => string;
+  message: (key: string) => string;
+};
 
 /** Three-way merge of top-level fields: take whichever side changed; both changing one field conflicts. */
 function mergeFields<T extends object>(
   local: T,
   remote: T,
   base: T,
-  label: (key: string) => string,
-  prefer?: ConflictPreference,
+  context: FieldContext,
+  resolver?: ConflictResolver,
 ): T {
   const [current, incoming, original] = [local, remote, base] as Record<string, unknown>[];
   const merged = { ...current };
   for (const key of new Set([...Object.keys(original), ...Object.keys(incoming)])) {
     if (equalData(incoming[key], original[key])) continue;
     if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key])) {
-      if (!prefer) conflict(label(key));
-      if (prefer === "local") continue;
+      const entry: SyncConflict = {
+        key: conflictKey(context.kind, context.entityId, context.part, key),
+        scope: "field",
+        kind: context.kind,
+        ...(context.entityId ? { entityId: context.entityId } : {}),
+        group: context.group,
+        label: context.label(key),
+        message: context.message(key),
+        local: sideOf(current, key),
+        remote: sideOf(incoming, key),
+      };
+      if (decide(entry, resolver) === "local") continue;
     }
     if (key in incoming) merged[key] = incoming[key];
     else delete merged[key];
@@ -142,12 +217,36 @@ function mergeFields<T extends object>(
   return merged as T;
 }
 
+const kindName = (kind: "experiment" | "dataset") =>
+  kind === "experiment" ? "Experiment" : "Dataset";
+
+function entityConflict<T extends ExperimentRecord | DatasetRecord>(
+  kind: "experiment" | "dataset",
+  local: T | undefined,
+  remote: T,
+  message: string,
+): SyncConflict {
+  const side = (entity?: T): ConflictValue =>
+    entity ? { present: true, value: entityContent(entity) } : { present: false };
+  return {
+    key: conflictKey(kind, remote.id, "record", ""),
+    scope: "entity",
+    kind,
+    entityId: remote.id,
+    group: `${kindName(kind)} "${(local ?? remote).name}"`,
+    label: `Whole ${kind}`,
+    message,
+    local: side(local),
+    remote: side(remote),
+  };
+}
+
 function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
   kind: "experiment" | "dataset",
   local: T[],
   remote: T[],
   base: T[],
-  prefer?: ConflictPreference,
+  resolver?: ConflictResolver,
 ): T[] {
   let target = [...local];
   const content = ({ createdAt: _, updatedAt: __, ...data }: T) => data;
@@ -170,20 +269,34 @@ function reconcileEntities<T extends ExperimentRecord | DatasetRecord>(
         !equalData(formData(a)[typeKey], formData(original)[typeKey]) ||
         !equalData(formData(b)[typeKey], formData(original)[typeKey])
       ) {
-        if (!prefer) {
-          conflict(
-            `the type of ${kind} "${original.name}", so the version you choose replaces that whole ${kind}`,
-          );
-        }
-        const winner = prefer === "local" ? a : b;
+        const entry = entityConflict(
+          kind,
+          a,
+          b,
+          `the type of ${kind} "${original.name}", so the version you choose replaces that whole ${kind}`,
+        );
+        const winner = decide(entry, resolver) === "local" ? a : b;
         target = target.map((entity) => (entity.id === original.id ? winner : entity));
         continue;
       }
-      const label = (key: string) => `"${fieldLabel(kind, key)}" in ${kind} "${original.name}"`;
+      const context = (part: FieldContext["part"]): FieldContext => ({
+        kind,
+        entityId: original.id,
+        part,
+        group: `${kindName(kind)} "${original.name}"`,
+        label: (key) => fieldLabel(kind, key),
+        message: (key) => `"${fieldLabel(kind, key)}" in ${kind} "${original.name}"`,
+      });
       const merged = {
         ...a,
-        ...mergeFields(details(a), details(b), details(original), label, prefer),
-        formData: mergeFields(a.formData, b.formData, original.formData, label, prefer),
+        ...mergeFields(details(a), details(b), details(original), context("record"), resolver),
+        formData: mergeFields(
+          a.formData,
+          b.formData,
+          original.formData,
+          context("formData"),
+          resolver,
+        ),
         updatedAt: Math.max(a.updatedAt, b.updatedAt),
       } as T;
       target = target.map((entity) => (entity.id === original.id ? merged : entity));
@@ -221,35 +334,42 @@ function refreshLinkedExperimentIds(state: ProjectState): ProjectState {
 }
 
 /**
- * Reconciles disjoint changes. Overlapping edits throw a conflict, or with `prefer` take that
- * side's value for just those fields. Additions on either side keep their UUIDs.
+ * Reconciles disjoint changes. Overlapping edits throw a conflict, or with a `resolver` take the
+ * chosen side's value for just those fields. Additions on either side keep their UUIDs.
  */
 export function reconcileProjectRecord(
   local: ProjectRecord,
   remote: ProjectRecord,
   base: ProjectRecord,
-  prefer?: ConflictPreference,
+  resolver?: ConflictResolver,
 ): ProjectRecord {
   const projectData = mergeFields(
     local.state.projectData,
     remote.state.projectData,
     base.state.projectData,
-    (key) => `"${fieldLabel("project", key)}"`,
-    prefer,
+    {
+      kind: "project",
+      entityId: null,
+      part: "formData",
+      group: "Project",
+      label: (key) => fieldLabel("project", key),
+      message: (key) => `"${fieldLabel("project", key)}"`,
+    },
+    resolver,
   );
   let experiments = reconcileEntities(
     "experiment",
     local.state.experiments,
     remote.state.experiments,
     base.state.experiments,
-    prefer,
+    resolver,
   );
   let datasets = reconcileEntities(
     "dataset",
     local.state.datasets,
     remote.state.datasets,
     base.state.datasets,
-    prefer,
+    resolver,
   );
   const replaced = new Map<string, ExperimentRecord | DatasetRecord>();
   // A save that went through but whose reply was lost comes back as a "remote" addition
@@ -264,8 +384,8 @@ export function reconcileProjectRecord(
     additions(side, original).filter((entity) => {
       const mine = own.find((candidate) => candidate.id === entity.id);
       if (mine && !equalData(entityContent(mine), entityContent(entity))) {
-        if (!prefer) conflict(`the ${kind} "${entity.name}"`);
-        if (prefer === "remote") replaced.set(entity.id, entity);
+        const entry = entityConflict(kind, mine, entity, `the ${kind} "${entity.name}"`);
+        if (decide(entry, resolver) === "remote") replaced.set(entity.id, entity);
       }
       return !mine;
     });
@@ -285,11 +405,11 @@ export function reconcileProjectRecord(
     list.map((entity) => (replaced.get(entity.id) as T | undefined) ?? entity);
   experiments = swap(experiments);
   datasets = swap(datasets);
-  // With a preference both additions are kept, even with the same experiment ID, so nothing is lost.
-  for (const incoming of prefer ? [] : remoteExperiments) {
+  // With any resolver both additions are kept, even with the same experiment ID, so nothing is lost.
+  for (const incoming of resolver ? [] : remoteExperiments) {
     const publicId = incoming.formData.experiment_id;
     if (publicId && experiments.some((e) => e.formData.experiment_id === publicId)) {
-      conflict(`the experiment "${incoming.name}"`);
+      throw new Error(`Newer changes also edited the experiment "${incoming.name}".`);
     }
   }
   const projectId = projectData.project_id as string | undefined;
@@ -308,4 +428,23 @@ export function reconcileProjectRecord(
     createdAt: Math.min(local.createdAt, remote.createdAt),
     updatedAt: Math.max(Date.now(), local.updatedAt + 1, remote.updatedAt),
   };
+}
+
+/**
+ * Every conflict `reconcileProjectRecord` would raise, in order. Without a baseline, any
+ * difference is one whole-project choice.
+ */
+export function collectProjectConflicts(
+  local: ProjectRecord,
+  remote: ProjectRecord,
+  base?: ProjectRecord,
+): SyncConflict[] {
+  if (!base) return equalData(local.state, remote.state) ? [] : [projectConflict(local, remote)];
+  const conflicts: SyncConflict[] = [];
+  reconcileProjectRecord(local, remote, base, (entry) => {
+    conflicts.push(entry);
+    // Keeping this side leaves the traversal over the same items, so every clash is visited.
+    return "local";
+  });
+  return conflicts;
 }

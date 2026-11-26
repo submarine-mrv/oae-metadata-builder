@@ -9,7 +9,12 @@ import {
   startProjectCloudSync,
 } from "../projectCloudSync";
 import { WORKSPACE_KEY } from "../storage";
-import { projectSyncStatusAtom, refreshPausesAtom, remoteDeletionsAtom } from "../syncState";
+import {
+  ProjectConflictChangedError,
+  projectSyncStatusAtom,
+  refreshPausesAtom,
+  remoteDeletionsAtom,
+} from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { addProject, deleteProject, switchProject, updateProject } from "../workspace";
 
@@ -631,6 +636,88 @@ describe("project cloud synchronization", () => {
       expect(store.get(remoteDeletionsAtom)).toEqual([
         { type: "project", name: "local", projectId: "one", unsavedEdits: true },
       ]);
+    });
+
+    async function twoClashes() {
+      const context = await setup();
+      context.rows.set("one", {
+        project: {
+          ...project(),
+          updatedAt: 500,
+          state: {
+            ...project().state,
+            projectData: {
+              project_id: "one",
+              name: "remote",
+              description: "theirs",
+              purpose: "added there",
+            },
+          },
+        },
+        hash: "remote",
+      });
+      const record = context.store.get(workspaceAtom).projects[0];
+      context.store.set(workspaceAtom, (workspace) =>
+        updateProject(workspace, "one", {
+          ...record.state,
+          projectData: { ...record.state.projectData, name: "local", description: "mine" },
+        }),
+      );
+      await expect(context.sync.flush()).rejects.toThrow("Newer changes also edited");
+      return context;
+    }
+
+    it("previews every clash with both values", async () => {
+      const { sync } = await twoClashes();
+      const conflicts = await sync.previewProjectConflict("one");
+      expect(conflicts.map(({ local, remote }) => [local, remote])).toEqual([
+        [
+          { present: true, value: "local" },
+          { present: true, value: "remote" },
+        ],
+        [
+          { present: true, value: "mine" },
+          { present: true, value: "theirs" },
+        ],
+      ]);
+    });
+
+    it("saves a different side for each clash and keeps the other edits", async () => {
+      const { rows, store, sync } = await twoClashes();
+      const [name, description] = await sync.previewProjectConflict("one");
+      await sync.resolveProjectConflict(
+        "one",
+        { [name.key]: "local", [description.key]: "remote" },
+        [name, description],
+      );
+      const expected = { name: "local", description: "theirs", purpose: "added there" };
+      expect(rows.get("one")?.project.state.projectData).toMatchObject(expected);
+      expect(store.get(workspaceAtom).projects[0].state.projectData).toMatchObject(expected);
+      expect(store.get(projectSyncStatusAtom).state).toBe("synced");
+    });
+
+    it("asks for another review when the clash changed after it was shown", async () => {
+      const { rows, sync } = await twoClashes();
+      const reviewed = await sync.previewProjectConflict("one");
+      const latest = rows.get("one");
+      if (!latest) throw new Error("missing row");
+      rows.set("one", {
+        project: {
+          ...latest.project,
+          state: {
+            ...latest.project.state,
+            projectData: { ...latest.project.state.projectData, name: "again" },
+          },
+        },
+        hash: "again",
+      });
+      const choices = Object.fromEntries(reviewed.map((c) => [c.key, "local" as const]));
+      const attempt = sync.resolveProjectConflict("one", choices, reviewed);
+      await expect(attempt).rejects.toBeInstanceOf(ProjectConflictChangedError);
+      await expect(attempt).rejects.toMatchObject({
+        conflicts: [{ remote: { present: true, value: "again" } }, { key: reviewed[1].key }],
+      });
+      expect(rows.get("one")?.project.state.projectData.name).toBe("again");
     });
   });
 

@@ -157,6 +157,8 @@ describe("ProjectsPage", () => {
       refresh: vi.fn(),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
+      previewProjectConflict: vi.fn(),
+      resolveProjectConflict: vi.fn(),
       flush: vi.fn(),
       migrateLocalProjects: vi.fn(),
       stop: vi.fn(),
