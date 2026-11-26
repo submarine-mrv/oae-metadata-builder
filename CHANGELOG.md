@@ -18,8 +18,10 @@ you use it; minor versions add features or adopt a new schema version; patches f
   letter or number, up to 64 characters. The ID field shows the rule as you type, and leaving it
   with an invalid ID restores the previous one. Saved projects and imported files with IDs that
   break the rule are cleaned when they load (`Ebb Carbon/2024` becomes `Ebb_Carbon_2024`).
-- Exported and published files no longer include `protocol_git_hash` or
-  `metadata_builder_git_hash`, which the schema dropped.
+- Exported files record three versions in place of `version` and the two git-hash fields:
+  `protocol_version` (the OAE Data Management Protocol, `1.0.0`), `schema_version` (`0.7.0`, or
+  `0.7.0+dev.3c014f73` from an unreleased schema commit) and `metadata_builder_version` (`1.2.0`, or
+  `1.1.0+dev.ac24e9af` from a development build).
 - Project sharing is tied to each person's account rather than their email address, so it
   follows an email change.
 - Uses schema 0.6.1, which publishes a single JSON Schema and drops the unused `experiments`

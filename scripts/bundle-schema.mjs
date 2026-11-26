@@ -10,19 +10,11 @@ const NVS_DIR = "./schemas/nvs";
 const SEA_NAMES_FILE = `${NVS_DIR}/sea_names.json`;
 const PLATFORM_TYPES_FILE = `${NVS_DIR}/platform_types.json`;
 
-// Get protocol git hash from command line argument
-const protocolGitHash = process.argv[3];
+// Short schema commit hash, passed by `make schema` when the schema repository isn't on a release tag.
+const schemaDevHash = process.argv[3];
 
-if (!protocolGitHash) {
-  console.error("❌ Error: Protocol git hash not provided");
-  console.error("   Usage: node bundle-schema.mjs <schema-path> <git-hash>");
-  process.exit(1);
-}
-
-// Validate git hash format (SHA-1 is 40 hex characters)
-if (!/^[0-9a-f]{40}$/i.test(protocolGitHash)) {
-  console.error(`❌ Error: Invalid git hash format: ${protocolGitHash}`);
-  console.error("   Expected 40-character SHA-1 hash");
+if (schemaDevHash && !/^[0-9a-f]{7,40}$/i.test(schemaDevHash)) {
+  console.error(`❌ Error: Invalid git hash: ${schemaDevHash}`);
   process.exit(1);
 }
 
@@ -319,7 +311,7 @@ function inlineEnumArrayItems(schema, configs) {
 // `schema_class` enum tag, with no generator flag to change this. Upstream tracking
 // of the type-designator JSON Schema gaps: https://github.com/linkml/linkml/issues/1681
 // (attempted in https://github.com/linkml/linkml/pull/1617). Being an app-internal
-// validation concern, it also belongs in this bundle, not the protocol's published
+// validation concern, it also belongs in this bundle, not the published
 // interoperability schema.
 //
 // Any validator that compiles the resulting unions must set Ajv's
@@ -538,21 +530,15 @@ decorated = discriminateUnions(decorated, [
   }
 ]);
 
-// Add x-protocol-git-hash field to root schema if git hash is provided
-if (protocolGitHash) {
-  decorated["x-protocol-git-hash"] = protocolGitHash;
-  console.log(
-    `✓ Added x-protocol-git-hash: ${protocolGitHash.substring(0, 8)}...`
-  );
+// An untagged schema commit is recorded as <last release>+dev.<hash>.
+if (schemaDevHash) {
+  decorated["version"] = `${decorated["version"]}+dev.${schemaDevHash}`;
 }
 
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));
 console.log("✅ Bundled schema written to", OUTPUT);
 console.log(
-  `   - Protocol version: ${decorated["version"] || "unknown"}`
-);
-console.log(
-  `   - Protocol git hash: ${decorated["x-protocol-git-hash"]?.substring(0, 8) || "none"}...`
+  `   - Schema version: ${decorated["version"] || "unknown"}`
 );
 console.log(
   "\nSchema views (Project, Experiment, etc.) are created at runtime in src/utils/schemaViews.ts"

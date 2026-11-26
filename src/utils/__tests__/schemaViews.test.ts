@@ -9,7 +9,8 @@ import {
   getInterventionWithTracerSchema,
   getModelOutputDatasetSchema,
   getProjectSchema,
-  getProtocolMetadata,
+  getProtocolVersion,
+  getSchemaVersion,
   getTracerSchema,
 } from "../schemaViews";
 
@@ -23,7 +24,7 @@ describe("Schema Views", () => {
       expect(typeof schema.$defs).toBe("object");
     });
 
-    it("should have protocol version metadata", () => {
+    it("should have schema version metadata", () => {
       const schema = getBaseSchema();
 
       expect(schema["version"]).toBeDefined();
@@ -39,19 +40,15 @@ describe("Schema Views", () => {
     });
   });
 
-  describe("getProtocolMetadata", () => {
-    it("should extract version and git hash from schema", () => {
-      const metadata = getProtocolMetadata();
-
-      expect(metadata).toHaveProperty("version");
-      expect(metadata).toHaveProperty("gitHash");
+  describe("getSchemaVersion", () => {
+    it("reads the bundled schema's version", () => {
+      expect(getSchemaVersion()).toMatch(/^\d+\.\d+\.\d+(\+dev\.[0-9a-f]+)?$/);
     });
+  });
 
-    it("should return strings for version and gitHash", () => {
-      const metadata = getProtocolMetadata();
-
-      expect(typeof metadata.version).toBe("string");
-      expect(typeof metadata.gitHash).toBe("string");
+  describe("getProtocolVersion", () => {
+    it("reads the protocol version the schema fixes", () => {
+      expect(getProtocolVersion()).toMatch(/^\d+\.\d+\.\d+$/);
     });
   });
 
@@ -86,7 +83,7 @@ describe("Schema Views", () => {
       expect(projectSchema.$defs!.MCDRPathway).toBeDefined();
     });
 
-    it("should preserve protocol metadata", () => {
+    it("should preserve the schema version", () => {
       const projectSchema = getProjectSchema();
 
       expect(projectSchema["version"]).toBeDefined();

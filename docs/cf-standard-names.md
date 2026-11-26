@@ -6,7 +6,7 @@ NERC NVS P07 URI become the variable's `standard_identifier`, and the CF canonic
 
 CF names are **not validated at the schema level**, deliberately. `standard_identifier` stays a
 generic `VocabularyItemReference` in LinkML, so a document that names a term outside CF is still
-valid. This is a UI affordance, not a constraint. Pinning names per variable class in the protocol
+valid. This is a UI affordance, not a constraint. Pinning names per variable class in the schema
 is a possible later step; nothing here assumes it.
 
 ## Where the data comes from

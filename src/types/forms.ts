@@ -164,7 +164,9 @@ export interface DatasetRecord {
  * Note: experiments and datasets are top-level arrays, NOT nested in project
  */
 export interface ExportContainer {
-  version?: string;
+  protocol_version?: string;
+  schema_version?: string;
+  metadata_builder_version?: string;
   project?: DraftProject;
   experiments?: DraftExperiment[];
   datasets?: DraftDataset[];

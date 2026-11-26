@@ -65,7 +65,7 @@ cf-vocab-refresh:
 
 .PHONY: schema
 schema: nvs-vocabs
-	@echo "Checking oae-data-protocol repository status..."
+	@echo "Checking schema repository status..."
 	@if [ ! -e "$(SCHEMA_REPO_PATH)/.git" ]; then \
 		echo "Error: $(SCHEMA_REPO_PATH) is not a git repository"; \
 		exit 1; \
@@ -76,12 +76,12 @@ schema: nvs-vocabs
 			echo "Please commit or stash changes before running 'make schema'."; \
 			exit 1; \
 		fi
-	@echo "Repository is clean. Getting git hash..."
-	$(eval PROTOCOL_GIT_HASH := $(shell cd $(SCHEMA_REPO_PATH) && git rev-parse HEAD))
-	@if [ -z "$(PROTOCOL_GIT_HASH)" ]; then \
-		echo "Error: Failed to get git hash from $(SCHEMA_REPO_PATH)"; \
-		exit 1; \
+	@echo "Repository is clean."
+	@# Empty on a release tag; otherwise the short hash marks a dev version.
+	$(eval SCHEMA_DEV_HASH := $(shell cd $(SCHEMA_REPO_PATH) && (git describe --tags --exact-match --match 'v[0-9]*' >/dev/null 2>&1 || git rev-parse --short=8 HEAD)))
+	@if [ -n "$(SCHEMA_DEV_HASH)" ] && ! (cd $(SCHEMA_REPO_PATH) && git merge-base --is-ancestor HEAD origin/main 2>/dev/null); then \
+		echo "Warning: $(SCHEMA_DEV_HASH) is not on the schema repository's main (as of your last fetch)."; \
+		echo "Rerun make schema after its PR merges; CI blocks merging until then."; \
 	fi
-	@echo "Protocol git hash: $(PROTOCOL_GIT_HASH)"
 	cp $(SCHEMA_SOURCE) $(SCHEMA_DEST)
-	node scripts/bundle-schema.mjs $(SCHEMA_DEST) $(PROTOCOL_GIT_HASH)
+	node scripts/bundle-schema.mjs $(SCHEMA_DEST) $(SCHEMA_DEV_HASH)

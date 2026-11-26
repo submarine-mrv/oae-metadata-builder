@@ -3,7 +3,7 @@
  *
  * The base schema has Container as the root, but our forms need specific views
  * (Project, Experiment, Intervention, etc.). These utilities extract the relevant
- * schema definition and preserve metadata like protocol version and git hash.
+ * schema definition and preserve root metadata such as the schema version.
  */
 
 import type { RJSFSchema } from "@rjsf/utils";
@@ -17,18 +17,16 @@ export function getBaseSchema() {
 }
 
 /**
- * Gets protocol version metadata from the schema.
- *
- * `version` is the schema's own semantic version, declared as `version:` in the
- * LinkML source and emitted at the JSON Schema root. (It replaced the former
- * injected `x-protocol-version` field, which the protocol no longer emits.)
- * `gitHash` is injected by the schema bundler (see scripts/bundle-schema.mjs).
+ * The schema version, such as 0.7.0, or 0.7.0+dev.3c014f73 when `make schema`
+ * ran on an untagged oae-data-protocol commit.
  */
-export function getProtocolMetadata() {
-  return {
-    version: baseSchema["version"] || "",
-    gitHash: baseSchema["x-protocol-git-hash"] || "",
-  };
+export function getSchemaVersion(): string {
+  return baseSchema["version"] || "";
+}
+
+/** The newest OAE Data Management Protocol version the schema accepts, such as 1.0.0. */
+export function getProtocolVersion(): string {
+  return baseSchema.$defs.ProtocolVersion.enum.at(-1) ?? "";
 }
 
 /**

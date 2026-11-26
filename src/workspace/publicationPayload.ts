@@ -128,9 +128,6 @@ export function buildProjectPublicationPayload(project: ProjectRecord): ProjectP
   requiredPersonNames(projectData.project_leads, "Project leads");
   requiredSpatialBox(projectData.spatial_coverage, "Project spatial coverage");
   const document = buildMetadataDocument(projectData, experiments, datasets);
-  if (!document.version) {
-    throw new Error("Protocol version metadata is missing; this project cannot be published.");
-  }
   const mappedExperiments = experiments.map((experiment) => mapExperiment(projectId, experiment));
   const experimentIds = new Set(mappedExperiments.map((experiment) => experiment.experiment_id));
   if (experimentIds.size !== experiments.length) {

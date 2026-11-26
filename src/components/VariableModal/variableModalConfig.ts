@@ -216,11 +216,11 @@ export const MODEL_VARIABLE_SCHEMA_KEY = "ModelOutputVariable";
 
 /**
  * Variable types offered for model output. These are the ModelVariableType enum
- * values from the protocol schema — a different vocabulary from VARIABLE_TYPE_OPTIONS
+ * values from the schema — a different vocabulary from VARIABLE_TYPE_OPTIONS
  * above, because model output covers quantities field measurement does not
  * (velocities, fluxes) and omits sampling-based ones (HPLC, socioeconomic).
  *
- * Order follows `ModelVariableType` in the protocol's variable.yaml, and
+ * Order follows `ModelVariableType` in the schema's variable.yaml, and
  * `variableModalConfig.test.ts` asserts the values stay in sync with the schema.
  * Labels are Title Case UI copy matching VARIABLE_TYPE_OPTIONS above rather than
  * the schema's sentence-case descriptions, so the two dropdowns read alike.
@@ -1192,7 +1192,7 @@ const SOCIOECONOMIC: HierarchyLayer = {
  * the VARIABLE_TYPE_LAYERS test validates every VARIABLE_SCHEMA_MAP key is present.
  *
  * The BASE layer includes the shared `analyzing_instrument.*` and calibration
- * fields inherited from the protocol's AnalyzingInstrument/Calibration base
+ * fields inherited from the schema's AnalyzingInstrument/Calibration base
  * classes. For variable types without an analyzing_instrument (CalculatedVariable,
  * NonMeasuredVariable) those fields are filtered out at runtime by
  * fieldExistsInSchema() in VariableModal.tsx. Type-specific layers (PH, TA_DIC,

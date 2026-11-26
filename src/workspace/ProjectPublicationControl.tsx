@@ -68,10 +68,10 @@ function PublicationControl({
   const mounted = useRef(false);
   const request = useRef(0);
   /**
-   * Compare the complete exported draft with the published snapshot, including
-   * `version`. A schema-only change can enable "Publish Updates" even when
-   * project metadata is unchanged.
-   * TODO: Revisit protocol version handling:
+   * Compare the complete exported draft with the published snapshot, version
+   * fields included, so a new schema or builder version alone enables "Publish
+   * Updates".
+   * TODO: Revisit version handling:
    * https://github.com/submarine-mrv/oae-data-commons/issues/231
    */
   const matchesPublication = (record: ProjectRecord) =>

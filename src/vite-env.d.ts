@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_PUBLISHABLE_KEY: string;
   readonly VITE_AUTH_ENABLED?: string;
   readonly VITE_AUTH_PROVIDER?: string;
+  /** Builder version, set in vite.config.ts. */
+  readonly VITE_BUILDER_VERSION?: string;
 }
 
 interface ImportMeta {

@@ -10,8 +10,8 @@
 ```
 LinkML (oae-data-protocol)
   └─ just gen-all ─→ JSON Schema (Draft 2019-09)
-       └─ make schema ─→ oae-metadata-builder/schemas/schema.json   (verbatim copy, git-hash tracked)
-            └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json
+       └─ make schema ─→ oae-metadata-builder/schemas/schema.json   (verbatim copy)
+            └─ scripts/bundle-schema.mjs ─→ src/schema/schema.bundled.json   (schema version recorded)
                  ├─ AJV validation        (runtime authority)
                  ├─ RJSF rendering         (project / experiment / dataset forms)
                  └─ DraftVariable types    (src/types/variable.ts, kept in sync by tests)
@@ -22,7 +22,7 @@ LinkML (oae-data-protocol)
 - **Never hand-duplicate the schema** in TypeScript (no parallel Zod/TypeBox model). LinkML is
   the upstream source of truth; the bundled JSON Schema is the runtime source of truth.
 - **Never copy the schema between repos manually** — always `make schema` (checks a clean tree,
-  records the protocol git hash as `x-protocol-git-hash`).
+  and on an untagged schema commit records `version` as `<last release>+dev.<short hash>`).
 - `bundle-schema.mjs` does real schema *surgery* (NVS label decoration, enum-array inlining,
   conditional-field relocation, the `ModelOutputDataset.if` patch). It is the right place to add
   schema transforms that RJSF/AJV need but LinkML doesn't emit — see §5.
@@ -84,7 +84,7 @@ Variables are polymorphic, discriminated on **`schema_class`** (LinkML `designat
 their specific ones. The type-specific fields *are* valid against their `schema_class`. Do not try
 to "expand" or "complete" the nested polymorphism.
 
-The protocol publishes one JSON Schema. `Container.experiments` and `Container.datasets` are explicit
+The schema repository publishes one JSON Schema. `Container.experiments` and `Container.datasets` are explicit
 unions of the base class and its subclasses, so the schema validates a whole exported file; no form
 renders them. The nested `analyzing_instrument`, `calibration` and `standard_gas_info` slots are single
 classes, so a generic variable cannot carry a subclass instrument.
@@ -135,7 +135,7 @@ and narrows `standard_used` to `dye`, while `PHCalibration` allows every standar
 tag value in exactly one branch, so the union's config in `bundle-schema.mjs` sets a `partition`:
 `DyeCalibration` keeps `dye` and `PHCalibration` keeps `tris`/`other`. The build fails if any
 discriminated union has shared values and no partition. AJV's
-discriminator also needs the property required, which is why the protocol requires `standard_used`.
+discriminator also needs the property required, which is why the schema requires `standard_used`.
 `stripExtraVariableFields` can't use the discriminator, since it drops `required`, so it rewrites
 the union as an if/else on `standard_used`. A missing standard strips as `PHCalibration`.
 
