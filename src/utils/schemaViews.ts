@@ -24,9 +24,9 @@ export function getSchemaVersion(): string {
   return baseSchema["version"] || "";
 }
 
-/** The OAE Data Management Protocol version the schema is based on, such as 1.0.0. */
+/** The newest OAE Data Management Protocol version the schema accepts, such as 1.0.0. */
 export function getProtocolVersion(): string {
-  return baseSchema.properties.protocol_version.const;
+  return baseSchema.$defs.ProtocolVersion.enum.at(-1) ?? "";
 }
 
 /**
