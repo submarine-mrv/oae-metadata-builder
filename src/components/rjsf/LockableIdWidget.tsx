@@ -18,6 +18,7 @@ import type { FormContextType, RJSFSchema, StrictRJSFSchema, WidgetProps } from 
 import { IconInfoCircle, IconPencil } from "@tabler/icons-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useIdAvailability } from "@/workspace/useIdAvailability";
 import DescriptionModal from "./DescriptionModal";
 
 function matchesPattern(value: unknown, pattern: string | undefined): boolean {
@@ -36,6 +37,7 @@ export default function LockableIdWidget<
 >(props: WidgetProps<T, S, F>) {
   const {
     id,
+    name,
     value,
     placeholder,
     required,
@@ -66,6 +68,12 @@ export default function LockableIdWidget<
   const [isLocked, setIsLocked] = useState(() => (value && isValid ? true : defaultLocked));
   const [hasBeenUnlockedManually, setHasBeenUnlockedManually] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const availability = useIdAvailability(
+    name === "project_id" ? "project" : "experiment",
+    value,
+    isFocused,
+    isValid,
+  );
 
   // Auto-lock when value appears (if not manually unlocked and not focused)
   useEffect(() => {
@@ -136,6 +144,20 @@ export default function LockableIdWidget<
           disabled={disabled}
           readOnly={readonly || isLocked}
           error={errorMessage}
+          description={
+            availability.message ? (
+              <span role="status">
+                {availability.message}{" "}
+                <button
+                  type="button"
+                  className="underline cursor-pointer"
+                  onClick={availability.retry}
+                >
+                  Recheck ID
+                </button>
+              </span>
+            ) : undefined
+          }
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

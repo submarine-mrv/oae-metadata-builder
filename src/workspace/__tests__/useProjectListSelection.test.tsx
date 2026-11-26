@@ -5,15 +5,15 @@ import { activeProjectIdAtom, workspaceAtom } from "@/state/atoms";
 import { createTestStore, makeWrapper } from "@/state/testing";
 import { useProjectListSelection } from "../useProjectListSelection";
 
-const route = vi.hoisted(() => ({ pathname: "/projects" }));
+const route = vi.hoisted(() => ({ routeId: "/projects/" }));
 vi.mock("@tanstack/react-router", () => ({
-  useLocation: ({ select }: { select: (location: { pathname: string }) => string }) =>
-    select(route),
+  useMatches: ({ select }: { select: (matches: { routeId: string }[]) => boolean }) =>
+    select([{ routeId: "__root__" }, route]),
 }));
 
 describe("All projects selection", () => {
   beforeEach(() => {
-    route.pathname = "/projects";
+    route.routeId = "/projects/";
   });
 
   it("clears only on list entry and lets a project open without being cleared again", () => {
@@ -26,10 +26,10 @@ describe("All projects selection", () => {
     act(() => store.set(switchProjectAtom, id));
     rerender();
     expect(store.get(activeProjectIdAtom)).toBe(id);
-    route.pathname = "/overview";
+    route.routeId = "/projects/$projectId/";
     rerender();
     expect(store.get(activeProjectIdAtom)).toBe(id);
-    route.pathname = "/projects";
+    route.routeId = "/projects/";
     rerender();
     expect(store.get(activeProjectIdAtom)).toBeNull();
   });

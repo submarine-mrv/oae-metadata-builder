@@ -10,7 +10,7 @@ function isJsonRecord(value: unknown): value is JsonRecord {
 }
 
 export interface ProjectPublicationPayload {
-  project: JsonRecord;
+  project: JsonRecord & { project_id: string };
   experiments: Array<JsonRecord & { project_id: string; experiment_id: string }>;
   datasets: Array<JsonRecord & { project_id: string; experiment_id: string; name: string }>;
 }
@@ -130,7 +130,7 @@ export function buildProjectPublicationPayload(project: ProjectRecord): ProjectP
   const document = buildMetadataDocument(projectData, experiments, datasets);
   const mappedExperiments = experiments.map((experiment) => mapExperiment(projectId, experiment));
   const experimentIds = new Set(mappedExperiments.map((experiment) => experiment.experiment_id));
-  if (experimentIds.size !== experiments.length) {
+  if (new Set([...experimentIds].map((id) => id.toLowerCase())).size !== experiments.length) {
     throw new Error("Experiment IDs must be unique before publication.");
   }
   return {

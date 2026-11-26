@@ -1,4 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
+import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import { authStore } from "./auth/authStore";
 import { routeTree } from "./routeTree.gen";
 
@@ -6,6 +7,7 @@ export const router = createRouter({
   routeTree,
   context: { auth: authStore },
   defaultPreload: "intent",
+  defaultNotFoundComponent: () => <NotFoundPage />,
 });
 
 declare module "@tanstack/react-router" {
@@ -25,6 +27,16 @@ export function preloadEntityRoutes() {
     unsubscribe();
     for (const to of ["/overview", "/project", "/experiment", "/dataset", "/projects"] as const) {
       router.preloadRoute({ to }).catch(() => {});
+    }
+    // The slug routes need params to preload as locations; their code is all that's wanted.
+    for (const id of [
+      "/projects/$projectId",
+      "/projects/$projectId/",
+      "/projects/$projectId/metadata",
+      "/projects/$projectId/experiments/$experimentId",
+      "/projects/$projectId/datasets/$datasetId",
+    ] as const) {
+      router.loadRouteChunk(router.routesById[id])?.catch(() => {});
     }
   });
 }

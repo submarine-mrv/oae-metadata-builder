@@ -1,4 +1,5 @@
 import path from "path";
+import { ROUTE } from "./fixtures/app";
 import { expect, test } from "./fixtures/test";
 
 /**
@@ -41,14 +42,14 @@ test.describe("Dataset Conditional Field Restore", () => {
     await expect(importButton).toBeVisible({ timeout: 5000 });
     await importButton.click();
     await page.waitForTimeout(500);
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
 
     // 4. Click the imported dataset to navigate to dataset page
     const datasetLink = page.getByText("Dataset 1").first();
     await expect(datasetLink).toBeVisible({ timeout: 5000 });
     await datasetLink.click();
-    await page.waitForURL("**/dataset");
+    await page.waitForURL(ROUTE.dataset);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
@@ -90,27 +91,27 @@ test.describe("Dataset Conditional Field Restore", () => {
     await expect(importButton).toBeVisible({ timeout: 5000 });
     await importButton.click();
     await page.waitForTimeout(500);
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
 
     // 2. Navigate to dataset
     const datasetLink = page.getByText("Dataset 1").first();
     await expect(datasetLink).toBeVisible({ timeout: 5000 });
     await datasetLink.click();
-    await page.waitForURL("**/dataset");
+    await page.waitForURL(ROUTE.dataset);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
     // 3. Navigate AWAY via nav bar (client-side, preserves React state)
     await page.getByText("Overview", { exact: true }).click();
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(300);
 
     // 4. Navigate BACK to dataset (triggers the activeDatasetId useEffect again)
     const datasetLink2 = page.getByText("Dataset 1").first();
     await datasetLink2.click();
-    await page.waitForURL("**/dataset");
+    await page.waitForURL(ROUTE.dataset);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
@@ -158,20 +159,20 @@ test.describe("Dataset Conditional Field Restore", () => {
     await expect(importButton).toBeVisible({ timeout: 5000 });
     await importButton.click();
     await page.waitForTimeout(500);
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
 
     // Navigate to dataset first time (establishes activeDatasetId)
     const datasetLink = page.getByText("Dataset 1").first();
     await expect(datasetLink).toBeVisible({ timeout: 5000 });
     await datasetLink.click();
-    await page.waitForURL("**/dataset");
+    await page.waitForURL(ROUTE.dataset);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 
     // Navigate away
     await page.getByText("Overview", { exact: true }).click();
-    await page.waitForURL("**/overview");
+    await page.waitForURL(ROUTE.overview);
     await page.waitForLoadState("networkidle");
 
     // NOW inject the slow setTimeout before navigating back.
@@ -189,7 +190,7 @@ test.describe("Dataset Conditional Field Restore", () => {
     // Navigate back — triggers the activeDatasetId useEffect with slow guard
     const datasetLink2 = page.getByText("Dataset 1").first();
     await datasetLink2.click();
-    await page.waitForURL("**/dataset");
+    await page.waitForURL(ROUTE.dataset);
     await page.waitForLoadState("networkidle");
     // Wait long enough for the slowed setTimeout to fire
     await page.waitForTimeout(1000);

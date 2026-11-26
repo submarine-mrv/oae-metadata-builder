@@ -8,12 +8,31 @@ export interface ProjectPublicationStatus {
   document: Record<string, unknown>;
 }
 
+export type IdConflict = { entity_type: "project" | "experiment"; id: string };
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function validDate(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function parseIdConflicts(data: unknown, projectId: string, experimentIds: string[]): IdConflict[] {
+  if (!Array.isArray(data)) {
+    throw new Error("Supabase returned an invalid ID availability response.");
+  }
+  return data.map((row: unknown): IdConflict => {
+    if (
+      !isRecord(row) ||
+      (row.entity_type !== "project" && row.entity_type !== "experiment") ||
+      typeof row.id !== "string" ||
+      !(row.entity_type === "project" ? [projectId] : experimentIds).includes(row.id)
+    ) {
+      throw new Error("Supabase returned an invalid ID availability response.");
+    }
+    return { entity_type: row.entity_type, id: row.id };
+  });
 }
 
 /**
@@ -29,6 +48,19 @@ export function createPublicationClient(ownerId: string) {
   // Keep publication RPCs out of the keepalive budget used for draft saves during page unload.
   const client = createAccountClient(ownerId, false);
   return {
+    async checkIds(
+      sourceProjectId: string,
+      projectId: string,
+      experimentIds: string[],
+    ): Promise<IdConflict[]> {
+      const { data, error } = await client.rpc("check_metadata_builder_id_availability", {
+        p_source_project_id: sourceProjectId,
+        p_project_id: projectId,
+        p_experiment_ids: experimentIds,
+      });
+      if (error) throw new Error(`Could not check ID availability: ${error.message}`);
+      return parseIdConflicts(data, projectId, experimentIds);
+    },
     async publishedProjectIds(sourceProjectIds: string[]): Promise<string[]> {
       if (sourceProjectIds.length === 0) return [];
       const { data, error } = await client
@@ -90,7 +122,23 @@ export function createPublicationClient(ownerId: string) {
         p_experiments: payload.experiments,
         p_datasets: payload.datasets,
       });
-      if (error) throw new Error(`Could not publish project: ${error.message}`);
+      if (error) {
+        if (error.details === "oae_duplicate_ids") {
+          const conflicts = parseIdConflicts(
+            JSON.parse(error.hint),
+            payload.project.project_id,
+            payload.experiments.map((experiment) => experiment.experiment_id),
+          );
+          const ids = conflicts.map(
+            (conflict) =>
+              `${conflict.entity_type === "project" ? "Project" : "Experiment"} ID "${conflict.id}"`,
+          );
+          throw new Error(
+            `Already in use: ${ids.join(", ")}. Choose unique IDs before publishing. Your draft is saved.`,
+          );
+        }
+        throw new Error(`Could not publish project: ${error.message}`);
+      }
       const row: unknown = Array.isArray(data) && data.length === 1 ? data[0] : data;
       if (
         !isRecord(row) ||

@@ -12,13 +12,16 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import { IconMailForward, IconX } from "@tabler/icons-react";
+import { IconLink, IconMailForward, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useStore } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/auth/useAuth";
+import { activeDatasetIdAtom, activeExperimentIdAtom } from "@/state/atoms";
 import type { ProjectMember } from "@/workspace/projectCloudSync";
+import type { EntityPage } from "@/workspace/slugs";
 import { projectSyncActionsAtom } from "@/workspace/syncState";
+import { useCopyLink } from "@/workspace/useCopyLink";
 
 type ProjectClientModule = typeof import("@/auth/providers/supabase/projectClient");
 type MembersClient = ReturnType<ProjectClientModule["createProjectMembersClient"]>;
@@ -44,6 +47,7 @@ const ROLE_OPTIONS = [
 interface ShareProjectModalProps {
   projectId: string;
   isOwner: boolean;
+  copyPage?: EntityPage;
   onClose(): void;
   /** Called after the user removes themselves from the project. */
   onLeft(): void;
@@ -53,11 +57,13 @@ interface ShareProjectModalProps {
 export default function ShareProjectModal({
   projectId,
   isOwner,
+  copyPage = "overview",
   onClose,
   onLeft,
 }: ShareProjectModalProps) {
   const { user } = useAuth();
   const store = useStore();
+  const copyLink = useCopyLink();
   const [client, setClient] = useState<MembersClient | null>(null);
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [email, setEmail] = useState("");
@@ -136,6 +142,29 @@ export default function ShareProjectModal({
   return (
     <Modal opened onClose={onClose} title={isOwner ? "Share project" : "People on this project"}>
       <Stack>
+        <Group justify="space-between" wrap="nowrap">
+          <Text size="sm" c="dimmed">
+            Only people on this project can open its link.
+          </Text>
+          <Button
+            className="shrink-0"
+            variant="light"
+            size="xs"
+            leftSection={<IconLink size={14} />}
+            onClick={() => {
+              const entityId =
+                copyPage === "experiment"
+                  ? store.get(activeExperimentIdAtom)
+                  : copyPage === "dataset"
+                    ? store.get(activeDatasetIdAtom)
+                    : null;
+              if (entityId) copyLink(copyPage, projectId, entityId);
+              else copyLink(copyPage, projectId);
+            }}
+          >
+            Copy link
+          </Button>
+        </Group>
         {members === null && !error ? (
           <Loader size="sm" aria-label="Loading people" />
         ) : (

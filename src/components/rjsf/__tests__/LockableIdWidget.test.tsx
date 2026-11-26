@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 import schema from "@/schema/schema.bundled.json";
 import LockableIdWidget from "../LockableIdWidget";
 
+vi.mock("@/auth/useAuth", () => ({ useAuth: () => ({ user: null }) }));
+
 const idSchema = schema.$defs.Project.properties.project_id;
 
 function Harness({ initial, onBlur = vi.fn() }: { initial?: string; onBlur?: () => void }) {

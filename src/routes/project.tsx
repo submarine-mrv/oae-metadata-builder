@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import ProjectPage from "@/pages/project/ProjectPage";
+import ActivePageRedirect from "@/workspace/ActivePageRedirect";
 import RequireProject from "@/workspace/RequireProject";
 
 export const Route = createFileRoute("/project")({
   component: () => (
     <RequireProject>
-      <ProjectPage />
+      <ActivePageRedirect page="metadata" />
     </RequireProject>
   ),
 });

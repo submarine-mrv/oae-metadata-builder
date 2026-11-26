@@ -5,6 +5,7 @@ interface AppLayoutProps {
   children: React.ReactNode;
   /** When true, children manage their own scrolling (e.g., form pages with sidebars) */
   noScroll?: boolean;
+  hideShare?: boolean;
 }
 
 /**
@@ -13,7 +14,11 @@ interface AppLayoutProps {
  * - Scrollable content area below
  * - Prevents body scroll to eliminate jitter during hydration
  */
-export default function AppLayout({ children, noScroll = false }: AppLayoutProps) {
+export default function AppLayout({
+  children,
+  noScroll = false,
+  hideShare = false,
+}: AppLayoutProps) {
   return (
     <div
       style={{
@@ -23,7 +28,7 @@ export default function AppLayout({ children, noScroll = false }: AppLayoutProps
         overflow: "hidden",
       }}
     >
-      <Navigation />
+      <Navigation hideShare={hideShare} />
       {noScroll ? (
         // Children manage their own scrolling (e.g., form + sidebar layout)
         <main style={{ display: "flex", flex: 1, minHeight: 0 }}>{children}</main>

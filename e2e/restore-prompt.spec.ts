@@ -1,4 +1,4 @@
-import { waitForRoute } from "./fixtures/app";
+import { ROUTE, waitForRoute } from "./fixtures/app";
 import { expect, test } from "./fixtures/test";
 
 test.describe("Restore prompt", () => {
@@ -10,7 +10,7 @@ test.describe("Restore prompt", () => {
     const firstProject = page.getByRole("button", { name: "Create your first project" });
     await waitForRoute(firstProject);
     await firstProject.click();
-    await expect(page).toHaveURL(/\/project$/);
+    await expect(page).toHaveURL(ROUTE.metadata);
 
     // Reloading the same tab never asks.
     await page.reload();

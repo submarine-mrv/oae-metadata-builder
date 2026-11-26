@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import { createProjectAtom, switchProjectAtom } from "@/state/actions";
 import { activeProjectIdAtom, projectMenuAtom, projectNameAtom } from "@/state/atoms";
+import { useEntityNavigate } from "@/workspace/useEntityNavigate";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 /**
@@ -16,6 +17,7 @@ export default function ProjectSwitcher() {
   const createProject = useSetAtom(createProjectAtom);
   const switchProject = useSetAtom(switchProjectAtom);
   const navigate = useNavigate();
+  const goTo = useEntityNavigate();
   const transition = useProjectTransition();
 
   // Follows the Project Name as it's typed.
@@ -24,14 +26,14 @@ export default function ProjectSwitcher() {
   const handleNew = () => {
     transition(() => {
       createProject();
-      navigate({ to: "/project" });
+      goTo("metadata");
     });
   };
 
   const handleSwitch = (id: string) => {
     transition(() => {
       if (id !== activeProjectId) switchProject(id);
-      navigate({ to: "/overview" });
+      goTo("overview", { projectId: id });
     });
   };
 

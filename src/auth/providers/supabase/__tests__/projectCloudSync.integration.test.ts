@@ -162,6 +162,29 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
       expect(await isolated.load()).toEqual([]);
     });
 
+    it("saves duplicate human IDs in drafts without reserving them", async () => {
+      auth.session = owner;
+      const suffix = crypto.randomUUID().slice(0, 8);
+      const taken = newProjectRecord({
+        ...emptyProjectState(),
+        projectData: { project_id: `Site-${suffix}` },
+      });
+      await createProjectCloudClient(owner.user.id).save(taken, `taken-${suffix}`, null);
+
+      auth.session = other;
+      try {
+        const client = createProjectCloudClient(other.user.id);
+        const draft = (id: string) =>
+          newProjectRecord({ ...emptyProjectState(), projectData: { project_id: id } });
+        const duplicate = draft(`SITE-${suffix}`);
+        expect((await client.save(duplicate, "duplicate", null)).saved).toBe(true);
+        expect((await client.save(draft(` Site ${suffix} / #1`), "any", null)).saved).toBe(true);
+        expect((await client.save(draft(""), "empty", null)).saved).toBe(true);
+      } finally {
+        auth.session = owner;
+      }
+    });
+
     it("protects a newer draft from an old device even with the latest hash", async () => {
       auth.session = owner;
       const client = createProjectCloudClient(owner.user.id);
@@ -270,7 +293,10 @@ describe.runIf(process.env.LOCAL_SUPABASE_INTEGRATION === "true")(
 
       auth.session = other;
       const foreign = { ...edited, id: `foreign-${suffix}` };
-      await createProjectCloudClient(other.user.id).save(foreign, "foreign-v1", null);
+      // Drafts may reuse published IDs, but publication still rejects them.
+      expect(
+        (await createProjectCloudClient(other.user.id).save(foreign, "foreign-v1", null)).saved,
+      ).toBe(true);
       await expect(
         createPublicationClient(other.user.id).publish(
           foreign.id,

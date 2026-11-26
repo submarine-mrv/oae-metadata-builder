@@ -84,6 +84,14 @@ describe("complete project publication payload", () => {
     const duplicate = publicationProject();
     duplicate.state.experiments.push({ ...duplicate.state.experiments[0], id: "experiment-2" });
     expect(() => buildProjectPublicationPayload(duplicate)).toThrow("unique");
+    duplicate.state.experiments[1] = {
+      ...duplicate.state.experiments[1],
+      formData: {
+        ...duplicate.state.experiments[1].formData,
+        experiment_id: duplicate.state.experiments[0].formData.experiment_id?.toLowerCase(),
+      },
+    };
+    expect(() => buildProjectPublicationPayload(duplicate)).toThrow("unique");
   });
 
   it("publishes the whole current tree without mutating the draft", () => {

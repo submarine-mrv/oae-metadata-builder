@@ -8,6 +8,14 @@ import { expect, type Locator, type Page } from "@playwright/test";
  */
 export const COLD_START_TIMEOUT = 45_000;
 
+/** URLs of a project's pages, always using stable internal IDs. */
+export const ROUTE = {
+  overview: /\/projects\/[^/]+$/,
+  metadata: /\/projects\/[^/]+\/metadata$/,
+  experiment: /\/projects\/[^/]+\/experiments\/[^/]+$/,
+  dataset: /\/projects\/[^/]+\/datasets\/[^/]+$/,
+};
+
 /** Wait for the first element of a freshly loaded route, allowing for a cold server. */
 export async function waitForRoute(locator: Locator) {
   await expect(locator).toBeVisible({ timeout: COLD_START_TIMEOUT });
@@ -22,16 +30,17 @@ export async function createFromOverview(page: Page, kind: "Project" | "Experime
 
   if (await firstProject.isVisible()) {
     await firstProject.click();
-    await page.waitForURL("**/project");
+    await page.waitForURL(ROUTE.metadata);
     if (kind === "Project") return;
     await page.goto("/overview");
   }
   if (kind === "Project") {
     await page.goto("/project");
+    await page.waitForURL(ROUTE.metadata);
     return;
   }
   const card = page.getByRole("button", { name: new RegExp(`Create.*${kind}`, "i") });
   await waitForRoute(card);
   await card.click();
-  await page.waitForURL(`**/${kind.toLowerCase()}`);
+  await page.waitForURL(kind === "Experiment" ? ROUTE.experiment : ROUTE.dataset);
 }

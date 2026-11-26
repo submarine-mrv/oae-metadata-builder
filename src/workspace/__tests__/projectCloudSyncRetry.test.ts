@@ -141,4 +141,16 @@ describe("automatic sync retries", () => {
     await vi.advanceTimersByTimeAsync(120_000);
     expect(client.save).toHaveBeenCalledTimes(1);
   });
+
+  it("saves complete drafts even when human IDs duplicate another draft", async () => {
+    const { rows, store, sync } = await setup();
+    store.set(workspaceAtom, (workspace) => ({
+      ...workspace,
+      projects: [...workspace.projects, { ...project("two"), state: project().state }],
+    }));
+    await sync.flush();
+    expect(rows.get("two")?.project.state.projectData.project_id).toBe("one");
+    expect(sync.hasPendingChanges()).toBe(false);
+    expect(store.get(projectSyncStatusAtom).state).toBe("synced");
+  });
 });

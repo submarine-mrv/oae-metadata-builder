@@ -28,7 +28,21 @@ Guests and the memory auth provider retain browser persistence. Enable with
   shows "You can no longer edit this project."
 - Losing access to a shared project removes it like a delete, with a "No longer
   shared" notice.
+- Signed-in users can copy links to saved cloud project pages from the menu or
+  Share dialog; the controls are hidden for guests and until a new project is
+  saved. Project members, including viewers, can open those links. Copy link is
+  also hidden on not-found pages, where no specific entity
+  is selected. A link resolves only among projects the recipient can access, and
+  a missing match reads as "can't be found", just like a deleted project. All
+  links use stable internal IDs, including after publication. Human metadata IDs
+  never enter URLs. See `docs/multi-project.md`.
 - Conditional saves/deletes use the acknowledged hash to reject stale writes.
+- Draft saves accept duplicate project and experiment metadata IDs unchanged.
+  `check_metadata_builder_id_availability` checks catalog availability when an
+  ID field loads or loses focus, not on every keystroke. A field advisory explains
+  conflicts or check failures without blocking edits or sync, and offers Recheck ID.
+  At publication, the database enforces one case-insensitive namespace for project and experiment IDs.
+  Drafts do not reserve names, so an available ID may be claimed before publication.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
   browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
   tab, so two people loading one old draft agree on its IDs.

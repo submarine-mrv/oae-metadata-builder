@@ -53,6 +53,44 @@ describe("owner-bound publication client", () => {
     });
   });
 
+  it("checks proposed IDs without saving or changing a draft", async () => {
+    const conflicts = [{ entity_type: "experiment", id: "TAKEN" }];
+    mocks.rpc.mockResolvedValue({ data: conflicts, error: null });
+    expect(await createPublicationClient("owner").checkIds("draft-id", "FREE", ["TAKEN"])).toEqual(
+      conflicts,
+    );
+    expect(mocks.rpc).toHaveBeenCalledWith("check_metadata_builder_id_availability", {
+      p_source_project_id: "draft-id",
+      p_project_id: "FREE",
+      p_experiment_ids: ["TAKEN"],
+    });
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "offline" } });
+    await expect(createPublicationClient("owner").checkIds("draft-id", "FREE", [])).rejects.toThrow(
+      "offline",
+    );
+    mocks.rpc.mockResolvedValue({
+      data: [{ entity_type: "project", id: "someone-else" }],
+      error: null,
+    });
+    await expect(createPublicationClient("owner").checkIds("draft-id", "FREE", [])).rejects.toThrow(
+      "invalid ID availability",
+    );
+  });
+
+  it("explains final publication conflicts even after a prior availability check", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        details: "oae_duplicate_ids",
+        message: "duplicate",
+        hint: '[{"entity_type":"project","id":"PUBLICATION-TEST"}]',
+      },
+    });
+    await expect(createPublicationClient("owner").publish("draft-id", payload)).rejects.toThrow(
+      "Your draft is saved",
+    );
+  });
+
   it("looks up the owner and stable internal draft identity, not an editable public ID", async () => {
     expect(await createPublicationClient("owner").status("draft-id")).toBeNull();
     expect(mocks.account).toHaveBeenCalledWith("owner", false);

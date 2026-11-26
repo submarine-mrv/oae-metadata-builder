@@ -1,18 +1,19 @@
 import { Anchor, Button, Container, Group, Stack, Text, Title } from "@mantine/core";
 import { IconFileImport, IconPlus } from "@tabler/icons-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import AppLayout from "@/components/AppLayout";
 import ImportFlow from "@/components/ImportFlow";
 import { useImportFlow } from "@/hooks/useImportFlow";
 import { createProjectAtom } from "@/state/actions";
 import { projectSyncActionsAtom } from "@/workspace/syncState";
+import { useEntityNavigate } from "@/workspace/useEntityNavigate";
 import { useProjectTransition } from "@/workspace/useProjectTransition";
 
 /** Shown at /overview while the workspace has no projects. */
 export default function WelcomePage() {
   const createProject = useSetAtom(createProjectAtom);
-  const navigate = useNavigate();
+  const goTo = useEntityNavigate();
   const importFlow = useImportFlow();
   const transition = useProjectTransition();
   const cloud = useAtomValue(projectSyncActionsAtom) !== null;
@@ -20,7 +21,7 @@ export default function WelcomePage() {
   const handleCreate = () => {
     transition(() => {
       createProject();
-      navigate({ to: "/project" });
+      goTo("metadata");
     });
   };
 
