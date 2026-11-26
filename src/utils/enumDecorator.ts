@@ -8,7 +8,7 @@
  */
 const ENUM_OVERRIDES: Record<string, string> = {
   // PublicCommentType — LinkML drops permissible-value titles from the JSON
-  // Schema, so the protocol's sentence casing has to be restored here.
+  // Schema, so the schema's sentence casing has to be restored here.
   non_mandated_consultation: "Non-mandated consultation",
   informal_public_input: "Informal public input",
 

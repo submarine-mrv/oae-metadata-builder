@@ -28,7 +28,7 @@ export interface ExportOptions {
 
 /**
  * Builds project, experiment, and dataset data wrapped in a Container object
- * with version metadata from the protocol.
+ * with protocol, schema and builder versions.
  *
  * Container structure matches the JSON Schema:
  * - project: single Project object

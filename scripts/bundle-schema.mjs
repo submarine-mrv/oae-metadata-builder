@@ -10,11 +10,11 @@ const NVS_DIR = "./schemas/nvs";
 const SEA_NAMES_FILE = `${NVS_DIR}/sea_names.json`;
 const PLATFORM_TYPES_FILE = `${NVS_DIR}/platform_types.json`;
 
-// Short protocol commit hash, passed by `make schema` when the protocol isn't on a release tag.
-const protocolDevHash = process.argv[3];
+// Short schema commit hash, passed by `make schema` when the schema repository isn't on a release tag.
+const schemaDevHash = process.argv[3];
 
-if (protocolDevHash && !/^[0-9a-f]{7,40}$/i.test(protocolDevHash)) {
-  console.error(`❌ Error: Invalid git hash: ${protocolDevHash}`);
+if (schemaDevHash && !/^[0-9a-f]{7,40}$/i.test(schemaDevHash)) {
+  console.error(`❌ Error: Invalid git hash: ${schemaDevHash}`);
   process.exit(1);
 }
 
@@ -311,7 +311,7 @@ function inlineEnumArrayItems(schema, configs) {
 // `schema_class` enum tag, with no generator flag to change this. Upstream tracking
 // of the type-designator JSON Schema gaps: https://github.com/linkml/linkml/issues/1681
 // (attempted in https://github.com/linkml/linkml/pull/1617). Being an app-internal
-// validation concern, it also belongs in this bundle, not the protocol's published
+// validation concern, it also belongs in this bundle, not the published
 // interoperability schema.
 //
 // Any validator that compiles the resulting unions must set Ajv's
@@ -530,9 +530,9 @@ decorated = discriminateUnions(decorated, [
   }
 ]);
 
-// An untagged protocol commit is recorded as <last release>+dev.<hash>.
-if (protocolDevHash) {
-  decorated["version"] = `${decorated["version"]}+dev.${protocolDevHash}`;
+// An untagged schema commit is recorded as <last release>+dev.<hash>.
+if (schemaDevHash) {
+  decorated["version"] = `${decorated["version"]}+dev.${schemaDevHash}`;
 }
 
 await writeFile(OUTPUT, JSON.stringify(decorated, null, 2));

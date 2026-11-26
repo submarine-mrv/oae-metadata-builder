@@ -83,7 +83,7 @@ describe("Schema Views", () => {
       expect(projectSchema.$defs!.MCDRPathway).toBeDefined();
     });
 
-    it("should preserve protocol metadata", () => {
+    it("should preserve the schema version", () => {
       const projectSchema = getProjectSchema();
 
       expect(projectSchema["version"]).toBeDefined();

@@ -2,7 +2,7 @@
 
 A web app for writing metadata for Ocean Alkalinity Enhancement (OAE) projects, experiments and
 datasets. It follows the [OAE Data Management Protocol](https://www.carbontosea.org/oae-data-protocol/1-0-0/)
-and exports JSON files that validate against the protocol's schema.
+and exports JSON files that validate against the OAE Data Schema.
 
 **Use it at [metadata.oaedata.org](https://metadata.oaedata.org).**
 Schema documentation is at [schema.oaedata.org](https://schema.oaedata.org).
@@ -11,7 +11,7 @@ Schema documentation is at [schema.oaedata.org](https://schema.oaedata.org).
 
 ## What it does
 
-- Builds the project, experiment and dataset forms from the protocol's JSON Schema, so a schema
+- Builds the project, experiment and dataset forms from the schema's JSON Schema, so a schema
   release changes the forms without UI code changes for most fields.
 - Holds several projects. Guests save in this browser; signed-in Supabase users save privately
   to their account. Export a project to keep a copy.
@@ -56,11 +56,11 @@ With `oae-data-protocol` checked out next to this repo:
 
 ```bash
 cd ../oae-data-protocol && just gen-all   # regenerate JSON Schema, then commit
-cd ../oae-metadata-builder && make schema # copy and bundle; needs a clean protocol tree
+cd ../oae-metadata-builder && make schema # copy and bundle; needs a clean schema tree
 ```
 
-`make schema` records the protocol commit in the bundled schema. Set `SCHEMA_REPO_PATH` if the
-protocol repo lives elsewhere. `scripts/bundle-schema.mjs` does the bundling: it resolves refs,
+`make schema` records the schema commit in the bundled schema. Set `SCHEMA_REPO_PATH` if the
+schema repository lives elsewhere. `scripts/bundle-schema.mjs` does the bundling: it resolves refs,
 labels vocabulary enums and reshapes conditional rules so RJSF renders them.
 
 ### Build configuration

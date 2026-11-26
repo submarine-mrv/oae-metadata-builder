@@ -58,7 +58,7 @@ the oae-data-protocol schema version it follows in `schema_version`.
 Every changelog section opens with the schema version it was built against: `version` in
 `src/schema/schema.bundled.json`.
 
-Between releases, `dev` can pull the schema from protocol `main` at any time; `make schema` records
+Between releases, `dev` can pull the schema from the schema repository's `main` at any time; `make schema` records
 an untagged commit as `<last release>+dev.<short hash>`. A release can't ship a `+dev` version: if
 the bundled `version` has one, cut a schema release first (oae-data-protocol's `RELEASE_PROCESS.md`),
 check out the new tag in `../oae-data-protocol`, and run `make schema` again. A build from `main`
@@ -68,12 +68,12 @@ fails if the bundled schema version still has `+dev`.
 
 A builder PR can depend on an open oae-data-protocol PR:
 
-1. Check out the protocol PR in its own worktree and run `make schema SCHEMA_REPO_PATH=<that worktree>`.
-   `make schema` warns that the commit isn't on protocol `main` yet.
+1. Check out the schema PR in its own worktree and run `make schema SCHEMA_REPO_PATH=<that worktree>`.
+   `make schema` warns that the commit isn't on the schema repository's `main` yet.
 2. The builder PR's "Schema source" check (`scripts/check-schema-source.sh`) stays red until the
-   bundled schema is a release tag or a commit on protocol `main`. Squash-merging deletes the PR's
+   bundled schema is a release tag or a commit on the schema repository's `main`. Squash-merging deletes the PR's
    commits, so a schema bundled from one would point at a commit that no longer exists.
-3. Once the protocol PR merges, rerun `make schema` from protocol `main` and push.
+3. Once the schema PR merges, rerun `make schema` from the schema repository's `main` and push.
 
 Exports record the builder's own version in `metadata_builder_version`. A build from `main` writes
 the `package.json` version; any other branch appends `+dev.<short hash>`.

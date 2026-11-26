@@ -1,6 +1,6 @@
 #!/bin/sh
-# Fails unless the bundled schema comes from an oae-data-protocol release tag or a commit on its main.
-# A schema bundled from an unmerged protocol PR fails until `make schema` is rerun after that PR merges.
+# Fails unless the bundled schema comes from a release tag or a commit on main in the schema repository.
+# A schema bundled from an unmerged schema PR fails until `make schema` is rerun after that PR merges.
 set -eu
 version=${1:-$(node -p 'require("./src/schema/schema.bundled.json").version')}
 repo=$(mktemp -d)
@@ -9,10 +9,10 @@ case "$version" in
   *+dev.*)
     hash=${version##*+dev.}
     if git -C "$repo" merge-base --is-ancestor "$hash" origin/main 2>/dev/null; then
-      echo "Schema $version is on oae-data-protocol main."
+      echo "Schema $version is on the schema repository's main."
       exit 0
     fi
-    echo "Schema $version is not on oae-data-protocol main. Rerun make schema after its PR merges."
+    echo "Schema $version is not on the schema repository's main. Rerun make schema after its PR merges."
     exit 1
     ;;
   *)
@@ -20,7 +20,7 @@ case "$version" in
       echo "Schema $version is the v$version release."
       exit 0
     fi
-    echo "Schema $version has no v$version tag in oae-data-protocol."
+    echo "Schema $version has no v$version tag in the schema repository."
     exit 1
     ;;
 esac

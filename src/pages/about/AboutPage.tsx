@@ -57,8 +57,7 @@ export default function AboutPage() {
                   >
                     GitHub
                   </Anchor>
-                  . Technical documentation for the protocol schema, including the formal JSON
-                  Schema, is at{" "}
+                  . Technical documentation for the schema, including the formal JSON Schema, is at{" "}
                   <Anchor underline="always" href="https://schema.oaedata.org" {...external}>
                     schema.oaedata.org
                   </Anchor>
