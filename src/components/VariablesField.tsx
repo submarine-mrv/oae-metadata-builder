@@ -4,6 +4,7 @@ import { IconAlertCircle, IconCopy, IconPencil, IconPlus, IconTrash } from "@tab
 import type React from "react";
 import { useState } from "react";
 import { brandColors } from "@/theme";
+import { VARIABLE_UUID, variableUuid } from "@/utils/variableUuid";
 import type { JSONSchema } from "./schemaUtils";
 import VariableModal from "./VariableModal/VariableModal";
 import {
@@ -85,6 +86,7 @@ const VariablesField: React.FC<FieldProps> = (props) => {
     const duplicate: VariableData = {
       ...structuredClone(original),
       dataset_variable_name: `${(original.dataset_variable_name as string) || ""} (Copy)`,
+      [VARIABLE_UUID]: crypto.randomUUID(),
     };
     const newVariables = [...variables, duplicate];
     handleChange(newVariables);
@@ -93,9 +95,13 @@ const VariablesField: React.FC<FieldProps> = (props) => {
   const handleSave = (variableData: VariableData) => {
     const newVariables = [...variables];
     if (editingIndex !== null) {
-      newVariables[editingIndex] = variableData;
+      // An edited variable keeps its identity, so concurrent edits merge per variable.
+      newVariables[editingIndex] = {
+        ...variableData,
+        [VARIABLE_UUID]: variableUuid(variables[editingIndex]) ?? crypto.randomUUID(),
+      };
     } else {
-      newVariables.push(variableData);
+      newVariables.push({ ...variableData, [VARIABLE_UUID]: crypto.randomUUID() });
     }
     handleChange(newVariables);
     setModalOpen(false);

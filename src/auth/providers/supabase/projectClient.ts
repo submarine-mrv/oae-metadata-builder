@@ -2,44 +2,77 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/auth/providers/supabase/client";
 import { buildAuthRedirectUrl } from "@/auth/redirects";
 import {
+  type CloudProject,
   checkProjectVersion,
+  cloudChanges,
+  hasChanges,
+  PROTOCOL_SCHEMA_VERSION,
   type ProjectAccess,
   ProjectAccessError,
   type ProjectCloudClient,
   type ProjectMember,
   type ProjectRole,
   type ProjectSaveResult,
-  parseCloudProject,
+  type RemoteProject,
   readRemoteProject,
   UnsupportedProjectVersionError,
 } from "@/workspace/projectCloudSync";
-import { PROJECT_SCHEMA_VERSION, type ProjectRecord } from "@/workspace/types";
+import type { ProjectRecord } from "@/workspace/types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseResult(value: unknown, projectId: string, sent?: ProjectRecord): ProjectSaveResult {
+const STATUSES = new Set(["saved", "merged", "conflict", "missing", "deleted"]);
+
+const isHashes = (value: unknown): value is Record<string, string> =>
+  isRecord(value) && Object.values(value).every((hash) => typeof hash === "string" && hash !== "");
+
+const cloudCopy = (projectId: string, row: CloudProject): RemoteProject => {
+  if ("project" in row) return row;
+  if (row.reason) throw new Error(row.reason);
+  throw new UnsupportedProjectVersionError(projectId, row.schemaVersion, undefined, true);
+};
+
+/** One save or delete response row, as the sync engine reads it. */
+function parseResult(
+  value: unknown,
+  projectId: string,
+  schemaVersion: string,
+  sent?: ProjectRecord,
+): ProjectSaveResult {
   const row: unknown = Array.isArray(value) && value.length === 1 ? value[0] : value;
   if (
     !isRecord(row) ||
-    typeof row.result_saved !== "boolean" ||
-    (row.result_state_hash !== null &&
-      (typeof row.result_state_hash !== "string" || row.result_state_hash.length === 0)) ||
-    (row.result_state === null) !== (row.result_state_hash === null)
+    !STATUSES.has(row.result_status as string) ||
+    (row.result_project_hash !== null &&
+      (typeof row.result_project_hash !== "string" || row.result_project_hash === "")) ||
+    (row.result_hashes !== null && !isHashes(row.result_hashes))
   ) {
     throw new Error("Supabase returned an invalid project save response.");
   }
+  const status = row.result_status as string;
+  const hash = row.result_project_hash as string | null;
+  if (status === "missing" || status === "deleted") {
+    return { saved: status === "deleted", project: null, hash: null };
+  }
+  if (hash === null || row.result_hashes === null) {
+    throw new Error("Supabase returned an invalid project save response.");
+  }
+  const rows = row.result_hashes as Record<string, string>;
+  // The server stored exactly what was sent; re-validating it could fail a committed save.
+  if (status === "saved" && sent) return { saved: true, project: sent, hash, rows, schemaVersion };
+  const remote = cloudCopy(
+    projectId,
+    readRemoteProject(projectId, hash, schemaVersion, row.result_state),
+  );
   return {
-    saved: row.result_saved,
-    // The server stored exactly what was sent; re-validating it could fail a committed save.
-    project:
-      row.result_state === null
-        ? null
-        : row.result_saved && sent
-          ? sent
-          : parseCloudProject(row.result_state, projectId),
-    hash: row.result_state_hash,
+    saved: status === "merged",
+    merged: status === "merged" || undefined,
+    project: remote.project,
+    hash,
+    rows: remote.rows,
+    schemaVersion,
   };
 }
 
@@ -82,9 +115,10 @@ async function listProjects(client: ReturnType<typeof createAccountClient>, with
   if (error) throw new Error(`Could not load cloud projects: ${error.message}`);
   return ((data ?? []) as Record<string, unknown>[]).map((row) => {
     if (
-      typeof row.project_id !== "string" ||
-      typeof row.state_hash !== "string" ||
-      row.state_hash.length === 0 ||
+      typeof row.project_uuid !== "string" ||
+      typeof row.project_hash !== "string" ||
+      row.project_hash.length === 0 ||
+      typeof row.schema_version !== "string" ||
       !ROLES.includes(row.role as ProjectRole) ||
       typeof row.owner_email !== "string" ||
       (row.updated_by_email !== null && typeof row.updated_by_email !== "string") ||
@@ -98,7 +132,13 @@ async function listProjects(client: ReturnType<typeof createAccountClient>, with
       updatedByEmail: (row.updated_by_email as string | null) ?? null,
       memberCount: row.member_count,
     };
-    return { id: row.project_id, hash: row.state_hash, state: row.state, access };
+    return {
+      id: row.project_uuid,
+      hash: row.project_hash,
+      schemaVersion: row.schema_version,
+      state: row.state,
+      access,
+    };
   });
 }
 
@@ -107,7 +147,7 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
   return {
     async load() {
       return (await listProjects(client, true)).map((row) => ({
-        ...readRemoteProject(row.state, row.id, row.hash),
+        ...readRemoteProject(row.id, row.hash, row.schemaVersion, row.state),
         access: row.access,
       }));
     },
@@ -119,32 +159,71 @@ export function createProjectCloudClient(userId: string): ProjectCloudClient {
         ]),
       );
     },
-    async save(project, hash, expectedHash) {
+    async save(project, base) {
       checkProjectVersion(project);
-      const state = { ...project, schemaVersion: project.schemaVersion ?? PROJECT_SCHEMA_VERSION };
-      const { data, error } = await client.rpc("save_metadata_builder_session", {
-        p_project_id: project.id,
-        p_state: state,
-        p_state_hash: hash,
-        p_expected_hash: expectedHash,
-        p_client_updated_at: new Date().toISOString(),
-      });
-      if (error) {
-        if (error.details === "metadata_builder_schema_version_downgrade") {
-          throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);
+      // A copy in an older protocol version is rewritten whole, which upgrades it.
+      const upgrade = base !== null && base.schemaVersion !== PROTOCOL_SCHEMA_VERSION;
+      const send = async (replace: boolean) => {
+        const changes = cloudChanges(project, replace ? null : base);
+        if (!hasChanges(changes) && base) {
+          const result: ProjectSaveResult = {
+            saved: true,
+            project,
+            hash: base.hash,
+            rows: base.rows,
+            schemaVersion: base.schemaVersion,
+          };
+          return result;
         }
-        if (error.code === "42501") throw new ProjectAccessError(project.id);
-        throw new Error(`Could not save this cloud project: ${error.message}`);
+        const { data, error } = await client.rpc("save_metadata_builder_project", {
+          p_project_uuid: project.id,
+          p_schema_version: PROTOCOL_SCHEMA_VERSION,
+          p_expected_project_hash: base?.hash ?? null,
+          p_project: changes.project,
+          p_experiments: changes.experiments,
+          p_datasets: changes.datasets,
+          p_replace: changes.replace,
+        });
+        if (error) return error;
+        return parseResult(data, project.id, PROTOCOL_SCHEMA_VERSION, project);
+      };
+      let result = await send(upgrade);
+      // Another tab or person may have saved an older version since this one last read it.
+      if (!("saved" in result) && result.details === "metadata_builder_schema_upgrade_required") {
+        result = await send(true);
       }
-      return parseResult(data, project.id, state);
+      if ("saved" in result) {
+        // A conflict leaves the cloud copy at the version it had.
+        if (!result.saved && result.project && upgrade && base?.schemaVersion) {
+          return { ...result, schemaVersion: base.schemaVersion };
+        }
+        return result;
+      }
+      if (result.details === "metadata_builder_schema_version_downgrade") {
+        throw new UnsupportedProjectVersionError(project.id, undefined, undefined, true);
+      }
+      if (result.code === "42501") throw new ProjectAccessError(project.id);
+      if (result.details === "metadata_builder_entity_uuid_taken") {
+        throw new Error(
+          "An experiment or dataset in this project is already saved in another project. Duplicate the project to save a separate copy.",
+        );
+      }
+      throw new Error(`Could not save this cloud project: ${result.message}`);
     },
     async remove(projectId, expectedHash) {
-      const { data, error } = await client.rpc("delete_metadata_builder_session", {
-        p_project_id: projectId,
-        p_expected_hash: expectedHash,
+      const { data, error } = await client.rpc("delete_metadata_builder_project", {
+        p_project_uuid: projectId,
+        p_expected_project_hash: expectedHash,
       });
-      if (error) throw new Error(`Could not delete this cloud project: ${error.message}`);
-      return parseResult(data, projectId);
+      if (error) {
+        if (error.details === "metadata_builder_project_published") {
+          throw new Error(
+            "This project is published. Unpublish it before deleting it from your account.",
+          );
+        }
+        throw new Error(`Could not delete this cloud project: ${error.message}`);
+      }
+      return parseResult(data, projectId, PROTOCOL_SCHEMA_VERSION);
     },
   };
 }
@@ -226,7 +305,7 @@ export function createProjectMembersClient(userId: string) {
     async list(projectId: string): Promise<ProjectMember[]> {
       const rows = await call(
         "list_metadata_builder_project_members",
-        { p_project_id: projectId },
+        { p_project_uuid: projectId },
         "Could not load the people on this project",
       );
       return ((rows ?? []) as unknown[]).map(parseMember);
@@ -245,7 +324,7 @@ export function createProjectMembersClient(userId: string) {
     async setRole(projectId: string, memberId: string, role: MemberRole) {
       await call(
         "set_metadata_builder_project_member_role",
-        { p_project_id: projectId, p_user_id: memberId, p_role: role },
+        { p_project_uuid: projectId, p_user_id: memberId, p_role: role },
         "Could not change this person's role",
       );
     },
@@ -253,7 +332,7 @@ export function createProjectMembersClient(userId: string) {
     async remove(projectId: string, memberId: string) {
       await call(
         "remove_metadata_builder_project_member",
-        { p_project_id: projectId, p_user_id: memberId },
+        { p_project_uuid: projectId, p_user_id: memberId },
         "Could not remove this person",
       );
     },

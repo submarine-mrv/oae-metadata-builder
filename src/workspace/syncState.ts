@@ -48,6 +48,11 @@ export function projectSyncErrorStatus(error: unknown): ProjectSyncStatus {
 
 export interface ProjectSyncActions {
   flush(): Promise<void>;
+  /**
+   * The cloud's project hash for the copy this tab holds, or null when this tab has edits the
+   * cloud hasn't acknowledged. Publishing sends it so only what was reviewed is published.
+   */
+  acknowledgedHash(projectId: string): string | null;
   migrateLocalProjects(): Promise<void>;
   remove(projectId: string): Promise<void>;
   /** Picks up changes made elsewhere; `maxAgeMs` skips it if one ran that recently. */

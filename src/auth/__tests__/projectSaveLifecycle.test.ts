@@ -21,6 +21,7 @@ describe("authenticated project save lifecycle", () => {
     adapter.deleteAccount.mockResolvedValue({});
     appStore.set(projectSyncActionsAtom, {
       refresh: vi.fn(),
+      acknowledgedHash: vi.fn(() => "hash"),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
       previewProjectConflict: vi.fn(),

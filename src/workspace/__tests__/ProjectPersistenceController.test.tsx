@@ -85,7 +85,7 @@ describe("auth-aware project persistence", () => {
     mocks.provider = "supabase";
     mocks.auth = { status: "authenticated", user: { id: "A" } };
     mocks.load.mockResolvedValue([{ project: named("cloud-A"), hash: "A" }]);
-    mocks.save.mockImplementation(async (project, hash) => ({ saved: true, project, hash }));
+    mocks.save.mockImplementation(async (project) => ({ saved: true, project, hash: "saved" }));
   });
   afterEach(() => vi.restoreAllMocks());
 

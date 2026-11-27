@@ -18,9 +18,21 @@ vi.mock("../supabasePublicationClient", () => ({
   createPublicationClient: () => ({ checkIds: mocks.check }),
 }));
 
-function setup(kind: "project" | "experiment" = "project") {
+const EXPERIMENT = "0a1b2c3d-4e5f-4a6b-8c7d-8e9fa0b1c2d3";
+
+function setup(kind: "project" | "experiment" = "project", withExperiment = false) {
+  const state = emptyProjectState();
   const project = {
-    ...newProjectRecord(emptyProjectState()),
+    ...newProjectRecord(
+      withExperiment
+        ? {
+            ...state,
+            experiments: [
+              { id: EXPERIMENT, name: "Site", createdAt: 0, updatedAt: 0, formData: {} },
+            ],
+          }
+        : state,
+    ),
     id: "draft",
   };
   const store = createTestStore({ version: 1, activeProjectId: project.id, projects: [project] });
@@ -41,7 +53,7 @@ describe("advisory ID availability", () => {
   });
 
   it("checks loaded IDs, warns without modifying the draft, and recovers after editing", async () => {
-    mocks.check.mockResolvedValueOnce([{ entity_type: "project", id: "TAKEN" }]);
+    mocks.check.mockResolvedValueOnce([{ entity_type: "project", id: "TAKEN", reason: "in_use" }]);
     const { result, rerender, store } = setup();
     const original = store.get(workspaceAtom);
     await waitFor(() =>
@@ -59,6 +71,16 @@ describe("advisory ID availability", () => {
     expect(result.current.message).toBeNull();
   });
 
+  it.each([
+    ["duplicate", "This ID is used more than once in this project."],
+    ["renamed", "published IDs can't change"],
+  ] as const)("checks an experiment ID by its UUID and explains a %s conflict", async (reason, message) => {
+    mocks.check.mockResolvedValueOnce([{ entity_type: "experiment", id: "taken", reason }]);
+    const { result } = setup("experiment", true);
+    await waitFor(() => expect(result.current.message).toContain(message));
+    expect(mocks.check).toHaveBeenCalledWith("draft", "", [{ uuid: EXPERIMENT, id: "TAKEN" }]);
+  });
+
   it("ignores a stale response after the ID changes", async () => {
     let resolve!: (value: IdConflict[]) => void;
     mocks.check.mockImplementationOnce(
@@ -71,7 +93,7 @@ describe("advisory ID availability", () => {
     await waitFor(() => expect(mocks.check).toHaveBeenCalledTimes(1));
     rerender({ value: "FREE", focused: false });
     await waitFor(() => expect(mocks.check).toHaveBeenCalledTimes(2));
-    await act(async () => resolve([{ entity_type: "project", id: "TAKEN" }]));
+    await act(async () => resolve([{ entity_type: "project", id: "TAKEN", reason: "in_use" }]));
     expect(result.current.message).toBeNull();
   });
 

@@ -1,13 +1,31 @@
 import { parseProjectState } from "@/utils/parseProjectState";
+import { getProtocolMetadata } from "@/utils/schemaViews";
 import { isProjectRecord } from "../storage";
 import { PROJECT_SCHEMA_VERSION, type ProjectRecord } from "../types";
+import { readCloudState } from "./rows";
 import type { CloudProject } from "./types";
+
+/** The protocol release this build's drafts conform to; the cloud records it per project. */
+export const PROTOCOL_SCHEMA_VERSION: string = getProtocolMetadata().version;
+
+/** Orders `major.minor.patch` versions numerically, so 0.10.0 is newer than 0.9.0. */
+export function compareSchemaVersions(a: string, b: string): number {
+  const parts = (version: string) => version.split(".").map(Number);
+  const [left, right] = [parts(a), parts(b)];
+  for (let index = 0; index < Math.max(left.length, right.length); index++) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference) return Math.sign(difference);
+  }
+  return 0;
+}
+
+const VERSION = /^\d+\.\d+\.\d+$/;
 
 /** A cloud project this build must not parse, save or delete: a newer draft format, or unreadable. */
 export class UnsupportedProjectVersionError extends Error {
   constructor(
     public readonly projectId: string,
-    public readonly schemaVersion?: number,
+    public readonly schemaVersion?: string | number,
     public readonly reason?: string,
     public readonly unsavedEdits = false,
   ) {
@@ -52,9 +70,21 @@ export function checkProjectVersion(value: unknown, projectId?: string): number 
   return version;
 }
 
-export function readRemoteProject(value: unknown, projectId: string, hash: string): CloudProject {
+/** A cloud row: its project hash, protocol schema version and state as the server sends them. */
+export function readRemoteProject(
+  projectId: string,
+  hash: string,
+  schemaVersion: string,
+  state: unknown,
+): CloudProject {
   try {
-    return { project: parseCloudProject(value, projectId), hash };
+    if (!VERSION.test(schemaVersion))
+      throw new Error("The cloud project has an invalid schema version.");
+    if (compareSchemaVersions(schemaVersion, PROTOCOL_SCHEMA_VERSION) > 0) {
+      throw new UnsupportedProjectVersionError(projectId, schemaVersion);
+    }
+    const { record, rows } = readCloudState(state, projectId);
+    return { project: parseCloudProject(record, projectId), hash, rows, schemaVersion };
   } catch (error) {
     if (error instanceof UnsupportedProjectVersionError) {
       return { projectId: error.projectId, schemaVersion: error.schemaVersion };
@@ -88,7 +118,8 @@ export function parseCloudProject(value: unknown, projectId?: string): ProjectRe
   ) {
     throw invalid();
   }
-  const state = parseProjectState(value.state);
+  // Entity IDs in the cloud are UUIDs unique across projects.
+  const state = parseProjectState(value.state, value.id);
   const unique = (ids: string[]) => new Set(ids).size === ids.length;
   if (
     !unique(state.experiments.map((entity) => entity.id)) ||
@@ -97,14 +128,6 @@ export function parseCloudProject(value: unknown, projectId?: string): ProjectRe
     throw invalid();
   }
   return { ...value, schemaVersion: PROJECT_SCHEMA_VERSION, state };
-}
-
-export async function hashProject(project: ProjectRecord): Promise<string> {
-  const bytes = new TextEncoder().encode(
-    JSON.stringify({ ...project, schemaVersion: project.schemaVersion ?? PROJECT_SCHEMA_VERSION }),
-  );
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export function errorMessage(error: unknown): string {

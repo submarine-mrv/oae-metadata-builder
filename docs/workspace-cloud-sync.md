@@ -5,8 +5,13 @@ them with other people.
 Guests and the memory auth provider retain browser persistence. Enable with
 `VITE_AUTH_ENABLED=true` and a Supabase URL/publishable key.
 
-- One `metadata_builder_sessions` row stores each project. Whoever first saves it
-  owns it for good.
+- Drafts are stored one row per entity: `draft_projects`, `draft_experiments`
+  and `draft_datasets`, each with its protocol `form_data` and a `content_hash`.
+  `draft_projects.project_hash` changes when any row of the project changes.
+  A dataset's `experiment_uuid` is a foreign key; deleting the experiment
+  unlinks the dataset. Whoever first saves a project owns it for good.
+  Internal identities are UUIDs (`project_uuid`, `experiment_uuid`,
+  `dataset_uuid`); older non-UUID IDs map to stable UUIDs (`stableUuid`).
 - The owner shares a project by email as **editor** (edits everything) or
   **viewer** (read only), from Share on its Overview. Grants belong to the
   person's account, not the address, so they follow email changes. Someone with
@@ -16,6 +21,7 @@ Guests and the memory auth provider retain browser persistence. Enable with
   pending people, marked Pending, with Resend. If the invitation email can't be
   sent, the person isn't added and the owner sees an error. Only the owner
   deletes the project or manages people; members can leave.
+  Grants live in `mb_members`; `mb_invites` records invitation-send attempts.
 - An invited account has no password of its own until it sets one, flagged by
   `invited_at` without `user_metadata.password_set` (`AuthUser.needsPassword`).
   The root route sends it to `/auth/set-password` and cloud sync waits until
@@ -36,26 +42,38 @@ Guests and the memory auth provider retain browser persistence. Enable with
   a missing match reads as "can't be found", just like a deleted project. All
   links use stable internal IDs, including after publication. Human metadata IDs
   never enter URLs. See `docs/multi-project.md`.
-- Conditional saves/deletes use the acknowledged hash to reject stale writes.
+- A save sends only rows that differ from the acknowledged copy, each with the
+  hash it was based on (`projectCloudSync/rows.ts`). If other rows changed
+  elsewhere, the save still applies and returns `merged` with the current
+  project; only a row changed on both sides returns `conflict`. Deletes use the
+  acknowledged project hash.
 - Draft saves accept duplicate project and experiment metadata IDs unchanged.
   `check_metadata_builder_id_availability` checks catalog availability when an
   ID field loads or loses focus, not on every keystroke. A field advisory explains
   conflicts or check failures without blocking edits or sync, and offers Recheck ID.
   At publication, the database enforces one case-insensitive namespace for project and experiment IDs.
   Drafts do not reserve names, so an available ID may be claimed before publication.
+  The advisory also flags a published ID that was changed (`renamed`), since
+  republishing refuses it. Unpublishing releases the project's IDs.
 - Experiment and dataset IDs are UUIDs. Older drafts, such as guest projects in
-  browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`, the same in every
-  tab, so two people loading one old draft agree on its IDs.
-- Drafts carry `schemaVersion` (missing means 1). Bump `PROJECT_SCHEMA_VERSION`
-  with state migrations. Newer drafts are never parsed, merged or saved by an
-  older build; reload is required for those projects while others can still save.
-  The server also rejects version downgrades even with a matching hash.
+  browser storage, numbered them; parsing turns those into `experiment-N` / `dataset-N`,
+  and the cloud maps those to the same stable UUID in every tab. A local project
+  whose UUIDs are already used by another cloud project imports under fresh ones.
+- Each variable carries a `_uuid` so merges match variables by identity. It is
+  stripped from exports and published documents.
+- Local drafts carry `schemaVersion` (missing means 1). Bump `PROJECT_SCHEMA_VERSION`
+  with state migrations. Cloud projects carry the protocol release
+  (`PROTOCOL_SCHEMA_VERSION`) in `draft_projects.schema_version`. A project saved
+  at an older release is rewritten whole, which upgrades it in one transaction.
+  A newer one is never parsed, merged or saved by an older build; reload is
+  required for those projects while others can still save. The server enforces
+  both directions.
 - Changed projects save after a two-second debounce. A stale save merges with
   the cloud copy field by field, for project fields and each experiment and
   dataset's top-level fields; edits to the same field conflict and stay in memory.
   Changing an experiment's or dataset's type conflicts with any other edit to it.
-  Lists such as a dataset's variables count as one field. Experiments and datasets
-  added on both sides are all kept.
+  A dataset's variables merge one by one by `_uuid`; other lists count as one
+  field. Experiments, datasets and variables added on both sides are all kept.
 - Deletes win: something deleted elsewhere is removed here even over unsaved
   edits. A yellow "Deleted" notice names it and says when edits were
   lost. If it was open, the app goes to All projects for a project, or Overview for an experiment or dataset.
@@ -130,19 +148,23 @@ a **Published** badge only for projects confirmed as public; private projects
 have no publication badge. All project,
 experiment and dataset metadata must pass validation. The confirmation explains
 that names, emails, identifiers and access links become publicly downloadable.
-Publishing first saves the private draft and refuses to publish if that save
-fails or the reviewed content changes.
+Publishing first saves the private draft, then asks the server to publish the
+saved rows at the acknowledged project hash. The server builds the document
+from the draft rows, so it refuses if the draft changed since.
 
-- **Publish project / Update publication** atomically replaces the public tree.
-  Removed experiments and datasets disappear from the publication.
-- **Unpublish** followed by **Confirm unpublish** hides the whole tree from fresh anonymous
-  reads without deleting metadata or the private draft. Existing downloads and
+- **Publish project / Update publication** adds an immutable snapshot
+  (`published_snapshots`, next `version_no`) and makes it the live one. Removed
+  experiments and datasets disappear from the publication.
+- **Unpublish** followed by **Confirm unpublish** marks the live snapshot as
+  not live and releases its IDs, without deleting the private draft or earlier
+  snapshots. Existing downloads and
   already-open browser pages cannot be recalled. Unpublishing does not depend
   on private draft saves, so a draft conflict cannot prevent hiding public data.
 - **Republish** uses the same reviewed publication action.
-- Publication is bound to the internal draft identity. Changing the editable
-  metadata project ID and publishing again replaces the previous public ID;
-  IDs belonging to another draft or owner are rejected.
+- Publication is bound to the internal entity UUIDs (`published_entities`).
+  A published project or experiment ID can't change on republish; the one
+  exception is a legacy ID that fails the 0.8.0 pattern. IDs held by another
+  project are rejected.
 - Draft edits remain private until the next explicit publication. Unpublish
   before deleting a published draft; deletion is blocked while it is public.
   The delete buttons on Overview and Projects are disabled for published
@@ -150,8 +172,15 @@ fails or the reviewed content changes.
 
 The client uses owner-bound tokens and the `publish_oae_project` and
 `unpublish_oae_project` RPCs. Direct authenticated catalog mutations are denied.
-The normalized public rows retain complete source objects and the exported
-document envelope for lossless Data Commons downloads; no private workspace
+Readers use the `published_projects` view of live snapshots, which keeps the
+complete exported metadata document for lossless Data Commons downloads; no private workspace
 wrappers, internal counters or auth credentials are included in those documents.
 Guests, auth-disabled builds and the memory auth provider have no publication
 controls or requests.
+
+Draft RPCs are `save_metadata_builder_project` and
+`delete_metadata_builder_project`; internal-ID arguments are `p_project_uuid`,
+and editable metadata IDs remain `project_id`/`experiment_id`. Rebuild a
+development database from the rewritten IaC migrations before using this
+client; this is not an additive upgrade for a previously applied migration
+history.
