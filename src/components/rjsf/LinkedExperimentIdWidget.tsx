@@ -1,3 +1,4 @@
+import { optionalString } from "@/types/forms";
 /**
  * LinkedExperimentIdWidget - Select experiment from dropdown
  *
@@ -78,7 +79,7 @@ export default function LinkedExperimentIdWidget<
   // Build dropdown options: all experiments (by name), then "None" at end
   const dropdownOptions: ComboboxItem[] = [
     ...experiments.map((exp) => {
-      const expName = exp.name || (exp.formData?.name as string | undefined) || "Experiment";
+      const expName = exp.name || optionalString(exp.formData?.name) || "Experiment";
       return {
         value: String(exp.id),
         label: expName,

@@ -34,8 +34,9 @@ you use it; minor versions add features or adopt a new schema version; patches f
 
 ### Fixed
 
-- An imported file whose project or experiment ID isn't text (a number, say) no longer crashes
-  the builder. The ID is left empty for you to fill in.
+- An imported file with a field of the wrong type no longer crashes the builder, for example a
+  numeric project ID or temporal coverage. An ID, dataset type or experiment type of the wrong
+  type is left empty for you to fill in.
 
 ## [1.1.0] — 2026-10-22
 

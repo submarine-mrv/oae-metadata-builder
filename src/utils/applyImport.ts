@@ -5,6 +5,7 @@ import type {
   DraftExperiment,
   DraftProject,
 } from "@/types/forms";
+import { optionalString } from "@/types/forms";
 import type { ProjectState } from "@/workspace/types";
 import { cleanFormData } from "./formDataCleanup";
 import { propagateProjectId } from "./idPropagation";
@@ -37,8 +38,8 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
 
   experiments.forEach((rawExpData, index) => {
     const expData = cleanFormData(rawExpData) as DraftExperiment;
-    const expId = expData.experiment_id as string | undefined;
-    const expName = expData.name as string | undefined;
+    const expId = expData.experiment_id;
+    const expName = optionalString(expData.name);
     const importKey = `experiment-${index}`;
 
     const existingIndex = expId
@@ -76,7 +77,7 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
   for (const { formData: rawDsData, experimentLinking } of datasets) {
     // Normalize incoming dataset data at the boundary.
     const dsData = cleanFormData(rawDsData) as DraftDataset;
-    const dsName = dsData.name as string | undefined;
+    const dsName = optionalString(dsData.name);
 
     // Resolve experiment linking to internal ID
     let linkedExperimentInternalId: string | null = null;

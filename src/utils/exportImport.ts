@@ -6,6 +6,7 @@ import type {
   ExportContainer,
   ImportResult,
 } from "@/types/forms";
+import { optionalString } from "@/types/forms";
 import { trackEvent } from "@/utils/analytics";
 import { migrateDataset, migrateExperiment, migrateProject } from "@/utils/migrations";
 import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
@@ -147,9 +148,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
             return {
               id: crypto.randomUUID(),
               name:
-                (expData.name as string) ||
-                (expData.experiment_id as string) ||
-                `Experiment ${index + 1}`,
+                optionalString(expData.name) || expData.experiment_id || `Experiment ${index + 1}`,
               formData: expData,
               createdAt: Date.now(),
               updatedAt: Date.now(),
@@ -165,7 +164,7 @@ export async function importMetadata(file: File): Promise<ImportResult> {
           );
           return {
             id: crypto.randomUUID(),
-            name: (dsData.name as string) || `Dataset ${index + 1}`,
+            name: optionalString(dsData.name) || `Dataset ${index + 1}`,
             formData: dsData,
             linking: {
               linkedExperimentInternalId: null,

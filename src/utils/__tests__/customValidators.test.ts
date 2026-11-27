@@ -81,6 +81,13 @@ describe("validateTemporalCoverageOrder", () => {
     const result = validateTemporalCoverageOrder(data, errors, undefined) as any;
     expect(collectDeepErrors(result.temporal_coverage)).toContain("End date must be ≥ start date.");
   });
+
+  it("passes when temporal_coverage isn't a string", () => {
+    const errors = makeErrors();
+    const data = { temporal_coverage: 2024 };
+    const result = validateTemporalCoverageOrder(data, errors, undefined) as any;
+    expect(collectDeepErrors(result.temporal_coverage)).toEqual([]);
+  });
 });
 
 describe("validateVerticalCoverage", () => {
