@@ -32,6 +32,11 @@ you use it; minor versions add features or adopt a new schema version; patches f
 - After you delete the experiment or dataset that was open, its page shows the first remaining one
   instead of "No Experiment Selected". (#82)
 
+### Fixed
+
+- An imported file whose project or experiment ID isn't text (a number, say) no longer crashes
+  the builder. The ID is left empty for you to fill in.
+
 ## [1.1.0] — 2026-10-22
 
 Built against oae-data-protocol v0.6.0.
