@@ -1,3 +1,4 @@
+import { optionalString } from "@/types/forms";
 // Pure updates to one project's persisted data. Records are stamped with Date.now().
 
 import type {
@@ -150,7 +151,7 @@ export function replaceDatasetFormData(
         ? {
             ...ds,
             formData: cleanFormData(data),
-            name: (data.name as string) || ds.name,
+            name: optionalString(data.name) || ds.name,
             updatedAt: Date.now(),
           }
         : ds,

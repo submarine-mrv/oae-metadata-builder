@@ -1,3 +1,4 @@
+import { optionalString } from "@/types/forms";
 /**
  * Custom (cross-field) validators that aren't expressible in JSON Schema.
  *
@@ -21,7 +22,7 @@ import type { VerticalCoverage } from "@/types/forms";
  * the cross-field ordering check.
  */
 export const validateTemporalCoverageOrder: CustomValidator<any> = (data, errors) => {
-  const t = data?.temporal_coverage as string | undefined;
+  const t = optionalString(data?.temporal_coverage);
   if (!t) return errors;
 
   const [start, end] = t.split("/");

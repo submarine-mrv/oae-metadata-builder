@@ -32,6 +32,12 @@ you use it; minor versions add features or adopt a new schema version; patches f
 - After you delete the experiment or dataset that was open, its page shows the first remaining one
   instead of "No Experiment Selected". (#82)
 
+### Fixed
+
+- An imported file with a field of the wrong type no longer crashes the builder, for example a
+  numeric project ID or temporal coverage. An ID, dataset type or experiment type of the wrong
+  type is left empty for you to fill in.
+
 ## [1.1.0] — 2026-10-22
 
 Built against oae-data-protocol v0.6.0.

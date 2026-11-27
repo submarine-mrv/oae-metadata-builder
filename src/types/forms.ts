@@ -48,41 +48,27 @@ export type NonModelType = (typeof NON_MODEL_TYPES)[number];
 export type ExperimentTypes = ["model"] | NonModelType[];
 
 /**
- * Project draft - schema-driven content
- * Known fields are typed, unknown fields allowed via index signature
+ * Project draft - schema-driven content. Declares only the fields parseProject
+ * guarantees; read any other field as unknown and check its type.
  */
 export interface DraftProject extends FormDataRecord {
   project_id?: string;
-  /** Rendered as "Project Name"; doubles as the project's display name. */
-  name?: string;
-  description?: string;
-  // ... other known fields can be added as needed
 }
 
 /**
- * Experiment draft - schema-driven content
- * Known fields are typed, unknown fields allowed via index signature.
- * experiment_types carries the model-exclusivity invariant; parseExperiment is
- * the only sanctioned producer of this type from raw data.
+ * Experiment draft - schema-driven content. Declares only the fields
+ * parseExperiment guarantees; read any other field as unknown and check its type.
+ * experiment_types carries the model-exclusivity invariant.
  */
 export interface DraftExperiment extends FormDataRecord {
   project_id?: string;
   experiment_id?: string;
   experiment_types?: ExperimentTypes;
-  description?: string;
-  // Spatial coverage has a known structure
-  spatial_coverage?: {
-    geo?: {
-      box?: string;
-    };
-  };
-  // Temporal coverage has a known structure
-  temporal_coverage?: string; // ISO interval format
-  // ... other known fields can be added as needed
 }
 
 /**
- * Dataset draft - schema-driven content.
+ * Dataset draft - schema-driven content. Declares only the fields parseDataset
+ * guarantees; read any other field as unknown and check its type.
  * dataset_type stays a plain string on purpose: only "model_output" changes any
  * behavior (ModelOutputDataset vs FieldDataset schema selection), and the other
  * values are schema vocabulary the app never branches on — see
@@ -94,13 +80,8 @@ export interface DraftExperiment extends FormDataRecord {
 export interface DraftDataset extends FormDataRecord {
   project_id?: string;
   experiment_id?: string;
-  name?: string;
-  description?: string;
-  temporal_coverage?: string;
   dataset_type?: string;
-  data_product_type?: string;
   variables?: DraftVariable[];
-  // ... other known fields can be added as needed
 }
 
 // =============================================================================
@@ -284,6 +265,11 @@ export interface VerticalCoverage {
 // =============================================================================
 // Type Guards
 // =============================================================================
+
+/** The value if it's a string, else undefined. For form fields the parsers don't guarantee. */
+export function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
 
 /**
  * Check if a value is a non-null object

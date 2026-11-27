@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import type { DraftDataset, DraftExperiment, DraftProject, ExperimentRecord } from "@/types/forms";
+import { optionalString } from "@/types/forms";
 
 export type ImportItemType = "project" | "experiment" | "dataset";
 
@@ -156,7 +157,7 @@ function resolveExperimentLink(
   if (importingMatch) {
     return {
       type: "importing",
-      experimentName: (importingMatch.data.name as string) || importingMatch.key,
+      experimentName: optionalString(importingMatch.data.name) || importingMatch.key,
       experimentId: datasetExperimentId,
       importKey: importingMatch.key,
     };
@@ -446,7 +447,7 @@ export function useImportPreview(): UseImportPreviewReturn {
             resolvedMatch = importingExp
               ? {
                   type: "importing",
-                  experimentName: (expData?.name as string) || importingExp.name,
+                  experimentName: optionalString(expData?.name) || importingExp.name,
                   experimentId: expData?.experiment_id as string,
                   importKey: explicitImportKey,
                 }

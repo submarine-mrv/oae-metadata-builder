@@ -434,3 +434,30 @@ describe("ExperimentTypes (type-level)", () => {
     expect(combo).toBeDefined();
   });
 });
+
+describe("declared fields", () => {
+  it("drops IDs that aren't strings", () => {
+    expect(parseProject({ project_id: 123, name: "P" })).toEqual({ name: "P" });
+    expect(parseExperiment({ project_id: 123, experiment_id: [1], name: "E" })).toEqual({
+      name: "E",
+    });
+    expect(
+      parseDataset({ project_id: 123, experiment_id: { a: 1 } }, rootSchema),
+    ).not.toHaveProperty("experiment_id");
+  });
+
+  it("drops a dataset_type that isn't a string", () => {
+    expect(parseDataset({ dataset_type: 5, name: "D" }, rootSchema)).not.toHaveProperty(
+      "dataset_type",
+    );
+  });
+
+  it("drops experiment_types that aren't a list", () => {
+    expect(parseExperiment({ experiment_types: "model", name: "E" })).toEqual({ name: "E" });
+  });
+
+  it("keeps string IDs as they are", () => {
+    expect(parseProject({ project_id: "" })).toEqual({ project_id: "" });
+    expect(parseExperiment({ experiment_id: "Bad ID!" })).toEqual({ experiment_id: "Bad ID!" });
+  });
+});

@@ -189,6 +189,16 @@ Generated types are **compile-time only**. `pattern`, `minimum`/`maximum`, and L
 in AJV at runtime, not in the types. That division of labor is intentional: JSON Schema + AJV is the
 "type system" for data correctness; TypeScript is the "type system" for code structure.
 
+### Draft entity types declare only what the parsers guarantee
+
+A draft is unfinished, so its content is allowed to be invalid: the parsers pass a bad date or an
+unknown enum value through for AJV to report. What they do guarantee is the type of every field
+that `DraftProject`, `DraftExperiment` and `DraftDataset` declare: `project_id`, `experiment_id`,
+`dataset_type`, `experiment_types` and `variables`. A value of the wrong type is dropped, and the
+user re-enters it. Code reads every other field as `unknown` and checks it, usually with
+`optionalString()`. Declaring a field means adding it to the parser too. Valid metadata is a
+separate boundary: publication runs AJV and either builds the payload or reports errors.
+
 ## 7. What does NOT need to change
 
 - **No `oae-data-protocol` changes** are required for this direction. The polymorphism, the

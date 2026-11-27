@@ -32,7 +32,9 @@ import { parseVariables } from "@/utils/parseVariable";
  * and does not re-clean or re-check.
  *
  * All three are total and lenient: malformed input degrades to {} or is passed
- * through for AJV to reject at validation time — parsing never throws.
+ * through for AJV to reject at validation time — parsing never throws. Fields the
+ * Draft types declare are the exception: the parsers guarantee their types,
+ * dropping a value of the wrong type for the user to re-enter.
  *
  * Derived IDs (project_id on experiments/datasets, experiment_id on datasets)
  * are NOT set here; they are denormalized copies synced by the project reducers.
@@ -44,12 +46,24 @@ function asRecord(raw: unknown): FormDataRecord {
     : {};
 }
 
+const STRING_FIELDS = ["project_id", "experiment_id", "dataset_type"];
+
+function parseStringFields(data: FormDataRecord): FormDataRecord {
+  let result = data;
+  for (const key of STRING_FIELDS) {
+    if (result[key] === undefined || typeof result[key] === "string") continue;
+    const { [key]: _, ...rest } = result;
+    result = rest;
+  }
+  return result;
+}
+
 /**
  * Projects have a single schema and no type selectors — parsing is just the
  * shared cleanup (drop empty strings/objects/nulls).
  */
 export function parseProject(raw: unknown): DraftProject {
-  return cleanFormData(asRecord(raw)) as DraftProject;
+  return cleanFormData(parseStringFields(asRecord(raw))) as DraftProject;
 }
 
 /**
@@ -62,8 +76,12 @@ export function parseProject(raw: unknown): DraftProject {
  * - conditional custom fields are dropped when their trigger isn't met.
  */
 export function parseExperiment(raw: unknown, prev?: DraftExperiment): DraftExperiment {
-  let data = asRecord(raw);
+  let data = parseStringFields(asRecord(raw));
 
+  if (data.experiment_types !== undefined && !Array.isArray(data.experiment_types)) {
+    const { experiment_types: _, ...rest } = data;
+    data = rest;
+  }
   if (Array.isArray(data.experiment_types)) {
     const rawTypes = data.experiment_types.filter((t): t is string => typeof t === "string");
     const prevTypes = Array.isArray(prev?.experiment_types) ? prev.experiment_types : [];
@@ -96,7 +114,7 @@ export function parseExperiment(raw: unknown, prev?: DraftExperiment): DraftExpe
  * parseVariables like at the variable-modal boundary.
  */
 export function parseDataset(raw: unknown, rootSchema: JSONSchema): DraftDataset {
-  let data = asRecord(raw);
+  let data = parseStringFields(asRecord(raw));
   const datasetType = typeof data.dataset_type === "string" ? data.dataset_type : undefined;
   const isModelOutput = isModelOutputType(datasetType);
 
