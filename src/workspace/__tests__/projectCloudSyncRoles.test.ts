@@ -30,13 +30,15 @@ function fakeClient(role: ProjectAccess["role"], memberCount = 0) {
   const rows = new Map([
     ["one", { project: project(), hash: "h1", access: access(role, memberCount) }],
   ]);
+  let writes = 1;
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
     hashes: vi.fn(
       async () =>
         new Map([...rows].map(([id, row]) => [id, { hash: row.hash, access: row.access }])),
     ),
-    save: vi.fn(async (record, hash) => {
+    save: vi.fn(async (record) => {
+      const hash = `h${++writes}`;
       const row = rows.get(record.id);
       if (row) rows.set(record.id, { ...row, project: record, hash });
       return { saved: true, project: record, hash };

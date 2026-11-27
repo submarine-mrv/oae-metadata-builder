@@ -43,6 +43,7 @@ function setup(
   project = publicationProject(),
   flush = vi.fn().mockResolvedValue(undefined),
   role: ProjectRole | null = "owner",
+  acknowledgedHash = vi.fn((): string | null => "saved-hash"),
 ) {
   const store = createTestStore({ version: 1, activeProjectId: project.id, projects: [project] });
   if (role !== null) {
@@ -57,6 +58,7 @@ function setup(
   }
   store.set(projectSyncActionsAtom, {
     flush,
+    acknowledgedHash,
     refresh: vi.fn(),
     keepProjectChanges: vi.fn(),
     discardProjectChanges: vi.fn(),
@@ -74,7 +76,7 @@ function setup(
       </Provider>
     </MantineProvider>,
   );
-  return { store, flush, onPublishedChange, ...view };
+  return { store, flush, acknowledgedHash, onPublishedChange, ...view };
 }
 
 async function openReview() {
@@ -90,6 +92,7 @@ function publishedStatus(project = publicationProject()) {
     projectId: "PUBLICATION-TEST",
     published: true,
     updatedAt: "2026-10-28T00:00:00Z",
+    versionNo: 1,
     document: buildMetadataDocument(
       project.state.projectData,
       project.state.experiments,
@@ -131,7 +134,7 @@ describe("explicit project publication", () => {
   });
 
   it("requires review and saves the private draft before an explicit publish", async () => {
-    const { flush, onPublishedChange } = setup();
+    const { flush, acknowledgedHash, onPublishedChange } = setup();
     expect(screen.getByRole("button", { name: "Publish" })).toHaveAttribute(
       "title",
       "Publish this project",
@@ -142,15 +145,13 @@ describe("explicit project publication", () => {
     expect(mocks.publish).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Publish project" }));
     await waitFor(() =>
-      expect(mocks.publish).toHaveBeenCalledWith(
-        "publication-draft",
-        expect.objectContaining({ experiments: expect.any(Array), datasets: expect.any(Array) }),
-      ),
+      expect(mocks.publish).toHaveBeenCalledWith("publication-draft", "saved-hash"),
     );
     expect(flush).toHaveBeenCalledOnce();
     expect(flush.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.publish.mock.invocationCallOrder[0],
+      acknowledgedHash.mock.invocationCallOrder[0],
     );
+    expect(acknowledgedHash).toHaveBeenCalledWith("publication-draft");
     await waitFor(() =>
       expect(mocks.notify).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -292,6 +293,19 @@ describe("explicit project publication", () => {
     await screen.findByRole("button", { name: "Publish" });
     await waitFor(() => expect(onPublishedChange).toHaveBeenLastCalledWith(false));
     expect(screen.queryByRole("button", { name: "Unpublish" })).not.toBeInTheDocument();
+  });
+
+  it("does not publish until the cloud has acknowledged the reviewed draft", async () => {
+    setup(
+      publicationProject(),
+      undefined,
+      "owner",
+      vi.fn(() => null),
+    );
+    await openReview();
+    fireEvent.click(screen.getByRole("button", { name: "Publish project" }));
+    await screen.findByText("The project hasn't finished saving. Retry in a moment.");
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it("rejects changes introduced while the reviewed draft is being saved", async () => {

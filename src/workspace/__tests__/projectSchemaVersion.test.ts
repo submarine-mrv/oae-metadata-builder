@@ -2,6 +2,7 @@ import { createStore } from "jotai";
 import { describe, expect, it, vi } from "vitest";
 import { workspaceAtom } from "@/state/atoms";
 import {
+  PROTOCOL_SCHEMA_VERSION,
   type ProjectCloudClient,
   parseCloudProject,
   readRemoteProject,
@@ -23,11 +24,15 @@ describe("draft schema versions", () => {
   it("checks future versions before interpreting their unknown state", () => {
     const future = { id: "future", schemaVersion: 3, state: { unknown: true } };
     expect(() => parseCloudProject(future)).toThrow(UnsupportedProjectVersionError);
-    expect(readRemoteProject(future, "future", "hash")).toEqual({
+    expect(readRemoteProject("future", "hash", "99.0.0", { unknown: true })).toEqual({
       projectId: "future",
-      schemaVersion: 3,
+      schemaVersion: "99.0.0",
     });
-    expect(readRemoteProject(future, "wrong", "hash")).toEqual({
+    expect(readRemoteProject("bad", "hash", "latest", { unknown: true })).toEqual({
+      projectId: "bad",
+      reason: expect.stringContaining("invalid schema version"),
+    });
+    expect(readRemoteProject("wrong", "hash", PROTOCOL_SCHEMA_VERSION, future)).toEqual({
       projectId: "wrong",
       reason: expect.stringContaining("invalid"),
     });
@@ -77,8 +82,7 @@ describe("draft schema versions", () => {
       expect(save).toHaveBeenCalledTimes(1);
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({ id: project.id }),
-        expect.any(String),
-        "initial",
+        expect.objectContaining({ hash: "initial" }),
       );
       expect(client.remove).not.toHaveBeenCalled();
     } finally {

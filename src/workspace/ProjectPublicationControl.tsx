@@ -168,7 +168,10 @@ function PublicationControl({
         ) {
           throw new Error("The project changed. Close this dialog and review the latest version.");
         }
-        const next = await client.publish(sourceProjectId, buildProjectPublicationPayload(review));
+        // The server publishes its saved copy; the hash proves that is the copy reviewed here.
+        const hash = sync.acknowledgedHash(sourceProjectId);
+        if (!hash) throw new Error("The project hasn't finished saving. Retry in a moment.");
+        const next = await client.publish(sourceProjectId, hash);
         if (!mounted.current) return;
         setStatus(next);
       } else {

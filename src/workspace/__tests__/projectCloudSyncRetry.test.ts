@@ -6,13 +6,6 @@ import { projectSyncStatusAtom } from "../syncState";
 import { emptyProjectState, newProjectRecord, type ProjectRecord } from "../types";
 import { updateProject } from "../workspace";
 
-// Web Crypto resolves outside the fake clock; a microtask hash keeps retry timing deterministic.
-vi.mock("../projectCloudSync/helper", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../projectCloudSync/helper")>()),
-  hashProject: async (record: ProjectRecord) =>
-    `hash-${record.updatedAt}-${record.state.projectData.name}`,
-}));
-
 function project(id = "one"): ProjectRecord {
   return {
     ...newProjectRecord({ ...emptyProjectState(), projectData: { project_id: id, name: id } }, 100),
@@ -22,14 +15,16 @@ function project(id = "one"): ProjectRecord {
 
 function clientWith(projects: ProjectRecord[]) {
   const rows = new Map(projects.map((record) => [record.id, { project: record, hash: record.id }]));
+  let writes = 0;
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
     hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, { hash: row.hash }]))),
-    save: vi.fn(async (record, hash, expected) => {
+    save: vi.fn(async (record, base) => {
       const current = rows.get(record.id);
-      if ((current?.hash ?? null) !== expected) {
+      if ((current?.hash ?? null) !== (base?.hash ?? null)) {
         return { saved: false, project: current?.project ?? null, hash: current?.hash ?? null };
       }
+      const hash = `${record.id}-${++writes}`;
       rows.set(record.id, { project: record, hash });
       return { saved: true, project: record, hash };
     }),

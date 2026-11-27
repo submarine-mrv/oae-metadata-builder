@@ -28,7 +28,6 @@ import { deleteProject, mostRecent } from "../workspace";
 import {
   checkProjectVersion,
   errorMessage,
-  hashProject,
   ProjectAccessError,
   parseCloudProject,
   UnsupportedProjectVersionError,
@@ -58,6 +57,42 @@ class FlushFailures extends Error {
   constructor(readonly failures: unknown[]) {
     super(errorMessage(failures[0]));
   }
+}
+
+/**
+ * A copy under fresh IDs. Experiment and dataset UUIDs are unique across every cloud project,
+ * so a second copy needs its own, with dataset links following their experiments.
+ */
+export function withNewIds(record: ProjectRecord): ProjectRecord {
+  const ids = new Map(
+    record.state.experiments.map((experiment) => [experiment.id, crypto.randomUUID()]),
+  );
+  return {
+    ...record,
+    id: crypto.randomUUID(),
+    state: {
+      ...record.state,
+      experiments: record.state.experiments.map((experiment) => ({
+        ...experiment,
+        id: ids.get(experiment.id) ?? crypto.randomUUID(),
+      })),
+      datasets: record.state.datasets.map((dataset) => {
+        const linked = dataset.linking?.linkedExperimentInternalId;
+        return {
+          ...dataset,
+          id: crypto.randomUUID(),
+          ...(dataset.linking
+            ? {
+                linking: {
+                  ...dataset.linking,
+                  linkedExperimentInternalId: linked ? (ids.get(linked) ?? null) : null,
+                },
+              }
+            : {}),
+        };
+      }),
+    },
+  };
 }
 
 const retryable = (error: unknown) =>
@@ -177,11 +212,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         return;
       }
       checkProjectVersion(project);
-      const hash = await hashProject(project);
-      assertActive();
       let result: ProjectSaveResult;
       try {
-        result = await client.save(project, hash, previous?.hash ?? null);
+        result = await client.save(project, previous ?? null);
       } catch (error) {
         if (error instanceof ProjectAccessError) throw error;
         if (!(error instanceof UnsupportedProjectVersionError)) {
@@ -191,9 +224,14 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         return;
       }
       assertActive();
-      if (result.saved) {
+      if (result.saved && !result.merged) {
         if (!result.hash) throw new Error("The cloud did not acknowledge the saved project.");
-        acknowledged.set(id, { project, hash: result.hash });
+        acknowledged.set(id, {
+          project,
+          hash: result.hash,
+          rows: result.rows,
+          schemaVersion: result.schemaVersion,
+        });
         // A first save makes this user the owner; the next hash check fills in the rest.
         if (!previous && !accessOf(id)) {
           updateAccess(
@@ -217,22 +255,33 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         ]);
         return;
       }
-      const remote = parseCloudProject(result.project, id);
+      const remote: RemoteProject = {
+        project: result.project,
+        hash: result.hash,
+        rows: result.rows,
+        schemaVersion: result.schemaVersion,
+      };
       const latest = currentProject(id) ?? project;
+      // Merged: the cloud applied this save on top of rows others changed, so the baseline
+      // is what was sent. Conflict: nothing was written; merge against the last acknowledged copy.
+      const base = result.saved ? project : previous?.project;
       let merged: ProjectRecord;
       try {
-        merged = previous
-          ? reconcileProjectRecord(latest, remote, previous.project)
-          : adoptUnseenProject(latest, remote);
+        merged = base
+          ? reconcileProjectRecord(latest, remote.project, base)
+          : adoptUnseenProject(latest, remote.project);
       } catch (error) {
         throw new ProjectConflictError(id, errorMessage(error));
       }
+      // The cloud's own copy when nothing local remains to save, so the project reads as synced.
+      if (equalData(merged.state, remote.project.state)) merged = remote.project;
       store.set(workspaceAtom, (workspace) => ({
         ...workspace,
         projects: workspace.projects.map((record) => (record.id === id ? merged : record)),
       }));
-      noteDeletions(removedEntities(latest, merged, previous?.project));
-      acknowledged.set(id, { project: remote, hash: result.hash });
+      noteDeletions(removedEntities(latest, merged, base));
+      acknowledged.set(id, remote);
+      if (result.saved) return;
     }
     throw new ContentionError(
       "This project keeps changing. Your changes are safe in this tab, and saving will keep retrying.",
@@ -578,9 +627,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
         typeof resolver === "function" ? (whole ? resolver(whole) : "remote") : resolver;
       if (!choice) throw new Error("Choose which version of this project to keep.");
       if (choice === "local") {
-        const hash = await hashProject(local);
-        assertActive();
-        const result = await client.save(local, hash, row?.hash ?? null);
+        const result = await client.save(local, row ?? null);
         assertActive();
         if (!result.saved || !result.hash) {
           throw new ProjectConflictError(
@@ -588,7 +635,15 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
             "It changed again while you were choosing. Look again before keeping yours.",
           );
         }
-        acknowledged.set(id, { project: local, hash: result.hash });
+        // Merged: someone changed other rows meanwhile; their changes are kept alongside yours.
+        const saved = result.merged && result.project ? result.project : local;
+        acknowledged.set(id, {
+          project: saved,
+          hash: result.hash,
+          rows: result.rows,
+          schemaVersion: result.schemaVersion,
+        });
+        if (saved !== local) put(saved);
       } else if (row) {
         acknowledged.set(id, row);
         put(row.project);
@@ -673,10 +728,9 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
           );
           return [];
         }
-        const { project, hash } = row;
-        const parsed = parseCloudProject(project);
-        acknowledged.set(parsed.id, { project: parsed, hash });
-        return [parsed];
+        const { project, hash, rows: hashes, schemaVersion } = row;
+        acknowledged.set(project.id, { project, hash, rows: hashes, schemaVersion });
+        return [project];
       });
       if (new Set(projects.map((project) => project.id)).size !== projects.length) {
         throw new Error("The cloud returned duplicate project records.");
@@ -706,7 +760,7 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
       const workspace = store.get(workspaceAtom);
       // Always a new project, so importing never changes one already in the account.
       const taken = workspace.projects.some((project) => project.id === incoming.id);
-      const record = taken ? { ...incoming, id: crypto.randomUUID() } : incoming;
+      const record = taken ? withNewIds(incoming) : incoming;
       store.set(workspaceAtom, {
         ...workspace,
         projects: [...workspace.projects, record],
@@ -726,6 +780,10 @@ export function startProjectCloudSync(store: AppStore, client: ProjectCloudClien
   return {
     load,
     flush,
+    acknowledgedHash(id: string) {
+      const saved = acknowledged.get(id);
+      return saved && currentProject(id) === saved.project ? saved.hash : null;
+    },
     migrateLocalProjects,
     async remove(id: string) {
       // Wait for any save in progress, but a failure elsewhere mustn't block this delete.

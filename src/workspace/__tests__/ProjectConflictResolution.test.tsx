@@ -50,6 +50,7 @@ function setup(conflicts: SyncConflict[] = [nameConflict, variablesConflict], mo
     migrateLocalProjects: vi.fn(),
     remove: vi.fn(),
     refresh: vi.fn(),
+    acknowledgedHash: vi.fn(() => "hash"),
     keepProjectChanges: vi.fn(),
     discardProjectChanges: vi.fn(),
     previewProjectConflict: vi.fn().mockResolvedValue(conflicts),

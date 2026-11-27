@@ -20,6 +20,7 @@ describe("local project consent", () => {
     const store = createStore();
     store.set(projectSyncActionsAtom, {
       refresh: vi.fn(),
+      acknowledgedHash: vi.fn(() => "hash"),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
       previewProjectConflict: vi.fn(),

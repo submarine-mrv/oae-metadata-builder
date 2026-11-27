@@ -35,14 +35,16 @@ function deferred<T>() {
 
 function clientWith(projects: ProjectRecord[] = []) {
   const rows = new Map(projects.map((record) => [record.id, { project: record, hash: record.id }]));
+  let writes = 0;
   const client: ProjectCloudClient = {
     load: vi.fn(async () => [...rows.values()]),
     hashes: vi.fn(async () => new Map([...rows].map(([id, row]) => [id, { hash: row.hash }]))),
-    save: vi.fn(async (record, hash, expected) => {
+    save: vi.fn(async (record, base) => {
       const current = rows.get(record.id);
-      if ((current?.hash ?? null) !== expected) {
+      if ((current?.hash ?? null) !== (base?.hash ?? null)) {
         return { saved: false, project: current?.project ?? null, hash: current?.hash ?? null };
       }
+      const hash = `${record.id}-${++writes}`;
       rows.set(record.id, { project: record, hash });
       return { saved: true, project: record, hash };
     }),
@@ -106,7 +108,7 @@ describe("project cloud synchronization", () => {
     await sync.flush();
     expect(client.save).toHaveBeenCalledTimes(1);
     expect(vi.mocked(client.save).mock.calls[0][0].id).toBe("two");
-    expect(vi.mocked(client.save).mock.calls[0][2]).toBe("two");
+    expect(vi.mocked(client.save).mock.calls[0][1]?.hash).toBe("two");
   });
 
   it("debounces edits and saves from the Jotai snapshot", async () => {
@@ -191,11 +193,63 @@ describe("project cloud synchronization", () => {
     edit("local");
     await sync.flush();
     expect(client.save).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(client.save).mock.calls[1][2]).toBe("remote");
+    expect(vi.mocked(client.save).mock.calls[1][1]?.hash).toBe("remote");
     expect(store.get(workspaceAtom).projects[0].state.projectData).toMatchObject({
       name: "local",
       description: "remote",
     });
+  });
+
+  it("keeps the combined copy from a merged save without saving it again", async () => {
+    const mine = "0a1b2c3d-4e5f-4a6b-8c7d-8e9fa0b1c2d3";
+    const theirs = "1b2c3d4e-5f6a-4b7c-9d8e-9fa0b1c2d3e4";
+    const experiment = (id: string, name: string) => ({
+      id,
+      name,
+      formData: { project_id: "one", experiment_id: name },
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const start: ProjectRecord = {
+      ...project(),
+      state: {
+        ...project().state,
+        experiments: [experiment(mine, "Mine"), experiment(theirs, "Theirs")],
+      },
+    };
+    const { client, rows, store, sync } = await setup([start]);
+    vi.mocked(client.save).mockImplementationOnce(async (sent) => {
+      // Someone else renamed the other experiment; the server applies this save on top.
+      const combined: ProjectRecord = {
+        ...sent,
+        state: {
+          ...sent.state,
+          experiments: sent.state.experiments.map((item) =>
+            item.id === theirs ? { ...item, name: "Theirs edited" } : item,
+          ),
+        },
+      };
+      rows.set(sent.id, { project: combined, hash: "merged" });
+      return { saved: true, merged: true, project: combined, hash: "merged" };
+    });
+    const loaded = store.get(workspaceAtom).projects[0];
+    store.set(workspaceAtom, (workspace) =>
+      updateProject(workspace, "one", {
+        ...loaded.state,
+        experiments: loaded.state.experiments.map((item) =>
+          item.id === mine ? { ...item, name: "Mine edited" } : item,
+        ),
+      }),
+    );
+    await sync.flush();
+    expect(store.get(workspaceAtom).projects[0].state.experiments.map((item) => item.name)).toEqual(
+      ["Mine edited", "Theirs edited"],
+    );
+    expect(store.get(workspaceAtom).projects[0]).toBe(rows.get("one")?.project);
+    expect(sync.hasPendingChanges()).toBe(false);
+    expect(sync.acknowledgedHash("one")).toBe("merged");
+    await sync.flush();
+    expect(client.save).toHaveBeenCalledTimes(1);
   });
 
   it("follows a delete made elsewhere, even over local edits, and records a notice", async () => {
@@ -385,10 +439,26 @@ describe("project cloud synchronization", () => {
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects[0].updatedAt).toBe(999);
   });
 
-  it("imports a local project with a taken ID as a new copy", async () => {
-    const local = {
+  it("imports a local project with a taken ID as a new copy under new entity IDs", async () => {
+    const experiment = "0a1b2c3d-4e5f-4a6b-8c7d-8e9fa0b1c2d3";
+    const dataset = "2c3d4e5f-6a7b-4c8d-ae9f-a0b1c2d3e4f5";
+    const local: ProjectRecord = {
       ...project("one"),
-      state: { ...project("one").state, projectData: { name: "guest" } },
+      state: {
+        ...project("one").state,
+        projectData: { name: "guest" },
+        experiments: [{ id: experiment, name: "E", formData: {}, createdAt: 1, updatedAt: 1 }],
+        datasets: [
+          {
+            id: dataset,
+            name: "D",
+            formData: {},
+            createdAt: 1,
+            updatedAt: 1,
+            linking: { linkedExperimentInternalId: experiment },
+          },
+        ],
+      },
     };
     localStorage.setItem(
       WORKSPACE_KEY,
@@ -401,6 +471,13 @@ describe("project cloud synchronization", () => {
       "guest",
       "one",
     ]);
+    const copy = [...rows.values()].find((row) => row.project.state.projectData.name === "guest");
+    const [copiedExperiment] = copy?.project.state.experiments ?? [];
+    const [copiedDataset] = copy?.project.state.datasets ?? [];
+    expect(copy?.project.id).not.toBe("one");
+    expect(copiedExperiment.id).not.toBe(experiment);
+    expect(copiedDataset.id).not.toBe(dataset);
+    expect(copiedDataset.linking?.linkedExperimentInternalId).toBe(copiedExperiment.id);
     expect(JSON.parse(localStorage.getItem(WORKSPACE_KEY) ?? "").projects).toEqual([]);
   });
 

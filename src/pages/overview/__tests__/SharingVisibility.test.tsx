@@ -63,6 +63,7 @@ function renderPage(role: ProjectRole | null, cloud = role !== null, page?: Reac
       migrateLocalProjects: vi.fn(),
       remove: vi.fn(),
       refresh: vi.fn(),
+      acknowledgedHash: vi.fn(() => "hash"),
       keepProjectChanges: vi.fn(),
       discardProjectChanges: vi.fn(),
       previewProjectConflict: vi.fn(),
