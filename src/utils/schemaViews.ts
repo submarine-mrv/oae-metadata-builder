@@ -7,7 +7,30 @@
  */
 
 import type { RJSFSchema } from "@rjsf/utils";
-import baseSchema from "@/schema/schema.bundled.json";
+import bundledSchema from "@/schema/schema.bundled.json";
+import { VARIABLE_UUID } from "./variableUuid";
+
+/**
+ * The protocol schema as the Builder holds drafts: every variable class also allows its draft
+ * identity, which exports and publications strip.
+ */
+const baseSchema = {
+  ...bundledSchema,
+  $defs: Object.fromEntries(
+    Object.entries(bundledSchema.$defs).map(([name, def]) => [
+      name,
+      name.endsWith("Variable") && "properties" in def
+        ? {
+            ...def,
+            properties: {
+              ...def.properties,
+              [VARIABLE_UUID]: { type: "string", description: "Draft-only variable identity." },
+            },
+          }
+        : def,
+    ]),
+  ),
+} as typeof bundledSchema;
 
 /**
  * Gets the base Container schema with all definitions and metadata

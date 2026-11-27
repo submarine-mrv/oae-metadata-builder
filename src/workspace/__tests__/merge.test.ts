@@ -153,6 +153,44 @@ describe("project import reconciliation", () => {
         ),
       ).toThrow('"Experiment Description" in experiment "E"');
     });
+
+    describe("dataset variables", () => {
+      const first = "11111111-1111-4111-8111-111111111111";
+      const second = "22222222-2222-4222-8222-222222222222";
+      const variable = (uuid: string, name: string, unit = "m") => ({
+        _uuid: uuid,
+        dataset_variable_name: name,
+        units: unit,
+      });
+      const withVariables = (variables: unknown[]) => {
+        const record = edit({}, { variables });
+        record.state.datasets[0].updatedAt = 1;
+        return record;
+      };
+      const original = withVariables([variable(first, "depth"), variable(second, "temp")]);
+
+      it("keeps edits to different variables from both sides", () => {
+        const merged = reconcileProjectRecord(
+          withVariables([variable(first, "depth", "km"), variable(second, "temp")]),
+          withVariables([variable(first, "depth"), variable(second, "temp", "K")]),
+          original,
+        );
+        expect(merged.state.datasets[0].formData.variables).toEqual([
+          variable(first, "depth", "km"),
+          variable(second, "temp", "K"),
+        ]);
+      });
+
+      it("conflicts when both sides edit the same variable", () => {
+        expect(() =>
+          reconcileProjectRecord(
+            withVariables([variable(first, "depth", "km"), variable(second, "temp")]),
+            withVariables([variable(first, "depth", "cm"), variable(second, "temp")]),
+            original,
+          ),
+        ).toThrow("Newer changes also edited");
+      });
+    });
   });
 
   describe("settling conflicts with a preferred side", () => {

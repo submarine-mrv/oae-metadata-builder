@@ -3,6 +3,7 @@ import { applyImport, type ImportSelection } from "@/utils/applyImport";
 import { fieldLabel } from "@/utils/fieldLabels";
 import { propagateExperimentIdToDatasets, propagateProjectId } from "@/utils/idPropagation";
 import type { DiffSide } from "@/utils/jsonDiff";
+import { variableUuid } from "@/utils/variableUuid";
 import type { ProjectRecord, ProjectState } from "./types";
 
 function canonicalize(value: unknown): unknown {
@@ -185,6 +186,70 @@ type FieldContext = {
   message: (key: string) => string;
 };
 
+/** Each variable keyed by its UUID, or null when any lacks one. */
+function variablesByUuid(value: unknown): Map<string, unknown> | null {
+  if (value === undefined) return new Map();
+  if (!Array.isArray(value)) return null;
+  const entries = value.map((variable) => [variableUuid(variable), variable] as const);
+  if (entries.some(([uuid]) => uuid === undefined)) return null;
+  const byUuid = new Map(entries as [string, unknown][]);
+  return byUuid.size === entries.length ? byUuid : null;
+}
+
+/**
+ * Three-way merge of a dataset's variables, one variable at a time. Deletes win, as they do for
+ * entities. Local order is kept; variables new in the cloud follow it. Returns undefined when a
+ * side has variables without UUIDs, so the caller merges the list as one field.
+ */
+function mergeVariables(
+  local: unknown,
+  remote: unknown,
+  base: unknown,
+  context: FieldContext,
+  resolver?: ConflictResolver,
+): { value: unknown[] } | undefined {
+  const [current, incoming, original] = [local, remote, base].map(variablesByUuid);
+  if (!current || !incoming || !original) return undefined;
+  const merged: unknown[] = [];
+  const name = (variable: unknown) =>
+    (variable as Record<string, unknown>).dataset_variable_name || "(unnamed)";
+  for (const [uuid, mine] of current) {
+    const theirs = incoming.get(uuid);
+    if (!original.has(uuid)) {
+      merged.push(mine);
+      continue;
+    }
+    if (theirs === undefined) continue;
+    const before = original.get(uuid);
+    if (equalData(theirs, before) || equalData(mine, theirs)) {
+      merged.push(mine);
+      continue;
+    }
+    if (!equalData(mine, before)) {
+      const entry: SyncConflict = {
+        key: conflictKey(context.kind, context.entityId, context.part, `variables.${uuid}`),
+        scope: "field",
+        kind: context.kind,
+        ...(context.entityId ? { entityId: context.entityId } : {}),
+        group: context.group,
+        label: `Variable "${name(mine)}"`,
+        message: context.message("variables"),
+        local: { present: true, value: mine },
+        remote: { present: true, value: theirs },
+      };
+      if (decide(entry, resolver) === "local") {
+        merged.push(mine);
+        continue;
+      }
+    }
+    merged.push(theirs);
+  }
+  for (const [uuid, theirs] of incoming) {
+    if (!original.has(uuid) && !current.has(uuid)) merged.push(theirs);
+  }
+  return { value: merged };
+}
+
 /** Three-way merge of top-level fields: take whichever side changed; both changing one field conflicts. */
 function mergeFields<T extends object>(
   local: T,
@@ -197,6 +262,21 @@ function mergeFields<T extends object>(
   const merged = { ...current };
   for (const key of new Set([...Object.keys(original), ...Object.keys(incoming)])) {
     if (equalData(incoming[key], original[key])) continue;
+    if (key === "variables" && context.part === "formData") {
+      const variables = mergeVariables(
+        current[key],
+        incoming[key],
+        original[key],
+        context,
+        resolver,
+      );
+      if (variables) {
+        if (variables.value.length || key in current || key in incoming) {
+          merged[key] = variables.value;
+        }
+        continue;
+      }
+    }
     if (!equalData(current[key], original[key]) && !equalData(current[key], incoming[key])) {
       const entry: SyncConflict = {
         key: conflictKey(context.kind, context.entityId, context.part, key),

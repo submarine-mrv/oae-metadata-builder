@@ -8,6 +8,7 @@ import type {
 import type { ProjectState } from "@/workspace/types";
 import { cleanFormData } from "./formDataCleanup";
 import { propagateProjectId } from "./idPropagation";
+import { withVariableUuids } from "./variableUuid";
 
 export interface ImportSelection {
   project: DraftProject | null;
@@ -135,7 +136,7 @@ export function applyImport(prev: ProjectState, selection: ImportSelection): Pro
     newDatasets.push({
       id: crypto.randomUUID(),
       name: dsName || `Dataset ${newDatasets.length + 1}`,
-      formData: finalFormData,
+      formData: withVariableUuids(finalFormData),
       linking: datasetLinking,
       createdAt: Date.now(),
       updatedAt: Date.now(),

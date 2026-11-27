@@ -10,6 +10,7 @@ import { trackEvent } from "@/utils/analytics";
 import { migrateDataset, migrateExperiment, migrateProject } from "@/utils/migrations";
 import { parseDataset, parseExperiment, parseProject } from "@/utils/parseEntity";
 import { getBaseSchema, getProtocolMetadata } from "./schemaViews";
+import { withoutVariableUuids } from "./variableUuid";
 
 /** Defensive record coercion for entries of imported arrays. */
 function asImportRecord(raw: unknown): Record<string, unknown> {
@@ -62,7 +63,8 @@ export function buildMetadataDocument(
     version: protocolMetadata.version,
     project: cleanedProjectData,
     experiments: includeExperiments ? experiments.map((exp) => exp.formData) : [],
-    datasets: includeDatasets ? datasets.map((ds) => ds.formData) : [],
+    // Variable UUIDs are draft identity only; the protocol doesn't define them.
+    datasets: includeDatasets ? datasets.map((ds) => withoutVariableUuids(ds.formData)) : [],
   };
 }
 
